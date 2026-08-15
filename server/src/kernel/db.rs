@@ -62,6 +62,13 @@ impl Db {
         Ok(())
     }
 
+    /// Runs a [`Migrator`](sqlx::migrate::Migrator) that is not this crate's
+    /// own — what an outside crate carries in on [`Outside`](super::outside::Outside).
+    pub async fn migrate_with(&self, migrator: &sqlx::migrate::Migrator) -> Result<()> {
+        migrator.run(&self.pool).await.map_err(sqlx::Error::from)?;
+        Ok(())
+    }
+
     pub async fn tenant(&self, tenant: TenantId) -> Result<TenantConn> {
         TenantConn::begin(self, tenant).await
     }

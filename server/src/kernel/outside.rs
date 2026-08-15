@@ -29,6 +29,11 @@ pub struct Outside {
     /// things answer for is one the queue would hand to whichever matched
     /// first, silently.
     pub jobs: Vec<(&'static str, JobFn)>,
+    /// Tables an outside crate owns. Run after this crate's own migrations
+    /// and never before: theirs may reference a table this crate created —
+    /// a tenant, a site — but nothing this crate does may ever come to
+    /// depend on a table only an outside crate knows how to build.
+    pub migrations: Option<sqlx::migrate::Migrator>,
 }
 
 impl std::fmt::Debug for Outside {
@@ -39,6 +44,7 @@ impl std::fmt::Debug for Outside {
                 "jobs",
                 &self.jobs.iter().map(|(kind, _)| *kind).collect::<Vec<_>>(),
             )
+            .field("migrations", &self.migrations.is_some())
             .finish()
     }
 }

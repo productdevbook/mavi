@@ -19,12 +19,20 @@ placeholder='host|your-host|localhost|127\.0\.0\.1|postgres|db|\$\{|\{'
 
 patterns=(
   "[a-z0-9._%+-]+@(?!${reserved})[a-z0-9-]+\.[a-z]{2,}"
-  '\b[a-z0-9-]+\.(vucod\.com|com\.tr)\b'
   'AKIA[0-9A-Z]{16}'
   'gh[pousr]_[A-Za-z0-9]{36}'
   '-----BEGIN [A-Z ]*PRIVATE KEY-----'
   "postgres(ql)?://[^:[:space:]]+:[^@[:space:]]+@(?!${placeholder})"
 )
+
+# Whoever runs this in front of their own installation has names of their own
+# that must never reach a commit — their machine, their customers'. This file
+# names none of them: a public repository that lists somebody's domains has
+# published the list. Set MAVI_FORBIDDEN_HOSTS to an alternation of your own
+# (`example\.com|example\.org`) and they are checked for too.
+if [ -n "${MAVI_FORBIDDEN_HOSTS:-}" ]; then
+  patterns+=("\\b[a-z0-9-]+\\.(${MAVI_FORBIDDEN_HOSTS})\\b")
+fi
 
 found=0
 

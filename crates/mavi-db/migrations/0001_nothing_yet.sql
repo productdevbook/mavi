@@ -1,0 +1,11 @@
+-- Nothing yet.
+--
+-- The schema is written a domain at a time, beside the crate that owns it, and
+-- this file exists so that `sqlx::migrate!` has a directory to read and an
+-- installation that starts with no domains still has a migration table to
+-- record what it has run.
+--
+-- One numbering, one directory, one set of checksums: a version claimed twice
+-- is a database that refuses to migrate at all, and there is no second place
+-- for a version to come from.
+select 1;

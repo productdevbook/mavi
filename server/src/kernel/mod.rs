@@ -42,6 +42,6 @@ pub mod typescript;
 pub mod webhook;
 pub mod worker;
 
-pub use config::Config;
+pub use config::{Address, Config};
 pub use error::{AppError, Code, Result};
 pub use tenant::TenantId;

@@ -182,7 +182,34 @@ async fn a_site_that_has_written_nothing_still_sends_something() {
         body.contains("A shop"),
         "the site's own name is not in it: {body}"
     );
-    assert!(body.contains("/forgotten?token="), "{body}");
+    is_a_url_somebody_can_click(&body, "/forgotten?token=");
+}
+
+/// Read the way somebody reading the letter would read it: find the word that
+/// is meant to be the link and ask whether it is a whole URL. Asserting the
+/// path alone is what held the bare-path shape in place — `/forgotten?token=`
+/// is in the body either way, and only one of the two is clickable.
+fn is_a_url_somebody_can_click(body: &str, ending_in: &str) {
+    let link = body
+        .split_whitespace()
+        .find(|word| word.contains(ending_in))
+        .unwrap_or_else(|| panic!("nothing in it looks like a link: {body}"));
+
+    let (scheme, rest) = link
+        .split_once("://")
+        .unwrap_or_else(|| panic!("a bare path is not a link: {link}"));
+
+    assert!(
+        matches!(scheme, "http" | "https"),
+        "a mail client will not follow {scheme}: {link}"
+    );
+
+    let (host, path) = rest
+        .split_once('/')
+        .unwrap_or_else(|| panic!("a link with no path on it: {link}"));
+
+    assert!(!host.is_empty(), "a link with no host in it: {link}");
+    assert!(path.contains(ending_in.trim_start_matches('/')), "{link}");
 }
 
 #[tokio::test]

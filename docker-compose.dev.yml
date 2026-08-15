@@ -35,6 +35,11 @@ services:
       # because a key that changes on restart is a site whose secrets are
       # unreadable afterwards.
       MAVI_KEYS: ${MAVI_KEYS:?set MAVI_KEYS in .env — see .env.example}
+      # The address this answers on, as somebody outside would type it. Asked
+      # for rather than defaulted: it is what a link in a letter is built from,
+      # a job sending one has no request to take an address off, and a guess
+      # here would send everybody links that work on this machine alone.
+      MAVI_URL: ${MAVI_URL:?set MAVI_URL in .env — see .env.example}
       # api, worker, or both. One process can do both; two make the queue
       # somebody else's problem when the API is busy.
       MAVI_ROLE: ${MAVI_ROLE:-both}

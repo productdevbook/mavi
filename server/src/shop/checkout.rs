@@ -533,7 +533,9 @@ async fn somewhere_to_pay(
             order_id: order.id,
             amount: order.total,
             email: email.as_str().to_owned(),
-            back_to: format!("/orders/{}", order.id),
+            // Whole, because a provider's own page is what redirects here: a
+            // path alone would send somebody back to the provider's site.
+            back_to: state.address.link(&format!("/orders/{}", order.id)),
         })
         .await
     {

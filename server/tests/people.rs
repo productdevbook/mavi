@@ -1130,3 +1130,90 @@ async fn a_way_in_is_not_sent_to_an_address_nobody_has_proved() {
         "an address nobody has proved was sent a second way in"
     );
 }
+
+/// The letter that gets somebody back into their account was built out of a
+/// bare path, which no mail client turns into a link and which goes nowhere
+/// pasted into a browser — so password reset did not work by mail at all, on
+/// any installation. Read here the way the reader reads it.
+#[tokio::test]
+async fn the_way_back_into_an_account_is_a_whole_url() {
+    let site = a_site().await;
+
+    let invited = format!("someone-{}@example.test", Uuid::now_v7().simple());
+
+    site.send(
+        "POST",
+        "/api/people",
+        Some(&site.token),
+        Some(serde_json::json!({
+            "email": invited, "name": "Somebody", "role_id": site.owner_role
+        })),
+    )
+    .await;
+
+    // Spending the invitation is what proves the address, and only a proved
+    // address is ever sent a way back in.
+    let ticket = site.ticket_for(&invited).await;
+
+    site.send(
+        "POST",
+        "/api/auth/password",
+        None,
+        Some(serde_json::json!({
+            "token": ticket, "password": "a long enough password"
+        })),
+    )
+    .await;
+
+    let (status, _) = site
+        .send(
+            "POST",
+            "/api/auth/reset",
+            None,
+            Some(serde_json::json!({ "email": invited })),
+        )
+        .await;
+
+    assert_eq!(status, StatusCode::ACCEPTED);
+
+    // Written by a request and put in front of the reader by a job, which has
+    // no request behind it and so nothing to take an address from.
+    let mut state = AppState::new(site.db.clone());
+    state.mailer = std::sync::Arc::new(Mailer::Recorded(site.post.clone()));
+
+    for _ in 0..8 {
+        mavi::jobs::tick_within(&state, "test", Some(site.tenant))
+            .await
+            .expect("tick");
+    }
+
+    let letters = site.post.all();
+
+    let letter = letters
+        .iter()
+        .rev()
+        .find(|letter| letter.to == invited && letter.subject == "A new password")
+        .expect("a way back in");
+
+    let link = letter
+        .body
+        .split_whitespace()
+        .find(|word| word.contains("token="))
+        .unwrap_or_else(|| panic!("nothing in it looks like a link: {}", letter.body));
+
+    let (scheme, rest) = link
+        .split_once("://")
+        .unwrap_or_else(|| panic!("a bare path is not a link anybody can click: {link}"));
+
+    assert!(
+        matches!(scheme, "http" | "https"),
+        "a mail client will not follow {scheme}: {link}"
+    );
+
+    let (host, path) = rest
+        .split_once('/')
+        .unwrap_or_else(|| panic!("a link with no path on it: {link}"));
+
+    assert!(!host.is_empty(), "a link with no host in it: {link}");
+    assert!(path.contains("forgotten?token="), "{link}");
+}

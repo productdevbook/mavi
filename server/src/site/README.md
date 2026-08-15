@@ -1,10 +1,33 @@
 # site
 
 The three things a site owes: what it has published, a copy of what it holds
-about somebody, and taking that away when they ask.
+about somebody, and taking that away when they ask. And what it is itself:
+its name, how much room it has left, and — at `/api/site/usage` — what it is
+holding and what it has done.
 
 **Who reaches it.** The panel, with `people:view` to give somebody their copy
-and `people:delete` to erase them. `llms.txt` is public and rate limited.
+and `people:delete` to erase them. `settings:view` reads `/api/site` and
+`/api/site/usage`; `settings:write` renames the site. `llms.txt` is public and
+rate limited.
+
+**`/api/site/usage` is a number about this installation, never a number about
+what somebody owes.** Storage used and by what, mail attempted and delivered
+and bounced, recent builds and how long each took, the queue's backlog and how
+old the oldest waiting job is, and rows by kind. No prices, no plans, no
+quota — `storage_limit_bytes` is what a site may take and stays out of this;
+this is only what it has taken. It replaces what `usage_events` and `charges`
+(#11, #35) used to count for a bill: `mail_sent` and `build_seconds` are read
+here from `email_log` and `publishes` themselves rather than from a daily
+tally kept beside them, and `storage_bytes_day`, `bandwidth_bytes`, and
+everything in `charges` and `ledger` are the second kind and answer nothing
+here.
+
+**Rows by kind are estimated, not counted.** A `count(*)` over every table on
+every load of this screen is a page that gets slower exactly as the site gets
+bigger — the moment nobody wants to be waiting on it. `reltuples`, which
+Postgres already keeps for its own planner, stands in instead; it lags
+whatever autovacuum has not analyzed yet, close enough for "how big has this
+gotten" and offered as nothing more exact than that.
 
 **Tables it owns.** None. It reads across the domains that hold somebody's
 data, from one list.

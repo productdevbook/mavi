@@ -7,6 +7,7 @@ use axum::Json;
 use axum::extract::State as Injected;
 use axum::http::header::CONTENT_TYPE;
 use axum::response::{IntoResponse, Response};
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sqlx::Row;
@@ -32,6 +33,21 @@ const ABOUT_A_PERSON: &[(&str, &str)] = &[
     ("subscribers", "email"),
     ("orders", "email"),
     ("email_log", "to_email"),
+];
+
+/// One table per kind of thing a site does, for "how many rows of what kind".
+/// A table added here without a matching one added to another domain's own
+/// list is nobody's bug but this one's to keep current.
+const ROW_KINDS: &[&str] = &[
+    "posts",
+    "media",
+    "products",
+    "orders",
+    "students",
+    "form_submissions",
+    "subscribers",
+    "users",
+    "cards",
 ];
 
 #[must_use]
@@ -67,6 +83,16 @@ pub fn endpoints() -> Vec<Endpoint> {
         )
         .takes::<SettingsChanges>()
         .gives::<Settings>(),
+        Endpoint::get(
+            "/api/site/usage",
+            Guard {
+                audience: Audience::User,
+                needs: Some(Needs::new(Capability::Settings, Access::View)),
+                rate: RatePolicy::None,
+            },
+            usage,
+        )
+        .gives::<Usage>(),
         Endpoint::post(
             "/api/people/export",
             Guard {
@@ -190,6 +216,177 @@ async fn read_settings(conn: &mut TenantConn, caller: &Caller) -> Result<Setting
         storage_used_bytes: 0,
         storage_limit_bytes: None,
     }))
+}
+
+/// What this installation is holding and what it has done — no price
+/// anywhere in it. This is the site's own read of itself, for the moment
+/// somebody is asking "why is my disk full" or "did that campaign actually
+/// go out" rather than browsing.
+#[derive(Debug, Serialize, utoipa::ToSchema)]
+pub struct Usage {
+    pub storage: StorageUsage,
+    /// How many rows of each kind, estimated rather than counted: see
+    /// `RowCount`.
+    pub rows: Vec<RowCount>,
+    pub mail: MailUsage,
+    /// Most recent first.
+    pub builds: Vec<RecentBuild>,
+    pub queue: QueueUsage,
+}
+
+#[derive(Debug, Serialize, utoipa::ToSchema)]
+pub struct StorageUsage {
+    pub used_bytes: i64,
+    pub by_kind: Vec<StorageKind>,
+}
+
+#[derive(Debug, Serialize, sqlx::FromRow, utoipa::ToSchema)]
+pub struct StorageKind {
+    /// The first half of the file's own mime type: `image`, `video`,
+    /// `application`, and so on — not this machine's word for it.
+    pub kind: String,
+    pub bytes: i64,
+    pub count: i64,
+}
+
+/// Rows of one kind, estimated from what Postgres already tracks for its own
+/// planner rather than counted fresh on every load. `reltuples` is refreshed
+/// by autovacuum without a table having to be walked for this alone; it lags
+/// whatever has not been analyzed since the last change, which is close
+/// enough for "how big has this gotten" and is not offered as anything more
+/// exact than that.
+#[derive(Debug, Serialize, sqlx::FromRow, utoipa::ToSchema)]
+pub struct RowCount {
+    pub kind: String,
+    pub approx_rows: i64,
+}
+
+/// What was sent, and what became of it. `attempted` is everything this site
+/// tried to hand to a provider; `delivered` is what a provider confirmed
+/// reaching an inbox, which is fewer things than `attempted` on a machine with
+/// no delivery webhook configured, and that gap is itself an answer.
+#[derive(Debug, Serialize, sqlx::FromRow, utoipa::ToSchema)]
+pub struct MailUsage {
+    pub attempted: i64,
+    pub delivered: i64,
+    pub bounced: i64,
+    pub failed: i64,
+}
+
+/// One build. `seconds` is null for one that never finished.
+#[derive(Debug, Serialize, sqlx::FromRow, utoipa::ToSchema)]
+pub struct RecentBuild {
+    pub state: String,
+    pub seconds: Option<i32>,
+    pub finished_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Serialize, sqlx::FromRow, utoipa::ToSchema)]
+pub struct QueueUsage {
+    pub waiting: i64,
+    pub running: i64,
+    pub failed: i64,
+    pub dead: i64,
+    /// When the oldest job still waiting was queued. Null when nothing is.
+    pub oldest_waiting_since: Option<DateTime<Utc>>,
+}
+
+async fn usage(
+    Injected(state): Injected<AppState>,
+    caller: Caller,
+    _permit: Permit,
+) -> Result<Json<Usage>> {
+    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let found = read_usage(&mut conn).await?;
+    conn.commit().await?;
+
+    Ok(Json(found))
+}
+
+async fn read_usage(conn: &mut TenantConn) -> Result<Usage> {
+    let by_kind: Vec<StorageKind> = sqlx::query_as(
+        "select split_part(mime, '/', 1) as kind,
+                sum(bytes)::bigint as bytes,
+                count(*)::bigint as count
+           from media
+          where deleted_at is null
+          group by 1
+          order by 2 desc",
+    )
+    .fetch_all(conn.conn())
+    .await?;
+
+    let used_bytes = by_kind.iter().map(|kind| kind.bytes).sum();
+
+    // An estimate rather than a count: `count(*)` once per table on every load
+    // of this screen is a page that gets slower exactly as the site gets
+    // bigger, which is the moment nobody wants to be waiting on it.
+    let rows: Vec<RowCount> = sqlx::query_as(
+        "select c.relname as kind, greatest(c.reltuples, 0)::bigint as approx_rows
+           from pg_class c
+           join pg_namespace n on n.oid = c.relnamespace
+          where n.nspname = current_schema()
+            and c.relname = any($1::text[])
+          order by array_position($1::text[], c.relname)",
+    )
+    .bind(ROW_KINDS)
+    .fetch_all(conn.conn())
+    .await?;
+
+    // `email_log` is swept at two years old, so this scan is bounded by that
+    // rather than by everything a site has ever sent. `delivered` comes from
+    // `mail_events` rather than `email_log.state`: the state a message is
+    // written with says this machine handed it to a provider, not that the
+    // provider handed it to an inbox.
+    let mail: MailUsage = sqlx::query_as(
+        "select
+            count(*) filter (where state <> 'queued') as attempted,
+            (select count(distinct email_log_id) from mail_events
+              where kind = 'delivered') as delivered,
+            count(*) filter (where state = 'bounced') as bounced,
+            count(*) filter (where state = 'failed') as failed
+           from email_log",
+    )
+    .fetch_one(conn.conn())
+    .await?;
+
+    let builds: Vec<RecentBuild> = sqlx::query_as(
+        "select state::text as state, seconds, finished_at
+           from publishes
+          order by created_at desc
+          limit 20",
+    )
+    .fetch_all(conn.conn())
+    .await?;
+
+    // `done` jobs are not swept yet, so counting them here would grow with
+    // everything the queue has ever finished rather than with what it is
+    // holding now — `jobs_tenant_backlog_idx` exists so this stays a lookup
+    // into the backlog rather than a scan of the site's whole job history.
+    let queue: QueueUsage = sqlx::query_as(
+        "select
+            count(*) filter (where state = 'ready' and run_at <= now()) as waiting,
+            count(*) filter (where state = 'running') as running,
+            count(*) filter (where state = 'failed') as failed,
+            count(*) filter (where state = 'dead') as dead,
+            min(created_at) filter (where state = 'ready' and run_at <= now())
+                as oldest_waiting_since
+           from jobs
+          where state <> 'done'",
+    )
+    .fetch_one(conn.conn())
+    .await?;
+
+    Ok(Usage {
+        storage: StorageUsage {
+            used_bytes,
+            by_kind,
+        },
+        rows,
+        mail,
+        builds,
+        queue,
+    })
 }
 
 /// What a site is, for something reading rather than browsing. Written from

@@ -9,7 +9,10 @@ use super::error::{AppError, Result};
 use super::secret::Secret;
 
 /// What a builder is given: a site, a branch, and the files as they are.
-#[derive(Clone, Debug, Serialize)]
+/// Both sides of the wire read this from here rather than each writing their
+/// own: two copies of a shape are two things to keep in step, and the one
+/// that drifts is found by a build that quietly does nothing.
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Building {
     pub tenant: uuid::Uuid,
     pub branch: String,
@@ -17,7 +20,7 @@ pub struct Building {
 }
 
 /// What it says afterwards.
-#[derive(Clone, Debug, PartialEq, Eq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Built {
     pub ok: bool,
     /// What it said while it worked, which is what somebody reads when it did

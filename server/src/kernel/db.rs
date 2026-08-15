@@ -54,11 +54,17 @@ impl Db {
         Ok(Self { pool })
     }
 
+    /// This crate's own migrations.
+    ///
+    /// Told not to object to versions it does not know: everything that has
+    /// run is recorded in one table, so once a crate outside this one has
+    /// carried its own in, they are sitting there — and a process that
+    /// refused to start because of them would be a machine that came up once
+    /// and never again.
     pub async fn migrate(&self) -> Result<()> {
-        sqlx::migrate!("./migrations")
-            .run(&self.pool)
-            .await
-            .map_err(sqlx::Error::from)?;
+        let mut ours = sqlx::migrate!("./migrations");
+        ours.set_ignore_missing(true);
+        ours.run(&self.pool).await.map_err(sqlx::Error::from)?;
         Ok(())
     }
 
@@ -103,7 +109,10 @@ impl Db {
         OperatorConn::begin(self).await
     }
 
-    pub(crate) fn pool(&self) -> &PgPool {
+    /// The pool underneath, for a crate outside this one that has to reach
+    /// the database in a way nothing here does yet.
+    #[must_use]
+    pub fn pool(&self) -> &PgPool {
         &self.pool
     }
 }

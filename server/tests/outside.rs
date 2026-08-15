@@ -487,3 +487,20 @@ fn an_outside_retention_policy_is_held_to_the_same_gate() {
         );
     }
 }
+
+/// The one that would have been found by a machine that came up once and
+/// never again: everything that has run is recorded in one table, so after an
+/// outside crate's migrations are in it, this crate's own run has to go on
+/// working — every restart is that run.
+#[tokio::test]
+async fn this_crate_still_migrates_after_an_outside_crate_has() {
+    let db = common::a_machine_of_its_own().await;
+
+    db.migrate_with(sqlx::migrate!("./tests/fixtures/outside_migrations"))
+        .await
+        .expect("an outside crate's own");
+
+    db.migrate()
+        .await
+        .expect("this crate's own, with theirs already recorded");
+}

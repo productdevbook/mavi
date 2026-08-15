@@ -8,7 +8,7 @@
 use mavi_core::error::Code;
 use serde_json::{Map, Value, json};
 
-use crate::{Answers, Api, Endpoint, In, Parameter, Who};
+use crate::{Api, Endpoint, In, Parameter, Who};
 
 /// The whole description.
 #[must_use]
@@ -21,7 +21,7 @@ pub fn openapi(api: &Api, version: &str) -> Value {
             .or_insert_with(|| json!({}));
 
         if let Some(object) = entry.as_object_mut() {
-            object.insert(endpoint.method.lower().to_owned(), operation(api, endpoint));
+            object.insert(endpoint.method.lower().to_owned(), operation(endpoint));
         }
     }
 
@@ -58,7 +58,7 @@ pub fn openapi(api: &Api, version: &str) -> Value {
     })
 }
 
-fn operation(api: &Api, endpoint: &Endpoint) -> Value {
+fn operation(endpoint: &Endpoint) -> Value {
     let mut responses = Map::new();
 
     responses.insert(
@@ -182,7 +182,7 @@ fn refusal() -> Value {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Endpoint, Is, Method, Parameter};
+    use crate::{Answers, Endpoint, Is, Method, Parameter};
 
     fn an_api() -> Api {
         Api::of(vec![

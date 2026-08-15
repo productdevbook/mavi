@@ -9,6 +9,7 @@ pub mod authz;
 pub mod browser;
 pub mod builder;
 pub mod clock;
+pub mod config;
 pub mod crypto;
 pub mod db;
 pub mod domain;
@@ -41,5 +42,6 @@ pub mod typescript;
 pub mod webhook;
 pub mod worker;
 
+pub use config::Config;
 pub use error::{AppError, Code, Result};
 pub use tenant::TenantId;

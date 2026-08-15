@@ -50,6 +50,18 @@ pub struct Hosted {
 }
 
 impl Payments {
+    /// A hosted page: where to ask, what to ask with, and what its callbacks
+    /// are signed with.
+    #[must_use]
+    pub fn hosted(name: String, at: String, key: Secret<String>, signing: Secret<String>) -> Self {
+        Payments::Hosted(Hosted {
+            name,
+            at,
+            key,
+            signing,
+        })
+    }
+
     #[must_use]
     pub fn from_env() -> Self {
         let (Ok(at), Ok(key), Ok(signing)) = (
@@ -60,12 +72,12 @@ impl Payments {
             return Payments::Absent;
         };
 
-        Payments::Hosted(Hosted {
-            name: std::env::var("PAYMENTS_PROVIDER").unwrap_or_else(|_| "hosted".to_owned()),
+        Payments::hosted(
+            std::env::var("PAYMENTS_PROVIDER").unwrap_or_else(|_| "hosted".to_owned()),
             at,
-            key: Secret::new(key),
-            signing: Secret::new(signing),
-        })
+            Secret::new(key),
+            Secret::new(signing),
+        )
     }
 
     #[must_use]

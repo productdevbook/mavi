@@ -89,7 +89,6 @@ impl Grants {
         self.0.contains(grant)
     }
 
-    #[must_use]
     pub fn all(&self) -> impl Iterator<Item = &str> {
         self.0.iter().map(String::as_str)
     }

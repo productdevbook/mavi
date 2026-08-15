@@ -8,10 +8,12 @@ description = "What this site is: its name, what it writes in, and which of thos
 [dependencies]
 mavi-api = { path = "../mavi-api" }
 mavi-core = { path = "../mavi-core" }
+mavi-db = { path = "../mavi-db" }
 mavi-people = { path = "../mavi-people" }
 
 serde = { workspace = true }
 serde_json = { workspace = true }
+sqlx = { workspace = true }
 
 [lints]
 workspace = true

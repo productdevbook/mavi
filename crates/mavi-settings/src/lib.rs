@@ -6,6 +6,7 @@
 //! rather than merely never written.
 
 pub mod language;
+pub mod store;
 
 use mavi_api::{Answers, Endpoint, Is, Method, Parameter, Who};
 use mavi_core::error::{Code, Error, Result};

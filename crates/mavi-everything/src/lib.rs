@@ -120,23 +120,44 @@ mod tests {
         assert!(twice.is_empty(), "{twice:#?}");
     }
 
+    /// The ways in.
+    ///
+    /// Anybody may reach these, and none of them is under `/api/open/`,
+    /// because they are not what a site shows the world — they are how
+    /// somebody stops being a stranger: signing in, asking for a password
+    /// link, proving an address. The list is written out here so that a fourth
+    /// one is a line somebody adds on purpose in this file, rather than a
+    /// declaration in a domain that nothing ever compares against anything.
+    const THE_WAYS_IN: &[&str] = &["/api/sessions", "/api/passwords", "/api/addresses"];
+
     #[test]
-    fn everything_anybody_at_all_can_reach_is_under_one_prefix() {
+    fn everything_anybody_at_all_can_reach_is_a_way_in_or_says_it_is_open() {
         // "What can somebody who is not signed in get to" answered by reading
         // a list of paths, across the whole installation rather than one
         // domain at a time.
-        let open: Vec<&str> = endpoints()
+        let reachable: Vec<&str> = endpoints()
             .iter()
             .filter(|e| e.who == Who::Anybody)
             .map(|e| e.path)
+            .filter(|path| !path.starts_with("/api/open/") && !THE_WAYS_IN.contains(path))
             .collect();
 
-        assert!(
-            open.iter().all(|path| path.starts_with("/api/open/")
-                || path.starts_with("/api/sessions")
-                || path.starts_with("/api/setup")),
-            "{open:#?}"
-        );
+        assert!(reachable.is_empty(), "{reachable:#?}");
+    }
+
+    #[test]
+    fn nothing_that_is_not_a_way_in_asks_to_be_treated_as_one() {
+        // The other direction, and the one that matters more: a path in the
+        // list above that is no longer open to anybody is a line nobody
+        // notices has stopped meaning anything.
+        for way_in in THE_WAYS_IN {
+            assert!(
+                endpoints()
+                    .iter()
+                    .any(|e| e.path == *way_in && e.who == Who::Anybody),
+                "{way_in} is listed as a way in and nothing open answers there"
+            );
+        }
     }
 
     #[test]

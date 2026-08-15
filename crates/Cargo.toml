@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["mavi-core", "mavi-db", "mavi-api", "mavi-content", "mavi-people", "mavi-http", "mavi-taxonomy", "mavi-media", "mavi-forms", "mavi-mail", "mavi-work"]
+members = ["mavi-core", "mavi-db", "mavi-api", "mavi-content", "mavi-people", "mavi-http", "mavi-taxonomy", "mavi-media", "mavi-forms", "mavi-mail", "mavi-work", "mavi-audit"]
 
 # One place, so a member cannot quietly hold a different version of the thing
 # beside it. A member names the dependency and says `workspace = true`.

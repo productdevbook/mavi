@@ -48,6 +48,8 @@ const WORDING: Record<string, (named: Record<string, string>) => string> = {
     t`This machine already has somebody running it.`,
   this_machine_is_not_set_up_yet: () =>
     t`This machine has nobody running it yet. Set it up first.`,
+  this_database_holds_more_than_one_site: () =>
+    t`This database holds more than one site and this version serves one. It has to be split before this version can serve it.`,
   that_site_already_answers_to_that_name: () =>
     t`A site already answers to that name.`,
   a_language_is_two_letters_and_a_place: () =>

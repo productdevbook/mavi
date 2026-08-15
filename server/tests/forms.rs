@@ -15,7 +15,7 @@ use uuid::Uuid;
 mod common;
 
 use common::harness;
-use mavi::testing::{a_role, a_tenant, a_user, an_owner_role};
+use mavi::testing::{a_role, a_tenant, a_user};
 
 struct Site {
     db: Db,
@@ -83,11 +83,6 @@ async fn a_site_with(grants: &[String]) -> Site {
 }
 
 async fn everything_granted() -> Site {
-    let db = harness().await;
-    let host = format!("{}.example", Uuid::now_v7().simple());
-    let tenant = a_tenant(&db, &host).await;
-    let _ = an_owner_role(&db, tenant).await;
-
     a_site_with(&mavi::kernel::authz::every_grant()).await
 }
 

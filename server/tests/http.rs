@@ -185,6 +185,50 @@ async fn before_anybody_has_set_it_up_an_endpoint_says_so() {
     assert_eq!(refused["error"]["key"], "this_machine_is_not_set_up_yet");
 }
 
+/// A database made by a build that served many sites still divides them: the
+/// `tenant_id` and the policies are all still there, and only the thing that
+/// chose between them has gone. Choosing one anyway would be one site's panel
+/// showing another site's posts with nothing anywhere saying so, so it refuses
+/// instead — which is also how somebody finds out their database has to be
+/// split before this version can serve it.
+#[tokio::test]
+async fn a_database_holding_more_than_one_site_is_refused_rather_than_guessed_at() {
+    let db = harness().await;
+
+    for _ in 0..2 {
+        a_tenant(&db, &format!("{}.example", uuid::Uuid::now_v7().simple())).await;
+    }
+
+    let router = mavi::router(AppState::new(db));
+
+    let request = Request::builder()
+        .method("GET")
+        .uri("/api/auth/me")
+        .body(Body::empty())
+        .expect("a request");
+
+    let response = router.oneshot(request).await.expect("a response");
+
+    assert_eq!(
+        response.status(),
+        StatusCode::CONFLICT,
+        "a request was answered about one of two sites"
+    );
+
+    let bytes = response
+        .into_body()
+        .collect()
+        .await
+        .expect("a body")
+        .to_bytes();
+    let refused: serde_json::Value = serde_json::from_slice(&bytes).expect("json");
+
+    assert_eq!(
+        refused["error"]["key"],
+        "this_database_holds_more_than_one_site"
+    );
+}
+
 /// What this build serves without an account, and what limits those carry.
 /// Adding to this list is a change to this file, which is the point.
 #[test]

@@ -27,13 +27,18 @@ pub struct Site {
 
 /// An address nothing claims is refused, rather than answered by whichever site
 /// is first or by the operator's own installation.
-pub async fn resolve_host(db: &Db, host: &str) -> Result<Site> {
-    let host = host
-        .split(':')
+/// The form every address is compared in: no port, no trailing dot, lowercase.
+#[must_use]
+pub fn normalize_host(host: &str) -> String {
+    host.split(':')
         .next()
         .unwrap_or(host)
         .trim_end_matches('.')
-        .to_ascii_lowercase();
+        .to_ascii_lowercase()
+}
+
+pub async fn resolve_host(db: &Db, host: &str) -> Result<Site> {
+    let host = normalize_host(host);
 
     // Every site's addresses, said out loud: at this point nobody is a site
     // yet, which is the whole reason this read exists.

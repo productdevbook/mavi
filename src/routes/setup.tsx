@@ -25,12 +25,13 @@ export const Route = createFileRoute("/setup")({
 })
 
 /**
- * Setting the machine up: one account, once.
+ * Setting the machine up: one account, once — and the one site that comes
+ * with it, made in the same request.
  *
  * There is nothing else to ask. The database is where the machine was told it
- * is before it started, a site is made from the console afterwards, and the
- * one thing nobody else can do is be the first person — which is why this is
- * the only change in the whole API that asks for no grant at all.
+ * is before it started, the site's address is whatever this was reached on,
+ * and the one thing nobody else can do is be the first person — which is why
+ * this is the only change in the whole API that asks for no grant at all.
  */
 function SetupRoute() {
   const { t } = useLingui()

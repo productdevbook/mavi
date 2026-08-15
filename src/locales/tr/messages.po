@@ -1813,7 +1813,7 @@ msgstr "Asistanlar"
 #~ msgid "At least {MINIMUM_PASSWORD} characters. Changing it signs you out everywhere, this browser included."
 #~ msgstr "En az {MINIMUM_PASSWORD} karakter. Değiştirmek sizi bu tarayıcı dahil her yerde oturumdan çıkarır."
 
-#: src/routes/setup.tsx:140
+#: src/routes/setup.tsx:141
 msgid "At least twelve characters."
 msgstr "En az on iki karakter."
 
@@ -3637,7 +3637,7 @@ msgstr "Genel yayın yönetmeni"
 #: src/routes/dashboard.users.tsx:317
 #: src/routes/forgotten.tsx:166
 #: src/routes/login.tsx:130
-#: src/routes/setup.tsx:117
+#: src/routes/setup.tsx:118
 msgid "Email"
 msgstr "E-posta"
 
@@ -6612,7 +6612,7 @@ msgstr "Paragraf"
 #: src/learn/app.tsx:170
 #: src/routes/forgotten.tsx:111
 #: src/routes/login.tsx:144
-#: src/routes/setup.tsx:130
+#: src/routes/setup.tsx:131
 msgid "Password"
 msgstr "Parola"
 
@@ -7876,7 +7876,7 @@ msgstr "Tırnaklı"
 msgid "Set one up"
 msgstr "Kur"
 
-#: src/routes/setup.tsx:145
+#: src/routes/setup.tsx:146
 msgid "Set up"
 msgstr "Kur"
 
@@ -8778,7 +8778,7 @@ msgstr "Eğri, ilk ziyaretten itibaren kendini çizer."
 msgid "The files"
 msgstr "Dosyalar"
 
-#: src/routes/setup.tsx:87
+#: src/routes/setup.tsx:88
 msgid "The first account"
 msgstr "İlk hesap"
 
@@ -9148,7 +9148,7 @@ msgstr "Bu adres Model Context Protocol konuşur; bir asistanı buraya yöneltip
 msgid "This is not yours to open"
 msgstr "Bunu açmak sizin yetkinizde değil"
 
-#: src/routes/setup.tsx:90
+#: src/routes/setup.tsx:91
 msgid "This is the account that runs the machine. Everybody else is invited from inside, and this screen never appears again."
 msgstr "Bu, makineyi yöneten hesaptır. Diğer herkes içeriden davet edilir ve bu ekran bir daha görünmez."
 
@@ -10647,7 +10647,7 @@ msgstr "Evet ya da hayır"
 #~ msgid "Your monthly hosting"
 #~ msgstr "Aylık hostinginiz"
 
-#: src/routes/setup.tsx:105
+#: src/routes/setup.tsx:106
 msgid "Your name"
 msgstr "Adınız"
 

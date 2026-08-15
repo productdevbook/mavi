@@ -155,6 +155,109 @@ async fn two_arriving_together_make_one_account() {
 }
 
 #[tokio::test]
+async fn setting_up_gives_a_site_you_can_sign_into_and_write_in() {
+    let machine = Machine::new().await;
+    let who = Machine::somebody();
+
+    let (status, made) = machine.send("POST", "/api/setup", Some(who.clone())).await;
+    assert_eq!(status, StatusCode::CREATED, "{made}");
+
+    let mut lookup = machine.db.operator().await.expect("begin");
+    lookup.across_sites().await.expect("across sites");
+
+    let (tenant_id,): (Uuid,) =
+        sqlx::query_as("select tenant_id from tenant_domains where host = 'console.example'")
+            .fetch_one(lookup.conn())
+            .await
+            .expect("a site made by setup");
+
+    lookup.commit().await.expect("commit");
+
+    let mut conn = machine
+        .db
+        .tenant(mavi::kernel::tenant::TenantId(tenant_id))
+        .await
+        .expect("begin");
+    sqlx::query(
+        "insert into languages (tenant_id, code, name, is_default) values ($1, 'en', 'English', true)",
+    )
+    .bind(tenant_id)
+    .execute(conn.conn())
+    .await
+    .expect("a language");
+    conn.commit().await.expect("commit");
+
+    let (status, signed_in) = machine
+        .send(
+            "POST",
+            "/api/auth/session",
+            Some(serde_json::json!({
+                "email": who["email"],
+                "password": who["password"],
+            })),
+        )
+        .await;
+
+    assert_eq!(status, StatusCode::OK, "{signed_in}");
+    let token = signed_in["token"].as_str().expect("a token").to_owned();
+
+    let request = axum::http::Request::builder()
+        .method("POST")
+        .uri("/api/posts")
+        .header(header::HOST, "console.example")
+        .header(header::AUTHORIZATION, format!("Bearer {token}"))
+        .header(header::CONTENT_TYPE, "application/json")
+        .body(Body::from(
+            serde_json::json!({ "language": "en", "title": "The first post" }).to_string(),
+        ))
+        .expect("a request");
+
+    let response = machine
+        .router
+        .clone()
+        .oneshot(request)
+        .await
+        .expect("a response");
+
+    let status = response.status();
+    let bytes = response
+        .into_body()
+        .collect()
+        .await
+        .expect("a body")
+        .to_bytes();
+    let posted: serde_json::Value =
+        serde_json::from_slice(&bytes).unwrap_or(serde_json::Value::Null);
+
+    assert_eq!(status, StatusCode::CREATED, "{posted}");
+}
+
+#[tokio::test]
+async fn the_sites_address_is_whatever_the_request_arrived_on() {
+    let machine = Machine::new().await;
+
+    machine
+        .send("POST", "/api/setup", Some(Machine::somebody()))
+        .await;
+
+    let mut conn = machine.db.operator().await.expect("begin");
+    conn.across_sites().await.expect("across sites");
+
+    let (count,): (i64,) =
+        sqlx::query_as("select count(*) from tenant_domains where host = 'console.example'")
+            .fetch_one(conn.conn())
+            .await
+            .expect("a count");
+
+    conn.commit().await.expect("commit");
+
+    assert_eq!(
+        count, 1,
+        "the address the setup request arrived on was not made the site's own"
+    );
+}
+
+#[tokio::test]
 async fn a_password_nobody_could_call_one_is_refused() {
     let machine = Machine::new().await;
     let mut who = Machine::somebody();

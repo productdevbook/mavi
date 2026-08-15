@@ -9,8 +9,18 @@ standing between a stranger and this door is how fast they can be made to
 give up.
 
 **What it owns.** Whether the machine still has nobody to run it, and the one
-insert that gives it somebody. Nothing else: an operator's session, invites,
-and everything after the first account belong to `console`.
+transaction that gives it somebody: an operator, the one site this
+installation is, an owner role holding every grant, and the account able to
+sign into that site — made together, so there is never a moment with one and
+not the other. Nothing else: an operator's session, invites, and everything
+after the first account belong to `console`.
+
+**One site, not the first of many.** The tenant made here is not a seed for
+something a console adds to later — there is no way to make a second, on
+purpose. What this crate does not have is the capability, not the schema:
+`tenant_id`, row-level security and `Host` resolution are unchanged, because
+they are what makes this site's isolation real rather than a promise. Running
+several is a different product, built on top.
 
 **Taken once.** `where not exists` alone is not enough — two requests arriving
 together both read the empty table before either wrote, and both inserted. An

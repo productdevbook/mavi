@@ -37,9 +37,19 @@ The same goes for test data: names that are obviously invented.
 
     server/       the API, the queue and the scheduler — one Rust crate
     server/src/*/   one module per thing a site does, each with its own README
+    server/src/setup/ the one moment that makes the operator and the site together
     server/migrations one file per change, applied at startup
     src/          the panel — React, TanStack Router, Lingui (English, Turkish)
     docs/         one document per thing that is not obvious from the code
+
+One installation is one site: `/api/setup` makes the operator, the tenant, an
+owner role and the account able to sign into it, all in the one transaction —
+and answers once. Nothing else in this crate ever inserts a `tenants` row. The
+isolation machinery — `tenant_id` on every table, row-level security, a request
+resolved from `Host` — stays exactly as it is; what is gone is the *capability*
+to make a second site. Running many on one machine is a hosting product built
+on top of this, through `server/src/kernel/outside.rs`, not a mode this crate
+itself has.
 
 `server/src/kernel/` is what every module is built out of: the guard on an
 endpoint, the audit receipt, the queue, cursor pages, and `Say` — a refusal is

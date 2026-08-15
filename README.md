@@ -4,18 +4,18 @@ A content management system you run yourself. One Rust binary, one PostgreSQL
 and a React panel: a site with pages and posts, that sells things, teaches
 courses, takes what people type into forms and sends mail about all of it.
 
-One installation can serve many sites, each on its own address — but it is a
-CMS, not a hosting business. What such a business needs on top of this —
-metering, billing, a console over many sites — is deliberately not here; see
-[what this is not](#what-this-is-not).
+One installation is one site — see [why](#one-installation-one-site) — and it
+is a CMS, not a hosting business. What running many sites on one machine needs
+on top of this — metering, billing, a console over many of them — is
+deliberately not here; see [what this is not](#what-this-is-not).
 
 MIT. Run it, change it, sell it.
 
 - **One binary, one database** — Axum and sqlx over PostgreSQL. Migrations run
   at boot, and the tests run against a real Postgres rather than a substitute.
-- **Many sites, one machine** — a request is resolved from its `Host` header to
-  a site, and every table carrying a site's data is behind row-level security
-  that the database itself enforces.
+- **One site, isolated as if it were many** — a request is resolved from its
+  `Host` header to the site, and every table carrying its data is behind
+  row-level security that the database itself enforces.
 - **[Whatever the site publishes](#more-than-posts)** — posts and pages, and
   any kind of thing a site makes up: a course with a price and a level, a
   property with rooms. Each carries its own fields beside the title and the
@@ -52,8 +52,10 @@ site on the machine, and `MAVI_KEYS` is what seals every secret a site keeps
 one everybody else running it also has; a key that changes on restart is a site
 whose secrets can no longer be read.
 
-Open <http://localhost> and set up the first account. That is the whole of
-setup: where the database is was decided before the process started.
+Open <http://localhost> and set up the first account. That makes the site too
+— its address is whatever you reached the machine on — and signs that account
+into it. That is the whole of setup: where the database is was decided before
+the process started, and there is nothing after this to make a site with.
 
 On a machine other people can reach, give it your own name instead — put
 `MAVI_DOMAIN=example.com` in `.env`, point the name at the machine, and Caddy
@@ -98,18 +100,25 @@ The API reads these; everything else is set from the panel.
 The panel is static files behind nginx, which proxies `/api`, `/mcp`,
 `/uploads` and `/openapi.json` to the API.
 
-## Many sites on one machine
+## One installation, one site
 
-Every site's data lives in shared tables with a `tenant_id`, and every one of
-those tables has row-level security **enabled and forced**: a connection is
-opened with the site it belongs to and the database refuses to hand it anything
-else, whatever a query says. Nothing has to remember to filter by tenant, and
-the one test that matters is a schema test — a table with a `tenant_id` and no
-policy on it fails the build.
+Setup makes exactly one site, and there is no way to make a second: `/api/setup`
+answers once, and nothing else in this crate ever inserts a `tenants` row.
+That is not a limitation left to be lifted later — it is what this is. Running
+many sites on one machine is a hosting product built on top of this, not this.
 
-Adding a site — creating its tenant row, pointing an address at it — is not
-something this CMS does on its own; it is a decision for whatever runs the
-machine, made against the database directly or through a layer built on top.
+What stays, and stays exactly as it would if the machine served a thousand
+sites, is the isolation: a `tenant_id` on every table that holds a site's data,
+row-level security **enabled and forced** on every one of them, and a request
+resolved from its `Host` header rather than trusted to say which site it is.
+A connection is opened with the site it belongs to and the database refuses to
+hand it anything else, whatever a query says — nothing has to remember to
+filter by tenant, and the one test that matters is a schema test: a table with
+a `tenant_id` and no policy on it fails the build. That machinery is the shape
+of every query in this codebase, and it is what makes a self-hosted install's
+data actually its own rather than merely unshared by convention. It is kept
+because it is correct, not because it is waiting to be used for more than one
+site.
 
 ## More than posts
 

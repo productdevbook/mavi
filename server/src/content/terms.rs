@@ -156,7 +156,7 @@ pub(super) fn endpoints() -> Vec<Endpoint> {
             attach,
         )
         .takes::<Attachment>()
-        .gives::<Term>(),
+        .gives::<Vec<Term>>(),
     ]
 }
 

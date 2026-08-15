@@ -17,6 +17,28 @@ pub enum Store {
 }
 
 impl Store {
+    /// A directory beside the process. Right while somebody is looking at
+    /// this on their own machine, and lost on the first restart anywhere
+    /// else, which is why a deployment says where instead.
+    #[must_use]
+    pub fn beside_the_process() -> Self {
+        Store::Disk(LocalDisk::at("uploads"))
+    }
+
+    /// Where the environment says uploads go. The image sets this to a
+    /// volume; `UPLOADS_DIR` is what it was called before the project had a
+    /// name of its own.
+    #[must_use]
+    pub fn from_env() -> Self {
+        let Ok(directory) =
+            std::env::var("MAVI_DATA_DIR").or_else(|_| std::env::var("UPLOADS_DIR"))
+        else {
+            return Store::beside_the_process();
+        };
+
+        Store::Disk(LocalDisk::at(directory))
+    }
+
     pub async fn put(&self, tenant: TenantId, location: &str, bytes: Vec<u8>) -> Result<()> {
         match self {
             Store::Disk(disk) => disk.put(tenant, location, bytes).await,

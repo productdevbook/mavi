@@ -45,20 +45,32 @@ pub enum Mailer {
 }
 
 impl Mailer {
+    /// A server to hand mail to, and the address it goes out as.
+    #[must_use]
+    pub fn new(url: Secret<String>, from: String) -> Self {
+        Mailer::Smtp(Smtp::new(url, from))
+    }
+
+    /// Written down and handed nowhere. What a test wants, and what a machine
+    /// with no provider configured has.
+    #[must_use]
+    pub fn recorded() -> Self {
+        Mailer::Recorded(Recorder::default())
+    }
+
     /// Reads the environment, and falls back to recording rather than to
     /// pretending: a machine with no provider configured should be obviously
     /// not sending, not quietly not sending.
     #[must_use]
     pub fn from_env() -> Self {
         let Ok(url) = std::env::var("SMTP_URL") else {
-            return Mailer::Recorded(Recorder::default());
+            return Mailer::recorded();
         };
 
-        Mailer::Smtp(Smtp {
-            url: Secret::new(url),
-            from: std::env::var("MAIL_FROM")
-                .unwrap_or_else(|_| "no-reply@example.invalid".to_owned()),
-        })
+        Mailer::new(
+            Secret::new(url),
+            std::env::var("MAIL_FROM").unwrap_or_else(|_| "no-reply@example.invalid".to_owned()),
+        )
     }
 
     #[must_use]

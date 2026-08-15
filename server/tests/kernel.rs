@@ -244,3 +244,41 @@ fn a_key_that_was_given_and_cannot_be_read_is_no_keyring_at_all() {
     assert!(Keyring::given(None).is_ok());
     assert!(Keyring::given(Some("1:BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc=")).is_ok());
 }
+
+/// The thing a test could not do before this: choose what a state's mailer is
+/// without setting a variable every other test in the process would see too.
+#[tokio::test]
+async fn a_state_can_be_handed_a_mailer_that_goes_nowhere() {
+    use mavi::kernel::config::Config;
+    use mavi::kernel::http::AppState;
+    use mavi::kernel::mailer::{Letter, Mailer, Recorder};
+
+    let db = harness().await;
+    let post = Recorder::default();
+
+    let state = AppState::new_with(
+        db,
+        Config {
+            mailer: Mailer::Recorded(post.clone()),
+            ..Config::nothing_configured()
+        },
+    );
+
+    state
+        .mailer
+        .hand_over(&Letter {
+            to: "somebody@example.test".to_owned(),
+            subject: "a subject".to_owned(),
+            body: "a body".to_owned(),
+            from: state.mailer.from(),
+            unsubscribe: None,
+        })
+        .await
+        .expect("handed over");
+
+    assert_eq!(post.all().len(), 1);
+
+    // Nothing else was configured either, and nothing pretends to be: an
+    // order made against this state has no way to be paid for and says so.
+    assert_eq!(state.payments.name(), "none");
+}

@@ -54,6 +54,13 @@ pub struct Elsewhere {
 }
 
 impl Builder {
+    /// Something on the network that takes a site, and what to sign what is
+    /// said to it with.
+    #[must_use]
+    pub fn elsewhere(at: String, key: Secret<String>) -> Self {
+        Builder::Elsewhere(Elsewhere { at, key })
+    }
+
     #[must_use]
     pub fn from_env() -> Self {
         if let Some(generator) = crate::building::Generator::from_env() {
@@ -64,10 +71,7 @@ impl Builder {
             return Builder::Direct;
         };
 
-        Builder::Elsewhere(Elsewhere {
-            at,
-            key: Secret::new(key),
-        })
+        Builder::elsewhere(at, Secret::new(key))
     }
 
     /// Whether something else writes what is served. With nothing to build

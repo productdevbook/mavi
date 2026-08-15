@@ -21,6 +21,7 @@ use uuid::Uuid;
 
 use super::authz::{self, Needs, Permit, Principal};
 use super::clock::{Clock, SystemClock};
+use super::config::Config;
 use super::db::Db;
 use super::error::{AppError, Result};
 use super::outside::Outside;
@@ -85,6 +86,29 @@ impl AppState {
         }
     }
 
+    /// Handed what this installation is, and reading nothing for itself.
+    ///
+    /// What something embedding this crate builds a state with, and what the
+    /// binary builds one with once it has read the environment at the edge.
+    #[must_use]
+    pub fn new_with(db: Db, config: Config) -> Self {
+        Self {
+            db,
+            clock: Arc::new(SystemClock),
+            proxy_hops: 0,
+            allow_private_destinations: false,
+            store: Arc::new(config.store),
+            mailer: Arc::new(config.mailer),
+            payments: Arc::new(config.payments),
+            builder: Arc::new(config.builder),
+            transcoder: Arc::new(config.transcoder),
+            keyring: Arc::new(config.keyring),
+            outside: Arc::new(Outside::default()),
+        }
+    }
+
+    /// The same, for whatever has nothing to hand in: the environment, read
+    /// here.
     #[must_use]
     pub fn new(db: Db) -> Self {
         // `start` says this in prose before anything reaches here; this is the
@@ -93,31 +117,7 @@ impl AppState {
         let keyring = super::crypto::Keyring::from_the_environment()
             .unwrap_or_else(|why| panic!("MAVI_KEYS: {why}"));
 
-        Self {
-            db,
-            clock: Arc::new(SystemClock),
-            proxy_hops: 0,
-            allow_private_destinations: false,
-            // Where what anybody uploaded is kept. The image sets this to a
-            // volume; unset, it is a directory beside the process, which is
-            // right while somebody is looking at it on their own machine and
-            // is lost on the first restart anywhere else. `UPLOADS_DIR` is
-            // what this was called before the project had its own name.
-            store: Arc::new(super::storage::Store::Disk(super::storage::LocalDisk::at(
-                std::env::var("MAVI_DATA_DIR")
-                    .or_else(|_| std::env::var("UPLOADS_DIR"))
-                    .unwrap_or_else(|_| "uploads".to_owned()),
-            ))),
-            mailer: Arc::new(super::mailer::Mailer::from_env()),
-            payments: Arc::new(super::payments::Payments::from_env()),
-            builder: Arc::new(super::builder::Builder::from_env()),
-            transcoder: Arc::new(super::transcoder::Transcoder::from_env()),
-            // Invented where none was given, which means a machine restarted
-            // without its key cannot open what the last one sealed — and says
-            // so by failing rather than by pretending.
-            keyring: Arc::new(keyring),
-            outside: Arc::new(Outside::default()),
-        }
+        Self::new_with(db, Config::from_env(keyring))
     }
 }
 

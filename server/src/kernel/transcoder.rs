@@ -44,6 +44,13 @@ pub struct Elsewhere {
 }
 
 impl Transcoder {
+    /// Something on the network that takes a video, and what to sign what is
+    /// said to it with.
+    #[must_use]
+    pub fn elsewhere(at: String, key: Secret<String>) -> Self {
+        Transcoder::Elsewhere(Elsewhere { at, key })
+    }
+
     #[must_use]
     pub fn from_env() -> Self {
         let (Ok(at), Ok(key)) = (
@@ -53,10 +60,7 @@ impl Transcoder {
             return Transcoder::AsUploaded;
         };
 
-        Transcoder::Elsewhere(Elsewhere {
-            at,
-            key: Secret::new(key),
-        })
+        Transcoder::elsewhere(at, Secret::new(key))
     }
 
     #[must_use]

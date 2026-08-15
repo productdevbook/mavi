@@ -10,6 +10,8 @@
 //! instead calls it with its own.
 use std::env;
 
+use crate::kernel::config::Config;
+use crate::kernel::crypto::Keyring;
 use crate::kernel::db::Db;
 use crate::kernel::http::AppState;
 use crate::kernel::outside::Outside;
@@ -22,7 +24,7 @@ use crate::kernel::worker;
 /// does not say `yes`: a machine that invents a key cannot read what the
 /// last one sealed, and that is cheaper to say here than to discover later.
 pub async fn start(mut outside: Outside) -> Result<(), Box<dyn std::error::Error>> {
-    keys_or_refuse()?;
+    let keyring = keys_or_refuse()?;
     crate::jobs::assert_schedules_are_runnable(&outside);
 
     let doing = Doing::from_env();
@@ -38,7 +40,10 @@ pub async fn start(mut outside: Outside) -> Result<(), Box<dyn std::error::Error
         db.migrate_with(migrator).await?;
     }
 
-    let mut state = AppState::new(db);
+    // The environment, read here and nowhere below: what a process is
+    // started with is the edge's business, and a state built in the middle of
+    // one is a global every caller of this crate would inherit.
+    let mut state = AppState::new_with(db, Config::from_env(keyring));
     state.outside = std::sync::Arc::new(outside);
     // Set where something in front is known to be rewriting the header; unset
     // it is not believed at all.
@@ -120,20 +125,22 @@ pub async fn start(mut outside: Outside) -> Result<(), Box<dyn std::error::Error
 /// A key that is given and cannot be read is the same failure wearing the
 /// clothes of a working machine, so it is read here rather than at the first
 /// credential somebody seals.
-fn keys_or_refuse() -> Result<(), Box<dyn std::error::Error>> {
+///
+/// The keyring it read is what the state is built with: read once, at the
+/// edge, and handed in — rather than read again in the middle by whatever
+/// needs it.
+fn keys_or_refuse() -> Result<Keyring, Box<dyn std::error::Error>> {
     if env::var_os("MAVI_KEYS").is_some() {
-        return crate::kernel::crypto::Keyring::from_the_environment()
-            .map(|_| ())
-            .map_err(|why| {
-                format!(
-                    "MAVI_KEYS is set and cannot be read: {why}. It is \
-                     `1:<thirty-two bytes, base64>`, and a version and comma \
-                     for each older key. Nothing starts under a key nobody \
-                     gave: what this machine sealed with one it made up \
-                     instead would look, later, like the data being wrong."
-                )
-                .into()
-            });
+        return Keyring::from_the_environment().map_err(|why| {
+            format!(
+                "MAVI_KEYS is set and cannot be read: {why}. It is \
+                 `1:<thirty-two bytes, base64>`, and a version and comma \
+                 for each older key. Nothing starts under a key nobody \
+                 gave: what this machine sealed with one it made up \
+                 instead would look, later, like the data being wrong."
+            )
+            .into()
+        });
     }
 
     // Left for whoever is trying this out on a laptop, where nothing sealed
@@ -144,7 +151,7 @@ fn keys_or_refuse() -> Result<(), Box<dyn std::error::Error>> {
              can be read by the next one"
         );
 
-        return Ok(());
+        return Ok(Keyring::invented());
     }
 
     Err(

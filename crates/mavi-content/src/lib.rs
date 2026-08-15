@@ -13,6 +13,7 @@
 //! they do.
 
 pub mod listing;
+pub mod store;
 pub mod writing;
 
 use mavi_api::{Answers, Endpoint, Is, Method, Parameter, Who};

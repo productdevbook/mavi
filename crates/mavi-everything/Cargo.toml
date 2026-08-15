@@ -20,9 +20,20 @@ mavi-people = { path = "../mavi-people" }
 mavi-settings = { path = "../mavi-settings" }
 mavi-shop = { path = "../mavi-shop" }
 mavi-taxonomy = { path = "../mavi-taxonomy" }
+mavi-db = { path = "../mavi-db" }
+mavi-http = { path = "../mavi-http" }
+mavi-serve = { path = "../mavi-serve" }
 mavi-work = { path = "../mavi-work" }
 
 serde_json = { workspace = true }
+uuid = { workspace = true }
+
+[dev-dependencies]
+axum = { workspace = true }
+mavi-core = { path = "../mavi-core" }
+sqlx = { workspace = true }
+tokio = { workspace = true, features = ["macros", "rt", "rt-multi-thread"] }
+tower = { workspace = true }
 
 [lints]
 workspace = true

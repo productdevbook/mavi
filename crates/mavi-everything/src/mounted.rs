@@ -1,0 +1,225 @@
+//! What actually answers.
+//!
+//! [`crate::endpoints`] is what this installation *describes*. This is what it
+//! *serves*, and the two are compared rather than assumed: whatever is
+//! described and not here comes back from [`mavi_serve::Site::not_reachable`],
+//! by name, which is how "written and tested" stops being mistaken for
+//! reachable.
+//!
+//! A handler is a small thing on purpose. It takes what arrived, opens a
+//! transaction, calls the domain, writes the receipt where it changed
+//! something, and commits. Nothing in a handler decides who may do it: that
+//! was decided before it was reached, out of what the endpoint declared.
+
+use std::future::Future;
+use std::sync::Arc;
+
+use mavi_audit::{Actor, Who as Whom, record};
+use mavi_content::listing::Filter;
+use mavi_content::store::{self, Changes};
+use mavi_content::writing::{New, WritingId};
+use mavi_core::error::{Error, Result};
+use mavi_core::page::Query;
+use mavi_core::say::Say;
+use mavi_db::{Db, Tx};
+use mavi_http::{Answered, Caller};
+use mavi_serve::{Asked, Handler, Site, WhoIsAsking};
+use serde_json::Value;
+use uuid::Uuid;
+
+pub const THAT_IS_NOT_AN_ID: &str = "that_is_not_an_id";
+
+/// Everything this installation serves today.
+///
+/// It is not everything it describes, and that is measured rather than
+/// implied — see the test beside this, which prints what is still to do.
+#[must_use]
+pub fn site(db: Db, who_is_asking: WhoIsAsking) -> Site {
+    let mut site = Site::new(who_is_asking);
+
+    for endpoint in mavi_content::endpoints() {
+        let db = db.clone();
+
+        let handler: Option<Handler> = match endpoint.named {
+            "writings.list" => Some(handling(db, |db, asked| {
+                Box::pin(async move { listed(&db, &asked).await })
+            })),
+            "writings.read" => Some(handling(db, |db, asked| {
+                Box::pin(async move { one(&db, &asked).await })
+            })),
+            "writings.make" => Some(handling(db, |db, asked| {
+                Box::pin(async move { made(&db, &asked).await })
+            })),
+            "writings.change" => Some(handling(db, |db, asked| {
+                Box::pin(async move { changed(&db, &asked).await })
+            })),
+            "writings.remove" => Some(handling(db, |db, asked| {
+                Box::pin(async move { thrown(&db, &asked).await })
+            })),
+            _ => None,
+        };
+
+        if let Some(handler) = handler {
+            let needs = if endpoint.changes {
+                mavi_content::to_write()
+            } else {
+                mavi_content::to_read()
+            };
+
+            site = site.mount(endpoint, Some(needs), handler);
+        }
+    }
+
+    site
+}
+
+type Answering = std::pin::Pin<Box<dyn Future<Output = Result<Answered<Value>>> + Send>>;
+
+/// One handler, with the database it needs already in hand.
+fn handling(db: Db, what: fn(Db, Asked) -> Answering) -> Handler {
+    Arc::new(move |asked| what(db.clone(), asked))
+}
+
+async fn listed(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
+    let mut tx = db.begin().await?;
+
+    let filter = Filter {
+        kind: asked.query.get("kind").cloned(),
+        language: asked.query.get("language").cloned(),
+        state: asked.query.get("state").cloned(),
+    };
+
+    let query = Query {
+        after: asked.query.get("after").cloned(),
+        limit: asked.query.get("limit").and_then(|how| how.parse().ok()),
+    };
+
+    let page = store::list(&mut tx, false, &filter, &query).await?;
+
+    Ok(Answered::Read(
+        serde_json::to_value(page).map_err(Error::internal)?,
+    ))
+}
+
+async fn one(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
+    let mut tx = db.begin().await?;
+    let writing = store::read(&mut tx, which(asked)?).await?;
+
+    Ok(Answered::Read(
+        serde_json::to_value(writing).map_err(Error::internal)?,
+    ))
+}
+
+async fn made(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
+    let new: New = serde_json::from_value(asked.body.clone())
+        .map_err(|_| Error::invalid(Say::of("that_is_not_a_writing")))?;
+
+    let mut tx = db.begin().await?;
+    let writing = store::make(&mut tx, &new).await?;
+
+    // In the same transaction as the change. If the commit below never
+    // happens, neither the writing nor the record of it exists.
+    let receipt = wrote(
+        &mut tx,
+        asked,
+        "writings.make",
+        &writing.id,
+        &serde_json::json!({
+            "kind": writing.kind.as_str(),
+            "slug": writing.slug.as_str(),
+        }),
+    )
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(Answered::Changed(
+        serde_json::to_value(writing).map_err(Error::internal)?,
+        receipt,
+    ))
+}
+
+async fn changed(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
+    let changes: Changes = serde_json::from_value(asked.body.clone())
+        .map_err(|_| Error::invalid(Say::of("that_is_not_a_change_to_a_writing")))?;
+
+    let id = which(asked)?;
+    let mut tx = db.begin().await?;
+    let writing = store::change(&mut tx, id, &changes).await?;
+
+    let receipt = wrote(
+        &mut tx,
+        asked,
+        "writings.change",
+        &id,
+        &serde_json::json!({ "state": writing.state.as_str() }),
+    )
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(Answered::Changed(
+        serde_json::to_value(writing).map_err(Error::internal)?,
+        receipt,
+    ))
+}
+
+async fn thrown(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
+    let id = which(asked)?;
+    let mut tx = db.begin().await?;
+
+    store::remove(&mut tx, id).await?;
+
+    let receipt = wrote(
+        &mut tx,
+        asked,
+        "writings.remove",
+        &id,
+        &serde_json::json!({}),
+    )
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(Answered::Changed(Value::Null, receipt))
+}
+
+/// Which one the path is about.
+fn which(asked: &Asked) -> Result<WritingId> {
+    let id = asked
+        .path
+        .get("id")
+        .ok_or_else(|| Error::invalid(Say::of(THAT_IS_NOT_AN_ID)))?;
+
+    Uuid::parse_str(id)
+        .map(WritingId)
+        .map_err(|_| Error::invalid(Say::of(THAT_IS_NOT_AN_ID)))
+}
+
+/// The receipt, written where the change is being made.
+///
+/// What it is called is the endpoint's own name, so that "what happened to
+/// this" has one answer rather than one per call site.
+async fn wrote(
+    tx: &mut Tx,
+    asked: &Asked,
+    did: &str,
+    about: &WritingId,
+    what: &Value,
+) -> Result<mavi_audit::Receipt> {
+    let actor = match &asked.caller {
+        Caller::AnAccount { id, .. } => Actor {
+            who: Whom::AnAccount,
+            id: Some(id.clone()),
+            request: "a-request".to_owned(),
+        },
+        Caller::AStudent { id } => Actor {
+            who: Whom::AStudent,
+            id: Some(id.clone()),
+            request: "a-request".to_owned(),
+        },
+        Caller::Nobody => Actor::the_machine("a-request"),
+    };
+
+    record(tx, &actor, did, "writing", Some(&about.to_string()), what).await
+}

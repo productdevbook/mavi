@@ -21,6 +21,21 @@ use mavi_core::error::Code;
 pub use listing::{BY_FEED, BY_RECENT, Filter};
 pub use writing::{Kind, New, State, Writing};
 
+use mavi_core::grant::{Access, Needs};
+
+/// What holding `content` is about.
+pub const CONTENT: &str = "content";
+
+#[must_use]
+pub const fn to_read() -> Needs {
+    Needs::new(CONTENT, Access::View)
+}
+
+#[must_use]
+pub const fn to_write() -> Needs {
+    Needs::new(CONTENT, Access::Write)
+}
+
 /// Everything this domain answers, said completely enough to describe.
 #[must_use]
 pub fn endpoints() -> Vec<Endpoint> {

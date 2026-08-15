@@ -315,13 +315,14 @@ async fn changing_a_post_is_checked_against_what_it_is() {
     assert_eq!(changed["type"], "recipe");
 }
 
+/// Not found rather than made anyway with the fields dropped, or refused as
+/// though the caller had got the fields wrong: what is missing is the kind of
+/// thing itself.
 #[tokio::test]
-async fn a_kind_of_thing_another_site_declared_is_not_this_one_s() {
-    let one = Site::new().await;
-    one.a_recipe().await;
+async fn a_kind_of_thing_nobody_declared_is_not_one_to_write_under() {
+    let site = Site::new().await;
 
-    let other = Site::new().await;
-    let (status, _) = other
+    let (status, _) = site
         .a_post("Soup", serde_json::json!({ "minutes": 20 }))
         .await;
 

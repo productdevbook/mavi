@@ -552,18 +552,17 @@ async fn what_a_publish_would_change_is_said_before_it_happens() {
     );
 }
 
+/// A preview answers under the id of the publish that made it and nothing
+/// links to it, so the only way to reach one is to be told where it is. An id
+/// that is not a publish is not somewhere to look.
 #[tokio::test]
-async fn another_site_s_preview_is_not_reachable_here() {
-    let one = a_site().await;
-    one.wrote("public/index.html", "not yours").await;
-    one.send("POST", "/api/design/previews", None).await;
-    one.built().await;
+async fn a_preview_nothing_built_is_not_reachable() {
+    let site = a_site().await;
+    site.wrote("public/index.html", "the real one").await;
+    site.send("POST", "/api/design/previews", None).await;
+    site.built().await;
 
-    let (_, design) = one.send("GET", "/api/design", None).await;
-    let at = design["preview_at"].as_str().expect("somewhere to look");
-
-    let other = a_site().await;
-    let (status, said) = other.visit(at).await;
+    let (status, said) = site.visit(&mavi::edge::preview_path(Uuid::now_v7())).await;
 
     assert_eq!(status, StatusCode::NOT_FOUND, "{said}");
 }

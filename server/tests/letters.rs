@@ -353,31 +353,3 @@ async fn every_letter_is_listed_with_what_it_can_name() {
         "a receipt cannot say what it came to: {order}"
     );
 }
-
-#[tokio::test]
-async fn another_site_s_wording_is_not_this_one_s() {
-    let one = Site::new().await;
-
-    one.send(
-        "PUT",
-        "/api/mail/letters/invitation",
-        Some(serde_json::json!({
-            "language": "tr",
-            "subject": "Bir yerden",
-            "body": "Merhaba {name}: {link}",
-        })),
-    )
-    .await;
-
-    let other = Site::new().await;
-    let (_, listed) = other.send("GET", "/api/mail/letters", None).await;
-
-    let invitation = listed
-        .as_array()
-        .expect("a list")
-        .iter()
-        .find(|letter| letter["kind"] == "invitation")
-        .expect("the invitation");
-
-    assert_eq!(invitation["theirs"], false);
-}

@@ -1,9 +1,13 @@
 //! Taking a site's content out, and reading it into another one.
+//!
+//! Which is another machine: there is one site to an installation, so the
+//! far end of a round trip is a second one of those rather than a second row.
 
 use axum::body::Body;
 use axum::http::{Request, StatusCode, header};
 use http_body_util::BodyExt;
 use mavi::kernel::authz::every_grant;
+use mavi::kernel::db::Db;
 use mavi::kernel::http::AppState;
 use tower::ServiceExt;
 use uuid::Uuid;
@@ -20,7 +24,15 @@ struct Site {
 }
 
 async fn a_site() -> Site {
-    let db = harness().await;
+    on(harness().await).await
+}
+
+/// The far end of a round trip: a machine that has never seen any of this.
+async fn a_site_somewhere_else() -> Site {
+    on(mavi::testing::another_machine().await).await
+}
+
+async fn on(db: Db) -> Site {
     let host = format!("{}.example", Uuid::now_v7().simple());
     let tenant = a_tenant(&db, &host).await;
     let role = a_role(&db, tenant, "owner", &every_grant()).await;
@@ -153,7 +165,7 @@ async fn a_site_with_something_on_it() -> Site {
 #[tokio::test]
 async fn a_site_goes_out_and_comes_back_into_another_one() {
     let one = a_site_with_something_on_it().await;
-    let two = a_site().await;
+    let two = a_site_somewhere_else().await;
 
     let (status, bundle) = one.send("GET", "/api/portable/export", None).await;
 
@@ -202,7 +214,7 @@ async fn a_site_goes_out_and_comes_back_into_another_one() {
 #[tokio::test]
 async fn reading_the_same_bundle_twice_is_one_site() {
     let one = a_site_with_something_on_it().await;
-    let two = a_site().await;
+    let two = a_site_somewhere_else().await;
 
     let (_, bundle) = one.send("GET", "/api/portable/export", None).await;
 
@@ -241,7 +253,7 @@ async fn a_bundle_from_a_version_this_does_not_know_is_refused() {
 #[tokio::test]
 async fn a_bundle_written_in_a_language_the_site_does_not_have_says_so() {
     let one = a_site_with_something_on_it().await;
-    let two = a_site().await;
+    let two = a_site_somewhere_else().await;
 
     let (_, mut bundle) = one.send("GET", "/api/portable/export", None).await;
 

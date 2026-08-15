@@ -252,29 +252,6 @@ async fn an_account_without_the_grant_is_refused_and_it_is_written_down() {
 }
 
 #[tokio::test]
-async fn another_site_s_form_is_not_there_rather_than_refused() {
-    let one = everything_granted().await;
-    let two = everything_granted().await;
-
-    let id = one.a_form("contact").await;
-
-    let (status, _) = two
-        .send("GET", &format!("/api/forms/{id}"), Some(&two.token), None)
-        .await;
-
-    assert_eq!(status, StatusCode::NOT_FOUND);
-
-    let (status, body) = two.send("GET", "/api/forms", Some(&two.token), None).await;
-
-    assert_eq!(status, StatusCode::OK);
-    assert_eq!(
-        body["items"].as_array().expect("a list").len(),
-        0,
-        "another site's forms were listed"
-    );
-}
-
-#[tokio::test]
 async fn something_that_is_not_there_says_so() {
     let site = everything_granted().await;
 

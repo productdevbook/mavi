@@ -248,24 +248,3 @@ async fn a_video_is_listed_and_thrown_away_like_everything_else() {
 
     assert_eq!(status, StatusCode::NOT_FOUND);
 }
-
-#[tokio::test]
-async fn another_site_s_video_is_not_there() {
-    let one = Site::new().await;
-    let file = one.a_file("video/mp4").await;
-
-    let (_, added) = one
-        .send(
-            "POST",
-            "/api/videos",
-            Some(serde_json::json!({ "media_id": file, "title": "A film" })),
-        )
-        .await;
-
-    let id = added["id"].as_str().expect("an id").to_owned();
-
-    let other = Site::new().await;
-    let (status, _) = other.send("GET", &format!("/api/videos/{id}"), None).await;
-
-    assert_eq!(status, StatusCode::NOT_FOUND);
-}

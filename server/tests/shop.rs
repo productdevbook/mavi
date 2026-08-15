@@ -486,22 +486,6 @@ async fn a_shop_says_when_it_is_running_out() {
     assert_eq!(events[0].1.as_deref(), product["id"].as_str());
 }
 
-#[tokio::test]
-async fn another_shop_s_order_is_not_here() {
-    let one = a_shop().await;
-    let two = a_shop().await;
-
-    let thing = one.a_product(1000, 1).await;
-    let (_, order) = one.buy(thing, 1, &format!("k-{}", Uuid::now_v7())).await;
-    let id = order["order"]["id"].as_str().expect("an id");
-
-    let (status, _) = two
-        .send("GET", &format!("/api/sites/orders/{id}"), None, None)
-        .await;
-
-    assert_eq!(status, StatusCode::NOT_FOUND);
-}
-
 /// Two checkouts reaching for the last use of a one-use code at the same time.
 /// Counting uses after inserting one is not enough on its own: both count one,
 /// both see one, both go through. The coupon's row is locked instead.
@@ -1026,20 +1010,10 @@ async fn an_order_has_a_number_a_customer_can_say() {
     let one = first["order"]["number"].as_i64().expect("a number");
     let two = second["order"]["number"].as_i64().expect("a number");
 
+    // From one, and then one more each time. A number somebody reads out on
+    // the telephone is no use if it is a uuid or if it skips.
+    assert_eq!(one, 1, "the first order was not the first: {first}");
     assert_eq!(two, one + 1, "{first} then {second}");
-
-    // Counted per site: another shop's first order is its first order.
-    let elsewhere = a_shop().await;
-    let theirs = elsewhere.a_product(1_000, 1).await;
-
-    let (_, mine) = elsewhere
-        .buy(theirs, 1, &format!("k-{}", Uuid::now_v7()))
-        .await;
-
-    assert_eq!(
-        mine["order"]["number"], 1,
-        "a shop's first order was numbered from the whole machine's: {mine}"
-    );
 }
 
 #[tokio::test]

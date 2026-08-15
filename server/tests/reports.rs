@@ -166,27 +166,6 @@ async fn what_a_site_said_it_can_see() {
 }
 
 #[tokio::test]
-async fn another_site_s_report_is_not_this_one_s() {
-    let one = Site::new().await;
-    one.send(
-        "POST",
-        "/api/reports",
-        None,
-        Some(serde_json::json!({ "body": "One site said this" })),
-    )
-    .await;
-
-    let other = Site::new().await;
-    let (_, ours) = other.send("GET", "/api/reports", None, None).await;
-
-    assert_eq!(
-        ours["items"].as_array().expect("a page").len(),
-        0,
-        "a site saw what another said"
-    );
-}
-
-#[tokio::test]
 async fn a_report_carries_what_makes_it_actionable() {
     let site = Site::new().await;
 

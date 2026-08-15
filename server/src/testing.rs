@@ -48,6 +48,17 @@ pub async fn harness() -> Db {
     HELD.get_or_init(lease).await.clone()
 }
 
+/// A second machine, for the handful of tests that genuinely need two
+/// installations rather than two sites — something taken out of one and read
+/// into the other, which is what moving a site somewhere else is.
+///
+/// A lease of its own, so it is another database rather than another row in
+/// this one. Everything else wants [`harness`], which is the machine the test
+/// itself is.
+pub async fn another_machine() -> Db {
+    lease().await
+}
+
 async fn lease() -> Db {
     let url = std::env::var("TEST_DATABASE_URL").expect("TEST_DATABASE_URL");
     let (server, _) = url.rsplit_once('/').expect("a database in the url");

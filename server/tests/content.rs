@@ -489,27 +489,6 @@ async fn a_site_s_own_field_can_be_asked_about() {
 }
 
 #[tokio::test]
-async fn another_site_s_post_is_not_there() {
-    let one = Site::new().await;
-    let two = Site::new().await;
-
-    let who = one.everyone().await;
-    let theirs = two.everyone().await;
-    let id = one.a_post(&who, "Ours").await;
-
-    let (status, _) = two
-        .send(
-            "GET",
-            &format!("/api/posts/{id}"),
-            Some(&theirs.token),
-            None,
-        )
-        .await;
-
-    assert_eq!(status, StatusCode::NOT_FOUND);
-}
-
-#[tokio::test]
 async fn a_post_scheduled_for_later_goes_when_later_arrives() {
     let site = Site::new().await;
     let who = site.everyone().await;

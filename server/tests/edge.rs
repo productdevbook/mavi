@@ -324,21 +324,6 @@ async fn the_api_still_answers_where_a_page_would() {
 }
 
 #[tokio::test]
-async fn another_site_s_pages_are_not_served_here() {
-    let one = Site::new().await;
-    one.publishes("public/index.html", "<h1>One</h1>").await;
-
-    let other = Site::new().await;
-    other
-        .publishes("public/index.html", "<h1>Another</h1>")
-        .await;
-
-    let (_, body, _) = other.visit("/").await;
-
-    assert_eq!(body, "<h1>Another</h1>");
-}
-
-#[tokio::test]
 async fn nothing_climbs_out_of_what_was_published() {
     let site = Site::new().await;
     site.publishes("public/index.html", "<h1>A site</h1>").await;

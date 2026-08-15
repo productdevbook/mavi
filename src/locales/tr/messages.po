@@ -9244,6 +9244,14 @@ msgstr "Bu mektupta {{0}} yazan yere koyacak bir şey yok."
 #~ msgid "This machine"
 #~ msgstr "Bu makine"
 
+#: src/lib/v1-said.ts:49
+msgid "This machine has nobody running it yet. Set it up first."
+msgstr "Bu makineyi işleten kimse yok. Önce kurulumu yapın."
+
+#: src/lib/v1-said.ts:51
+msgid "This database holds more than one site and this version serves one. It has to be split before this version can serve it."
+msgstr "Bu veritabanı birden fazla site barındırıyor, bu sürüm ise tek bir siteye hizmet ediyor. Bu sürümün hizmet verebilmesi için önce ayrılması gerekir."
+
 #: src/lib/v1-said.ts:48
 msgid "This machine already has somebody running it."
 msgstr "Bu makineyi işleten birisi zaten var."

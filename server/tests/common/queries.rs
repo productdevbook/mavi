@@ -48,7 +48,25 @@ impl tracing::field::Visit for Statement {
 }
 
 /// What a connection runs before it is a connection anybody asked for.
-const SETTING_UP: [&str; 2] = ["set role", "set_config"];
+///
+/// `pg_catalog.pg_type` and `pg_catalog.pg_enum` are here for the same reason
+/// as `set role`, not because they look alike: the first time a physical
+/// connection decodes a Postgres enum it has not seen before — `course_state`,
+/// say — sqlx asks the catalog what it is and caches the answer on that
+/// connection for as long as it lives (`sqlx-postgres`'s
+/// `maybe_fetch_type_info_by_oid`/`fetch_enum_by_oid`). That cache is
+/// per-connection, not per-process, so which request pays for it depends on
+/// which of the pool's connections happens to serve it — the same request
+/// twice in a row can differ by exactly two queries for a reason no warm-up
+/// request can reliably fix, since it might land on a different connection
+/// than the one it is meant to warm. It is connection setup, not row cost, so
+/// it is excluded here the same way `set role` is.
+const SETTING_UP: [&str; 4] = [
+    "set role",
+    "set_config",
+    "pg_catalog.pg_type",
+    "pg_catalog.pg_enum",
+];
 
 impl<S: Subscriber + for<'a> LookupSpan<'a>> Layer<S> for CountQueries {
     fn enabled(&self, metadata: &Metadata<'_>, _: Context<'_, S>) -> bool {

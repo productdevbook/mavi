@@ -259,6 +259,10 @@ fn what_is_public_is_listed() {
             "/api/sites/videos/callback",
             "/api/auth/reset",
             "/api/auth/password",
+            // Proving an address somebody was sent a link about — the person
+            // following it is not signed in either, which is what makes this
+            // one public rather than something reached under `people:*`.
+            "/api/auth/email-proof",
             "/api/sites/products",
             "/api/sites/checkout",
             "/api/sites/payments/callback",

@@ -819,6 +819,10 @@ export interface ProductChanges {
   active?: boolean | null;
 }
 
+export interface Proof {
+  token: Secret_String;
+}
+
 export interface Publish {
   id: string;
   branch: string;
@@ -1670,6 +1674,9 @@ export interface Calls {
   expires_at: string;
   grants: string[];
 } };
+  "POST /api/auth/email-proof": { takes: {
+  token: Secret_String;
+}; gives: void };
   "POST /api/auth/oauth/{key}/callback": { takes: {
   code: string;
   state: string;

@@ -2,9 +2,10 @@
 
 Who is on a site, and what they may do.
 
-**Who reaches it.** The panel, with `people:*`. Two endpoints are public: asking
-to reset a password, and choosing one — both rate limited, both saying the same
-thing whether or not there is an account behind the address.
+**Who reaches it.** The panel, with `people:*`. Three endpoints are public: asking
+to reset a password, choosing one, and proving an address — all rate limited,
+the first saying the same thing whether or not there is an account behind the
+address.
 
 **Tables it owns.** `users`, `roles`, `tickets`.
 
@@ -27,10 +28,15 @@ deleted, with a password chosen, the same test `auth::sign_in` itself uses —
 an owner still sitting on an unused invitation, or already suspended, does
 not count as one still standing.
 
-**A ticket is good once.** An invitation, a reset and an address proof are the
-same row: hashed, dated, spent when it is used, and any earlier one for the
-same purpose spent when a new one is made. Spending it is what proves the
-address, so somebody invited arrives proved.
+**A ticket is good once, for what it was minted for.** An invitation, a reset
+and an address proof are the same row — hashed, dated, spent when it is used,
+and any earlier one for the same purpose spent when a new one is made — but
+`purpose` is in the query that redeems one, not checked afterward: a ticket of
+the wrong purpose is not found rather than found and refused. An invitation or
+a reset chooses a password, which also proves the address it was sent to. An
+address proof does only that — it does not choose a password, does not
+activate an account still sitting on an invitation, and does not revoke
+sessions, because proving an address is not a credential change.
 
 **The letter matches the ticket.** `invite` mints an `invitation` ticket and
 presses the `invitation` letter; `ask_to_reset` mints a `password_reset`

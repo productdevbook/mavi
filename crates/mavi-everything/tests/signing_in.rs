@@ -55,46 +55,33 @@ async fn fresh(named: &str) -> Db {
 }
 
 /// Whoever is holding the token, worked out the way a running installation
-/// works it out: one query against the sessions table.
+/// works it out: one query against the sessions table, on the same runtime and
+/// the same pool as everything else.
 fn whoever_holds(db: Db) -> mavi_serve::WhoIsAsking {
     Arc::new(move |headers| {
-        let Some(token) = headers
-            .get("authorization")
-            .and_then(|said| said.to_str().ok())
-            .and_then(|said| said.strip_prefix("Bearer "))
-        else {
-            return Caller::Nobody;
-        };
-
         let db = db.clone();
-        let token = token.to_owned();
 
-        // The router is async and this is not, which is the one place a real
-        // binding would hold a connection rather than block. It is a test:
-        // what is being checked is that the token works, not how it is read.
-        std::thread::scope(|scope| {
-            scope
-                .spawn(move || {
-                    tokio::runtime::Builder::new_current_thread()
-                        .enable_all()
-                        .build()
-                        .expect("a runtime")
-                        .block_on(async move {
-                            let Ok(mut tx) = db.begin().await else {
-                                return Caller::Nobody;
-                            };
+        Box::pin(async move {
+            let Some(token) = headers
+                .get("authorization")
+                .and_then(|said| said.to_str().ok())
+                .and_then(|said| said.strip_prefix("Bearer "))
+                .map(ToOwned::to_owned)
+            else {
+                return Caller::Nobody;
+            };
 
-                            match mavi_people::store::whoever_holds(&mut tx, &token).await {
-                                Ok(Some(person)) => Caller::AnAccount {
-                                    id: person.id.to_string(),
-                                    grants: mavi_core::grant::Grants::of(person.grants),
-                                },
-                                _ => Caller::Nobody,
-                            }
-                        })
-                })
-                .join()
-                .unwrap_or(Caller::Nobody)
+            let Ok(mut tx) = db.begin().await else {
+                return Caller::Nobody;
+            };
+
+            match mavi_people::store::whoever_holds(&mut tx, &token).await {
+                Ok(Some(person)) => Caller::AnAccount {
+                    id: person.id.to_string(),
+                    grants: mavi_core::grant::Grants::of(person.grants),
+                },
+                _ => Caller::Nobody,
+            }
         })
     })
 }

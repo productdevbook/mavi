@@ -59,14 +59,16 @@ async fn fresh(named: &str) -> Db {
 /// An editor with everything content is about, when they send a token.
 fn an_editor() -> mavi_serve::WhoIsAsking {
     Arc::new(|headers| {
-        if headers.contains_key("authorization") {
-            Caller::AnAccount {
-                id: "01930000-0000-7000-8000-000000000001".to_owned(),
-                grants: Grants::of(["content:write".to_owned(), "content:view".to_owned()]),
+        Box::pin(async move {
+            if headers.contains_key("authorization") {
+                Caller::AnAccount {
+                    id: "01930000-0000-7000-8000-000000000001".to_owned(),
+                    grants: Grants::of(["content:write".to_owned(), "content:view".to_owned()]),
+                }
+            } else {
+                Caller::Nobody
             }
-        } else {
-            Caller::Nobody
-        }
+        })
     })
 }
 

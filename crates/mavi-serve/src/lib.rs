@@ -67,7 +67,14 @@ pub type Handler = Arc<dyn Fn(Asked) -> Answer + Send + Sync>;
 /// Handed in rather than written here: what a token is and where it is kept is
 /// a decision for whatever runs this, and this crate's business is that the
 /// answer is asked for exactly once and then carried.
-pub type WhoIsAsking = Arc<dyn Fn(&axum::http::HeaderMap) -> Caller + Send + Sync>;
+///
+/// It answers a future, because working out who is asking means reading a
+/// session out of the database in every installation that has one. A version
+/// of this that could not wait forced whoever wrote it to reach for a thread
+/// and a second runtime — and a pool belongs to the runtime it was made on, so
+/// that arrangement does not fail loudly, it simply never finds anybody.
+pub type WhoIsAsking =
+    Arc<dyn Fn(HeaderMap) -> Pin<Box<dyn Future<Output = Caller> + Send>> + Send + Sync>;
 
 /// One endpoint, its rule, and what answers it.
 #[derive(Clone)]
@@ -216,12 +223,12 @@ async fn through(
     who_is_asking: &WhoIsAsking,
     params: &RawPathParams,
     query: Option<&str>,
-    headers: &HeaderMap,
+    headers: HeaderMap,
     body: &[u8],
 ) -> Response {
     // Once, and then carried. Working out who is asking twice is two answers
     // to one question, and the second one is the one nobody tested.
-    let caller = who_is_asking(headers);
+    let caller = who_is_asking(headers).await;
 
     let path = params
         .iter()

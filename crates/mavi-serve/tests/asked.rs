@@ -19,19 +19,21 @@ use serde_json::{Value, json};
 use tower::ServiceExt;
 
 fn nobody() -> mavi_serve::WhoIsAsking {
-    Arc::new(|_| Caller::Nobody)
+    Arc::new(|_| Box::pin(async { Caller::Nobody }))
 }
 
 fn an_editor() -> mavi_serve::WhoIsAsking {
     Arc::new(|headers| {
-        if headers.contains_key("authorization") {
-            Caller::AnAccount {
-                id: "an-editor".to_owned(),
-                grants: Grants::of(["content:write".to_owned(), "content:view".to_owned()]),
+        Box::pin(async move {
+            if headers.contains_key("authorization") {
+                Caller::AnAccount {
+                    id: "an-editor".to_owned(),
+                    grants: Grants::of(["content:write".to_owned(), "content:view".to_owned()]),
+                }
+            } else {
+                Caller::Nobody
             }
-        } else {
-            Caller::Nobody
-        }
+        })
     })
 }
 

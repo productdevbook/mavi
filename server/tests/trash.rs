@@ -273,3 +273,84 @@ async fn the_trash_empties_itself_after_a_while() {
         "something past its time is still in the trash"
     );
 }
+
+/// A cursor is opaque, but it still has to travel inside a query string: this
+/// escapes the two characters an RFC 3339 timestamp actually contains that a
+/// query string does not tolerate unescaped.
+fn urlencode(raw: &str) -> String {
+    raw.chars()
+        .map(|c| match c {
+            ':' => "%3A".to_owned(),
+            '+' => "%2B".to_owned(),
+            other => other.to_string(),
+        })
+        .collect()
+}
+
+#[tokio::test]
+async fn a_trash_bigger_than_one_page_can_still_be_walked_to_the_end() {
+    let site = a_site().await;
+
+    // 130: past the old hardcoded "limit 100" a single table's read used to
+    // carry, which is the actual cliff — a page smaller than that would have
+    // passed on the old code too, since everything still fit in the one read.
+    // Inserted directly and a second apart so the ordering paging depends on
+    // is never in question.
+    let mut conn = site.db.tenant(site.tenant).await.expect("begin");
+    let ids: Vec<Uuid> = sqlx::query_scalar(
+        "insert into posts (tenant_id, language, slug, title, deleted_at)
+         select $1, 'en', 'cleared-out-' || gs, 'Cleared Out ' || gs,
+                now() - make_interval(secs => gs)
+           from generate_series(1, 130) as gs
+         returning id",
+    )
+    .bind(site.tenant.0)
+    .fetch_all(conn.conn())
+    .await
+    .expect("130 posts, already in the trash");
+    conn.commit().await.expect("commit");
+
+    let thrown_away: std::collections::HashSet<String> =
+        ids.iter().map(ToString::to_string).collect();
+
+    let mut seen = std::collections::HashSet::new();
+    let mut after: Option<String> = None;
+    let mut pages = 0;
+
+    loop {
+        let path = match &after {
+            Some(cursor) => format!("/api/trash?limit=50&after={}", urlencode(cursor)),
+            None => "/api/trash?limit=50".to_owned(),
+        };
+
+        let (status, page) = site.send("GET", &path, None).await;
+        assert_eq!(status, StatusCode::OK, "{page}");
+
+        let items = page["items"].as_array().expect("a page");
+        assert!(
+            items.len() <= 50,
+            "a page held more than what was asked for"
+        );
+
+        for item in items {
+            let id = item["id"].as_str().expect("an id").to_owned();
+            assert!(
+                seen.insert(id.clone()),
+                "the same row came back on two pages: {id}"
+            );
+        }
+
+        pages += 1;
+        assert!(pages <= 10, "the walk never reached its end");
+
+        match page["next"].as_str() {
+            Some(next) => after = Some(next.to_owned()),
+            None => break,
+        }
+    }
+
+    assert_eq!(
+        seen, thrown_away,
+        "next said there was nothing further while rows were still behind it"
+    );
+}

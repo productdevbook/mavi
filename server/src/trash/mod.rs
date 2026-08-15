@@ -76,29 +76,36 @@ async fn list(
     axum::extract::Query(page): axum::extract::Query<Query>,
 ) -> Result<Json<Page<Thrown>>> {
     let mut conn = state.db.tenant(caller.tenant()).await?;
-    let mut all = what_was_thrown(&mut conn).await?;
+    let after = older_than(page.after.as_deref());
+    let mut all = what_was_thrown(&mut conn, after, page.fetch()).await?;
 
     all.sort_by_key(|thrown| std::cmp::Reverse(thrown.thrown_at));
 
     conn.commit().await?;
-
-    // Gathered from every table that keeps things and then cut to a page: one
-    // query per table is the shape of the registry, and paging inside each of
-    // them would page each table rather than the bin.
-    if let Some(after) = older_than(page.after.as_deref()) {
-        all.retain(|thrown| thrown.thrown_at < after);
-    }
 
     Ok(Json(Page::build(&page, all, |thrown| {
         thrown.thrown_at.to_rfc3339()
     })))
 }
 
-/// Everything a site threw away, from every table that keeps things.
+/// What a site threw away, one page's worth (plus one, to say whether there is
+/// another) after the given cursor.
 ///
-/// One query per table, which is the shape of the registry rather than a
-/// choice: what is in the bin is not one table's business.
-pub async fn what_was_thrown(conn: &mut TenantConn) -> Result<Vec<Thrown>> {
+/// `fetch` rows are asked of *every* table, not `fetch` rows split between
+/// them: the true top `fetch` rows of the merged, deleted-at-descending union
+/// are always contained in the union of each table's own top `fetch` rows. If
+/// a row were among the global top `fetch` but missing from its own table's
+/// top `fetch`, that table alone would already hold `fetch` rows thrown away
+/// more recently than it, which would place all of those ahead of it globally
+/// too — so it could not have been in the global top `fetch` to begin with.
+/// That is what makes a per-table, cursor-bounded read enough to walk the
+/// whole bin a page at a time, rather than only ever seeing each table's
+/// newest hundred.
+pub async fn what_was_thrown(
+    conn: &mut TenantConn,
+    after: Option<DateTime<Utc>>,
+    fetch: i64,
+) -> Result<Vec<Thrown>> {
     let mut all = Vec::new();
 
     for kept in KEPT {
@@ -108,11 +115,14 @@ pub async fn what_was_thrown(conn: &mut TenantConn) -> Result<Vec<Thrown>> {
             "select id, {NAME}::text as name, deleted_at
                from {TABLE}
               where deleted_at is not null
+                and ($1::timestamptz is null or deleted_at < $1)
               order by deleted_at desc
-              limit 100",
+              limit $2",
             NAME = kept.named_by,
             TABLE = kept.table,
         ))
+        .bind(after)
+        .bind(fetch)
         .fetch_all(conn.conn())
         .await?;
 

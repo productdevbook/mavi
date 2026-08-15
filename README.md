@@ -111,23 +111,27 @@ The panel is static files behind nginx, which proxies `/api`, `/mcp`,
 ## One installation, one site
 
 Setup makes exactly one site, and there is no way to make a second: `/api/setup`
-answers once, and nothing else in this crate ever inserts a `tenants` row.
-That is not a limitation left to be lifted later — it is what this is. Running
-many sites on one machine is a hosting product built on top of this, not this.
+answers once. That is not a limitation left to be lifted later — it is what
+this is. Running many sites on one machine is a hosting product built on top of
+this, not this.
 
-Today, that is still built on isolation: a `tenant_id` on every table that
-holds a site's data, row-level security **enabled and forced** on every one of
-them, and a request resolved from its `Host` header rather than trusted to say
-which site it is. A connection is opened with the site it belongs to and the
-database refuses to hand it anything else, whatever a query says — nothing has
-to remember to filter by tenant, and the one test that matters is a schema
-test: a table with a `tenant_id` and no policy on it fails the build.
+It used to be built on isolation — a `tenant_id` on every table that held a
+site's data, row-level security enabled and forced on every one of them, and a
+request resolved from its `Host` header to decide whose data it was looking at.
+None of that is here now. There is one site, so a row is the site's row and a
+request is about the site; nothing decides, because there is nothing to decide
+between. [Issue #4](https://github.com/productdevbook/mavi/issues/4) is the
+removal, and says why: machinery built for hosting many sites and used for one
+still has to be understood by everybody reading the code and kept correct by
+everybody changing it, in exchange for a capability this project does not
+offer.
 
-That machinery is coming out rather than staying —
-[issue #4](https://github.com/productdevbook/mavi/issues/4) tracks removing
-it. Machinery built for hosting many sites and used for one still has to be
-understood by everybody reading the code and kept correct by everybody
-changing it, in exchange for a capability this project does not offer.
+**There is no upgrade path across that removal.** A database made by a version
+that carried the tenancy holds rows for one site or for several, and after the
+removal nothing can tell which row belonged to whom. The migration that takes
+the column out refuses to run on a database holding more than one site, and
+says so with the count. Whoever is running several must export each one before
+upgrading.
 
 ## More than posts
 

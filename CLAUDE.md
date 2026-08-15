@@ -37,20 +37,19 @@ The same goes for test data: names that are obviously invented.
 
     server/       the API, the queue and the scheduler — one Rust crate
     server/src/*/   one module per thing a site does, each with its own README
-    server/src/setup/ the one moment that makes the operator and the site together
+    server/src/setup/ the one moment that makes the site and the account that owns it
     server/migrations one file per change, applied at startup
     src/          the panel — React, TanStack Router, Lingui (English, Turkish)
     docs/         one document per thing that is not obvious from the code
 
-One installation is one site: `/api/setup` makes the operator, the tenant, an
-owner role and the account able to sign into it, all in the one transaction —
-and answers once. Nothing else in this crate ever inserts a `tenants` row. The
-isolation machinery — `tenant_id` on every table, row-level security, a request
-resolved from `Host` — is still here today, but it is coming out rather than
-staying: [#4](https://github.com/productdevbook/mavi/issues/4) is removing it,
-because machinery built for hosting many sites and used for one still has to
-be understood by everybody reading the code and kept correct by everybody
-changing it, in exchange for a capability this project does not offer. Running
+One installation is one site: `/api/setup` makes the site's settings, an owner
+role and the account able to sign into it, all in the one transaction — and
+answers once. There is one kind of account; the operator that used to be
+written beside the owner could never sign in and is gone. A locked-out owner
+gets back in with `mavi reset-password <address>` on the host.
+
+There is no `tenants` table and no `tenant_id` on anything: a row is the site's
+row because there is one site, and nothing resolves a request to one. Running
 many on one machine is a hosting product built on top of this, through
 `server/src/kernel/outside.rs`, not a mode this crate itself has.
 

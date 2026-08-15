@@ -1,0 +1,23 @@
+[workspace]
+resolver = "3"
+members = ["mavi-core"]
+
+# One place, so a member cannot quietly hold a different version of the thing
+# beside it. A member names the dependency and says `workspace = true`.
+[workspace.dependencies]
+chrono = { version = "0.4", default-features = false, features = ["serde", "clock"] }
+rust_decimal = { version = "1", features = ["serde-with-str"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+uuid = { version = "1", features = ["v7", "serde"] }
+
+[workspace.lints.rust]
+unsafe_code = "deny"
+missing_debug_implementations = "warn"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"

@@ -115,19 +115,18 @@ answers once, and nothing else in this crate ever inserts a `tenants` row.
 That is not a limitation left to be lifted later — it is what this is. Running
 many sites on one machine is a hosting product built on top of this, not this.
 
-Today, that is still built on isolation: a `tenant_id` on every table that
-holds a site's data, row-level security **enabled and forced** on every one of
-them, and a request resolved from its `Host` header rather than trusted to say
-which site it is. A connection is opened with the site it belongs to and the
-database refuses to hand it anything else, whatever a query says — nothing has
-to remember to filter by tenant, and the one test that matters is a schema
-test: a table with a `tenant_id` and no policy on it fails the build.
+It used to be built on isolation — a `tenant_id` on every table, row-level
+security on every one of them, and a request resolved from its `Host` header
+to decide whose data it was looking at. That machinery is gone. It was built
+for hosting many sites, it was used for one, and it still had to be understood
+by everybody reading the code and kept correct by everybody changing it, in
+exchange for a capability this does not offer.
 
-That machinery is coming out rather than staying —
-[issue #4](https://github.com/productdevbook/mavi/issues/4) tracks removing
-it. Machinery built for hosting many sites and used for one still has to be
-understood by everybody reading the code and kept correct by everybody
-changing it, in exchange for a capability this project does not offer.
+What replaced it is nothing, which is the point: there is one site, so no
+query has to remember which one. The one place that could still get it wrong
+is a database holding more than one, and that is refused at the door rather
+than served — a build that picks one of several silently is the failure the
+isolation existed to prevent, arrived at from the other side.
 
 ## More than posts
 

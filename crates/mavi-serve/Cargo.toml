@@ -16,6 +16,7 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 
 [dev-dependencies]
+mavi-core = { path = "../mavi-core" }
 # A receipt for a change nothing made. Nothing that ships turns this on.
 mavi-audit = { path = "../mavi-audit", features = ["pretend"] }
 

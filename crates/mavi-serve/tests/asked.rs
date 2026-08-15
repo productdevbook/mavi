@@ -10,7 +10,8 @@ use std::sync::Arc;
 
 use axum::body::Body;
 use axum::http::{Request, StatusCode};
-use mavi_api::{Answers, Code, Endpoint, Is, Method, Parameter, Who};
+use mavi_api::{Answers, Endpoint, Is, Method, Parameter, Who};
+use mavi_core::error::Code;
 use mavi_core::grant::{Access, Grants, Needs};
 use mavi_http::{Answered, Caller};
 use mavi_serve::{Asked, Handler, Site};

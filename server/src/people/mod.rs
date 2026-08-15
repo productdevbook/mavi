@@ -776,38 +776,8 @@ async fn change(
         }
     })?;
 
-    // A changed address is an account somebody else may now be holding open,
-    // and a link to prove the new one. Both, or neither.
     if changes.email.is_some() {
-        sqlx::query(
-            "update sessions set revoked_at = now() where user_id = $1 and revoked_at is null",
-        )
-        .bind(id)
-        .execute(conn.conn())
-        .await?;
-
-        let (secret, _) = a_ticket(&mut conn, caller.tenant(), id, "email_proof", &state).await?;
-
-        let language = site_language(&mut conn).await?;
-        let site = site_name(&mut conn).await?;
-
-        let (subject, letter) = crate::mail::letters::press(
-            &mut conn,
-            caller.tenant(),
-            "invitation",
-            &language,
-            &[
-                ("name", after.name.clone()),
-                ("site", site),
-                (
-                    "link",
-                    state.address.link(&format!("/forgotten?token={secret}")),
-                ),
-            ],
-        )
-        .await?;
-
-        written_to(&mut conn, caller.tenant(), &after.email, &subject, &letter).await?;
+        prove_the_new_address(&state, &mut conn, &caller, &after).await?;
     }
 
     // Suspending somebody takes away what they are already holding, which a
@@ -833,6 +803,44 @@ async fn change(
     conn.commit().await?;
 
     Ok(Audited::new(receipt, Json(after)))
+}
+
+/// A changed address is an account somebody else may now be holding open, and
+/// a link to prove the new one. Both, or neither — which is why they are one
+/// call rather than two things a caller could do half of.
+async fn prove_the_new_address(
+    state: &AppState,
+    conn: &mut TenantConn,
+    caller: &Caller,
+    person: &Person,
+) -> Result<()> {
+    sqlx::query("update sessions set revoked_at = now() where user_id = $1 and revoked_at is null")
+        .bind(person.id)
+        .execute(conn.conn())
+        .await?;
+
+    let (secret, _) = a_ticket(conn, caller.tenant(), person.id, "email_proof", state).await?;
+
+    let language = site_language(conn).await?;
+    let site = site_name(conn).await?;
+
+    let (subject, letter) = crate::mail::letters::press(
+        conn,
+        caller.tenant(),
+        "invitation",
+        &language,
+        &[
+            ("name", person.name.clone()),
+            ("site", site),
+            (
+                "link",
+                state.address.link(&format!("/forgotten?token={secret}")),
+            ),
+        ],
+    )
+    .await?;
+
+    written_to(conn, caller.tenant(), &person.email, &subject, &letter).await
 }
 
 /// A no-op reassignment to the role already held, or a promotion into it,

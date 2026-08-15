@@ -861,6 +861,7 @@ export type ReportState = "said" | "seen" | "answered" | "closed";
 export interface Request {
   method: string;
   params?: unknown;
+  id?: unknown;
 }
 
 export interface Returned {
@@ -2166,6 +2167,7 @@ export interface Calls {
   "POST /mcp": { takes: {
   method: string;
   params?: unknown;
+  id?: unknown;
 }; gives: void };
   "PUT /api/auth/oauth/{key}": { takes: {
   label: string;

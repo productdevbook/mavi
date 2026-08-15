@@ -6,6 +6,8 @@
 //! that is a person's.
 use axum::Json;
 use axum::extract::State as Injected;
+use axum::http::StatusCode;
+use axum::response::{IntoResponse, Response};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
@@ -19,6 +21,10 @@ use crate::kernel::say::{self, Say};
 /// The same rate a panel screen would generate, and a limit because a tool
 /// loop is a thing that runs until told otherwise.
 const CALL_LIMIT: Limit = Limit::new(120, 60);
+
+/// What `initialize` answers with. Not negotiated against what a client asks
+/// for — there is one shape this serves, so there is one version to claim.
+const PROTOCOL_VERSION: &str = "2025-06-18";
 
 /// One tool, and the grant it consumes.
 ///
@@ -513,14 +519,22 @@ fn uuid_in(arguments: &serde_json::Value, name: &'static str) -> Result<uuid::Uu
         .ok_or(AppError::NotFound("post"))
 }
 
-/// What a caller sends. Not the whole of the protocol — two methods, which are
-/// the two this serves.
+/// What a caller sends: a JSON-RPC envelope. Not the whole of the protocol —
+/// three methods answered, which are the ones this serves — but the envelope
+/// itself is every client's, so it is accepted whole rather than trimmed to
+/// what today's handler happens to read. No `deny_unknown_fields`: a field a
+/// future protocol version adds is not this caller's mistake.
+///
+/// No `id` means no answer is wanted — a JSON-RPC notification. A real client
+/// never sends `id: null` for a request it wants answered, so that is read the
+/// same way as an absent one rather than kept apart with a second `Option`.
 #[derive(Debug, Deserialize, utoipa::ToSchema)]
-#[serde(deny_unknown_fields)]
 pub struct Request {
     pub method: String,
     #[serde(default)]
     pub params: serde_json::Value,
+    #[serde(default)]
+    pub id: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Serialize, utoipa::ToSchema)]
@@ -541,8 +555,24 @@ async fn call(
     Injected(state): Injected<AppState>,
     caller: Caller,
     Json(body): Json<Request>,
-) -> Result<Audited<Json<serde_json::Value>>> {
+) -> Result<Audited<Response>> {
+    let id = body.id.clone();
+
     match body.method.as_str() {
+        "initialize" => {
+            let result = json!({
+                "protocolVersion": PROTOCOL_VERSION,
+                "capabilities": { "tools": {} },
+                "serverInfo": {
+                    "name": env!("CARGO_PKG_NAME"),
+                    "version": env!("CARGO_PKG_VERSION"),
+                },
+            });
+
+            let receipt = recorded(&state, &caller, "initialised", "").await?;
+
+            Ok(Audited::new(receipt, answered(id, result)))
+        }
         // What this caller may use, not what exists. A tool they cannot reach
         // is not listed, which is the same rule the panel's menu follows — and
         // the check below is what actually stops it.
@@ -559,7 +589,10 @@ async fn call(
 
             let receipt = recorded(&state, &caller, "listed tools", "").await?;
 
-            Ok(Audited::new(receipt, Json(json!({ "tools": listed }))))
+            Ok(Audited::new(
+                receipt,
+                answered(id, json!({ "tools": listed })),
+            ))
         }
         "tools/call" => {
             let name = body
@@ -588,11 +621,47 @@ async fn call(
             let answer = (tool.run)(&state, &caller, &arguments).await?;
             let receipt = recorded(&state, &caller, "used a tool", name).await?;
 
-            Ok(Audited::new(receipt, Json(answer)))
+            Ok(Audited::new(receipt, answered(id, answer)))
         }
-        other => Err(AppError::Invalid(
-            Say::of(say::NOT_A_METHOD_HERE).naming("method", other),
-        )),
+        // A request expects a JSON-RPC error object naming the method — the
+        // shape a JSON-RPC client parses on any unrecognised call, code
+        // -32601 by the spec's own numbering. A notification (no `id`) is not
+        // answered at all: a future version of this protocol names methods
+        // this build has never heard of, and a client that did not ask for an
+        // answer is not told it got one wrong.
+        other => {
+            let receipt = recorded(&state, &caller, "asked for a method not served", other).await?;
+
+            Ok(Audited::new(receipt, method_not_found(id, other)))
+        }
+    }
+}
+
+/// A JSON-RPC response for a request, or nothing for a notification — `id`'s
+/// absence is what tells the two apart, and a notification's sender has said
+/// outright that no answer is wanted.
+fn answered(id: Option<serde_json::Value>, result: serde_json::Value) -> Response {
+    match id {
+        Some(id) => Json(json!({ "jsonrpc": "2.0", "id": id, "result": result })).into_response(),
+        None => StatusCode::ACCEPTED.into_response(),
+    }
+}
+
+/// `-32601` is JSON-RPC's own number for this, not one this build invented —
+/// what a generic client matches on rather than the message beside it.
+fn method_not_found(id: Option<serde_json::Value>, method: &str) -> Response {
+    let message = Say::of(say::NOT_A_METHOD_HERE)
+        .naming("method", method)
+        .to_string();
+
+    match id {
+        Some(id) => Json(json!({
+            "jsonrpc": "2.0",
+            "id": id,
+            "error": { "code": -32601, "message": message },
+        }))
+        .into_response(),
+        None => StatusCode::ACCEPTED.into_response(),
     }
 }
 

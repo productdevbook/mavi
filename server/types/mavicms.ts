@@ -495,6 +495,13 @@ export interface MailList {
   created_at: string;
 }
 
+export interface MailUsage {
+  attempted: number;
+  delivered: number;
+  bounced: number;
+  failed: number;
+}
+
 export interface Me {
   id: string;
   email: string;
@@ -834,11 +841,25 @@ export interface Publish {
 
 export type PublishState = "queued" | "building" | "live" | "failed" | "cancelled" | "previewed";
 
+export interface QueueUsage {
+  waiting: number;
+  running: number;
+  failed: number;
+  dead: number;
+  oldest_waiting_since?: string | null;
+}
+
 export interface Read {
   languages: number;
   terms: number;
   posts: number;
   left_alone: number;
+}
+
+export interface RecentBuild {
+  state: string;
+  seconds?: number | null;
+  finished_at?: string | null;
 }
 
 export interface Recovery {
@@ -887,6 +908,12 @@ export interface Role {
 export interface RoleChanges {
   name?: null | Title;
   grants?: string[] | null;
+}
+
+export interface RowCount {
+  kind: string;
+  rows: number;
+  exact: boolean;
 }
 
 export interface Run {
@@ -967,6 +994,17 @@ export interface Standing {
 export type State = "draft" | "scheduled" | "published" | "archived";
 
 export type StepKind = "send_mail" | "call_webhook" | "wait" | "add_to_list";
+
+export interface StorageKind {
+  kind: string;
+  bytes: number;
+  count: number;
+}
+
+export interface StorageUsage {
+  used_bytes: number;
+  by_kind: StorageKind[];
+}
 
 export interface Student {
   id: string;
@@ -1078,6 +1116,14 @@ export interface TypeField {
   kind: FieldKind;
   required?: boolean;
   choices?: string[];
+}
+
+export interface Usage {
+  storage: StorageUsage;
+  rows: RowCount[];
+  mail: MailUsage;
+  builds: RecentBuild[];
+  queue: QueueUsage;
 }
 
 export interface Video {
@@ -1421,6 +1467,13 @@ export interface Calls {
   name: string;
   storage_used_bytes: number;
   storage_limit_bytes?: number | null;
+} };
+  "GET /api/site/usage": { takes: never; gives: {
+  storage: StorageUsage;
+  rows: RowCount[];
+  mail: MailUsage;
+  builds: RecentBuild[];
+  queue: QueueUsage;
 } };
   "GET /api/sites/orders/{id}": { takes: never; gives: {
   id: string;

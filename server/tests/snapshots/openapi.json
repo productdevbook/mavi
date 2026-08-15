@@ -7420,6 +7420,56 @@
         }
       }
     },
+    "/api/site/usage": {
+      "get": {
+        "description": "A panel account holding `settings:view`.",
+        "responses": {
+          "200": {
+            "description": "What was asked for.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "What this installation is holding and what it has done — no price\nanywhere in it. This is the site's own read of itself, for the moment\nsomebody is asking \"why is my disk full\" or \"did that campaign actually\ngo out\" rather than browsing.",
+                  "required": [
+                    "storage",
+                    "rows",
+                    "mail",
+                    "builds",
+                    "queue"
+                  ],
+                  "properties": {
+                    "storage": {
+                      "$ref": "#/components/schemas/StorageUsage"
+                    },
+                    "rows": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/RowCount"
+                      },
+                      "description": "How many rows of each kind: see `RowCount`."
+                    },
+                    "mail": {
+                      "$ref": "#/components/schemas/MailUsage"
+                    },
+                    "builds": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/RecentBuild"
+                      },
+                      "description": "Most recent first."
+                    },
+                    "queue": {
+                      "$ref": "#/components/schemas/QueueUsage"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/sites/beacon": {
       "post": {
         "description": "Anybody.",
@@ -10504,6 +10554,34 @@
           }
         }
       },
+      "MailUsage": {
+        "type": "object",
+        "description": "What was sent, and what became of it. `attempted` is everything this site\ntried to hand to a provider; `delivered` is what a provider confirmed\nreaching an inbox, which is fewer things than `attempted` on a machine with\nno delivery webhook configured, and that gap is itself an answer.",
+        "required": [
+          "attempted",
+          "delivered",
+          "bounced",
+          "failed"
+        ],
+        "properties": {
+          "attempted": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "delivered": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "bounced": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "failed": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
       "Me": {
         "type": "object",
         "required": [
@@ -11996,6 +12074,41 @@
           "previewed"
         ]
       },
+      "QueueUsage": {
+        "type": "object",
+        "required": [
+          "waiting",
+          "running",
+          "failed",
+          "dead"
+        ],
+        "properties": {
+          "waiting": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "running": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "failed": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "dead": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "oldest_waiting_since": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When the oldest job still waiting was queued. Null when nothing is."
+          }
+        }
+      },
       "Read": {
         "type": "object",
         "description": "What reading one did.",
@@ -12026,6 +12139,32 @@
             "format": "int64",
             "description": "What was already here under the same address and was left alone.",
             "minimum": 0
+          }
+        }
+      },
+      "RecentBuild": {
+        "type": "object",
+        "description": "One build. `seconds` is null for one that never finished.",
+        "required": [
+          "state"
+        ],
+        "properties": {
+          "state": {
+            "type": "string"
+          },
+          "seconds": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32"
+          },
+          "finished_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
           }
         }
       },
@@ -12225,6 +12364,27 @@
           }
         },
         "additionalProperties": false
+      },
+      "RowCount": {
+        "type": "object",
+        "description": "Rows of one kind, counted outright.\n\n`exact` is always `true` today. A table large enough to make that count\nworth avoiding should fall back to what Postgres already tracks for its\nown planner instead — the same question #60 is open about for\n`/api/overview` — but making `pg_class.reltuples` trustworthy here turned\nout to need more rounds than this endpoint could spend on it; see #72 for\nwhat was tried and what is still unknown. `exact` stays on the shape now\nso a caller does not have to change again when that lands.",
+        "required": [
+          "kind",
+          "rows",
+          "exact"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "rows": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "exact": {
+            "type": "boolean"
+          }
+        }
       },
       "Run": {
         "type": "object",
@@ -12525,6 +12685,47 @@
           "wait",
           "add_to_list"
         ]
+      },
+      "StorageKind": {
+        "type": "object",
+        "required": [
+          "kind",
+          "bytes",
+          "count"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "description": "The first half of the file's own mime type: `image`, `video`,\n`application`, and so on — not this machine's word for it."
+          },
+          "bytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "count": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "StorageUsage": {
+        "type": "object",
+        "required": [
+          "used_bytes",
+          "by_kind"
+        ],
+        "properties": {
+          "used_bytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "by_kind": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StorageKind"
+            }
+          }
+        }
       },
       "Student": {
         "type": "object",
@@ -12998,6 +13199,42 @@
           }
         },
         "additionalProperties": false
+      },
+      "Usage": {
+        "type": "object",
+        "description": "What this installation is holding and what it has done — no price\nanywhere in it. This is the site's own read of itself, for the moment\nsomebody is asking \"why is my disk full\" or \"did that campaign actually\ngo out\" rather than browsing.",
+        "required": [
+          "storage",
+          "rows",
+          "mail",
+          "builds",
+          "queue"
+        ],
+        "properties": {
+          "storage": {
+            "$ref": "#/components/schemas/StorageUsage"
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RowCount"
+            },
+            "description": "How many rows of each kind: see `RowCount`."
+          },
+          "mail": {
+            "$ref": "#/components/schemas/MailUsage"
+          },
+          "builds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RecentBuild"
+            },
+            "description": "Most recent first."
+          },
+          "queue": {
+            "$ref": "#/components/schemas/QueueUsage"
+          }
+        }
       },
       "Video": {
         "type": "object",

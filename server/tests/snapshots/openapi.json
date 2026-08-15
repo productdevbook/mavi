@@ -8467,7 +8467,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "description": "What a caller sends. Not the whole of the protocol — two methods, which are\nthe two this serves.",
+                "description": "What a caller sends: a JSON-RPC envelope. Not the whole of the protocol —\nthree methods answered, which are the ones this serves — but the envelope\nitself is every client's, so it is accepted whole rather than trimmed to\nwhat today's handler happens to read. No `deny_unknown_fields`: a field a\nfuture protocol version adds is not this caller's mistake.\n\nNo `id` means no answer is wanted — a JSON-RPC notification. A real client\nnever sends `id: null` for a request it wants answered, so that is read the\nsame way as an absent one rather than kept apart with a second `Option`.",
                 "required": [
                   "method"
                 ],
@@ -8475,9 +8475,9 @@
                   "method": {
                     "type": "string"
                   },
-                  "params": {}
-                },
-                "additionalProperties": false
+                  "params": {},
+                  "id": {}
+                }
               }
             }
           },
@@ -12070,7 +12070,7 @@
       },
       "Request": {
         "type": "object",
-        "description": "What a caller sends. Not the whole of the protocol — two methods, which are\nthe two this serves.",
+        "description": "What a caller sends: a JSON-RPC envelope. Not the whole of the protocol —\nthree methods answered, which are the ones this serves — but the envelope\nitself is every client's, so it is accepted whole rather than trimmed to\nwhat today's handler happens to read. No `deny_unknown_fields`: a field a\nfuture protocol version adds is not this caller's mistake.\n\nNo `id` means no answer is wanted — a JSON-RPC notification. A real client\nnever sends `id: null` for a request it wants answered, so that is read the\nsame way as an absent one rather than kept apart with a second `Option`.",
         "required": [
           "method"
         ],
@@ -12078,9 +12078,9 @@
           "method": {
             "type": "string"
           },
-          "params": {}
-        },
-        "additionalProperties": false
+          "params": {},
+          "id": {}
+        }
       },
       "Returned": {
         "type": "object",

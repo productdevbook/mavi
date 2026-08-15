@@ -15,6 +15,8 @@
 //! Nothing here mounts anything. It is the list, and the tests are what make
 //! the list worth having.
 
+pub mod mounted;
+
 use mavi_api::{Api, Endpoint};
 
 /// Every endpoint this installation has.

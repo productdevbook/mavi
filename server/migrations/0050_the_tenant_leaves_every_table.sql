@@ -2,7 +2,7 @@
 --
 -- This is the change that cannot be undone. What follows deletes the only
 -- record of which row belonged to which site; nothing after it can tell them
--- apart, and no tool in this repository will put them back. 0048 refuses to
+-- apart, and no tool in this repository will put them back. 0049 refuses to
 -- run at all on a database holding more than one site, which is the only guard
 -- there is and the reason it comes first.
 --
@@ -34,7 +34,7 @@
 -- `domain_checks`, `jobs`, `reports`, `site_settings`, `tenant_domains` and
 -- `transfers` — though only one of them carries the comment explaining it, so
 -- reading the comments would have found one of six. `ledger` was a seventh and
--- went with 0048.
+-- went with 0049.
 --
 -- The escape said "and the machine's own work may read across every site". It
 -- is not isolation, but it is not separable from it either: it exists only
@@ -56,7 +56,7 @@
 -- invariant. `languages_one_default` and `publishes_one_at_a_time` are
 -- recreated as `((true))` — at most one row, full stop. The second matters
 -- beyond tidiness: the build claim reads it, and without it two builds run at
--- once. A third, `tenant_domains_one_primary`, goes with its table in 0050.
+-- once. A third, `tenant_domains_one_primary`, goes with its table in 0051.
 --
 -- Twenty-eight uniques were genuinely scoped and flatten by losing the column.
 -- Two are worth naming. `orders_number_is_a_site_s_own` was scoped so that how

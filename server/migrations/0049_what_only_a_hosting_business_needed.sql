@@ -3,7 +3,7 @@
 -- it had been sold, and who to invoice about it.
 --
 -- Read the three together before running any of them. There is no way back
--- from them and no upgrade path across them: after 0049 the knowledge of which
+-- from them and no upgrade path across them: after 0050 the knowledge of which
 -- row belonged to which site has left the database, so a database holding more
 -- than one site has to be taken apart *before* this runs, not after. That is
 -- what the first statement below is for.

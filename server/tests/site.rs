@@ -25,9 +25,22 @@ struct Site {
 }
 
 async fn a_site() -> Site {
+    // `owner`, not a generic key: `people::refuse_if_last_owner` reads the
+    // role's own key literally, and a site made through this helper is the
+    // one every "the last owner is refused" test signs in as.
+    a_site_where_somebody_holding("owner", &every_grant()).await
+}
+
+/// A site whose account holds exactly these grants under this role key — for
+/// asking whether reaching something is gated on one of them.
+async fn a_site_where_somebody_can(grants: &[String]) -> Site {
+    a_site_where_somebody_holding("somebody", grants).await
+}
+
+async fn a_site_where_somebody_holding(key: &str, grants: &[String]) -> Site {
     let db = harness().await;
     let host = format!("{}.example", Uuid::now_v7().simple());
-    let role = a_role(&db, "owner", &every_grant()).await;
+    let role = a_role(&db, key, grants).await;
     let password = "a long enough password";
     let (_, email) = a_user(&db, role, password).await;
 
@@ -378,6 +391,201 @@ async fn what_a_site_may_take_is_read_and_not_set() {
         StatusCode::UNPROCESSABLE_ENTITY,
         "a site set its own limit: {refused}"
     );
+}
+
+/// What `/api/site/usage` answers, fetched once and read from by whichever
+/// test is asking about one part of it.
+async fn usage_of(site: &Site) -> serde_json::Value {
+    let (status, body) = site
+        .send("GET", "/api/site/usage", Some(&site.token), None)
+        .await;
+
+    assert_eq!(status, StatusCode::OK, "{body}");
+
+    serde_json::from_str(&body).expect("json")
+}
+
+#[tokio::test]
+async fn storage_and_rows_by_kind_are_read_back_as_what_was_written() {
+    let site = a_site().await;
+    let mut conn = site.db.tenant(site.tenant).await.expect("begin");
+
+    sqlx::query(
+        "insert into languages (tenant_id, code, name, is_default)
+         values ($1, 'en', 'English', true)",
+    )
+    .bind(site.tenant.0)
+    .execute(conn.conn())
+    .await
+    .expect("a language");
+
+    for slug in ["first-post", "second-post", "third-post"] {
+        sqlx::query(
+            "insert into posts (tenant_id, language, slug, title, state)
+             values ($1, 'en', $2, $2, 'draft')",
+        )
+        .bind(site.tenant.0)
+        .bind(slug)
+        .execute(conn.conn())
+        .await
+        .expect("a post");
+    }
+
+    sqlx::query(
+        "insert into media (tenant_id, location, original_name, mime, bytes, checksum)
+         values ($1, 'a/one.png', 'one.png', 'image/png', 1000, '\\x01'::bytea),
+                ($1, 'a/two.mp4', 'two.mp4', 'video/mp4', 4000, '\\x02'::bytea)",
+    )
+    .bind(site.tenant.0)
+    .execute(conn.conn())
+    .await
+    .expect("media");
+
+    conn.commit().await.expect("commit");
+
+    let read = usage_of(&site).await;
+
+    assert_eq!(read["storage"]["used_bytes"], 5000, "{read}");
+
+    let by_kind = read["storage"]["by_kind"].as_array().expect("kinds");
+    let image = by_kind
+        .iter()
+        .find(|kind| kind["kind"] == "image")
+        .expect("an image kind");
+
+    assert_eq!(image["bytes"], 1000, "{read}");
+    assert_eq!(image["count"], 1, "{read}");
+
+    let rows = read["rows"].as_array().expect("rows");
+    let posts = rows
+        .iter()
+        .find(|row| row["kind"] == "posts")
+        .expect("a posts row");
+
+    // Three written, three read back.
+    assert_eq!(posts["rows"], 3, "{read}");
+    assert_eq!(posts["exact"], true, "{read}");
+}
+
+#[tokio::test]
+async fn mail_attempted_delivered_bounced_and_failed_are_read_back() {
+    let site = a_site().await;
+    let mut conn = site.db.tenant(site.tenant).await.expect("begin");
+
+    // Not attempted: still queued, nothing has tried it yet.
+    sqlx::query(
+        "insert into email_log (tenant_id, to_email, subject, state)
+         values ($1, 'queued-reader@example.test', 'Hi', 'queued')",
+    )
+    .bind(site.tenant.0)
+    .execute(conn.conn())
+    .await
+    .expect("a queued message");
+
+    let (sent_id,): (Uuid,) = sqlx::query_as(
+        "insert into email_log (tenant_id, to_email, subject, state)
+         values ($1, 'sent-reader@example.test', 'Hi', 'sent') returning id",
+    )
+    .bind(site.tenant.0)
+    .fetch_one(conn.conn())
+    .await
+    .expect("a sent message");
+
+    sqlx::query(
+        "insert into email_log (tenant_id, to_email, subject, state)
+         values ($1, 'bounced-reader@example.test', 'Hi', 'bounced')",
+    )
+    .bind(site.tenant.0)
+    .execute(conn.conn())
+    .await
+    .expect("a bounced message");
+
+    sqlx::query(
+        "insert into email_log (tenant_id, to_email, subject, state)
+         values ($1, 'failed-reader@example.test', 'Hi', 'failed')",
+    )
+    .bind(site.tenant.0)
+    .execute(conn.conn())
+    .await
+    .expect("a failed message");
+
+    sqlx::query(
+        "insert into mail_events (tenant_id, email_log_id, kind, provider_ref)
+         values ($1, $2, 'delivered', $3)",
+    )
+    .bind(site.tenant.0)
+    .bind(sent_id)
+    .bind(Uuid::now_v7().to_string())
+    .execute(conn.conn())
+    .await
+    .expect("a delivery");
+
+    conn.commit().await.expect("commit");
+
+    let read = usage_of(&site).await;
+
+    assert_eq!(read["mail"]["attempted"], 3, "{read}");
+    assert_eq!(read["mail"]["delivered"], 1, "{read}");
+    assert_eq!(read["mail"]["bounced"], 1, "{read}");
+    assert_eq!(read["mail"]["failed"], 1, "{read}");
+}
+
+#[tokio::test]
+async fn builds_and_the_queue_are_read_back() {
+    let site = a_site().await;
+    let mut conn = site.db.tenant(site.tenant).await.expect("begin");
+
+    sqlx::query(
+        "insert into publishes (tenant_id, branch, state, seconds, finished_at)
+         values ($1, 'live', 'live', 42, now())",
+    )
+    .bind(site.tenant.0)
+    .execute(conn.conn())
+    .await
+    .expect("a build");
+
+    sqlx::query(
+        "insert into jobs (tenant_id, kind, state, run_at)
+         values ($1, 'domains.check', 'ready', now() - interval '1 hour')",
+    )
+    .bind(site.tenant.0)
+    .execute(conn.conn())
+    .await
+    .expect("a waiting job");
+
+    sqlx::query(
+        "insert into jobs (tenant_id, kind, state, run_at, claimed_until, claimed_by)
+         values ($1, 'domains.check', 'running', now(), now() + interval '5 minutes', 'a-worker')",
+    )
+    .bind(site.tenant.0)
+    .execute(conn.conn())
+    .await
+    .expect("a running job");
+
+    conn.commit().await.expect("commit");
+
+    let read = usage_of(&site).await;
+
+    assert_eq!(read["builds"][0]["state"], "live", "{read}");
+    assert_eq!(read["builds"][0]["seconds"], 42, "{read}");
+
+    assert_eq!(read["queue"]["waiting"], 1, "{read}");
+    assert_eq!(read["queue"]["running"], 1, "{read}");
+    assert!(
+        read["queue"]["oldest_waiting_since"].is_string(),
+        "the wait had no age: {read}"
+    );
+}
+
+#[tokio::test]
+async fn reading_what_the_site_is_holding_asks_for_the_grant_that_reads_settings() {
+    let site = a_site_where_somebody_can(&["content:view:own".to_owned()]).await;
+
+    let (status, refused) = site
+        .send("GET", "/api/site/usage", Some(&site.token), None)
+        .await;
+
+    assert_eq!(status, StatusCode::FORBIDDEN, "{refused}");
 }
 
 #[tokio::test]

@@ -1199,3 +1199,343 @@ async fn the_way_back_into_an_account_is_a_whole_url() {
     assert!(!host.is_empty(), "a link with no host in it: {link}");
     assert!(path.contains("forgotten?token="), "{link}");
 }
+
+/// A ticket is minted for one purpose; redeeming it as another is refused in
+/// both directions, and the attempt does not spend it — it still works for
+/// what it was actually minted for.
+#[tokio::test]
+async fn a_ticket_minted_for_one_purpose_is_not_redeemed_for_another() {
+    let site = a_site().await;
+
+    let invited = format!("crossed-{}@example.test", Uuid::now_v7().simple());
+
+    site.send(
+        "POST",
+        "/api/people",
+        Some(&site.token),
+        Some(serde_json::json!({
+            "email": invited, "name": "Crossed", "role_id": site.owner_role
+        })),
+    )
+    .await;
+
+    let invitation = site.ticket_for(&invited).await;
+
+    let (status, refused) = site
+        .send(
+            "POST",
+            "/api/auth/email-proof",
+            None,
+            Some(serde_json::json!({ "token": invitation })),
+        )
+        .await;
+
+    assert_eq!(
+        status,
+        StatusCode::UNPROCESSABLE_ENTITY,
+        "an invitation proved an address without being asked to: {refused}"
+    );
+
+    // Not spent by the wrong-purpose attempt: it still redeems for what it
+    // was minted for.
+    let (status, chosen) = site
+        .send(
+            "POST",
+            "/api/auth/password",
+            None,
+            Some(serde_json::json!({
+                "token": invitation, "password": "a long enough password"
+            })),
+        )
+        .await;
+
+    assert_eq!(status, StatusCode::NO_CONTENT, "{chosen}");
+
+    // And the other way round: a ticket minted only to prove an address does
+    // not open the door that chooses a password.
+    let password = "a long enough password";
+    let (target, _) = a_user(&site.db, site.tenant, site.owner_role, password).await;
+
+    let second = format!("proof-{}@example.test", Uuid::now_v7().simple());
+
+    site.send(
+        "PATCH",
+        &format!("/api/people/{target}"),
+        Some(&site.token),
+        Some(serde_json::json!({ "email": second })),
+    )
+    .await;
+
+    let proof = site.ticket_for(&second).await;
+
+    let (status, refused) = site
+        .send(
+            "POST",
+            "/api/auth/password",
+            None,
+            Some(serde_json::json!({
+                "token": proof, "password": "somebody else's choosing"
+            })),
+        )
+        .await;
+
+    assert_eq!(
+        status,
+        StatusCode::UNPROCESSABLE_ENTITY,
+        "an address proof chose a password without being asked to: {refused}"
+    );
+
+    // Their own password, chosen before any of this, still signs them in at
+    // the address the change already took effect on — only the proof of it
+    // was left pending.
+    let (status, session) = site
+        .send(
+            "POST",
+            "/api/auth/session",
+            None,
+            Some(serde_json::json!({ "email": second, "password": password })),
+        )
+        .await;
+
+    assert_eq!(status, StatusCode::OK, "{session}");
+}
+
+/// The case the issue is named for: an account holding `people:write` — not
+/// ownership itself — changes an owner's address to one it reads, follows
+/// the proof link that arrives there, and still cannot choose that owner's
+/// password. Changing an address is an ordinary use of `people:write`;
+/// becoming the owner is not what that grant is for.
+#[tokio::test]
+async fn changing_somebody_s_address_does_not_hand_the_caller_their_password() {
+    let site = a_site().await;
+
+    let editor_role = a_role(
+        &site.db,
+        site.tenant,
+        "editor",
+        &["people:write".to_owned()],
+    )
+    .await;
+    let editor_password = "a long enough password";
+    let (_, editor_email) = a_user(&site.db, site.tenant, editor_role, editor_password).await;
+
+    let (_, session) = site
+        .send(
+            "POST",
+            "/api/auth/session",
+            None,
+            Some(serde_json::json!({
+                "email": editor_email, "password": editor_password
+            })),
+        )
+        .await;
+
+    let editor_token = session["token"].as_str().expect("a token").to_owned();
+
+    // The owner's own address, read by the editor: a mailbox they control.
+    let taken_over = format!("taken-over-{}@example.test", Uuid::now_v7().simple());
+
+    let (status, changed) = site
+        .send(
+            "PATCH",
+            &format!("/api/people/{}", site.me),
+            Some(&editor_token),
+            Some(serde_json::json!({ "email": taken_over })),
+        )
+        .await;
+
+    assert_eq!(
+        status,
+        StatusCode::OK,
+        "changing somebody else's address is what people:write is for: {changed}"
+    );
+
+    let proof = site.ticket_for(&taken_over).await;
+
+    let (status, refused) = site
+        .send(
+            "POST",
+            "/api/auth/password",
+            None,
+            Some(serde_json::json!({
+                "token": proof, "password": "the editor's own choosing"
+            })),
+        )
+        .await;
+
+    assert_eq!(
+        status,
+        StatusCode::UNPROCESSABLE_ENTITY,
+        "an editor turned an address change into the owner's password: {refused}"
+    );
+
+    // The owner's own password, still theirs — signing in at the address it
+    // now lives at, with the password `a_site_with` gave it, unmoved by any
+    // of this.
+    let (status, session) = site
+        .send(
+            "POST",
+            "/api/auth/session",
+            None,
+            Some(serde_json::json!({
+                "email": taken_over, "password": "a long enough password"
+            })),
+        )
+        .await;
+
+    assert_eq!(
+        status,
+        StatusCode::OK,
+        "the owner's own password no longer signed them in: {session}"
+    );
+}
+
+/// Proving an address is not a credential change: it does not choose a
+/// password, does not move an account still sitting on an invitation to
+/// active, and does not close a session — including one opened after the
+/// address changed and before the proof was followed, which changing the
+/// address itself has already revoked whatever was open before.
+#[tokio::test]
+async fn proving_an_address_touches_only_the_address() {
+    let site = a_site().await;
+
+    let password = "a long enough password";
+    let (them, _) = a_user(&site.db, site.tenant, site.owner_role, password).await;
+
+    let second = format!("still-active-{}@example.test", Uuid::now_v7().simple());
+
+    site.send(
+        "PATCH",
+        &format!("/api/people/{them}"),
+        Some(&site.token),
+        Some(serde_json::json!({ "email": second })),
+    )
+    .await;
+
+    let (_, resumed) = site
+        .send(
+            "POST",
+            "/api/auth/session",
+            None,
+            Some(serde_json::json!({ "email": second, "password": password })),
+        )
+        .await;
+
+    let after_the_change = resumed["token"].as_str().expect("a token").to_owned();
+
+    let proof = site.ticket_for(&second).await;
+
+    let (status, proved) = site
+        .send(
+            "POST",
+            "/api/auth/email-proof",
+            None,
+            Some(serde_json::json!({ "token": proof })),
+        )
+        .await;
+
+    assert_eq!(status, StatusCode::NO_CONTENT, "{proved}");
+
+    let (status, still_theirs) = site
+        .send("GET", "/api/people", Some(&after_the_change), None)
+        .await;
+
+    assert_eq!(
+        status,
+        StatusCode::OK,
+        "proving an address closed a session opened after the change: {still_theirs}"
+    );
+
+    let (_, everybody) = site
+        .send("GET", "/api/people", Some(&site.token), None)
+        .await;
+
+    let person = everybody["items"]
+        .as_array()
+        .expect("a list")
+        .iter()
+        .find(|person| person["id"] == them.to_string())
+        .expect("the person whose address this is");
+
+    assert_eq!(person["email_proved"], true);
+    assert_eq!(
+        person["state"], "active",
+        "an already-active account changed state over an address proof: {person}"
+    );
+}
+
+/// An account still sitting on an invitation, whose address is changed
+/// before it is ever accepted, stays `invited` when the new address is
+/// proved: `active` would say it has a password, and proving an address is
+/// not choosing one.
+#[tokio::test]
+async fn proving_an_address_does_not_activate_an_invitation_still_waiting() {
+    let site = a_site().await;
+
+    let first = format!("waiting-{}@example.test", Uuid::now_v7().simple());
+
+    let (_, invited) = site
+        .send(
+            "POST",
+            "/api/people",
+            Some(&site.token),
+            Some(serde_json::json!({
+                "email": first, "name": "Still Waiting", "role_id": site.owner_role
+            })),
+        )
+        .await;
+
+    let id = invited["id"].as_str().expect("an id").to_owned();
+
+    let second = format!("waiting-{}@example.test", Uuid::now_v7().simple());
+
+    site.send(
+        "PATCH",
+        &format!("/api/people/{id}"),
+        Some(&site.token),
+        Some(serde_json::json!({ "email": second })),
+    )
+    .await;
+
+    let proof = site.ticket_for(&second).await;
+
+    let (status, proved) = site
+        .send(
+            "POST",
+            "/api/auth/email-proof",
+            None,
+            Some(serde_json::json!({ "token": proof })),
+        )
+        .await;
+
+    assert_eq!(status, StatusCode::NO_CONTENT, "{proved}");
+
+    let (_, everybody) = site
+        .send("GET", "/api/people", Some(&site.token), None)
+        .await;
+
+    let person = everybody["items"]
+        .as_array()
+        .expect("a list")
+        .iter()
+        .find(|person| person["id"] == id)
+        .expect("the invited person");
+
+    assert_eq!(person["email_proved"], true);
+    assert_eq!(
+        person["state"], "invited",
+        "an address proof activated an account nobody had signed into yet: {person}"
+    );
+
+    // No password was ever chosen, so there is still no way in.
+    let (status, _) = site
+        .send(
+            "POST",
+            "/api/auth/session",
+            None,
+            Some(serde_json::json!({ "email": second, "password": "anything at all" })),
+        )
+        .await;
+
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
+}

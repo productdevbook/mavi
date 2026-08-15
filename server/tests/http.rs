@@ -180,6 +180,10 @@ fn what_is_public_is_listed() {
             "/api/sites/videos/callback",
             "/api/auth/reset",
             "/api/auth/password",
+            // Proving an address somebody was sent a link about — the person
+            // following it is not signed in either, which is what makes this
+            // one public rather than something reached under `people:*`.
+            "/api/auth/email-proof",
             // Whether this machine has been set up, and setting it up. Public
             // because at that moment there is nobody who could hold an account
             // — what keeps the door shut is the rate limit, the advisory lock

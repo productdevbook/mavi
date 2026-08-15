@@ -823,6 +823,71 @@ async fn a_quieter_issue_still_comes_back_once_the_louder_ones_are_paged_past() 
     );
 }
 
+/// Two issues on the same post share `written_at` exactly, and share
+/// `weight` whenever both are the same severity — a title too short and no
+/// excerpt are both warnings, and both are true of the same post at the same
+/// moment. A cursor that only reaches as far as weight and the moment cannot
+/// tell them apart, so it either repeats one or skips the other.
+#[tokio::test]
+async fn two_issues_tied_on_weight_and_moment_both_come_back() {
+    let site = Site::new().await;
+    let who = site.everyone().await;
+
+    let (status, post) = site
+        .send(
+            "POST",
+            "/api/posts",
+            Some(&who.token),
+            Some(serde_json::json!({ "language": "en", "title": "Hi" })),
+        )
+        .await;
+
+    assert_eq!(status, StatusCode::CREATED, "{post}");
+
+    let mut seen = std::collections::HashSet::new();
+    let mut after: Option<String> = None;
+    let mut pages = 0;
+
+    loop {
+        pages += 1;
+        assert!(
+            pages <= 10,
+            "following `next` did not stop after {pages} pages"
+        );
+
+        let path = after.as_ref().map_or_else(
+            || "/api/pages/issues?limit=1".to_owned(),
+            |cursor| {
+                format!(
+                    "/api/pages/issues?limit=1&after={}",
+                    percent_encoded(cursor)
+                )
+            },
+        );
+
+        let (status, page) = site.send("GET", &path, Some(&who.token), None).await;
+        assert_eq!(status, StatusCode::OK, "{page}");
+
+        for issue in page["items"].as_array().expect("a page") {
+            let kind = issue["kind"].as_str().expect("a kind").to_owned();
+            assert!(seen.insert(kind.clone()), "{kind} came back twice");
+        }
+
+        after = page["next"].as_str().map(str::to_owned);
+
+        if after.is_none() {
+            break;
+        }
+    }
+
+    assert!(
+        seen.contains("title.short")
+            && seen.contains("excerpt.missing")
+            && seen.contains("body.thin"),
+        "a post tied on weight and moment should still show all three warnings: {seen:?}"
+    );
+}
+
 #[tokio::test]
 async fn many_posts_are_published_in_one_go() {
     let site = Site::new().await;

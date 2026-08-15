@@ -218,16 +218,22 @@ pub async fn look_at(conn: &mut TenantConn, tenant: TenantId, post_id: Uuid) -> 
     Ok(found)
 }
 
-/// Where the last page of issues stopped: the worst kind still open, and the
-/// moment among those. Filtering on `written_at` alone — what the list used to
-/// cursor on — orders correctly within one page and wrongly across two: a page
-/// boundary that falls inside the `warning`s cuts every `note` off from ever
-/// being reached, because they are newer than the cursor but outrank nothing.
-fn issue_cursor(after: Option<&str>) -> Option<(String, DateTime<Utc>)> {
-    let (weight, when) = after?.split_once('|')?;
-    let when = DateTime::parse_from_rfc3339(when).ok()?.with_timezone(&Utc);
+/// Where the last page of issues stopped: the worst kind still open, the
+/// moment among those, and which post and check within a tie on both — two
+/// issues on the same post share `written_at` exactly, and share `weight`
+/// whenever both are the same severity, so neither alone addresses a
+/// position inside that tie. `post_id` and `kind` together are what the table
+/// itself is unique on, which is what makes them enough to finish the order.
+fn issue_cursor(after: Option<&str>) -> Option<(String, DateTime<Utc>, Uuid, String)> {
+    let mut parts = after?.splitn(4, '|');
+    let weight = parts.next()?.to_owned();
+    let when = DateTime::parse_from_rfc3339(parts.next()?)
+        .ok()?
+        .with_timezone(&Utc);
+    let post_id = parts.next()?.parse().ok()?;
+    let kind = parts.next()?.to_owned();
 
-    Some((weight.to_owned(), when))
+    Some((weight, when, post_id, kind))
 }
 
 async fn all(
@@ -249,12 +255,22 @@ async fn all(
                  $1::issue_weight is null
                  or i.weight < $1::issue_weight
                  or (i.weight = $1::issue_weight and p.created_at < $2::timestamptz)
+                 or (
+                      i.weight = $1::issue_weight and p.created_at = $2::timestamptz
+                      and i.post_id > $3::uuid
+                 )
+                 or (
+                      i.weight = $1::issue_weight and p.created_at = $2::timestamptz
+                      and i.post_id = $3::uuid and i.kind > $4
+                 )
             )
-          order by i.weight desc, p.created_at desc, i.kind
-          limit $3",
+          order by i.weight desc, p.created_at desc, i.post_id, i.kind
+          limit $5",
     )
-    .bind(cursor.as_ref().map(|(weight, _)| weight.as_str()))
-    .bind(cursor.as_ref().map(|(_, when)| *when))
+    .bind(cursor.as_ref().map(|(weight, ..)| weight.as_str()))
+    .bind(cursor.as_ref().map(|(_, when, ..)| *when))
+    .bind(cursor.as_ref().map(|(_, _, post_id, _)| *post_id))
+    .bind(cursor.as_ref().map(|(.., kind)| kind.as_str()))
     .bind(page.fetch())
     .fetch_all(conn.conn())
     .await?;
@@ -264,7 +280,15 @@ async fn all(
     Ok(Json(Listing::build(
         &page,
         rows.iter().map(row_to_issue).collect(),
-        |issue| format!("{}|{}", issue.weight, issue.written_at.to_rfc3339()),
+        |issue| {
+            format!(
+                "{}|{}|{}|{}",
+                issue.weight,
+                issue.written_at.to_rfc3339(),
+                issue.post_id,
+                issue.kind
+            )
+        },
     )))
 }
 

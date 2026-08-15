@@ -556,7 +556,7 @@ async fn call(
     caller: Caller,
     Json(body): Json<Request>,
 ) -> Result<Audited<Response>> {
-    let id = body.id.clone();
+    let id = body.id.as_ref();
 
     match body.method.as_str() {
         "initialize" => {
@@ -571,7 +571,7 @@ async fn call(
 
             let receipt = recorded(&state, &caller, "initialised", "").await?;
 
-            Ok(Audited::new(receipt, answered(id, result)))
+            Ok(Audited::new(receipt, answered(id, &result)))
         }
         // What this caller may use, not what exists. A tool they cannot reach
         // is not listed, which is the same rule the panel's menu follows — and
@@ -591,7 +591,7 @@ async fn call(
 
             Ok(Audited::new(
                 receipt,
-                answered(id, json!({ "tools": listed })),
+                answered(id, &json!({ "tools": listed })),
             ))
         }
         "tools/call" => {
@@ -621,7 +621,7 @@ async fn call(
             let answer = (tool.run)(&state, &caller, &arguments).await?;
             let receipt = recorded(&state, &caller, "used a tool", name).await?;
 
-            Ok(Audited::new(receipt, answered(id, answer)))
+            Ok(Audited::new(receipt, answered(id, &answer)))
         }
         // A request expects a JSON-RPC error object naming the method — the
         // shape a JSON-RPC client parses on any unrecognised call, code
@@ -639,8 +639,9 @@ async fn call(
 
 /// A JSON-RPC response for a request, or nothing for a notification — `id`'s
 /// absence is what tells the two apart, and a notification's sender has said
-/// outright that no answer is wanted.
-fn answered(id: Option<serde_json::Value>, result: serde_json::Value) -> Response {
+/// outright that no answer is wanted. Both taken by reference: neither is
+/// ever anything but read into the envelope built here.
+fn answered(id: Option<&serde_json::Value>, result: &serde_json::Value) -> Response {
     match id {
         Some(id) => Json(json!({ "jsonrpc": "2.0", "id": id, "result": result })).into_response(),
         None => StatusCode::ACCEPTED.into_response(),
@@ -649,7 +650,7 @@ fn answered(id: Option<serde_json::Value>, result: serde_json::Value) -> Respons
 
 /// `-32601` is JSON-RPC's own number for this, not one this build invented —
 /// what a generic client matches on rather than the message beside it.
-fn method_not_found(id: Option<serde_json::Value>, method: &str) -> Response {
+fn method_not_found(id: Option<&serde_json::Value>, method: &str) -> Response {
     let message = Say::of(say::NOT_A_METHOD_HERE)
         .naming("method", method)
         .to_string();

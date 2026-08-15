@@ -3,8 +3,8 @@
 use chrono::{DateTime, Utc};
 use mavi_core::error::{Error, Result};
 use mavi_core::id;
-use mavi_core::slug::Slug;
 use mavi_core::say::Say;
+use mavi_core::slug::Slug;
 use serde::{Deserialize, Serialize};
 
 id!(

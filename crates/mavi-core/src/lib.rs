@@ -9,6 +9,7 @@
 //! does does not appear in this crate.** A type here is one every domain
 //! needs, or it is in the domain that needs it.
 
+pub mod email;
 pub mod grant;
 pub mod id;
 pub mod money;

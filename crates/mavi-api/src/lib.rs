@@ -311,6 +311,72 @@ impl Api {
 
         holes
     }
+
+    /// Endpoints that cannot both exist, found by comparing rather than by
+    /// remembering.
+    ///
+    /// Two kinds. The same method and path declared twice — one of them is
+    /// unreachable, and which one depends on the order they were mounted in.
+    /// And the one nobody sees coming: two paths of the same shape naming
+    /// their hole differently. `/api/forms/{slug}/submissions` beside
+    /// `/api/forms/{id}/submissions` reads as two endpoints in two crates and
+    /// is one route, which a router is entitled to refuse outright at the
+    /// moment the process starts.
+    #[must_use]
+    pub fn clashes(&self) -> Vec<Clash> {
+        let mut clashes = Vec::new();
+
+        for (at, one) in self.endpoints.iter().enumerate() {
+            for other in &self.endpoints[at + 1..] {
+                if one.method != other.method {
+                    continue;
+                }
+
+                let why = if one.path == other.path {
+                    "the same method and path twice"
+                } else if same_shape(one.path, other.path) {
+                    "one path, two names for the same hole"
+                } else {
+                    continue;
+                };
+
+                clashes.push(Clash {
+                    named: one.named,
+                    with: other.named,
+                    why,
+                });
+            }
+        }
+
+        clashes
+    }
+}
+
+/// Whether two paths differ only in what they call their holes.
+fn same_shape(one: &str, other: &str) -> bool {
+    let shape = |path: &str| {
+        path.split('/')
+            .map(|part| {
+                if part.starts_with('{') && part.ends_with('}') {
+                    "{}"
+                } else {
+                    part
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("/")
+    };
+
+    shape(one) == shape(other)
+}
+
+/// Two endpoints that cannot both be mounted, or that are the same endpoint
+/// twice.
+#[derive(Debug, PartialEq, Eq)]
+pub struct Clash {
+    pub named: &'static str,
+    pub with: &'static str,
+    pub why: &'static str,
 }
 
 /// The `{names}` a path carries.
@@ -399,5 +465,47 @@ mod tests {
         assert_eq!(Answers::Later.status(), 202);
         assert_eq!(Answers::Nothing.status(), 204);
         assert_eq!(Answers::Nothing.body(), None);
+    }
+
+    #[test]
+    fn two_endpoints_that_cannot_both_be_mounted_are_found_by_comparing() {
+        // The shape that reads as two endpoints and is one route: two crates
+        // each describing the same path and calling its hole something of
+        // their own. Nothing about either declaration looks wrong on its own,
+        // which is why this is asked of the whole rather than of each.
+        let by_slug = Endpoint {
+            path: "/api/forms/{slug}/submissions",
+            named: "forms.fill-in",
+            parameters: vec![Parameter::path("slug", Is::Text, "Which form.")],
+            ..a_reading()
+        };
+        let by_id = Endpoint {
+            path: "/api/forms/{id}/submissions",
+            named: "forms.submissions",
+            parameters: vec![Parameter::path("id", Is::Id, "Which form.")],
+            ..a_reading()
+        };
+
+        let clashes = Api::of(vec![by_slug, by_id]).clashes();
+
+        assert_eq!(clashes.len(), 1, "{clashes:#?}");
+        assert_eq!(clashes[0].why, "one path, two names for the same hole");
+    }
+
+    #[test]
+    fn the_same_endpoint_twice_is_a_clash_and_two_verbs_on_one_path_are_not() {
+        let read = a_reading();
+        let same = Endpoint {
+            named: "posts.read-again",
+            ..a_reading()
+        };
+        let write = Endpoint {
+            method: Method::Delete,
+            named: "posts.remove",
+            ..a_reading()
+        };
+
+        assert_eq!(Api::of(vec![read, same]).clashes().len(), 1);
+        assert!(Api::of(vec![a_reading(), write]).clashes().is_empty());
     }
 }

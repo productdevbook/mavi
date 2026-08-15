@@ -44,7 +44,7 @@ impl Say {
     /// The same, carrying something the sentence needs — a name, a count, a
     /// limit. Chainable, because most refusals carry one and some carry three.
     #[must_use]
-    pub fn with(mut self, name: &'static str, value: impl ToString) -> Self {
+    pub fn with(mut self, name: &'static str, value: &impl ToString) -> Self {
         self.named.insert(name, value.to_string());
         self
     }
@@ -93,8 +93,8 @@ mod tests {
 
     #[test]
     fn what_a_refusal_carries_is_ordered_however_it_was_given() {
-        let one = Say::of("k").with("b", 2).with("a", 1);
-        let two = Say::of("k").with("a", 1).with("b", 2);
+        let one = Say::of("k").with("b", &2).with("a", &1);
+        let two = Say::of("k").with("a", &1).with("b", &2);
 
         assert_eq!(
             serde_json::to_string(&one).expect("json"),

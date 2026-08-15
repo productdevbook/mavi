@@ -12,7 +12,7 @@
 //! *inside* a run of equal values, so whole groups of rows are skipped or
 //! repeated, and nothing anywhere reports it.
 //!
-//! It bites more often than it sounds. PostgreSQL's `now()` is fixed for a
+//! It bites more often than it sounds. `PostgreSQL`'s `now()` is fixed for a
 //! whole transaction, so everything written together shares a timestamp
 //! exactly — which is most rows, in a system where things are created in
 //! batches.

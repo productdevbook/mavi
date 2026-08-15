@@ -125,12 +125,20 @@ impl Money {
             return Vec::new();
         }
 
-        let each = self.minor / parts as i64;
-        let over = self.minor % parts as i64;
+        let Ok(count) = i64::try_from(parts) else {
+            return Vec::new();
+        };
+
+        let each = self.minor / count;
+        let over = self.minor % count;
+        // How many parts get one more of the smallest unit, and in which
+        // direction — a negative total is split into negative parts.
+        let extra = over.unsigned_abs();
+        let step = over.signum();
 
         (0..parts)
             .map(|i| Self {
-                minor: each + i64::from(i < over.unsigned_abs() as usize) * over.signum(),
+                minor: each + i64::from(u64::try_from(i).is_ok_and(|i| i < extra)) * step,
                 currency: self.currency,
             })
             .collect()

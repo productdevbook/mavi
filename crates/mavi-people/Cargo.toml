@@ -8,6 +8,11 @@ description = "Who can sign in, what they may do, and the one list of what there
 [dependencies]
 mavi-api = { path = "../mavi-api" }
 mavi-core = { path = "../mavi-core" }
+mavi-db = { path = "../mavi-db" }
+
+argon2 = { workspace = true }
+chrono = { workspace = true }
+sqlx = { workspace = true }
 
 rand = { workspace = true }
 serde = { workspace = true }

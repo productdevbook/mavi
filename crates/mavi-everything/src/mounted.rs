@@ -37,6 +37,35 @@ pub const THAT_IS_NOT_AN_ID: &str = "that_is_not_an_id";
 pub fn site(db: &Db, who_is_asking: WhoIsAsking) -> Site {
     let mut site = Site::new(who_is_asking);
 
+    for endpoint in mavi_people::endpoints() {
+        let db = db.clone();
+
+        let handler: Option<Handler> = match endpoint.named {
+            "setup.once" => Some(handling(db, |db, asked| {
+                Box::pin(async move { set_up(&db, &asked).await })
+            })),
+            "sessions.begin" => Some(handling(db, |db, asked| {
+                Box::pin(async move { signed_in(&db, &asked).await })
+            })),
+            "people.list" => Some(handling(db, |db, asked| {
+                Box::pin(async move { people(&db, &asked).await })
+            })),
+            _ => None,
+        };
+
+        if let Some(handler) = handler {
+            // The two ways in ask for nothing held, because whoever is using
+            // them is holding nothing yet. What they answer is what the guard
+            // has to work with afterwards.
+            let needs = match endpoint.named {
+                "people.list" => Some(mavi_people::to_read()),
+                _ => None,
+            };
+
+            site = site.mount(endpoint, needs, handler);
+        }
+    }
+
     for endpoint in mavi_content::endpoints() {
         let db = db.clone();
 
@@ -222,4 +251,80 @@ async fn wrote(
     };
 
     record(tx, &actor, did, "writing", Some(&about.to_string()), what).await
+}
+
+async fn set_up(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
+    let what: mavi_people::store::Setup = serde_json::from_value(asked.body.clone())
+        .map_err(|_| Error::invalid(Say::of("that_is_not_what_setting_up_asks_for")))?;
+
+    let mut tx = db.begin().await?;
+    let ready = mavi_people::store::set_up(&mut tx, &what).await?;
+
+    // The machine did it: there is nobody to attribute it to, because the
+    // account this writes down is the one being made.
+    let receipt = record(
+        &mut tx,
+        &Actor::the_machine("setup"),
+        "setup.once",
+        "site",
+        Some(&ready.person.id.to_string()),
+        &serde_json::json!({ "site": what.site }),
+    )
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(Answered::Changed(
+        serde_json::to_value(ready).map_err(Error::internal)?,
+        receipt,
+    ))
+}
+
+async fn signed_in(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
+    let email = asked.body["email"].as_str().unwrap_or_default().to_owned();
+    let said = asked.body["password"]
+        .as_str()
+        .unwrap_or_default()
+        .to_owned();
+
+    let mut tx = db.begin().await?;
+    let (person, token) = mavi_people::store::sign_in(&mut tx, &email, &said).await?;
+
+    let receipt = record(
+        &mut tx,
+        &Actor {
+            who: Whom::AnAccount,
+            id: Some(person.id.to_string()),
+            request: "a-request".to_owned(),
+        },
+        "sessions.begin",
+        "session",
+        Some(&person.id.to_string()),
+        // Never the token, and never the address they typed. What is worth
+        // recording is that somebody signed in, not what they signed in with.
+        &serde_json::json!({}),
+    )
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(Answered::Changed(
+        serde_json::json!({ "person": person, "token": token }),
+        receipt,
+    ))
+}
+
+async fn people(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
+    let mut tx = db.begin().await?;
+
+    let query = Query {
+        after: asked.query.get("after").cloned(),
+        limit: asked.query.get("limit").and_then(|how| how.parse().ok()),
+    };
+
+    let page = mavi_people::store::list(&mut tx, &query).await?;
+
+    Ok(Answered::Read(
+        serde_json::to_value(page).map_err(Error::internal)?,
+    ))
 }

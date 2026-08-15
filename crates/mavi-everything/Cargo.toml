@@ -31,6 +31,7 @@ uuid = { workspace = true }
 
 [dev-dependencies]
 axum = { workspace = true }
+mavi-core = { path = "../mavi-core" }
 sqlx = { workspace = true }
 tokio = { workspace = true, features = ["macros", "rt", "rt-multi-thread"] }
 tower = { workspace = true }

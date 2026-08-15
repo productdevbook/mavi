@@ -6,6 +6,9 @@
 //! because the alternative is a foundation edited every time a site learns to
 //! do something new.
 
+pub mod owner;
+pub mod password;
+pub mod store;
 pub mod ticket;
 pub mod token;
 
@@ -50,6 +53,22 @@ pub fn is_a_capability(name: &str) -> bool {
 #[must_use]
 pub fn endpoints() -> Vec<Endpoint> {
     vec![
+        Endpoint {
+            method: Method::Post,
+            path: "/api/setup",
+            named: "setup.once",
+            about: "Makes the site, the owner's role, and the account that holds it. Answers once.",
+            who: Who::Anybody,
+            parameters: Vec::new(),
+            takes: Some("Setup"),
+            answers: Answers::Made("Ready"),
+            // Already set up. Never a way to ask whether it is: an
+            // installation that has been set up refuses this and an
+            // installation that has not takes it, which is the same thing a
+            // visitor learns by looking at the front page.
+            refuses: &[Code::Conflict],
+            changes: true,
+        },
         Endpoint {
             method: Method::Post,
             path: "/api/sessions",

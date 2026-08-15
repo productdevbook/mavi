@@ -14,8 +14,8 @@ msgstr ""
 "Plural-Forms: \n"
 
 #: src/components/pricing-plans.tsx:83
-msgid " / month"
-msgstr " / ay"
+#~ msgid " / month"
+#~ msgstr " / ay"
 
 #. placeholder {0}: one.title
 #. placeholder {1}: one.lessons.length
@@ -475,8 +475,8 @@ msgstr "{0} gönderildi"
 
 #. placeholder {0}: plan.sites
 #: src/components/pricing-plans.tsx:87
-msgid "{0} sites included"
-msgstr "{0} site dahil"
+#~ msgid "{0} sites included"
+#~ msgstr "{0} site dahil"
 
 #. placeholder {0}: flow.steps.length
 #: src/routes/dashboard.flows.tsx:391
@@ -701,28 +701,28 @@ msgid "0 results"
 msgstr "0 sonuç"
 
 #: src/components/pricing-plans.tsx:115
-msgid "1. Your agency plan"
-msgstr "1. Ajans planınız"
+#~ msgid "1. Your agency plan"
+#~ msgstr "1. Ajans planınız"
 
 #: src/routes/dashboard.billing.tsx:173
 #~ msgid "1000 emails"
 #~ msgstr "1000 e-posta"
 
 #: src/components/pricing-plans.tsx:121
-msgid "2. When you launch a site"
-msgstr "2. Site yayınladığınızda"
+#~ msgid "2. When you launch a site"
+#~ msgstr "2. Site yayınladığınızda"
 
 #: src/components/setup/setup-wizard.tsx:642
 #~ msgid "3-32 characters: letters, numbers, _ or -"
 #~ msgstr "3-32 karakter: harf, rakam, _ veya -"
 
 #: src/components/pricing-plans.tsx:127
-msgid "3. Active site costs"
-msgstr "3. Aktif site ücretleri"
+#~ msgid "3. Active site costs"
+#~ msgstr "3. Aktif site ücretleri"
 
 #: src/components/pricing-plans.tsx:133
-msgid "4. If a site is archived"
-msgstr "4. Site arşivlendiğinde"
+#~ msgid "4. If a site is archived"
+#~ msgstr "4. Site arşivlendiğinde"
 
 #: src/routes/dashboard.boards.tsx:148
 #~ msgid "A board is for the work that arrives rather than the work you publish. A form takes an answer and the answer sits there; a board turns it into something with a state, an owner and a history — so \"did anyone get back to them\" is a question the screen answers instead of one somebody has to remember."
@@ -1233,8 +1233,8 @@ msgstr "Bunu doğrulayıcı uygulamanıza ekleyin, sonra gösterdiğini yazın."
 #~ msgstr "Eklendi. Aşağıdaki kayıtları yayınlayın, kendiliğinden doğrulanır."
 
 #: src/components/pricing-plans.tsx:140
-msgid "Additional active sites cost $29/month when your plan's included slots are full. The $199 activation fee still applies to each newly created site."
-msgstr "Planınızdaki dahil slotlar dolduğunda ek aktif siteler ayda 29 $ tutar. Yeni oluşturulan her site için 199 $ aktivasyon ücreti yine uygulanır."
+#~ msgid "Additional active sites cost $29/month when your plan's included slots are full. The $199 activation fee still applies to each newly created site."
+#~ msgstr "Planınızdaki dahil slotlar dolduğunda ek aktif siteler ayda 29 $ tutar. Yeni oluşturulan her site için 199 $ aktivasyon ücreti yine uygulanır."
 
 #: src/components/editor/dialogs.tsx:306
 msgid "Address"
@@ -1313,8 +1313,8 @@ msgstr "Sonrasında /mcp neye bağlı olduğunu listeler."
 #~ msgstr "Ajans paketi"
 
 #: src/components/pricing-plans.tsx:68
-msgid "Agency plans"
-msgstr "Ajans paketleri"
+#~ msgid "Agency plans"
+#~ msgstr "Ajans paketleri"
 
 #: src/routes/console_.login.tsx:66
 #~ msgid "Agency sign in"
@@ -1446,8 +1446,8 @@ msgstr "Toplam"
 #~ msgstr "{0} cinsinden tutar — eksi değer düşer"
 
 #: src/components/pricing-plans.tsx:129
-msgid "An active site can receive its own monthly hosting, email and storage charges. Your agency may add a margin before showing those charges to the site owner."
-msgstr "Aktif bir site için aylık hosting, e-posta ve depolama ücretleri ayrıca oluşabilir. Ajansınız bu ücretleri site sahibine göstermeden önce kendi kâr payını ekleyebilir."
+#~ msgid "An active site can receive its own monthly hosting, email and storage charges. Your agency may add a margin before showing those charges to the site owner."
+#~ msgstr "Aktif bir site için aylık hosting, e-posta ve depolama ücretleri ayrıca oluşabilir. Ajansınız bu ücretleri site sahibine göstermeden önce kendi kâr payını ekleyebilir."
 
 #: src/components/ses-analytics.tsx:190
 #~ msgid "An address that goes for good, or reports the mail as spam, is blocked here the moment Amazon says so — without waiting for the next campaign to find out."
@@ -1701,8 +1701,8 @@ msgstr "Arşivlendi"
 #~ msgstr "Arşivler"
 
 #: src/components/pricing-plans.tsx:135
-msgid "Archiving stops the public site and active usage charges, but keeps its data and media stored. Storage costs $9/month until you restore or delete the site."
-msgstr "Arşivlemek herkese açık siteyi ve aktif kullanım ücretlerini durdurur; ancak verileri ve medyaları saklamaya devam eder. Siteyi geri yükleyene veya silene kadar depolama ayda 9 $ tutar."
+#~ msgid "Archiving stops the public site and active usage charges, but keeps its data and media stored. Storage costs $9/month until you restore or delete the site."
+#~ msgstr "Arşivlemek herkese açık siteyi ve aktif kullanım ücretlerini durdurur; ancak verileri ve medyaları saklamaya devam eder. Siteyi geri yükleyene veya silene kadar depolama ayda 9 $ tutar."
 
 #: src/routes/dashboard.roles.tsx:348
 msgid "Area"
@@ -2406,8 +2406,8 @@ msgid "Choose one, or paste it"
 msgstr "Bir dosya seçin ya da yapıştırın"
 
 #: src/components/pricing-plans.tsx:99
-msgid "Choose plan"
-msgstr "Paketi seç"
+#~ msgid "Choose plan"
+#~ msgstr "Paketi seç"
 
 #: src/routes/dashboard.plugins_.email.tsx:233
 #~ msgid "Choose where this site's mail goes out from."
@@ -3240,8 +3240,8 @@ msgstr "Sırasız liste oluştur"
 #~ msgstr "Mevcut parola"
 
 #: src/components/pricing-plans.tsx:99
-msgid "Current plan"
-msgstr "Mevcut paket"
+#~ msgid "Current plan"
+#~ msgstr "Mevcut paket"
 
 #: src/components/editor/palette.ts:57
 msgid "Cursive"
@@ -3722,8 +3722,8 @@ msgstr "Talepler"
 #~ msgstr "Tüm hareketler"
 
 #: src/components/pricing-plans.tsx:123
-msgid "Every new site has a one-time $199 activation fee. This is charged once when the site is created; it is not a second monthly plan fee."
-msgstr "Her yeni site için tek seferlik 199 $ aktivasyon ücreti vardır. Bu ücret site oluşturulurken bir kez alınır; ikinci bir aylık plan ücreti değildir."
+#~ msgid "Every new site has a one-time $199 activation fee. This is charged once when the site is created; it is not a second monthly plan fee."
+#~ msgstr "Her yeni site için tek seferlik 199 $ aktivasyon ücreti vardır. Bu ücret site oluşturulurken bir kez alınır; ikinci bir aylık plan ücreti değildir."
 
 #: src/components/dashboard/discoverability.tsx:55
 msgid "Every page, listed for Google and the other crawlers."
@@ -4311,8 +4311,8 @@ msgstr "Metni renkli vurgula"
 #~ msgstr "Ajansların bu sunucuya nasıl ödediği ve tema depolarının altında açıldığı GitHub hesabı."
 
 #: src/components/pricing-plans.tsx:108
-msgid "How billing works"
-msgstr "Ücretlendirme nasıl çalışır?"
+#~ msgid "How billing works"
+#~ msgstr "Ücretlendirme nasıl çalışır?"
 
 #: src/routes/dashboard.students.tsx:505
 #~ msgid "How long"
@@ -7085,8 +7085,8 @@ msgstr "Hazır"
 #~ msgstr "Son derlemeler"
 
 #: src/components/pricing-plans.tsx:79
-msgid "Recommended"
-msgstr "Önerilen"
+#~ msgid "Recommended"
+#~ msgstr "Önerilen"
 
 #: src/components/dashboard/dashboard-shell.tsx:223
 #: src/routes/dashboard.audit.tsx:72
@@ -8865,8 +8865,8 @@ msgid "The money arrived"
 msgstr "Ödeme geldi"
 
 #: src/components/pricing-plans.tsx:117
-msgid "The monthly plan fee is taken from your agency balance. It pays for your agency account and the number of active site slots shown above. It is not automatically a separate charge to a site owner."
-msgstr "Aylık plan ücreti ajans bakiyenizden alınır. Ajans hesabınızı ve yukarıda belirtilen aktif site slotlarını kapsar. Site sahibine otomatik olarak ayrıca yansıtılan bir ücret değildir."
+#~ msgid "The monthly plan fee is taken from your agency balance. It pays for your agency account and the number of active site slots shown above. It is not automatically a separate charge to a site owner."
+#~ msgstr "Aylık plan ücreti ajans bakiyenizden alınır. Ajans hesabınızı ve yukarıda belirtilen aktif site slotlarını kapsar. Site sahibine otomatik olarak ayrıca yansıtılan bir ücret değildir."
 
 #: src/components/editor/dialogs.tsx:573
 msgid "The most common shortcuts in the editor."
@@ -9032,8 +9032,8 @@ msgstr "Tema"
 #~ msgstr "Satılan temalar"
 
 #: src/components/pricing-plans.tsx:110
-msgid "There are two sides to the bill: the platform charges your agency, and your agency can pass those costs to each site owner with its own margin."
-msgstr "Faturalandırmanın iki tarafı vardır: platform ajansınızı ücretlendirir, ajansınız da kendi kâr payını ekleyerek bu maliyetleri site sahiplerine yansıtabilir."
+#~ msgid "There are two sides to the bill: the platform charges your agency, and your agency can pass those costs to each site owner with its own margin."
+#~ msgstr "Faturalandırmanın iki tarafı vardır: platform ajansınızı ücretlendirir, ajansınız da kendi kâr payını ekleyerek bu maliyetleri site sahiplerine yansıtabilir."
 
 #: src/routes/dashboard.media.tsx:296
 #~ msgid "There is no bucket, so readers fetch the pictures from this server itself. That works; a bucket in front would be faster and would take them off a single disk."
@@ -9048,8 +9048,8 @@ msgstr "Faturalandırmanın iki tarafı vardır: platform ajansınızı ücretle
 #~ msgstr "Bunlar herkese cevap verir; iletişim formunu dolduran ziyaretçinin burada hesabı yok. Form bu panelde oluşturulduğu için sabit bir API tanımı hangi alanları aldığını yazamaz — önce sorun, sonra gönderin. Yazdığınız yazılım ya da sizin için çalışan bir yapay zekâ, bir formun ne istediğini böyle öğrenir."
 
 #: src/components/pricing-plans.tsx:70
-msgid "These fees are charged to your agency balance. You decide what each site owner pays on top."
-msgstr "Bu ücretler ajans bakiyenizden alınır. Her site sahibinin bunun üzerine ne kadar ödeyeceğine siz karar verirsiniz."
+#~ msgid "These fees are charged to your agency balance. You decide what each site owner pays on top."
+#~ msgstr "Bu ücretler ajans bakiyenizden alınır. Her site sahibinin bunun üzerine ne kadar ödeyeceğine siz karar verirsiniz."
 
 #: src/components/ses-analytics.tsx:143
 #~ msgid "These figures come from Amazon's deliverability manager, which has to be switched on for the account. \"Wire up the events\" does that, along with everything else that has to exist before an event can reach this site."

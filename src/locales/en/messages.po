@@ -14,8 +14,8 @@ msgstr ""
 "Plural-Forms: \n"
 
 #: src/components/pricing-plans.tsx:83
-msgid " / month"
-msgstr " / month"
+#~ msgid " / month"
+#~ msgstr " / month"
 
 #. placeholder {0}: one.title
 #. placeholder {1}: one.lessons.length
@@ -475,8 +475,8 @@ msgstr "{0} sent"
 
 #. placeholder {0}: plan.sites
 #: src/components/pricing-plans.tsx:87
-msgid "{0} sites included"
-msgstr "{0} sites included"
+#~ msgid "{0} sites included"
+#~ msgstr "{0} sites included"
 
 #. placeholder {0}: flow.steps.length
 #: src/routes/dashboard.flows.tsx:391
@@ -701,28 +701,28 @@ msgid "0 results"
 msgstr "0 results"
 
 #: src/components/pricing-plans.tsx:115
-msgid "1. Your agency plan"
-msgstr "1. Your agency plan"
+#~ msgid "1. Your agency plan"
+#~ msgstr "1. Your agency plan"
 
 #: src/routes/dashboard.billing.tsx:173
 #~ msgid "1000 emails"
 #~ msgstr "1000 emails"
 
 #: src/components/pricing-plans.tsx:121
-msgid "2. When you launch a site"
-msgstr "2. When you launch a site"
+#~ msgid "2. When you launch a site"
+#~ msgstr "2. When you launch a site"
 
 #: src/components/setup/setup-wizard.tsx:642
 #~ msgid "3-32 characters: letters, numbers, _ or -"
 #~ msgstr "3-32 characters: letters, numbers, _ or -"
 
 #: src/components/pricing-plans.tsx:127
-msgid "3. Active site costs"
-msgstr "3. Active site costs"
+#~ msgid "3. Active site costs"
+#~ msgstr "3. Active site costs"
 
 #: src/components/pricing-plans.tsx:133
-msgid "4. If a site is archived"
-msgstr "4. If a site is archived"
+#~ msgid "4. If a site is archived"
+#~ msgstr "4. If a site is archived"
 
 #: src/routes/dashboard.boards.tsx:148
 #~ msgid "A board is for the work that arrives rather than the work you publish. A form takes an answer and the answer sits there; a board turns it into something with a state, an owner and a history — so \"did anyone get back to them\" is a question the screen answers instead of one somebody has to remember."
@@ -1233,8 +1233,8 @@ msgstr "Add this to your authenticator, then type what it shows."
 #~ msgstr "Added. Publish the records below and it verifies itself."
 
 #: src/components/pricing-plans.tsx:140
-msgid "Additional active sites cost $29/month when your plan's included slots are full. The $199 activation fee still applies to each newly created site."
-msgstr "Additional active sites cost $29/month when your plan's included slots are full. The $199 activation fee still applies to each newly created site."
+#~ msgid "Additional active sites cost $29/month when your plan's included slots are full. The $199 activation fee still applies to each newly created site."
+#~ msgstr "Additional active sites cost $29/month when your plan's included slots are full. The $199 activation fee still applies to each newly created site."
 
 #: src/components/editor/dialogs.tsx:306
 msgid "Address"
@@ -1313,8 +1313,8 @@ msgstr "Afterwards, /mcp lists what it is connected to."
 #~ msgstr "Agency plan"
 
 #: src/components/pricing-plans.tsx:68
-msgid "Agency plans"
-msgstr "Agency plans"
+#~ msgid "Agency plans"
+#~ msgstr "Agency plans"
 
 #: src/routes/console_.login.tsx:66
 #~ msgid "Agency sign in"
@@ -1446,8 +1446,8 @@ msgstr "Altogether"
 #~ msgstr "Amount in {0} — negative takes off"
 
 #: src/components/pricing-plans.tsx:129
-msgid "An active site can receive its own monthly hosting, email and storage charges. Your agency may add a margin before showing those charges to the site owner."
-msgstr "An active site can receive its own monthly hosting, email and storage charges. Your agency may add a margin before showing those charges to the site owner."
+#~ msgid "An active site can receive its own monthly hosting, email and storage charges. Your agency may add a margin before showing those charges to the site owner."
+#~ msgstr "An active site can receive its own monthly hosting, email and storage charges. Your agency may add a margin before showing those charges to the site owner."
 
 #: src/components/ses-analytics.tsx:190
 #~ msgid "An address that goes for good, or reports the mail as spam, is blocked here the moment Amazon says so — without waiting for the next campaign to find out."
@@ -1701,8 +1701,8 @@ msgstr "Archived"
 #~ msgstr "Archives"
 
 #: src/components/pricing-plans.tsx:135
-msgid "Archiving stops the public site and active usage charges, but keeps its data and media stored. Storage costs $9/month until you restore or delete the site."
-msgstr "Archiving stops the public site and active usage charges, but keeps its data and media stored. Storage costs $9/month until you restore or delete the site."
+#~ msgid "Archiving stops the public site and active usage charges, but keeps its data and media stored. Storage costs $9/month until you restore or delete the site."
+#~ msgstr "Archiving stops the public site and active usage charges, but keeps its data and media stored. Storage costs $9/month until you restore or delete the site."
 
 #: src/routes/dashboard.roles.tsx:348
 msgid "Area"
@@ -2406,8 +2406,8 @@ msgid "Choose one, or paste it"
 msgstr "Choose one, or paste it"
 
 #: src/components/pricing-plans.tsx:99
-msgid "Choose plan"
-msgstr "Choose plan"
+#~ msgid "Choose plan"
+#~ msgstr "Choose plan"
 
 #: src/routes/dashboard.plugins_.email.tsx:233
 #~ msgid "Choose where this site's mail goes out from."
@@ -3240,8 +3240,8 @@ msgstr "Create an unordered list"
 #~ msgstr "Current password"
 
 #: src/components/pricing-plans.tsx:99
-msgid "Current plan"
-msgstr "Current plan"
+#~ msgid "Current plan"
+#~ msgstr "Current plan"
 
 #: src/components/editor/palette.ts:57
 msgid "Cursive"
@@ -3722,8 +3722,8 @@ msgstr "Enquiries"
 #~ msgstr "Every movement"
 
 #: src/components/pricing-plans.tsx:123
-msgid "Every new site has a one-time $199 activation fee. This is charged once when the site is created; it is not a second monthly plan fee."
-msgstr "Every new site has a one-time $199 activation fee. This is charged once when the site is created; it is not a second monthly plan fee."
+#~ msgid "Every new site has a one-time $199 activation fee. This is charged once when the site is created; it is not a second monthly plan fee."
+#~ msgstr "Every new site has a one-time $199 activation fee. This is charged once when the site is created; it is not a second monthly plan fee."
 
 #: src/components/dashboard/discoverability.tsx:55
 msgid "Every page, listed for Google and the other crawlers."
@@ -4311,8 +4311,8 @@ msgstr "Highlight text with color"
 #~ msgstr "How agencies pay this server, and the GitHub account their theme repositories are created under."
 
 #: src/components/pricing-plans.tsx:108
-msgid "How billing works"
-msgstr "How billing works"
+#~ msgid "How billing works"
+#~ msgstr "How billing works"
 
 #: src/routes/dashboard.students.tsx:505
 #~ msgid "How long"
@@ -7085,8 +7085,8 @@ msgstr "Ready"
 #~ msgstr "Recent builds"
 
 #: src/components/pricing-plans.tsx:79
-msgid "Recommended"
-msgstr "Recommended"
+#~ msgid "Recommended"
+#~ msgstr "Recommended"
 
 #: src/components/dashboard/dashboard-shell.tsx:223
 #: src/routes/dashboard.audit.tsx:72
@@ -8865,8 +8865,8 @@ msgid "The money arrived"
 msgstr "The money arrived"
 
 #: src/components/pricing-plans.tsx:117
-msgid "The monthly plan fee is taken from your agency balance. It pays for your agency account and the number of active site slots shown above. It is not automatically a separate charge to a site owner."
-msgstr "The monthly plan fee is taken from your agency balance. It pays for your agency account and the number of active site slots shown above. It is not automatically a separate charge to a site owner."
+#~ msgid "The monthly plan fee is taken from your agency balance. It pays for your agency account and the number of active site slots shown above. It is not automatically a separate charge to a site owner."
+#~ msgstr "The monthly plan fee is taken from your agency balance. It pays for your agency account and the number of active site slots shown above. It is not automatically a separate charge to a site owner."
 
 #: src/components/editor/dialogs.tsx:573
 msgid "The most common shortcuts in the editor."
@@ -9032,8 +9032,8 @@ msgstr "Theme"
 #~ msgstr "Themes sold"
 
 #: src/components/pricing-plans.tsx:110
-msgid "There are two sides to the bill: the platform charges your agency, and your agency can pass those costs to each site owner with its own margin."
-msgstr "There are two sides to the bill: the platform charges your agency, and your agency can pass those costs to each site owner with its own margin."
+#~ msgid "There are two sides to the bill: the platform charges your agency, and your agency can pass those costs to each site owner with its own margin."
+#~ msgstr "There are two sides to the bill: the platform charges your agency, and your agency can pass those costs to each site owner with its own margin."
 
 #: src/routes/dashboard.media.tsx:296
 #~ msgid "There is no bucket, so readers fetch the pictures from this server itself. That works; a bucket in front would be faster and would take them off a single disk."
@@ -9048,8 +9048,8 @@ msgstr "There are two sides to the bill: the platform charges your agency, and y
 #~ msgstr "These answer to anybody, because a visitor filling in a contact form has no account here. A form is made in this panel, so no fixed API description can say which fields it takes — ask it, then send it. That is also how anything you write, or an assistant working for you, finds out what a form wants."
 
 #: src/components/pricing-plans.tsx:70
-msgid "These fees are charged to your agency balance. You decide what each site owner pays on top."
-msgstr "These fees are charged to your agency balance. You decide what each site owner pays on top."
+#~ msgid "These fees are charged to your agency balance. You decide what each site owner pays on top."
+#~ msgstr "These fees are charged to your agency balance. You decide what each site owner pays on top."
 
 #: src/components/ses-analytics.tsx:143
 #~ msgid "These figures come from Amazon's deliverability manager, which has to be switched on for the account. \"Wire up the events\" does that, along with everything else that has to exist before an event can reach this site."

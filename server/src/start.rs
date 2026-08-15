@@ -76,7 +76,16 @@ pub async fn start(mut outside: Outside) -> Result<(), Box<dyn std::error::Error
 
     if doing.answers {
         let app = crate::router(state);
-        let listener = tokio::net::TcpListener::bind("0.0.0.0:8080").await?;
+        // Where to answer. Both have defaults that are right in a container
+        // and wrong on a machine already serving something on 8080, which is
+        // why they are asked for rather than assumed.
+        let at = format!(
+            "{}:{}",
+            env::var("HOST").unwrap_or_else(|_| "0.0.0.0".to_owned()),
+            env::var("PORT").unwrap_or_else(|_| "8080".to_owned())
+        );
+
+        let listener = tokio::net::TcpListener::bind(&at).await?;
 
         tracing::info!(address = %listener.local_addr()?, "listening");
 

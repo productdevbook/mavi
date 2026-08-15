@@ -38,27 +38,44 @@ pub enum Direction {
     Oldest,
 }
 
+/// What a cursor's value has to be read back as.
+///
+/// A cursor carries text, because it crosses the wire. A database compares a
+/// timestamp with a timestamp and not with a string, so the column says what
+/// it is and whoever builds the comparison casts. Guessing from the value
+/// works until a slug looks like a date.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Kind {
+    Text,
+    Number,
+    Moment,
+    Id,
+}
+
 /// One column of a listing's order.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Key {
     pub column: &'static str,
     pub direction: Direction,
+    pub kind: Kind,
 }
 
 impl Key {
     #[must_use]
-    pub const fn newest(column: &'static str) -> Self {
+    pub const fn newest(column: &'static str, kind: Kind) -> Self {
         Self {
             column,
             direction: Direction::Newest,
+            kind,
         }
     }
 
     #[must_use]
-    pub const fn oldest(column: &'static str) -> Self {
+    pub const fn oldest(column: &'static str, kind: Kind) -> Self {
         Self {
             column,
             direction: Direction::Oldest,
+            kind,
         }
     }
 }
@@ -278,11 +295,14 @@ fn unbase64url(text: &str) -> Option<Vec<u8>> {
 mod tests {
     use super::*;
 
-    const BY_WHEN: Keyset = Keyset(&[Key::newest("created_at"), Key::newest("id")]);
+    const BY_WHEN: Keyset = Keyset(&[
+        Key::newest("created_at", Kind::Moment),
+        Key::newest("id", Kind::Id),
+    ]);
     const BY_WEIGHT: Keyset = Keyset(&[
-        Key::newest("weight"),
-        Key::newest("created_at"),
-        Key::newest("id"),
+        Key::newest("weight", Kind::Number),
+        Key::newest("created_at", Kind::Moment),
+        Key::newest("id", Kind::Id),
     ]);
 
     #[test]

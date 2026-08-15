@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["mavi-core"]
+members = ["mavi-core", "mavi-db"]
 
 # One place, so a member cannot quietly hold a different version of the thing
 # beside it. A member names the dependency and says `workspace = true`.
@@ -9,7 +9,17 @@ chrono = { version = "0.4", default-features = false, features = ["serde", "cloc
 rust_decimal = { version = "1", features = ["serde-with-str"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+sqlx = { version = "0.8", default-features = false, features = [
+  "runtime-tokio-rustls",
+  "postgres",
+  "uuid",
+  "chrono",
+  "json",
+  "migrate",
+  "macros",
+] }
 thiserror = "2"
+tokio = { version = "1", features = ["rt-multi-thread"] }
 uuid = { version = "1", features = ["v7", "serde"] }
 
 [workspace.lints.rust]

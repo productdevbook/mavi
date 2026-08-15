@@ -12,6 +12,8 @@ use super::error::Result;
 use super::http::AppState;
 use super::http::Endpoint;
 use super::queue::Job;
+use super::retention::Policy;
+use super::scheduler::Every;
 
 /// What running a job of an outside kind gives back.
 pub type JobFuture<'a> = Pin<Box<dyn Future<Output = Result<()>> + Send + 'a>>;
@@ -42,6 +44,16 @@ pub struct Outside {
     /// a version meant as theirs is read back as one of ours with the wrong
     /// checksum, and migrating refuses to run at all.
     pub migrations: Option<sqlx::migrate::Migrator>,
+    /// How often one of `jobs` runs on its own, rather than in answer to a
+    /// request. Every kind named here must also be a kind in `jobs` —
+    /// checked at startup, in [`crate::jobs::kinds`] — because a schedule for
+    /// a job nobody handed in is work that queues and nothing ever claims.
+    pub schedules: Vec<(&'static str, Every)>,
+    /// Retention policies for tables an outside crate owns, held to the same
+    /// rule this crate's own [`POLICIES`](super::retention::POLICIES) are:
+    /// every one must name a sweep that is a real job kind, checked wherever
+    /// this crate checks its own.
+    pub policies: Vec<Policy>,
 }
 
 impl std::fmt::Debug for Outside {
@@ -53,6 +65,11 @@ impl std::fmt::Debug for Outside {
                 &self.jobs.iter().map(|(kind, _)| *kind).collect::<Vec<_>>(),
             )
             .field("migrations", &self.migrations.is_some())
+            .field("schedules", &self.schedules)
+            .field(
+                "policies",
+                &self.policies.iter().map(|p| p.table).collect::<Vec<_>>(),
+            )
             .finish()
     }
 }

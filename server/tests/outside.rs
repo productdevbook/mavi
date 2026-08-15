@@ -12,6 +12,7 @@ use mavi::kernel::authz::every_grant;
 use mavi::kernel::http::{AppState, Audience, Caller, Endpoint, Guard, RatePolicy};
 use mavi::kernel::outside::{JobFuture, Outside};
 use mavi::kernel::queue::{self, Job, Task};
+use mavi::kernel::scheduler::Every;
 use serde::{Deserialize, Serialize};
 use sqlx::Connection as _;
 use tower::ServiceExt;
@@ -58,6 +59,8 @@ fn an_outside_crate() -> Outside {
         ],
         jobs: vec![("outside.beacon", run_beacon)],
         migrations: None,
+        schedules: vec![("outside.beacon", Every::Day)],
+        policies: Vec::new(),
     }
 }
 
@@ -409,4 +412,78 @@ async fn an_outside_migration_numbered_like_one_of_ours_is_refused() {
         refused.to_string().contains("numbered 1"),
         "the refusal has to name the number: {refused}"
     );
+}
+
+/// The same seam `jobs::schedule_due` runs this crate's own daily and hourly
+/// work through also carries an outside crate's: nothing puts a job in the
+/// queue unless something schedules it, whoever it belongs to.
+#[tokio::test]
+async fn an_outside_schedule_puts_its_job_in_the_queue() {
+    // A machine of its own: `schedule_due` walks every site there is, and
+    // every other test's site is not this test's business.
+    let db = common::a_machine_of_its_own().await;
+    let tenant = a_tenant(&db, &format!("{}.example", Uuid::now_v7().simple())).await;
+
+    let mut state = AppState::new(db.clone());
+    state.outside = Arc::new(an_outside_crate());
+
+    mavi::jobs::schedule_due(&state).await.expect("schedule");
+
+    let mut conn = db.tenant(tenant).await.expect("begin");
+    let queued: i64 = sqlx::query_scalar(
+        "select count(*) from jobs where tenant_id = $1 and kind = 'outside.beacon'",
+    )
+    .bind(tenant.0)
+    .fetch_one(conn.conn())
+    .await
+    .expect("count");
+
+    assert_eq!(queued, 1, "the outside schedule never queued its job");
+}
+
+/// A schedule naming a kind nothing handed in as a job would sit in the
+/// queue and nothing would ever claim it — refused at startup instead, and
+/// told which kind.
+#[test]
+#[should_panic(expected = "outside.ghost")]
+fn a_schedule_for_a_job_never_handed_in_is_refused() {
+    let outside = Outside {
+        schedules: vec![("outside.ghost", Every::Day)],
+        ..Outside::default()
+    };
+
+    mavi::jobs::assert_schedules_are_runnable(&outside);
+}
+
+/// The same gate `server/tests/schema.rs` runs over this crate's own
+/// [`retention::POLICIES`], run again over a policy an outside crate hands
+/// in: a policy naming a sweep with no job for it is a table nobody empties.
+#[test]
+fn an_outside_retention_policy_is_held_to_the_same_gate() {
+    use mavi::kernel::retention::{self, Keeps, Policy};
+
+    let outside = Outside {
+        jobs: vec![("outside.ledger.sweep", run_beacon)],
+        policies: vec![Policy {
+            table: "outside_ledger",
+            keeps: Keeps::Days(3650),
+            swept_by: "outside.ledger.sweep",
+        }],
+        ..Outside::default()
+    };
+
+    let kinds = mavi::jobs::kinds(&outside);
+
+    for policy in retention::all(&outside) {
+        if matches!(policy.keeps, Keeps::WithItsSubject) {
+            continue;
+        }
+
+        assert!(
+            kinds.contains(&policy.swept_by.to_owned()),
+            "{} says {} takes it away, and there is no such job",
+            policy.table,
+            policy.swept_by
+        );
+    }
 }

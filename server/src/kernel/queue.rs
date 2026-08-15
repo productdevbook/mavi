@@ -60,6 +60,16 @@ pub async fn enqueue<T: Task>(
     enqueue_raw(tx, T::KIND, task, run_at).await
 }
 
+/// Schedules work of a kind known only as a string — what an outside crate's
+/// own schedule has, having no [`Task`] type this crate could name.
+pub async fn enqueue_kind(
+    tx: &mut TenantConn,
+    kind: &str,
+    run_at: Option<DateTime<Utc>>,
+) -> Result<Uuid> {
+    enqueue_raw(tx, kind, &serde_json::json!({}), run_at).await
+}
+
 async fn enqueue_raw(
     tx: &mut TenantConn,
     kind: &str,

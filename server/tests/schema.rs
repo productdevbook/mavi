@@ -202,13 +202,19 @@ async fn every_table_holding_somebody_s_own_data_says_how_long_it_keeps_it() {
     );
 }
 
+/// Checked through [`retention::all`], not `POLICIES` directly, so the same
+/// rule reaches whatever an outside crate hands in through `Outside::policies`
+/// — `tests/outside.rs` runs this exact check again with a policy of its own,
+/// against an `Outside` that also carries the job it names.
 #[test]
 fn what_a_policy_says_sweeps_it_is_a_job_that_exists() {
-    use mavi::kernel::retention::{Keeps, POLICIES};
+    use mavi::kernel::outside::Outside;
+    use mavi::kernel::retention::{self, Keeps};
 
-    let kinds = mavi::jobs::kinds(&mavi::kernel::outside::Outside::default());
+    let outside = Outside::default();
+    let kinds = mavi::jobs::kinds(&outside);
 
-    for policy in POLICIES {
+    for policy in retention::all(&outside) {
         if matches!(policy.keeps, Keeps::WithItsSubject) {
             continue;
         }

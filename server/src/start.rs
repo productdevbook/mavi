@@ -23,6 +23,7 @@ use crate::kernel::worker;
 /// last one sealed, and that is cheaper to say here than to discover later.
 pub async fn start(mut outside: Outside) -> Result<(), Box<dyn std::error::Error>> {
     keys_or_refuse()?;
+    crate::jobs::assert_schedules_are_runnable(&outside);
 
     let doing = Doing::from_env();
     let db = Db::connect(&env::var("DATABASE_URL")?, 16).await?;

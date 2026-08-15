@@ -82,7 +82,27 @@ pub async fn schedule_due(state: &AppState) -> Result<()> {
     every::<trash::Empty>(state, Every::Day).await?;
     every::<health::CheckDomains>(state, Every::Day).await?;
 
+    for (kind, how_often) in &state.outside.schedules {
+        crate::kernel::scheduler::every_named(state, kind, *how_often).await?;
+    }
+
     Ok(())
+}
+
+/// A schedule naming a kind nothing handed in as a job would sit in the queue
+/// forever, silently claimed by nothing — this is where that becomes a
+/// refusal at startup instead.
+///
+/// # Panics
+///
+/// If a schedule names a kind that is not also one of `outside.jobs`.
+pub fn assert_schedules_are_runnable(outside: &Outside) {
+    for (kind, _) in &outside.schedules {
+        assert!(
+            outside.jobs.iter().any(|(job, _)| job == kind),
+            "{kind} is scheduled but was never handed in as a job"
+        );
+    }
 }
 
 pub async fn run(state: &AppState, job: &Job) -> Result<()> {

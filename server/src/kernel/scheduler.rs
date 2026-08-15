@@ -48,6 +48,61 @@ pub async fn daily<T: Task + Default>(state: &AppState) -> Result<Option<usize>>
 /// The same, as often as something asks for. Returns how many were scheduled,
 /// or nothing if another process is doing it.
 pub async fn every<T: Task + Default>(state: &AppState, how_often: Every) -> Result<Option<usize>> {
+    let Some((conn, sites)) = due_sites(state).await? else {
+        return Ok(None);
+    };
+
+    let mut scheduled = 0;
+    for site in &sites {
+        let tenant = super::TenantId(site.get("id"));
+        let mut work = state.db.tenant(tenant).await?;
+        if already_scheduled(&mut work, T::KIND, how_often).await? {
+            continue;
+        }
+        queue::enqueue(&mut work, &T::default(), None).await?;
+        work.commit().await?;
+        scheduled += 1;
+    }
+
+    conn.commit().await?;
+    metrics::job_finished(T::KIND, Utc::now());
+    Ok(Some(scheduled))
+}
+
+/// The same, for a kind known only by name — what an outside crate's own
+/// schedule has, having no [`Task`] type this crate could name to enqueue
+/// with.
+pub async fn every_named(
+    state: &AppState,
+    kind: &'static str,
+    how_often: Every,
+) -> Result<Option<usize>> {
+    let Some((conn, sites)) = due_sites(state).await? else {
+        return Ok(None);
+    };
+
+    let mut scheduled = 0;
+    for site in &sites {
+        let tenant = super::TenantId(site.get("id"));
+        let mut work = state.db.tenant(tenant).await?;
+        if already_scheduled(&mut work, kind, how_often).await? {
+            continue;
+        }
+        queue::enqueue_kind(&mut work, kind, None).await?;
+        work.commit().await?;
+        scheduled += 1;
+    }
+
+    conn.commit().await?;
+    metrics::job_finished(kind, Utc::now());
+    Ok(Some(scheduled))
+}
+
+/// Takes the scheduler lock and lists the sites live right now, or `None` if
+/// another process already holds the lock this tick.
+async fn due_sites(
+    state: &AppState,
+) -> Result<Option<(super::db::OperatorConn, Vec<sqlx::postgres::PgRow>)>> {
     let mut conn = state.db.operator().await?;
 
     let held: bool = sqlx::query_scalar("select pg_try_advisory_xact_lock($1)")
@@ -63,39 +118,28 @@ pub async fn every<T: Task + Default>(state: &AppState, how_often: Every) -> Res
         .fetch_all(conn.conn())
         .await?;
 
-    let mut scheduled = 0;
+    Ok(Some((conn, sites)))
+}
 
-    for site in &sites {
-        let tenant = super::TenantId(site.get("id"));
-        let mut work = state.db.tenant(tenant).await?;
+/// Nothing already waiting, and nothing finished so recently that it is not
+/// due yet: a scheduler that looks every minute must not leave a day's work
+/// in the queue sixty times over.
+async fn already_scheduled(
+    work: &mut super::db::TenantConn,
+    kind: &str,
+    how_often: Every,
+) -> Result<bool> {
+    let already: Option<(i64,)> = sqlx::query_as(
+        "select count(*) from jobs
+          where kind = $1
+            and (state in ('ready', 'running')
+                 or (finished_at is not null
+                     and finished_at > now() - make_interval(mins => $2)))",
+    )
+    .bind(kind)
+    .bind(i32::try_from(how_often.minutes()).unwrap_or(i32::MAX))
+    .fetch_optional(work.conn())
+    .await?;
 
-        // Nothing already waiting, and nothing finished so recently that it is
-        // not due yet: a scheduler that looks every minute must not leave a
-        // day's work in the queue sixty times over.
-        let already: Option<(i64,)> = sqlx::query_as(
-            "select count(*) from jobs
-              where kind = $1
-                and (state in ('ready', 'running')
-                     or (finished_at is not null
-                         and finished_at > now() - make_interval(mins => $2)))",
-        )
-        .bind(T::KIND)
-        .bind(i32::try_from(how_often.minutes()).unwrap_or(i32::MAX))
-        .fetch_optional(work.conn())
-        .await?;
-
-        if already.is_some_and(|(count,)| count > 0) {
-            continue;
-        }
-
-        queue::enqueue(&mut work, &T::default(), None).await?;
-        work.commit().await?;
-        scheduled += 1;
-    }
-
-    conn.commit().await?;
-
-    metrics::job_finished(T::KIND, Utc::now());
-
-    Ok(Some(scheduled))
+    Ok(already.is_some_and(|(count,)| count > 0))
 }

@@ -109,3 +109,15 @@ pub const POLICIES: &[Policy] = &[
 pub fn policy_for(table: &str) -> Option<&'static Policy> {
     POLICIES.iter().find(|policy| policy.table == table)
 }
+
+/// This crate's own policies, followed by whatever an outside crate handed
+/// in. What a gate test checks about `POLICIES` needs to hold for an outside
+/// crate's own tables too, and this is the one list that has both.
+#[must_use]
+pub fn all(outside: &super::outside::Outside) -> Vec<Policy> {
+    POLICIES
+        .iter()
+        .copied()
+        .chain(outside.policies.iter().copied())
+        .collect()
+}

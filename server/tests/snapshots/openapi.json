@@ -6859,7 +6859,7 @@
     },
     "/api/reports": {
       "get": {
-        "description": "Any signed-in panel account.",
+        "description": "A panel account holding `audit:view`.",
         "responses": {
           "200": {
             "description": "What was asked for.",

@@ -3,7 +3,7 @@
 use axum::body::Body;
 use axum::http::{Request, StatusCode, header};
 use http_body_util::BodyExt;
-use mavi::kernel::authz::every_grant;
+use mavi::kernel::authz::{Access, Capability, Needs, every_grant};
 use mavi::kernel::http::AppState;
 use tower::ServiceExt;
 use uuid::Uuid;
@@ -207,6 +207,21 @@ async fn a_report_carries_what_makes_it_actionable() {
     assert_eq!(status, StatusCode::CREATED, "{said}");
     assert_eq!(said["kind"], "missing");
     assert_eq!(said["environment"]["width"], 390, "{said}");
+}
+
+#[tokio::test]
+async fn reading_the_list_asks_for_the_grant_that_is_for_it() {
+    // The scenario in the report: an editor limited to their own posts, or an
+    // assistant connected with the same narrow grant, is not somebody who
+    // gets to read every gap anybody on the site has reported.
+    let site = Site::where_somebody_can(&["content:view:own".to_owned()]).await;
+
+    let (status, refused) = site.send("GET", "/api/reports", None, None).await;
+
+    assert_eq!(status, StatusCode::FORBIDDEN, "{refused}");
+
+    // And the grant is the one that says so.
+    let _ = Needs::new(Capability::Audit, Access::View);
 }
 
 #[tokio::test]

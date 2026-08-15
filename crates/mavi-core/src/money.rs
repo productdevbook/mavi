@@ -113,6 +113,25 @@ impl Money {
         ))))
     }
 
+    /// This amount, so many times over.
+    ///
+    /// A line on an order is a price and a count, and this is the one place
+    /// that multiplication happens. It refuses rather than saturating, unlike
+    /// [`Money::plus`]: a sum that runs out of room is somebody adding up a
+    /// shop's whole history, and a line that does is a number somebody is
+    /// about to be charged.
+    pub fn times(self, count: u32) -> Result<Self> {
+        let minor = self
+            .minor
+            .checked_mul(i64::from(count))
+            .ok_or_else(|| Error::internal(std::io::Error::other("more money than money goes")))?;
+
+        Ok(Self {
+            minor,
+            currency: self.currency,
+        })
+    }
+
     /// This amount in `parts`, adding back up to exactly this amount.
     ///
     /// Ten lira in three is 3.34, 3.33, 3.33 — not three of 3.33 and a kuruş
@@ -222,5 +241,22 @@ mod tests {
         );
         assert!(Currency::parse("TRYX").is_err());
         assert!(Currency::parse("T9Y").is_err());
+    }
+
+    #[test]
+    fn a_line_is_a_price_so_many_times_over() {
+        let each = Money::of(1250, try_());
+
+        assert_eq!(each.times(3).expect("three of them").minor, 3750);
+        assert_eq!(each.times(0).expect("none of them").minor, 0);
+    }
+
+    #[test]
+    fn more_money_than_money_goes_is_refused_rather_than_rounded_down() {
+        // Saturating here would be a number somebody is charged, arrived at by
+        // giving up.
+        let vast = Money::of(i64::MAX / 2, try_());
+
+        assert!(vast.times(3).is_err());
     }
 }

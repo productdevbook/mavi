@@ -60,6 +60,13 @@ pub const BY_RECENT: Keyset = Keyset(&[
 
 #[must_use]
 pub fn endpoints() -> Vec<Endpoint> {
+    let mut all = the_boards();
+    all.extend(the_cards());
+    all
+}
+
+/// The boards themselves.
+fn the_boards() -> Vec<Endpoint> {
     vec![
         Endpoint {
             method: Method::Get,
@@ -97,6 +104,12 @@ pub fn endpoints() -> Vec<Endpoint> {
             refuses: &[Code::NotFound],
             changes: false,
         },
+    ]
+}
+
+/// What is on them.
+fn the_cards() -> Vec<Endpoint> {
+    vec![
         Endpoint {
             method: Method::Get,
             path: "/api/boards/{id}/cards",

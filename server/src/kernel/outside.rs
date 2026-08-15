@@ -33,6 +33,14 @@ pub struct Outside {
     /// and never before: theirs may reference a table this crate created —
     /// a tenant, a site — but nothing this crate does may ever come to
     /// depend on a table only an outside crate knows how to build.
+    ///
+    /// sqlx tracks every migration, whoever it belongs to, in one
+    /// `_sqlx_migrations` table — there is no way to give an outside crate's
+    /// migrations a table of their own. So an outside crate's version
+    /// numbers must live outside this crate's own range (`server/migrations`
+    /// is in the low thousands at most; nine digits is well clear of it) or
+    /// a version meant as theirs is read back as one of ours with the wrong
+    /// checksum, and migrating refuses to run at all.
     pub migrations: Option<sqlx::migrate::Migrator>,
 }
 

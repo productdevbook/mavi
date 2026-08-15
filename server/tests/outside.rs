@@ -13,11 +13,12 @@ use mavi::kernel::http::{AppState, Audience, Caller, Endpoint, Guard, RatePolicy
 use mavi::kernel::outside::{JobFuture, Outside};
 use mavi::kernel::queue::{self, Job, Task};
 use serde::{Deserialize, Serialize};
+use sqlx::Connection as _;
 use tower::ServiceExt;
 use uuid::Uuid;
 
 mod common;
-use common::{a_role, a_tenant, a_user, harness};
+use common::{APP_ROLE, a_role, a_tenant, a_user, harness};
 
 const PASSWORD: &str = "a long enough password";
 
@@ -55,6 +56,7 @@ fn an_outside_crate() -> Outside {
             .within("outside"),
         ],
         jobs: vec![("outside.beacon", run_beacon)],
+        migrations: None,
     }
 }
 
@@ -201,6 +203,161 @@ async fn an_outside_endpoint_appears_in_the_description_the_server_serves() {
             .contains_key("/api/outside/seen"),
         "the outside endpoint is missing from the description the server serves"
     );
+}
+
+/// A database of its own rather than the one every other test in this suite
+/// shares: `_sqlx_migrations` has no room in it for a migration that belongs
+/// to one test and not the rest of the run, and this crate's own `migrate` —
+/// called by `harness`, everywhere else — has no `Outside` to tell it that
+/// `900000001` is not its problem.
+///
+/// Migrates and grants exactly as [`start`](mavi::start::start) does: this
+/// crate's own migrations, unqualified — the same connection an outside
+/// crate's migrations run as — then the outside migration, then the
+/// row-scoped role every other test in this file already runs requests as.
+async fn an_outside_database() -> mavi::kernel::db::Db {
+    let url = std::env::var("TEST_DATABASE_URL").expect("TEST_DATABASE_URL");
+    let name = format!("v1_outside_{}", Uuid::now_v7().simple());
+
+    let mut making = sqlx::PgConnection::connect(&url).await.expect("connect");
+    sqlx::query(&format!("create database {name}"))
+        .execute(&mut making)
+        .await
+        .expect("a database of its own");
+
+    let (before, _) = url.rsplit_once('/').expect("a database in the url");
+    let its_own = format!("{before}/{name}");
+
+    let admin = mavi::kernel::db::Db::connect(&its_own, 4)
+        .await
+        .expect("connect");
+    admin.migrate().await.expect("this crate's own migrations");
+
+    let migrator = sqlx::migrate::Migrator::new(std::path::Path::new(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/fixtures/outside_migrations"
+    )))
+    .await
+    .expect("an outside migrator");
+
+    admin
+        .migrate_with(migrator)
+        .await
+        .expect("the outside migration ran");
+
+    sqlx::query(&format!(
+        "do $$ begin
+             if not exists (select from pg_roles where rolname = '{APP_ROLE}') then
+                 create role {APP_ROLE} nologin;
+             end if;
+         end $$;"
+    ))
+    .execute(&mut making)
+    .await
+    .expect("role");
+
+    drop(making);
+
+    let mut tx = admin.operator().await.expect("begin");
+    for grant in [
+        format!("grant usage on schema public to {APP_ROLE}"),
+        format!(
+            "grant select, insert, update, delete on all tables in schema public to {APP_ROLE}"
+        ),
+    ] {
+        sqlx::query(&grant).execute(tx.conn()).await.expect("grant");
+    }
+    tx.commit().await.expect("commit");
+
+    mavi::kernel::db::Db::connect_as(&its_own, 8, Some(APP_ROLE))
+        .await
+        .expect("connect as app")
+}
+
+#[tokio::test]
+async fn an_outside_migration_runs_before_the_endpoint_and_job_it_carries_in_are_used() {
+    let db = an_outside_database().await;
+
+    let mut state = AppState::new(db.clone());
+    state.outside = Arc::new(an_outside_crate());
+    let router = mavi::router(state.clone());
+
+    let host = format!("{}.example", Uuid::now_v7().simple());
+    let tenant = a_tenant(&db, &host).await;
+    let role = a_role(&db, tenant, "owner", &every_grant()).await;
+    let (_, email) = a_user(&db, tenant, role, PASSWORD).await;
+
+    let signed_in = router
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/auth/session")
+                .header(header::HOST, &host)
+                .header(header::CONTENT_TYPE, "application/json")
+                .body(Body::from(
+                    serde_json::json!({ "email": email, "password": PASSWORD }).to_string(),
+                ))
+                .expect("a request"),
+        )
+        .await
+        .expect("a response");
+
+    assert_eq!(signed_in.status(), StatusCode::OK);
+
+    let bytes = signed_in
+        .into_body()
+        .collect()
+        .await
+        .expect("a body")
+        .to_bytes();
+    let token = serde_json::from_slice::<serde_json::Value>(&bytes).expect("json")["token"]
+        .as_str()
+        .expect("a token")
+        .to_owned();
+
+    // The endpoint answers through its guard.
+    let answered = router
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/outside/seen")
+                .header(header::HOST, &host)
+                .header(header::AUTHORIZATION, format!("Bearer {token}"))
+                .body(Body::empty())
+                .expect("a request"),
+        )
+        .await
+        .expect("a response");
+
+    assert_eq!(answered.status(), StatusCode::OK);
+
+    // The job kind is claimed by the core worker loop.
+    let mut conn = db.tenant(tenant).await.expect("begin");
+    queue::enqueue(&mut conn, &Beacon, None)
+        .await
+        .expect("queued");
+    conn.commit().await.expect("commit");
+
+    let claimed = mavi::jobs::tick_within(&state, "a test", Some(tenant))
+        .await
+        .expect("tick");
+    assert!(claimed, "a job of an outside kind was never claimed");
+
+    // And the table the outside migration created is really there, usable by
+    // the role this process runs as day to day, not just by the admin
+    // connection that migrated it.
+    let mut tx = db.operator().await.expect("begin");
+    sqlx::query("insert into outside_beacons default values")
+        .execute(tx.conn())
+        .await
+        .expect("insert into the outside table");
+    let count: i64 = sqlx::query_scalar("select count(*) from outside_beacons")
+        .fetch_one(tx.conn())
+        .await
+        .expect("count");
+    assert_eq!(count, 1, "the outside migration never ran");
+    tx.commit().await.expect("commit");
 }
 
 #[tokio::test]

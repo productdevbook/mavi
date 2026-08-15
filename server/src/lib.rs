@@ -31,6 +31,7 @@ pub mod reports;
 pub mod setup;
 pub mod shop;
 pub mod site;
+pub mod start;
 pub mod trash;
 pub mod webhooks;
 

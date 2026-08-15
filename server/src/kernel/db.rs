@@ -64,7 +64,15 @@ impl Db {
 
     /// Runs a [`Migrator`](sqlx::migrate::Migrator) that is not this crate's
     /// own — what an outside crate carries in on [`Outside`](super::outside::Outside).
-    pub async fn migrate_with(&self, migrator: &sqlx::migrate::Migrator) -> Result<()> {
+    ///
+    /// sqlx tracks every migration it has run in one `_sqlx_migrations`
+    /// table, whoever it belongs to; there is no way to give an outside
+    /// crate's migrations a table of their own. So this crate's versions and
+    /// an outside crate's must never collide, and this asks sqlx not to
+    /// object that it sees versions in that table an outside `Migrator` never
+    /// declared — this crate's own, applied first.
+    pub async fn migrate_with(&self, mut migrator: sqlx::migrate::Migrator) -> Result<()> {
+        migrator.set_ignore_missing(true);
         migrator.run(&self.pool).await.map_err(sqlx::Error::from)?;
         Ok(())
     }

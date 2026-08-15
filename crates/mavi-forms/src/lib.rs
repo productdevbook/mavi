@@ -102,8 +102,17 @@ pub const BY_RECENT: Keyset = Keyset(&[
     Key::newest("id", Kind::Id),
 ]);
 
+/// Everything this domain answers: what the panel reaches, and what anybody
+/// does. Two lists rather than one, because the difference between them is the
+/// most important thing about this domain.
 #[must_use]
 pub fn endpoints() -> Vec<Endpoint> {
+    let mut all = for_the_panel();
+    all.extend(for_anybody());
+    all
+}
+
+fn for_the_panel() -> Vec<Endpoint> {
     vec![
         Endpoint {
             method: Method::Get,
@@ -209,6 +218,11 @@ pub fn endpoints() -> Vec<Endpoint> {
             refuses: &[Code::NotFound],
             changes: true,
         },
+    ]
+}
+
+fn for_anybody() -> Vec<Endpoint> {
+    vec![
         Endpoint {
             method: Method::Get,
             path: "/api/open/forms/{slug}",

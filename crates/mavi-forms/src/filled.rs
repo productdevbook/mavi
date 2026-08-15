@@ -137,13 +137,13 @@ mod tests {
         }
     }
 
-    fn filled(answers: Value) -> Filled {
+    fn filled(answers: &Value) -> Filled {
         Filled {
             answers: answers.as_object().expect("an object").clone(),
         }
     }
 
-    fn refused(declared: &Declared, answers: Value) -> &'static str {
+    fn refused(declared: &Declared, answers: &Value) -> &'static str {
         filled(answers)
             .fits(declared)
             .expect_err("a refusal")
@@ -166,17 +166,17 @@ mod tests {
         let form = a_contact_form();
 
         assert!(
-            filled(json!({"name": "A Visitor", "email": "someone@example.test"}))
+            filled(&json!({"name": "A Visitor", "email": "someone@example.test"}))
                 .fits(&form)
                 .is_ok()
         );
 
         assert_eq!(
-            refused(&form, json!({"email": "someone@example.test"})),
+            refused(&form, &json!({"email": "someone@example.test"})),
             THAT_FORM_WANTS_THAT_FIELD
         );
         assert_eq!(
-            refused(&form, json!({"name": "A Visitor", "email": "not one"})),
+            refused(&form, &json!({"name": "A Visitor", "email": "not one"})),
             THAT_IS_NOT_WHAT_THAT_FIELD_HOLDS
         );
     }
@@ -190,10 +190,10 @@ mod tests {
         let empty = Declared::checked(Vec::new()).expect("a form");
 
         assert_eq!(
-            refused(&empty, json!({"anything": "at all"})),
+            refused(&empty, &json!({"anything": "at all"})),
             THAT_FORM_HAS_NO_SUCH_FIELD
         );
-        assert!(filled(json!({})).fits(&empty).is_ok());
+        assert!(filled(&json!({})).fits(&empty).is_ok());
     }
 
     #[test]
@@ -203,7 +203,7 @@ mod tests {
         assert_eq!(
             refused(
                 &form,
-                json!({
+                &json!({
                     "name": "A Visitor",
                     "email": "someone@example.test",
                     "role": "admin",
@@ -223,7 +223,7 @@ mod tests {
         let long = "x".repeat(AT_MOST_ALTOGETHER + 1);
 
         assert_eq!(
-            refused(&form, json!({ "message": long })),
+            refused(&form, &json!({ "message": long })),
             THAT_IS_MORE_THAN_A_FORM_TAKES
         );
     }
@@ -233,7 +233,7 @@ mod tests {
         let form = a_contact_form();
 
         assert!(
-            filled(json!({
+            filled(&json!({
                 "name": "A Visitor",
                 "email": "someone@example.test",
                 "message": "   ",
@@ -249,9 +249,9 @@ mod tests {
         choice.options = vec!["red".to_owned(), "blue".to_owned()];
         let form = Declared::checked(vec![choice]).expect("a form");
 
-        assert!(filled(json!({"colour": "red"})).fits(&form).is_ok());
+        assert!(filled(&json!({"colour": "red"})).fits(&form).is_ok());
         assert_eq!(
-            refused(&form, json!({"colour": "green"})),
+            refused(&form, &json!({"colour": "green"})),
             THAT_IS_NOT_WHAT_THAT_FIELD_HOLDS
         );
     }

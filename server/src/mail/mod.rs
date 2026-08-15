@@ -157,6 +157,7 @@ pub struct Subscriber {
     pub email: String,
     pub name: Option<String>,
     pub state: SubscriberState,
+    pub created_at: DateTime<Utc>,
 }
 
 impl Auditable for Subscriber {
@@ -336,11 +337,11 @@ async fn subscribers(
     let mut conn = state.db.tenant(caller.tenant()).await?;
 
     let rows: Vec<Subscriber> = sqlx::query_as(
-        "select s.id, s.email, s.name, s.state
+        "select s.id, s.email, s.name, s.state, s.created_at
            from subscriber_lists l join subscribers s on s.id = l.subscriber_id
           where l.list_id = $1
             and ($2::timestamptz is null or s.created_at < $2)
-          order by s.created_at desc
+          order by s.created_at desc, s.id desc
           limit $3",
     )
     .bind(list_id)
@@ -351,10 +352,11 @@ async fn subscribers(
 
     conn.commit().await?;
 
-    // The cursor is the subscriber's id rather than a moment: two addresses
-    // added in the same second are otherwise one page for ever.
+    // `id` alone made two addresses added in the same second one page for
+    // ever, because it is not what the row is ordered by; `id` breaks the tie
+    // in the query itself without being what a client cursors on.
     Ok(Json(Page::build(&page, rows, |subscriber| {
-        subscriber.id.to_string()
+        subscriber.created_at.to_rfc3339()
     })))
 }
 
@@ -373,7 +375,7 @@ async fn add_subscriber(
         "insert into subscribers (tenant_id, email, name, token_hash)
          values ($1, $2, $3, $4)
          on conflict (tenant_id, email) do update set name = coalesce(excluded.name, subscribers.name)
-         returning id, email, name, state",
+         returning id, email, name, state, created_at",
     )
     .bind(caller.tenant().0)
     .bind(body.email.as_str())

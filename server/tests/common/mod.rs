@@ -50,3 +50,22 @@ pub async fn a_machine_of_its_own() -> Db {
 
     db
 }
+
+/// A cursor handed back by a page carries `:` and the like, which a query
+/// string cannot: this is what a client following `next` does before asking
+/// for it.
+#[must_use]
+pub fn percent_encoded(value: &str) -> String {
+    let mut out = String::with_capacity(value.len());
+
+    for byte in value.bytes() {
+        match byte {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
+                out.push(byte as char);
+            }
+            _ => out.push_str(&format!("%{byte:02X}")),
+        }
+    }
+
+    out
+}

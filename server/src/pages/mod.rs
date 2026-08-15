@@ -17,7 +17,7 @@ use crate::kernel::error::Result;
 use crate::kernel::http::{AppState, Audience, Caller, Endpoint, Guard, RatePolicy};
 // Aliased: what is being checked here is also called a page, and the two are
 // not the same thing.
-use crate::kernel::page::{Page as Listing, Query, older_than};
+use crate::kernel::page::{Page as Listing, Query};
 
 /// What a title should be, in characters. Longer than this and a search engine
 /// stops showing the end of it.
@@ -218,6 +218,18 @@ pub async fn look_at(conn: &mut TenantConn, tenant: TenantId, post_id: Uuid) -> 
     Ok(found)
 }
 
+/// Where the last page of issues stopped: the worst kind still open, and the
+/// moment among those. Filtering on `written_at` alone — what the list used to
+/// cursor on — orders correctly within one page and wrongly across two: a page
+/// boundary that falls inside the `warning`s cuts every `note` off from ever
+/// being reached, because they are newer than the cursor but outrank nothing.
+fn issue_cursor(after: Option<&str>) -> Option<(String, DateTime<Utc>)> {
+    let (weight, when) = after?.split_once('|')?;
+    let when = DateTime::parse_from_rfc3339(when).ok()?.with_timezone(&Utc);
+
+    Some((weight.to_owned(), when))
+}
+
 async fn all(
     Injected(state): Injected<AppState>,
     caller: Caller,
@@ -226,16 +238,23 @@ async fn all(
 ) -> Result<Json<Listing<Issue>>> {
     let mut conn = state.db.tenant(caller.tenant()).await?;
 
+    let cursor = issue_cursor(page.after.as_deref());
+
     let rows = sqlx::query(
         "select i.post_id, p.title, i.kind, i.weight::text as weight, i.detail,
                 p.created_at as written_at
            from page_issues i join posts p on p.id = i.post_id
           where p.deleted_at is null
-            and ($1::timestamptz is null or p.created_at < $1)
-          order by i.weight desc, p.created_at desc
-          limit $2",
+            and (
+                 $1::issue_weight is null
+                 or i.weight < $1::issue_weight
+                 or (i.weight = $1::issue_weight and p.created_at < $2::timestamptz)
+            )
+          order by i.weight desc, p.created_at desc, i.kind
+          limit $3",
     )
-    .bind(older_than(page.after.as_deref()))
+    .bind(cursor.as_ref().map(|(weight, _)| weight.as_str()))
+    .bind(cursor.as_ref().map(|(_, when)| *when))
     .bind(page.fetch())
     .fetch_all(conn.conn())
     .await?;
@@ -245,7 +264,7 @@ async fn all(
     Ok(Json(Listing::build(
         &page,
         rows.iter().map(row_to_issue).collect(),
-        |issue| issue.written_at.to_rfc3339(),
+        |issue| format!("{}|{}", issue.weight, issue.written_at.to_rfc3339()),
     )))
 }
 

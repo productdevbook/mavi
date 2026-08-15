@@ -997,6 +997,7 @@ export interface Subscriber {
   email: string;
   name?: string | null;
   state: SubscriberState;
+  created_at: string;
 }
 
 export type SubscriberState = "subscribed" | "unsubscribed" | "bounced" | "complained";

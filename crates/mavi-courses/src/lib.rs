@@ -92,14 +92,15 @@ pub const BY_RECENT: Keyset = Keyset(&[
 
 #[must_use]
 pub fn endpoints() -> Vec<Endpoint> {
-    let mut all = writing_a_course();
+    let mut all = the_courses();
+    all.extend(what_is_in_them());
     all.extend(who_is_on_it());
     all.extend(taking_a_course());
     all
 }
 
-/// What whoever writes a course reaches.
-fn writing_a_course() -> Vec<Endpoint> {
+/// The courses themselves.
+fn the_courses() -> Vec<Endpoint> {
     vec![
         Endpoint {
             method: Method::Get,
@@ -168,6 +169,12 @@ fn writing_a_course() -> Vec<Endpoint> {
             refuses: &[Code::NotFound],
             changes: true,
         },
+    ]
+}
+
+/// What is in them, and the order it is in.
+fn what_is_in_them() -> Vec<Endpoint> {
+    vec![
         Endpoint {
             method: Method::Post,
             path: "/api/courses/{id}/modules",

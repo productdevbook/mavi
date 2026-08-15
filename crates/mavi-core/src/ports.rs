@@ -106,7 +106,10 @@ impl Address {
         let text = text.trim_end_matches('/');
 
         let looks_right = (text.starts_with("https://") || text.starts_with("http://"))
-            && text.split("://").nth(1).is_some_and(|rest| !rest.is_empty());
+            && text
+                .split("://")
+                .nth(1)
+                .is_some_and(|rest| !rest.is_empty());
 
         if !looks_right {
             return Err(crate::error::Error::internal(std::io::Error::other(
@@ -148,8 +151,17 @@ mod tests {
 
     #[test]
     fn half_an_address_is_refused_where_it_is_read() {
-        for wrong in ["", "example.test", "https://", "ftp://example.test", "/forgotten"] {
-            assert!(Address::parse(wrong).is_err(), "{wrong:?} was taken for an address");
+        for wrong in [
+            "",
+            "example.test",
+            "https://",
+            "ftp://example.test",
+            "/forgotten",
+        ] {
+            assert!(
+                Address::parse(wrong).is_err(),
+                "{wrong:?} was taken for an address"
+            );
         }
     }
 }

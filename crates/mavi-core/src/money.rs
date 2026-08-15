@@ -166,12 +166,18 @@ mod tests {
         let lira = Money::of(100, try_());
         let euro = Money::of(100, Currency::parse("EUR").expect("a currency"));
 
-        assert!(lira.plus(euro).is_err(), "lira and euros added to something");
+        assert!(
+            lira.plus(euro).is_err(),
+            "lira and euros added to something"
+        );
     }
 
     #[test]
     fn a_currency_is_three_letters_however_it_was_written() {
-        assert_eq!(Currency::parse("try").expect("a currency").to_string(), "TRY");
+        assert_eq!(
+            Currency::parse("try").expect("a currency").to_string(),
+            "TRY"
+        );
         assert!(Currency::parse("TRYX").is_err());
         assert!(Currency::parse("T9Y").is_err());
     }

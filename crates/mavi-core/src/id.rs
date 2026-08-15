@@ -71,7 +71,10 @@ mod tests {
 
         // Not a formality: this is what makes an id a usable last key in a
         // cursor, and a v4 would make the sort meaningless without warning.
-        assert!(first < second, "two ids made in order did not sort in order");
+        assert!(
+            first < second,
+            "two ids made in order did not sort in order"
+        );
     }
 
     #[test]

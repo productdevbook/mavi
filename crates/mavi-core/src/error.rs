@@ -161,7 +161,10 @@ mod tests {
     fn nothing_a_caller_cannot_act_on_reaches_them() {
         let inside = Error::internal(std::io::Error::other("a table nobody should hear about"));
 
-        assert!(inside.said().is_none(), "an internal error carried a sentence");
+        assert!(
+            inside.said().is_none(),
+            "an internal error carried a sentence"
+        );
         assert_eq!(inside.to_string(), "something went wrong");
         assert!(inside.cause().is_some(), "the log lost why");
     }

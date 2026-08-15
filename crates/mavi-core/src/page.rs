@@ -221,8 +221,7 @@ impl<T> Page<T> {
 }
 
 fn base64url(bytes: &[u8]) -> String {
-    const ALPHABET: &[u8; 64] =
-        b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+    const ALPHABET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 
     let mut out = String::with_capacity(bytes.len().div_ceil(3) * 4);
 
@@ -297,7 +296,10 @@ mod tests {
         // that is exactly the case that used to lose rows quietly.
         let read = Cursor::from_token(BY_WEIGHT, &given);
 
-        assert!(read.is_err(), "a two-column cursor answered a three-column listing");
+        assert!(
+            read.is_err(),
+            "a two-column cursor answered a three-column listing"
+        );
         assert_eq!(read.unwrap_err().code(), Code::Invalid);
     }
 
@@ -331,7 +333,10 @@ mod tests {
         .expect("a page");
 
         assert_eq!(last.items, vec![1, 2]);
-        assert!(last.next.is_none(), "a page nobody can walk past said otherwise");
+        assert!(
+            last.next.is_none(),
+            "a page nobody can walk past said otherwise"
+        );
     }
 
     #[test]

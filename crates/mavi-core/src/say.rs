@@ -85,7 +85,10 @@ mod tests {
 
     #[test]
     fn a_key_nobody_has_worded_says_the_key() {
-        assert_eq!(Say::of("nothing_has_worded_this").in_english(), "nothing_has_worded_this");
+        assert_eq!(
+            Say::of("nothing_has_worded_this").in_english(),
+            "nothing_has_worded_this"
+        );
     }
 
     #[test]

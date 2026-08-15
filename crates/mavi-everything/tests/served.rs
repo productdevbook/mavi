@@ -71,7 +71,7 @@ fn an_editor() -> mavi_serve::WhoIsAsking {
 }
 
 async fn asked(db: &Db, request: Request<Body>) -> (StatusCode, Value) {
-    let answer = site(db.clone(), an_editor())
+    let answer = site(db, an_editor())
         .into_router()
         .oneshot(request)
         .await
@@ -306,7 +306,7 @@ async fn what_is_described_and_not_yet_served() {
     let db = fresh("left").await;
 
     let described = mavi_everything::api();
-    let serving = site(db, an_editor());
+    let serving = site(&db, an_editor());
 
     let left = serving.not_reachable(&described);
 

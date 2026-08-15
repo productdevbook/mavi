@@ -34,7 +34,7 @@ pub const THAT_IS_NOT_AN_ID: &str = "that_is_not_an_id";
 /// It is not everything it describes, and that is measured rather than
 /// implied — see the test beside this, which prints what is still to do.
 #[must_use]
-pub fn site(db: Db, who_is_asking: WhoIsAsking) -> Site {
+pub fn site(db: &Db, who_is_asking: WhoIsAsking) -> Site {
     let mut site = Site::new(who_is_asking);
 
     for endpoint in mavi_content::endpoints() {

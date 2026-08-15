@@ -1,11 +1,10 @@
 import { drawing, type Entry } from "@/lib/v1-audit"
 
 /**
- * What was done to a site, drawn once.
+ * What was done to this site, drawn once.
  *
- * Two places read this — a site's own panel and the machine's console, which
- * reads a site's record without being signed in to it. Written twice they
- * would drift, and the pair that drifts is a phrase and how grave it looks.
+ * A phrase and how grave it looks belong together: written in two places they
+ * drift, and what drifts is which entries somebody's eye stops on.
  */
 export function AuditTable({ entries }: { entries: Entry[] }) {
   return (

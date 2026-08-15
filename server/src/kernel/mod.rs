@@ -32,7 +32,6 @@ pub mod say;
 pub mod scheduler;
 pub mod secret;
 pub mod storage;
-pub mod tenant;
 pub mod token;
 pub mod totp;
 pub mod transcoder;
@@ -44,4 +43,3 @@ pub mod worker;
 
 pub use config::{Address, Config};
 pub use error::{AppError, Code, Result};
-pub use tenant::TenantId;

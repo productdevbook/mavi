@@ -14,7 +14,7 @@ use uuid::Uuid;
 
 use crate::kernel::audit::{self, Actor, Auditable, Audited};
 use crate::kernel::authz::{Access, Capability, Needs, Permit};
-use crate::kernel::db::TenantConn;
+use crate::kernel::db::Tx;
 use crate::kernel::error::{AppError, Result};
 use crate::kernel::http::{AppState, Audience, Caller, Endpoint, Guard, RatePolicy};
 use crate::kernel::money::{Currency, Money};
@@ -273,11 +273,11 @@ pub struct NewNote {
 
 async fn list(
     Injected(state): Injected<AppState>,
-    caller: Caller,
+    _caller: Caller,
     _permit: Permit,
     axum::extract::Query(page): axum::extract::Query<Query>,
 ) -> Result<Json<Page<Board>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let rows: Vec<Board> = sqlx::query_as(
         "select id, name, created_at from boards
@@ -302,12 +302,12 @@ async fn list(
 /// showing one column, or looking for a card by name.
 async fn cards(
     Injected(state): Injected<AppState>,
-    caller: Caller,
+    _caller: Caller,
     _permit: Permit,
     Path(id): Path<Uuid>,
     axum::extract::Query(page): axum::extract::Query<Query>,
 ) -> Result<Json<Page<Card>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let rows = sqlx::query(
         "select id, stage_id, title, detail, owner_id, value_minor, currency, position,
@@ -336,11 +336,11 @@ async fn cards(
 /// One card, and what has been said about it.
 async fn read_card(
     Injected(state): Injected<AppState>,
-    caller: Caller,
+    _caller: Caller,
     _permit: Permit,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Card>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
     let card = one(&mut conn, id).await?;
     conn.commit().await?;
 
@@ -350,12 +350,12 @@ async fn read_card(
 /// What has been said about a card, newest first.
 async fn notes(
     Injected(state): Injected<AppState>,
-    caller: Caller,
+    _caller: Caller,
     _permit: Permit,
     Path(id): Path<Uuid>,
     axum::extract::Query(page): axum::extract::Query<Query>,
 ) -> Result<Json<Page<Note>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
     one(&mut conn, id).await?;
 
     let rows: Vec<Note> = sqlx::query_as(
@@ -386,7 +386,7 @@ async fn remove_card(
     _permit: Permit,
     Path(id): Path<Uuid>,
 ) -> Result<Audited<StatusCode>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
     let card = one(&mut conn, id).await?;
 
     sqlx::query("update cards set deleted_at = now() where id = $1 and deleted_at is null")
@@ -415,7 +415,7 @@ async fn rename(
     Path(id): Path<Uuid>,
     Json(body): Json<BoardChanges>,
 ) -> Result<Audited<Json<Board>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let board: Option<Board> = sqlx::query_as(
         "update boards set name = $2
@@ -453,7 +453,7 @@ async fn remove(
     _permit: Permit,
     Path(id): Path<Uuid>,
 ) -> Result<Audited<StatusCode>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let gone =
         sqlx::query("update boards set deleted_at = now() where id = $1 and deleted_at is null")
@@ -503,15 +503,13 @@ async fn create(
     _permit: Permit,
     Json(body): Json<NewBoard>,
 ) -> Result<Audited<(StatusCode, Json<Board>)>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
-    let board: Board = sqlx::query_as(
-        "insert into boards (tenant_id, name) values ($1, $2) returning id, name, created_at",
-    )
-    .bind(caller.tenant().0)
-    .bind(body.name.as_str())
-    .fetch_one(conn.conn())
-    .await?;
+    let board: Board =
+        sqlx::query_as("insert into boards (name) values ($1) returning id, name, created_at")
+            .bind(body.name.as_str())
+            .fetch_one(conn.conn())
+            .await?;
 
     let stages: Vec<String> = if body.stages.is_empty() {
         ["To do", "Doing", "Done"]
@@ -524,10 +522,9 @@ async fn create(
 
     for (position, name) in stages.iter().enumerate() {
         sqlx::query(
-            "insert into board_stages (tenant_id, board_id, name, position)
-             values ($1, $2, $3, $4)",
+            "insert into board_stages (board_id, name, position)
+             values ($1, $2, $3)",
         )
-        .bind(caller.tenant().0)
         .bind(board.id)
         .bind(name)
         .bind(i32::try_from(position).unwrap_or(i32::MAX))
@@ -555,11 +552,11 @@ async fn create(
 /// hundred deals stops opening.
 async fn read(
     Injected(state): Injected<AppState>,
-    caller: Caller,
+    _caller: Caller,
     _permit: Permit,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Full>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let board: Board = sqlx::query_as(
         "select id, name, created_at from boards where id = $1 and deleted_at is null",
@@ -633,7 +630,7 @@ async fn add_card(
         ));
     }
 
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     // At the end of its stage, wherever that is now.
     let last: (Option<f64>,) =
@@ -659,21 +656,20 @@ async fn add_card(
 }
 
 async fn insert_card(
-    conn: &mut TenantConn,
-    caller: &Caller,
+    conn: &mut Tx,
+    _caller: &Caller,
     board_id: Uuid,
     body: &NewCard,
     position: f64,
 ) -> Result<Card> {
     let row = sqlx::query(
         "insert into cards
-             (tenant_id, board_id, stage_id, title, detail, owner_id, value_minor, currency,
+             (board_id, stage_id, title, detail, owner_id, value_minor, currency,
               position)
-         values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+         values ($1, $2, $3, $4, $5, $6, $7, $8)
          returning id, stage_id, title, detail, owner_id, value_minor, currency, position,
                    created_at",
     )
-    .bind(caller.tenant().0)
     .bind(board_id)
     .bind(body.stage_id)
     .bind(body.title.as_str())
@@ -718,7 +714,7 @@ async fn move_card(
     Path(id): Path<Uuid>,
     Json(changes): Json<CardChanges>,
 ) -> Result<Audited<Json<Card>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let before = one(&mut conn, id).await?;
 
@@ -767,7 +763,7 @@ async fn move_card(
     Ok(Audited::new(receipt, Json(after)))
 }
 
-async fn one(conn: &mut TenantConn, id: Uuid) -> Result<Card> {
+async fn one(conn: &mut Tx, id: Uuid) -> Result<Card> {
     let row = sqlx::query(
         "select id, stage_id, title, detail, owner_id, value_minor, currency, position,
                 created_at
@@ -800,29 +796,26 @@ async fn add_note(
     Path(id): Path<Uuid>,
     Json(body): Json<NewNote>,
 ) -> Result<Audited<StatusCode>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
     one(&mut conn, id).await?;
 
-    sqlx::query(
-        "insert into card_notes (tenant_id, card_id, author_id, body) values ($1, $2, $3, $4)",
-    )
-    .bind(caller.tenant().0)
-    .bind(id)
-    .bind(caller.user.as_ref().map(|user| user.user_id))
-    .bind(&body.body)
-    .execute(conn.conn())
-    .await
-    .map_err(|error| {
-        match error
-            .as_database_error()
-            .and_then(sqlx::error::DatabaseError::code)
-        {
-            Some(code) if code == "23514" => {
-                AppError::Invalid(say::NOTE_BETWEEN_ONE_TEN_THOUSAND_CHARACTERS.into())
+    sqlx::query("insert into card_notes (card_id, author_id, body) values ($1, $2, $3)")
+        .bind(id)
+        .bind(caller.user.as_ref().map(|user| user.user_id))
+        .bind(&body.body)
+        .execute(conn.conn())
+        .await
+        .map_err(|error| {
+            match error
+                .as_database_error()
+                .and_then(sqlx::error::DatabaseError::code)
+            {
+                Some(code) if code == "23514" => {
+                    AppError::Invalid(say::NOTE_BETWEEN_ONE_TEN_THOUSAND_CHARACTERS.into())
+                }
+                _ => AppError::Database(error),
             }
-            _ => AppError::Database(error),
-        }
-    })?;
+        })?;
 
     let receipt = audit::record_raw(
         &mut conn,

@@ -63,12 +63,11 @@ pub fn tools() -> Vec<Tool> {
             name: "posts_list",
             about: "What this site has written.",
             needs: Needs::new(Capability::Content, Access::View),
-            run: |state, caller, _arguments| {
+            run: |state, _caller, _arguments| {
                 let state = state.clone();
-                let caller = caller.clone();
 
                 Box::pin(async move {
-                    let mut conn = state.db.tenant(caller.tenant()).await?;
+                    let mut conn = state.db.begin().await?;
 
                     let rows: Vec<(uuid::Uuid, String, String)> = sqlx::query_as(
                         "select id, title, slug from posts
@@ -93,14 +92,13 @@ pub fn tools() -> Vec<Tool> {
             name: "posts_get",
             about: "One post, whole: its body, its fields, and what it is filed under.",
             needs: Needs::new(Capability::Content, Access::View),
-            run: |state, caller, arguments| {
+            run: |state, _caller, arguments| {
                 let state = state.clone();
-                let caller = caller.clone();
                 let id = uuid_in(arguments, "id");
 
                 Box::pin(async move {
                     let id = id?;
-                    let mut conn = state.db.tenant(caller.tenant()).await?;
+                    let mut conn = state.db.begin().await?;
 
                     let found: Option<(uuid::Uuid, String, String, String, String, String)> =
                         sqlx::query_as(
@@ -155,16 +153,15 @@ pub fn tools() -> Vec<Tool> {
             name: "taxonomy_list",
             about: "The categories and tags this site files things under.",
             needs: Needs::new(Capability::Taxonomy, Access::View),
-            run: |state, caller, _arguments| {
+            run: |state, _caller, _arguments| {
                 let state = state.clone();
-                let caller = caller.clone();
 
                 Box::pin(async move {
-                    let mut conn = state.db.tenant(caller.tenant()).await?;
+                    let mut conn = state.db.begin().await?;
 
                     let rows: Vec<(uuid::Uuid, String, String, String)> = sqlx::query_as(
                         "select id, kind::text, name, slug from terms
-                          where deleted_at is null order by kind, name limit 200",
+                          order by kind, name limit 200",
                     )
                     .fetch_all(conn.conn())
                     .await?;
@@ -185,12 +182,11 @@ pub fn tools() -> Vec<Tool> {
             name: "media_list",
             about: "What this site has uploaded.",
             needs: Needs::new(Capability::Media, Access::View),
-            run: |state, caller, _arguments| {
+            run: |state, _caller, _arguments| {
                 let state = state.clone();
-                let caller = caller.clone();
 
                 Box::pin(async move {
-                    let mut conn = state.db.tenant(caller.tenant()).await?;
+                    let mut conn = state.db.begin().await?;
 
                     let rows: Vec<(uuid::Uuid, String, String, i64)> = sqlx::query_as(
                         "select id, original_name, mime, bytes from media
@@ -216,12 +212,11 @@ pub fn tools() -> Vec<Tool> {
             name: "page_issues",
             about: "What is wrong with this site's pages before anybody reads them.",
             needs: Needs::new(Capability::Content, Access::View),
-            run: |state, caller, _arguments| {
+            run: |state, _caller, _arguments| {
                 let state = state.clone();
-                let caller = caller.clone();
 
                 Box::pin(async move {
-                    let mut conn = state.db.tenant(caller.tenant()).await?;
+                    let mut conn = state.db.begin().await?;
 
                     let rows: Vec<(uuid::Uuid, String, String, String)> = sqlx::query_as(
                         "select i.post_id, p.title, i.kind, i.weight::text
@@ -249,12 +244,11 @@ pub fn tools() -> Vec<Tool> {
             name: "trash_list",
             about: "What was thrown away and can still be put back.",
             needs: Needs::new(Capability::Content, Access::View),
-            run: |state, caller, _arguments| {
+            run: |state, _caller, _arguments| {
                 let state = state.clone();
-                let caller = caller.clone();
 
                 Box::pin(async move {
-                    let mut conn = state.db.tenant(caller.tenant()).await?;
+                    let mut conn = state.db.begin().await?;
                     // First page only: an assistant asking what is in the bin
                     // wants an answer, not a walk of the whole thing.
                     let thrown = crate::trash::what_was_thrown(
@@ -273,12 +267,11 @@ pub fn tools() -> Vec<Tool> {
             name: "site_health",
             about: "Whether this site is well: what is published, what failed, what is not answering.",
             needs: Needs::new(Capability::Settings, Access::View),
-            run: |state, caller, _arguments| {
+            run: |state, _caller, _arguments| {
                 let state = state.clone();
-                let caller = caller.clone();
 
                 Box::pin(async move {
-                    let mut conn = state.db.tenant(caller.tenant()).await?;
+                    let mut conn = state.db.begin().await?;
                     let checks = crate::health::look_at(&mut conn).await?;
                     conn.commit().await?;
 
@@ -290,12 +283,11 @@ pub fn tools() -> Vec<Tool> {
             name: "visitors_overview",
             about: "How many people read this site, day by day.",
             needs: Needs::new(Capability::Settings, Access::View),
-            run: |state, caller, _arguments| {
+            run: |state, _caller, _arguments| {
                 let state = state.clone();
-                let caller = caller.clone();
 
                 Box::pin(async move {
-                    let mut conn = state.db.tenant(caller.tenant()).await?;
+                    let mut conn = state.db.begin().await?;
 
                     let rows: Vec<(chrono::NaiveDate, i64, i64)> = sqlx::query_as(
                         "select on_day, sum(views)::bigint, sum(visitors)::bigint
@@ -429,9 +421,8 @@ pub fn tools() -> Vec<Tool> {
             name: "forms_submissions",
             about: "What people have sent through a form.",
             needs: Needs::new(Capability::Forms, Access::View),
-            run: |state, caller, arguments| {
+            run: |state, _caller, arguments| {
                 let state = state.clone();
-                let caller = caller.clone();
                 let slug = arguments
                     .get("slug")
                     .and_then(serde_json::Value::as_str)
@@ -439,7 +430,7 @@ pub fn tools() -> Vec<Tool> {
                     .to_owned();
 
                 Box::pin(async move {
-                    let mut conn = state.db.tenant(caller.tenant()).await?;
+                    let mut conn = state.db.begin().await?;
 
                     let rows: Vec<(uuid::Uuid, serde_json::Value)> = sqlx::query_as(
                         "select s.id, s.answers
@@ -465,12 +456,11 @@ pub fn tools() -> Vec<Tool> {
             name: "orders_list",
             about: "What this site has sold.",
             needs: Needs::new(Capability::Shop, Access::View),
-            run: |state, caller, _arguments| {
+            run: |state, _caller, _arguments| {
                 let state = state.clone();
-                let caller = caller.clone();
 
                 Box::pin(async move {
-                    let mut conn = state.db.tenant(caller.tenant()).await?;
+                    let mut conn = state.db.begin().await?;
 
                     let rows: Vec<(uuid::Uuid, String, i64)> = sqlx::query_as(
                         "select id, state::text, total_minor from orders
@@ -687,7 +677,7 @@ async fn recorded(
     action: &str,
     tool: &str,
 ) -> Result<crate::kernel::audit::Receipt> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let receipt = audit::record_raw(
         &mut conn,

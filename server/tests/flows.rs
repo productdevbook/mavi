@@ -6,30 +6,27 @@ use http_body_util::BodyExt;
 use mavi::kernel::authz::every_grant;
 use mavi::kernel::db::Db;
 use mavi::kernel::http::AppState;
-use mavi::kernel::tenant::TenantId;
 use tower::ServiceExt;
 use uuid::Uuid;
 
 mod common;
 
 use common::harness;
-use mavi::testing::{a_role, a_tenant, a_user};
+use mavi::testing::{a_role, a_user};
 
 struct Site {
     db: Db,
     router: axum::Router,
     host: String,
-    tenant: TenantId,
     token: String,
 }
 
 async fn a_site() -> Site {
     let db = harness().await;
     let host = format!("{}.example", Uuid::now_v7().simple());
-    let tenant = a_tenant(&db, &host).await;
-    let role = a_role(&db, tenant, "owner", &every_grant()).await;
+    let role = a_role(&db, "owner", &every_grant()).await;
     let password = "a long enough password";
-    let (_, email) = a_user(&db, tenant, role, password).await;
+    let (_, email) = a_user(&db, role, password).await;
 
     let router = mavi::router(AppState::new(db.clone()));
 
@@ -63,7 +60,6 @@ async fn a_site() -> Site {
         db,
         router,
         host,
-        tenant,
         token: body["token"].as_str().expect("a token").to_owned(),
     }
 }
@@ -116,9 +112,7 @@ impl Site {
 
     async fn work(&self, state: &AppState, times: usize) {
         for _ in 0..times {
-            mavi::jobs::tick_within(state, "test", Some(self.tenant))
-                .await
-                .expect("tick");
+            mavi::jobs::tick(state, "test").await.expect("tick");
         }
     }
 }
@@ -167,7 +161,7 @@ async fn a_form_filled_in_sets_off_what_the_site_arranged() {
     // finding there is no next one.
     site.work(&state, 8).await;
 
-    let mut conn = site.db.tenant(site.tenant).await.expect("begin");
+    let mut conn = site.db.begin().await.expect("begin");
 
     let run: (String, i32) = sqlx::query_as("select state::text, at_step from flow_runs")
         .fetch_one(conn.conn())
@@ -248,7 +242,7 @@ async fn a_step_that_waits_does_not_hold_a_worker() {
     let state = AppState::new(site.db.clone());
     site.work(&state, 8).await;
 
-    let mut conn = site.db.tenant(site.tenant).await.expect("begin");
+    let mut conn = site.db.begin().await.expect("begin");
 
     let run: (String, i32) = sqlx::query_as("select state::text, at_step from flow_runs")
         .fetch_one(conn.conn())
@@ -312,7 +306,7 @@ async fn a_step_that_fails_stops_the_run_and_says_why() {
     let state = AppState::new(site.db.clone());
     site.work(&state, 8).await;
 
-    let mut conn = site.db.tenant(site.tenant).await.expect("begin");
+    let mut conn = site.db.begin().await.expect("begin");
 
     let run: (String, Option<String>) =
         sqlx::query_as("select state::text, failure from flow_runs")
@@ -412,7 +406,7 @@ async fn a_credential_is_never_handed_back() {
 
     assert_eq!(status, StatusCode::NO_CONTENT);
 
-    let mut conn = site.db.tenant(site.tenant).await.expect("begin");
+    let mut conn = site.db.begin().await.expect("begin");
 
     let stored: (String,) = sqlx::query_as("select sealed from flow_credentials")
         .fetch_one(conn.conn())

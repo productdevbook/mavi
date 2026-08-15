@@ -7,14 +7,13 @@ use mavi::kernel::authz::every_grant;
 use mavi::kernel::db::Db;
 use mavi::kernel::http::AppState;
 use mavi::kernel::storage::{LocalDisk, Store};
-use mavi::kernel::tenant::TenantId;
 use tower::ServiceExt;
 use uuid::Uuid;
 
 mod common;
 
 use common::harness;
-use mavi::testing::{a_role, a_tenant, a_user};
+use mavi::testing::{a_role, a_user};
 
 const PASSWORD: &str = "a long enough password";
 
@@ -22,7 +21,6 @@ struct Site {
     db: Db,
     router: axum::Router,
     host: String,
-    tenant: TenantId,
     token: String,
     kept_in: std::path::PathBuf,
 }
@@ -31,9 +29,8 @@ impl Site {
     async fn new() -> Self {
         let db = harness().await;
         let host = format!("{}.example", Uuid::now_v7().simple());
-        let tenant = a_tenant(&db, &host).await;
-        let role = a_role(&db, tenant, "owner", &every_grant()).await;
-        let (_, email) = a_user(&db, tenant, role, PASSWORD).await;
+        let role = a_role(&db, "owner", &every_grant()).await;
+        let (_, email) = a_user(&db, role, PASSWORD).await;
 
         let kept_in = std::env::temp_dir().join(format!("mavi-pages-{}", Uuid::now_v7().simple()));
 
@@ -44,7 +41,6 @@ impl Site {
             db,
             router: mavi::router(state),
             host,
-            tenant,
             token: String::new(),
             kept_in,
         };
@@ -88,9 +84,7 @@ impl Site {
         };
 
         for _ in 0..4 {
-            mavi::jobs::tick_within(&state, "test", Some(self.tenant))
-                .await
-                .expect("tick");
+            mavi::jobs::tick(&state, "test").await.expect("tick");
         }
 
         publish["id"].as_str().expect("an id").to_owned()
@@ -130,13 +124,12 @@ impl Site {
     }
 
     async fn writes_in(&self, code: &str) {
-        let mut conn = self.db.tenant(self.tenant).await.expect("begin");
+        let mut conn = self.db.begin().await.expect("begin");
 
         sqlx::query(
-            "insert into languages (tenant_id, code, name, is_default)
-             values ($1, $2, $2, true)",
+            "insert into languages (code, name, is_default)
+             values ($1, $1, true)",
         )
-        .bind(self.tenant.0)
         .bind(code)
         .execute(conn.conn())
         .await

@@ -7,20 +7,18 @@ use mavi::kernel::authz::{Access, Capability, Needs, every_grant};
 use mavi::kernel::db::Db;
 use mavi::kernel::http::AppState;
 use mavi::kernel::mailer::{Mailer, Recorder};
-use mavi::kernel::tenant::TenantId;
 use tower::ServiceExt;
 use uuid::Uuid;
 
 mod common;
 
 use common::harness;
-use mavi::testing::{a_role, a_tenant, a_user};
+use mavi::testing::{a_role, a_user};
 
 struct Site {
     db: Db,
     router: axum::Router,
     host: String,
-    tenant: TenantId,
     me: Uuid,
     token: String,
     owner_role: Uuid,
@@ -33,10 +31,9 @@ struct Site {
 async fn a_site_with(grants: &[String]) -> Site {
     let db = harness().await;
     let host = format!("{}.example", Uuid::now_v7().simple());
-    let tenant = a_tenant(&db, &host).await;
-    let owner_role = a_role(&db, tenant, "owner", grants).await;
+    let owner_role = a_role(&db, "owner", grants).await;
     let password = "a long enough password";
-    let (me, email) = a_user(&db, tenant, owner_role, password).await;
+    let (me, email) = a_user(&db, owner_role, password).await;
 
     let post = Recorder::default();
     let mut state = AppState::new(db.clone());
@@ -74,7 +71,6 @@ async fn a_site_with(grants: &[String]) -> Site {
         db,
         router,
         host,
-        tenant,
         me,
         token: body["token"].as_str().expect("a token").to_owned(),
         owner_role,
@@ -97,9 +93,7 @@ impl Site {
         state.mailer = std::sync::Arc::new(Mailer::Recorded(self.post.clone()));
 
         for _ in 0..8 {
-            mavi::jobs::tick_within(&state, "test", Some(self.tenant))
-                .await
-                .expect("tick");
+            mavi::jobs::tick(&state, "test").await.expect("tick");
         }
 
         let letters = self.post.all();
@@ -373,14 +367,8 @@ async fn nobody_changes_what_they_themselves_are() {
 async fn the_last_owner_is_not_taken_away_by_somebody_else_either() {
     let site = a_site().await;
     let password = "a long enough password";
-    let admin_role = a_role(
-        &site.db,
-        site.tenant,
-        "admin",
-        &["people:delete".to_owned()],
-    )
-    .await;
-    let (_, admin_email) = a_user(&site.db, site.tenant, admin_role, password).await;
+    let admin_role = a_role(&site.db, "admin", &["people:delete".to_owned()]).await;
+    let (_, admin_email) = a_user(&site.db, admin_role, password).await;
 
     let (_, session) = site
         .send(
@@ -436,11 +424,11 @@ async fn the_last_owner_is_not_suspended_either() {
 async fn the_last_owner_s_role_is_not_moved_away_either() {
     let site = a_site().await;
     let password = "a long enough password";
-    let admin_role = a_role(&site.db, site.tenant, "admin", &["people:write".to_owned()]).await;
-    let (_, admin_email) = a_user(&site.db, site.tenant, admin_role, password).await;
+    let admin_role = a_role(&site.db, "admin", &["people:write".to_owned()]).await;
+    let (_, admin_email) = a_user(&site.db, admin_role, password).await;
     // No grants of its own, so `within_reach` never stands between this test
     // and the check it means to exercise.
-    let lesser_role = a_role(&site.db, site.tenant, "lesser", &[]).await;
+    let lesser_role = a_role(&site.db, "lesser", &[]).await;
 
     let (_, session) = site
         .send(
@@ -473,15 +461,14 @@ async fn the_last_owner_s_role_is_not_moved_away_either() {
 async fn a_suspended_owner_does_not_count_as_one_still_standing() {
     let site = a_site().await;
     let password = "a long enough password";
-    let (second_owner, _) = a_user(&site.db, site.tenant, site.owner_role, password).await;
+    let (second_owner, _) = a_user(&site.db, site.owner_role, password).await;
     let admin_role = a_role(
         &site.db,
-        site.tenant,
         "admin",
         &["people:write".to_owned(), "people:delete".to_owned()],
     )
     .await;
-    let (_, admin_email) = a_user(&site.db, site.tenant, admin_role, password).await;
+    let (_, admin_email) = a_user(&site.db, admin_role, password).await;
 
     let (_, session) = site
         .send(
@@ -529,7 +516,7 @@ async fn a_suspended_owner_does_not_count_as_one_still_standing() {
 async fn suspending_somebody_takes_away_what_they_are_holding() {
     let site = a_site().await;
     let password = "a long enough password";
-    let (them, email) = a_user(&site.db, site.tenant, site.owner_role, password).await;
+    let (them, email) = a_user(&site.db, site.owner_role, password).await;
 
     let (_, session) = site
         .send(
@@ -645,7 +632,6 @@ async fn nobody_puts_anybody_into_a_role_beyond_their_own() {
 
     let lesser = a_role(
         &site.db,
-        site.tenant,
         "lesser",
         &[
             Needs::new(Capability::People, Access::View).grant(),
@@ -655,7 +641,7 @@ async fn nobody_puts_anybody_into_a_role_beyond_their_own() {
     .await;
 
     let password = "a long enough password";
-    let (_, email) = a_user(&site.db, site.tenant, lesser, password).await;
+    let (_, email) = a_user(&site.db, lesser, password).await;
 
     let (_, session) = site
         .send(
@@ -1017,7 +1003,7 @@ async fn the_build_s_own_roles_are_not_a_site_s_to_rewrite() {
 
     // What setup makes for a new site: a role the build owns rather than one
     // the site wrote.
-    let mut conn = site.db.tenant(site.tenant).await.expect("begin");
+    let mut conn = site.db.begin().await.expect("begin");
 
     sqlx::query("update roles set built_in = true where id = $1")
         .bind(id)
@@ -1113,9 +1099,7 @@ async fn a_way_in_is_not_sent_to_an_address_nobody_has_proved() {
     state.mailer = std::sync::Arc::new(Mailer::Recorded(site.post.clone()));
 
     for _ in 0..4 {
-        mavi::jobs::tick_within(&state, "test", Some(site.tenant))
-            .await
-            .expect("tick");
+        mavi::jobs::tick(&state, "test").await.expect("tick");
     }
 
     let letters = site.post.all();
@@ -1182,9 +1166,7 @@ async fn the_way_back_into_an_account_is_a_whole_url() {
     state.mailer = std::sync::Arc::new(Mailer::Recorded(site.post.clone()));
 
     for _ in 0..8 {
-        mavi::jobs::tick_within(&state, "test", Some(site.tenant))
-            .await
-            .expect("tick");
+        mavi::jobs::tick(&state, "test").await.expect("tick");
     }
 
     let letters = site.post.all();

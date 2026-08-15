@@ -7,10 +7,10 @@ import { api } from "@/lib/v1"
 import { said } from "@/lib/v1-said"
 import { Badge } from "@/components/ui/badge"
 
-/** One address a site answers on, and what was found when it was asked. */
+/** The address this installation answers on, and what was found when it was
+ * asked. */
 interface Address {
   host: string
-  is_primary: boolean
   resolves?: boolean | null
   answered?: boolean | null
   note?: string | null
@@ -63,10 +63,6 @@ export function AddressHealth() {
             <span className="min-w-0 flex-1 truncate font-mono text-sm">
               {address.host}
             </span>
-
-            {address.is_primary && (
-              <Badge variant="secondary">{t`The main one`}</Badge>
-            )}
 
             <Badge variant={address.answered ? "default" : "secondary"}>
               {address.answered

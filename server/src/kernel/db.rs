@@ -1,20 +1,23 @@
-//! Talking to the one database, as one site or as the machine.
+//! Talking to the one database.
 //!
-//! Every site's rows live in the same tables with a `tenant_id`, and every one
-//! of those tables has row-level security enabled and forced. A [`TenantConn`]
-//! is a transaction that has said which site it is, so the database itself
-//! refuses to hand it anything else; an [`OperatorConn`] is one that has said
-//! it is the machine's own work, which is the only way to read across sites.
+//! There was a transaction that had said which site it was and a transaction
+//! that had said it was the machine's own work, and the difference between
+//! them was the whole of the tenancy: the first set `app.tenant_id` so that
+//! row-level security would hand it one site's rows, the second set
+//! `app.worker` to be handed everybody's. With one site there is one kind of
+//! transaction, and it says nothing before it starts.
 //!
-//! A connection is asked for per request rather than held: the pool is one
-//! pool, and how many sites exist has nothing to do with how much is open.
+//! What survives the collapse is the *type*, and it is worth saying why rather
+//! than treating [`Tx`] as a wrapper that could be dropped next. `audit::record`
+//! and `queue::enqueue` take `&mut Tx`, and that signature is what makes "the
+//! receipt is written in the same transaction as the change" a thing the
+//! compiler checks instead of a thing somebody remembers.
 use std::time::Duration;
 
 use sqlx::postgres::{PgPool, PgPoolOptions};
 use sqlx::{PgConnection, Postgres, Transaction};
 
 use super::error::{AppError, Result};
-use super::tenant::TenantId;
 
 #[derive(Clone, Debug)]
 pub struct Db {
@@ -101,12 +104,12 @@ impl Db {
         Ok(())
     }
 
-    pub async fn tenant(&self, tenant: TenantId) -> Result<TenantConn> {
-        TenantConn::begin(self, tenant).await
-    }
-
-    pub async fn operator(&self) -> Result<OperatorConn> {
-        OperatorConn::begin(self).await
+    /// A transaction. Nothing is said to the database before the first
+    /// statement of it: what used to be said here was which site was asking.
+    pub async fn begin(&self) -> Result<Tx> {
+        Ok(Tx {
+            tx: self.pool().begin().await?,
+        })
     }
 
     /// The pool underneath, for a crate outside this one that has to reach
@@ -117,83 +120,13 @@ impl Db {
     }
 }
 
-/// A transaction that has said which tenant is asking.
-///
-/// `set local` scopes the setting to the transaction, so a connection going
-/// back to the pool carries nothing of whoever had it.
+/// One transaction, and the handle a change and its audit row share.
 #[derive(Debug)]
-pub struct TenantConn {
-    tenant: TenantId,
+pub struct Tx {
     tx: Transaction<'static, Postgres>,
 }
 
-impl TenantConn {
-    async fn begin(db: &Db, tenant: TenantId) -> Result<Self> {
-        let mut tx = db.pool().begin().await?;
-
-        sqlx::query("select set_config('app.tenant_id', $1::text, true)")
-            .bind(tenant.0)
-            .execute(&mut *tx)
-            .await?;
-
-        Ok(Self { tenant, tx })
-    }
-
-    #[must_use]
-    pub fn tenant(&self) -> TenantId {
-        self.tenant
-    }
-
-    pub fn conn(&mut self) -> &mut PgConnection {
-        &mut self.tx
-    }
-
-    pub async fn commit(self) -> Result<()> {
-        Ok(self.tx.commit().await?)
-    }
-}
-
-/// Reaches across tenants, and is named so that every use of it can be found.
-/// The tenant-scoped tables read as empty here.
-#[derive(Debug)]
-pub struct OperatorConn {
-    tx: Transaction<'static, Postgres>,
-}
-
-impl OperatorConn {
-    async fn begin(db: &Db) -> Result<Self> {
-        Ok(Self {
-            tx: db.pool().begin().await?,
-        })
-    }
-
-    /// Reads rows belonging to sites, across every site at once.
-    ///
-    /// Only the machine's own screens and the queue do this, and only for the
-    /// tables whose policy allows it — the setting is the same one the queue
-    /// uses, so every table that can be read this way says so in its policy
-    /// rather than leaving it to whoever opened the connection.
-    pub async fn across_sites(&mut self) -> Result<()> {
-        sqlx::query("select set_config('app.worker', 'on', true)")
-            .execute(&mut *self.tx)
-            .await?;
-
-        Ok(())
-    }
-
-    /// Makes the rest of this transaction act as a site, for the one case that
-    /// needs it: a site being made writes its first rows in the same
-    /// transaction that made it, and until that commits there is no site for a
-    /// separate connection to open.
-    pub async fn provisioning_for(&mut self, tenant: TenantId) -> Result<()> {
-        sqlx::query("select set_config('app.tenant_id', $1::text, true)")
-            .bind(tenant.0)
-            .execute(&mut *self.tx)
-            .await?;
-
-        Ok(())
-    }
-
+impl Tx {
     pub fn conn(&mut self) -> &mut PgConnection {
         &mut self.tx
     }

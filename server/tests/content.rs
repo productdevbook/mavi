@@ -8,20 +8,18 @@ use http_body_util::BodyExt;
 use mavi::kernel::authz::{Access, Capability, Needs, every_grant};
 use mavi::kernel::db::Db;
 use mavi::kernel::http::AppState;
-use mavi::kernel::tenant::TenantId;
 use tower::ServiceExt;
 use uuid::Uuid;
 
 mod common;
 
 use common::{harness, percent_encoded};
-use mavi::testing::{a_role, a_tenant, a_user};
+use mavi::testing::{a_role, a_user};
 
 struct Site {
     db: Db,
     router: axum::Router,
     host: String,
-    tenant: TenantId,
 }
 
 struct Who {
@@ -33,14 +31,12 @@ impl Site {
     async fn new() -> Self {
         let db = harness().await;
         let host = format!("{}.example", Uuid::now_v7().simple());
-        let tenant = a_tenant(&db, &host).await;
 
-        let mut conn = db.tenant(tenant).await.expect("begin");
+        let mut conn = db.begin().await.expect("begin");
         sqlx::query(
-            "insert into languages (tenant_id, code, name, is_default)
-             values ($1, 'en', 'English', true)",
+            "insert into languages (code, name, is_default)
+             values ('en', 'English', true)",
         )
-        .bind(tenant.0)
         .execute(conn.conn())
         .await
         .expect("a language");
@@ -50,14 +46,13 @@ impl Site {
             router: mavi::router(AppState::new(db.clone())),
             db,
             host,
-            tenant,
         }
     }
 
     async fn somebody(&self, role: &str, grants: &[String]) -> Who {
-        let role_id = a_role(&self.db, self.tenant, role, grants).await;
+        let role_id = a_role(&self.db, role, grants).await;
         let password = "a long enough password";
-        let (id, email) = a_user(&self.db, self.tenant, role_id, password).await;
+        let (id, email) = a_user(&self.db, role_id, password).await;
 
         let (status, body) = self
             .send(
@@ -286,7 +281,7 @@ async fn a_changed_address_leaves_the_old_one_pointing_at_it() {
     )
     .await;
 
-    let mut conn = site.db.tenant(site.tenant).await.expect("begin");
+    let mut conn = site.db.begin().await.expect("begin");
 
     let redirect: (String, String) =
         sqlx::query_as("select was, now_at from redirects where post_id = $1")
@@ -475,7 +470,7 @@ async fn a_site_s_own_field_can_be_asked_about() {
     )
     .await;
 
-    let mut conn = site.db.tenant(site.tenant).await.expect("begin");
+    let mut conn = site.db.begin().await.expect("begin");
 
     let quick: (i64,) = sqlx::query_as(
         "select count(*) from posts
@@ -512,14 +507,12 @@ async fn a_post_scheduled_for_later_goes_when_later_arrives() {
     let state = AppState::new(site.db.clone());
 
     // Nothing yet: the moment has not arrived.
-    let went = mavi::content::publish_due(&state, site.tenant)
-        .await
-        .expect("a pass");
+    let went = mavi::content::publish_due(&state).await.expect("a pass");
 
     assert_eq!(went, 0);
 
     // The moment arrives.
-    let mut conn = site.db.tenant(site.tenant).await.expect("begin");
+    let mut conn = site.db.begin().await.expect("begin");
     sqlx::query("update posts set publish_at = now() - interval '1 minute' where id = $1")
         .bind(id)
         .execute(conn.conn())
@@ -527,9 +520,7 @@ async fn a_post_scheduled_for_later_goes_when_later_arrives() {
         .expect("walk forward");
     conn.commit().await.expect("commit");
 
-    let went = mavi::content::publish_due(&state, site.tenant)
-        .await
-        .expect("a pass");
+    let went = mavi::content::publish_due(&state).await.expect("a pass");
 
     assert_eq!(went, 1);
 
@@ -541,7 +532,7 @@ async fn a_post_scheduled_for_later_goes_when_later_arrives() {
     assert!(post["post"]["published_at"].is_string());
 
     // And whatever was waiting for it heard.
-    let mut conn = site.db.tenant(site.tenant).await.expect("begin");
+    let mut conn = site.db.begin().await.expect("begin");
 
     let announced: (i64,) =
         sqlx::query_as("select count(*) from outbox where event = 'post.published'")

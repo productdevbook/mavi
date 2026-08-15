@@ -13,7 +13,7 @@ use uuid::Uuid;
 
 use crate::kernel::audit::{self, Actor, Auditable, Audited};
 use crate::kernel::authz::{Access, Capability, Needs, Permit, every_grant};
-use crate::kernel::db::TenantConn;
+use crate::kernel::db::Tx;
 use crate::kernel::error::{AppError, Result};
 use crate::kernel::http::{AppState, Audience, Caller, Endpoint, Guard, RatePolicy};
 use crate::kernel::page::{Page, Query};
@@ -277,11 +277,11 @@ pub struct Chosen {
 
 async fn list(
     Injected(state): Injected<AppState>,
-    caller: Caller,
+    _caller: Caller,
     _permit: Permit,
     HttpQuery(query): HttpQuery<Query>,
 ) -> Result<Json<Page<Person>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let rows: Vec<Person> = sqlx::query_as(
         "select u.id, u.email, u.name, r.key as role, u.state,
@@ -316,20 +316,19 @@ async fn invite(
     _permit: Permit,
     Json(body): Json<Invitation>,
 ) -> Result<Audited<(StatusCode, Json<Invited>)>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     within_reach(&mut conn, &caller, body.role_id).await?;
 
     let person: Person = sqlx::query_as(
-        "insert into users (tenant_id, role_id, email, name, state)
-         values ($1, $2, $3, $4, 'invited')
+        "insert into users (role_id, email, name, state)
+         values ($1, $2, $3, 'invited')
          returning id, email, name,
-                   (select key from roles where id = $2) as role,
+                   (select key from roles where id = $1) as role,
                    state,
                    email_proved_at is not null as email_proved,
                    created_at",
     )
-    .bind(caller.tenant().0)
     .bind(body.role_id)
     .bind(body.email.as_str())
     .bind(body.name.as_str())
@@ -348,8 +347,7 @@ async fn invite(
         }
     })?;
 
-    let (secret, expires_at) =
-        a_ticket(&mut conn, caller.tenant(), person.id, "invitation", &state).await?;
+    let (secret, expires_at) = a_ticket(&mut conn, person.id, "invitation", &state).await?;
 
     // In the site's own words where it has written any: what an invitation
     // says is the first thing somebody sees of a site they have never used.
@@ -358,7 +356,6 @@ async fn invite(
 
     let (subject, body) = crate::mail::letters::press(
         &mut conn,
-        caller.tenant(),
         "invitation",
         &language,
         &[
@@ -372,7 +369,7 @@ async fn invite(
     )
     .await?;
 
-    written_to(&mut conn, caller.tenant(), &person.email, &subject, &body).await?;
+    written_to(&mut conn, &person.email, &subject, &body).await?;
 
     let receipt = audit::record(
         &mut conn,
@@ -399,19 +396,17 @@ async fn invite(
 
 /// What this site is called, for a letter that says so. Its own name where it
 /// has one, and nothing rather than somebody else's where it has not.
-async fn site_name(conn: &mut TenantConn) -> Result<String> {
-    let found: Option<(String,)> =
-        sqlx::query_as("select name from site_settings where tenant_id = $1")
-            .bind(conn.tenant().0)
-            .fetch_optional(conn.conn())
-            .await?;
+async fn site_name(conn: &mut Tx) -> Result<String> {
+    let found: Option<(String,)> = sqlx::query_as("select name from site_settings ")
+        .fetch_optional(conn.conn())
+        .await?;
 
     Ok(found.map_or_else(String::new, |(name,)| name))
 }
 
 /// Which language a letter to somebody on this site is written in: the site's
 /// own default, since what is being written to is an account on it.
-async fn site_language(conn: &mut TenantConn) -> Result<String> {
+async fn site_language(conn: &mut Tx) -> Result<String> {
     let found: Option<(String,)> =
         sqlx::query_as("select code from languages where is_default limit 1")
             .fetch_optional(conn.conn())
@@ -422,16 +417,9 @@ async fn site_language(conn: &mut TenantConn) -> Result<String> {
 
 /// A message somebody asked for by acting: an invitation, a reset. No list to
 /// leave, so nothing about leaving one.
-async fn written_to(
-    conn: &mut TenantConn,
-    tenant: crate::kernel::TenantId,
-    to: &str,
-    subject: &str,
-    body: &str,
-) -> Result<()> {
+async fn written_to(conn: &mut Tx, to: &str, subject: &str, body: &str) -> Result<()> {
     crate::mail::post(
         conn,
-        tenant,
         &crate::mail::Outgoing {
             to,
             subject,
@@ -453,7 +441,7 @@ async fn written_to(
 /// hole: a role that already carries `settings:write` could be handed out by
 /// anybody with `people:write`, who could then sign in as whoever they had just
 /// invited into it.
-async fn within_reach(conn: &mut TenantConn, caller: &Caller, role_id: Uuid) -> Result<()> {
+async fn within_reach(conn: &mut Tx, caller: &Caller, role_id: Uuid) -> Result<()> {
     let holding = &caller.require_user()?.grants;
 
     let target: Option<(Vec<String>,)> = sqlx::query_as("select grants from roles where id = $1")
@@ -477,8 +465,7 @@ async fn within_reach(conn: &mut TenantConn, caller: &Caller, role_id: Uuid) -> 
 /// One use, an expiry, and only the hash kept. Anything outstanding for the
 /// same purpose is spent first: an invitation sent twice leaves one way in.
 async fn a_ticket(
-    conn: &mut TenantConn,
-    tenant: crate::kernel::TenantId,
+    conn: &mut Tx,
     user_id: Uuid,
     purpose: &str,
     state: &AppState,
@@ -496,10 +483,9 @@ async fn a_ticket(
     .await?;
 
     sqlx::query(
-        "insert into tickets (tenant_id, user_id, purpose, token_hash, expires_at)
-         values ($1, $2, $3::ticket_purpose, $4, $5)",
+        "insert into tickets (user_id, purpose, token_hash, expires_at)
+         values ($1, $2::ticket_purpose, $3, $4)",
     )
-    .bind(tenant.0)
     .bind(user_id)
     .bind(purpose)
     .bind(&token::hash(&secret)[..])
@@ -541,7 +527,7 @@ async fn change_role(
         }
     }
 
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     // What it already carries has to be within reach as well, or somebody who
     // holds less could rewrite a role that holds more and then be given it.
@@ -595,7 +581,7 @@ async fn remove_role(
     _permit: Permit,
     Path(id): Path<Uuid>,
 ) -> Result<Audited<StatusCode>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     within_reach(&mut conn, &caller, id).await?;
 
@@ -657,7 +643,7 @@ async fn change_own_password(
     }
 
     let me = caller.require_user()?;
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let held: Option<(Option<String>,)> =
         sqlx::query_as("select password_hash from users where id = $1 and deleted_at is null")
@@ -708,7 +694,7 @@ async fn change(
     Path(id): Path<Uuid>,
     Json(changes): Json<PersonChanges>,
 ) -> Result<Audited<Json<Person>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
     let before = one(&mut conn, id).await?;
 
     if let Some(role_id) = changes.role_id {
@@ -810,8 +796,8 @@ async fn change(
 /// call rather than two things a caller could do half of.
 async fn prove_the_new_address(
     state: &AppState,
-    conn: &mut TenantConn,
-    caller: &Caller,
+    conn: &mut Tx,
+    _caller: &Caller,
     person: &Person,
 ) -> Result<()> {
     sqlx::query("update sessions set revoked_at = now() where user_id = $1 and revoked_at is null")
@@ -819,14 +805,13 @@ async fn prove_the_new_address(
         .execute(conn.conn())
         .await?;
 
-    let (secret, _) = a_ticket(conn, caller.tenant(), person.id, "email_proof", state).await?;
+    let (secret, _) = a_ticket(conn, person.id, "email_proof", state).await?;
 
     let language = site_language(conn).await?;
     let site = site_name(conn).await?;
 
     let (subject, letter) = crate::mail::letters::press(
         conn,
-        caller.tenant(),
         "email_proof",
         &language,
         &[
@@ -840,7 +825,7 @@ async fn prove_the_new_address(
     )
     .await?;
 
-    written_to(conn, caller.tenant(), &person.email, &subject, &letter).await
+    written_to(conn, &person.email, &subject, &letter).await
 }
 
 /// A no-op reassignment to the role already held, or a promotion into it,
@@ -848,7 +833,7 @@ async fn prove_the_new_address(
 /// `refuse_if_last_owner` knows whether anybody else is left to grant it
 /// back.
 async fn refuse_if_moved_away_from_last_ownership(
-    conn: &mut TenantConn,
+    conn: &mut Tx,
     id: Uuid,
     role_id: Uuid,
 ) -> Result<()> {
@@ -877,7 +862,7 @@ async fn refuse_if_moved_away_from_last_ownership(
 /// itself uses: active, not deleted, and a password chosen. A suspended
 /// owner, or one still sitting on an unused invitation, cannot be asked to
 /// grant the role to anyone, so does not count as one still standing.
-pub(crate) async fn refuse_if_last_owner(conn: &mut TenantConn, id: Uuid) -> Result<()> {
+pub(crate) async fn refuse_if_last_owner(conn: &mut Tx, id: Uuid) -> Result<()> {
     let holds_owner: Option<(bool,)> = sqlx::query_as(
         "select r.key = 'owner'
            from users u join roles r on r.id = u.role_id
@@ -919,7 +904,7 @@ async fn remove(
         ));
     }
 
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
     let before = one(&mut conn, id).await?;
 
     refuse_if_last_owner(&mut conn, id).await?;
@@ -948,7 +933,7 @@ async fn remove(
     Ok(Audited::new(receipt, StatusCode::NO_CONTENT))
 }
 
-async fn one(conn: &mut TenantConn, id: Uuid) -> Result<Person> {
+async fn one(conn: &mut Tx, id: Uuid) -> Result<Person> {
     sqlx::query_as(
         "select u.id, u.email, u.name, r.key as role, u.state,
                 u.email_proved_at is not null as email_proved, u.created_at
@@ -963,10 +948,10 @@ async fn one(conn: &mut TenantConn, id: Uuid) -> Result<Person> {
 
 async fn roles(
     Injected(state): Injected<AppState>,
-    caller: Caller,
+    _caller: Caller,
     _permit: Permit,
 ) -> Result<Json<Vec<Role>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let rows: Vec<Role> =
         sqlx::query_as("select id, key, name, grants, built_in from roles order by key")
@@ -1005,13 +990,12 @@ async fn make_role(
         ));
     }
 
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let role: Role = sqlx::query_as(
-        "insert into roles (tenant_id, key, name, grants) values ($1, $2, $3, $4)
+        "insert into roles (key, name, grants) values ($1, $2, $3)
          returning id, key, name, grants, built_in",
     )
-    .bind(caller.tenant().0)
     .bind(&body.key)
     .bind(body.name.as_str())
     .bind(&body.grants)
@@ -1054,14 +1038,9 @@ async fn ask_to_reset(
     caller: Caller,
     Json(body): Json<Address>,
 ) -> Result<Audited<StatusCode>> {
-    ratelimit::spend(
-        &state.db,
-        &format!("reset:{}:{}", caller.tenant(), body.email),
-        RESET_LIMIT,
-    )
-    .await?;
+    ratelimit::spend(&state.db, &format!("reset:{}", body.email), RESET_LIMIT).await?;
 
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     // Only to an address somebody has proved is theirs. An account whose
     // address was changed and not yet proved still has the link that proves it
@@ -1077,15 +1056,13 @@ async fn ask_to_reset(
     .await?;
 
     if let Some((id,)) = found {
-        let (secret, _) =
-            a_ticket(&mut conn, caller.tenant(), id, "password_reset", &state).await?;
+        let (secret, _) = a_ticket(&mut conn, id, "password_reset", &state).await?;
 
         let language = site_language(&mut conn).await?;
         let site = site_name(&mut conn).await?;
 
         let (subject, letter) = crate::mail::letters::press(
             &mut conn,
-            caller.tenant(),
             "password",
             &language,
             &[
@@ -1102,14 +1079,7 @@ async fn ask_to_reset(
         )
         .await?;
 
-        written_to(
-            &mut conn,
-            caller.tenant(),
-            body.email.as_str(),
-            &subject,
-            &letter,
-        )
-        .await?;
+        written_to(&mut conn, body.email.as_str(), &subject, &letter).await?;
     }
 
     // Written whether or not there was an account, so that the log says what
@@ -1142,7 +1112,7 @@ async fn set_password(
         ));
     }
 
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let found: Option<(Uuid, Uuid)> = sqlx::query_as(
         "select id, user_id from tickets

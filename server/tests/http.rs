@@ -13,7 +13,7 @@ use tower::ServiceExt;
 mod common;
 
 use common::harness;
-use mavi::testing::{a_tenant, a_user, an_owner_role};
+use mavi::testing::{a_user, an_owner_role};
 
 struct Site {
     router: axum::Router,
@@ -23,9 +23,8 @@ struct Site {
 async fn a_site(password: &str) -> (Site, String) {
     let db = harness().await;
     let host = format!("{}.example", uuid::Uuid::now_v7().simple());
-    let tenant = a_tenant(&db, &host).await;
-    let role = an_owner_role(&db, tenant).await;
-    let (_, email) = a_user(&db, tenant, role, password).await;
+    let role = an_owner_role(&db).await;
+    let (_, email) = a_user(&db, role, password).await;
 
     (
         Site {
@@ -151,84 +150,6 @@ async fn a_probe_answers_on_a_machine_nobody_has_set_up() {
     assert_eq!(response.status(), StatusCode::OK);
 }
 
-/// Before `/api/setup` has run there is no site for a request to be about, and
-/// there is no honest way to answer one: the endpoint exists, the caller is
-/// nobody in particular, and the machine is simply not a site yet. So it says
-/// that, as a key a panel can put in somebody's own language, rather than
-/// answering about an empty site or refusing as though the caller were at
-/// fault.
-#[tokio::test]
-async fn before_anybody_has_set_it_up_an_endpoint_says_so() {
-    let router = mavi::router(AppState::new(harness().await));
-
-    let request = Request::builder()
-        .method("POST")
-        .uri("/api/auth/session")
-        .header(header::CONTENT_TYPE, "application/json")
-        .body(Body::from(
-            serde_json::json!({ "email": "nobody@example.test", "password": "not it" }).to_string(),
-        ))
-        .expect("a request");
-
-    let response = router.oneshot(request).await.expect("a response");
-
-    assert_eq!(response.status(), StatusCode::CONFLICT);
-
-    let bytes = response
-        .into_body()
-        .collect()
-        .await
-        .expect("a body")
-        .to_bytes();
-    let refused: serde_json::Value = serde_json::from_slice(&bytes).expect("json");
-
-    assert_eq!(refused["error"]["key"], "this_machine_is_not_set_up_yet");
-}
-
-/// A database made by a build that served many sites still divides them: the
-/// `tenant_id` and the policies are all still there, and only the thing that
-/// chose between them has gone. Choosing one anyway would be one site's panel
-/// showing another site's posts with nothing anywhere saying so, so it refuses
-/// instead — which is also how somebody finds out their database has to be
-/// split before this version can serve it.
-#[tokio::test]
-async fn a_database_holding_more_than_one_site_is_refused_rather_than_guessed_at() {
-    let db = harness().await;
-
-    for _ in 0..2 {
-        a_tenant(&db, &format!("{}.example", uuid::Uuid::now_v7().simple())).await;
-    }
-
-    let router = mavi::router(AppState::new(db));
-
-    let request = Request::builder()
-        .method("GET")
-        .uri("/api/auth/me")
-        .body(Body::empty())
-        .expect("a request");
-
-    let response = router.oneshot(request).await.expect("a response");
-
-    assert_eq!(
-        response.status(),
-        StatusCode::CONFLICT,
-        "a request was answered about one of two sites"
-    );
-
-    let bytes = response
-        .into_body()
-        .collect()
-        .await
-        .expect("a body")
-        .to_bytes();
-    let refused: serde_json::Value = serde_json::from_slice(&bytes).expect("json");
-
-    assert_eq!(
-        refused["error"]["key"],
-        "this_database_holds_more_than_one_site"
-    );
-}
-
 /// What this build serves without an account, and what limits those carry.
 /// Adding to this list is a change to this file, which is the point.
 #[test]
@@ -291,7 +212,6 @@ async fn a_change_that_records_nothing_is_refused_by_the_router() {
 
     let db = harness().await;
     let host = format!("{}.example", uuid::Uuid::now_v7().simple());
-    a_tenant(&db, &host).await;
 
     let router = mavi::kernel::http::mount(
         AppState::new(db),

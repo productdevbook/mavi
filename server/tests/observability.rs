@@ -11,7 +11,6 @@ use uuid::Uuid;
 mod common;
 
 use common::harness;
-use mavi::testing::a_tenant;
 
 #[test]
 fn every_endpoint_belongs_to_a_domain() {
@@ -49,7 +48,6 @@ fn every_domain_has_something_behind_it() {
 async fn what_a_domain_answered_is_counted_under_the_domain() {
     let db = harness().await;
     let host = format!("{}.example", Uuid::now_v7().simple());
-    a_tenant(&db, &host).await;
 
     let router = mavi::router(AppState::new(db));
 

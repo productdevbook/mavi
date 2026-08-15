@@ -15,12 +15,12 @@ sign into that site — made together, so there is never a moment with one and
 not the other. Nothing else: an operator's session, invites, and everything
 after the first account belong to `console`.
 
-**One site, not the first of many.** The tenant made here is not a seed for
-something a console adds to later — there is no way to make a second, on
-purpose. What this crate does not have is the capability, not the schema:
-`tenant_id`, row-level security and `Host` resolution are unchanged, because
-they are what makes this site's isolation real rather than a promise. Running
-several is a different product, built on top.
+**One site, not the first of many.** There is no row saying the site exists any
+more: the installation is the site, so what this writes is the things a site is
+made of — its name, the owner role, and the account that holds it. There is no
+way to make a second, and nothing left that could tell two apart if there were.
+Running several is a different product, and it is a second installation rather
+than a second row in this one.
 
 **Taken once.** `where not exists` alone is not enough — two requests arriving
 together both read the empty table before either wrote, and both inserted. An

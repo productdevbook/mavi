@@ -20,7 +20,7 @@ sees that does not go through a build.
 live, and anything live the branch does not have goes — a publish is not a
 patch, so a file deleted on the branch is a file gone from the site.
 
-**One at a time per site**, said by a partial unique index rather than by a
+**One at a time**, said by a partial unique index rather than by a
 lock in a process: two publishes racing is two builds writing the same output,
 and an index is a thing that holds across replicas.
 

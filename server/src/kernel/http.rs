@@ -26,7 +26,6 @@ use super::db::Db;
 use super::error::{AppError, Result};
 use super::outside::Outside;
 use super::ratelimit::{self, Limit};
-use super::tenant::{TenantId, the_site};
 
 pub const USER_COOKIE: &str = "mavi_user";
 pub const STUDENT_COOKIE: &str = "mavi_student";
@@ -166,7 +165,6 @@ impl<S: Send + Sync> FromRequestParts<S> for Console {
 
 #[derive(Clone, Debug)]
 pub struct Caller {
-    pub site: TenantId,
     pub request_id: RequestId,
     pub ip: Option<String>,
     pub user: Option<SignedIn>,
@@ -191,11 +189,6 @@ pub struct SignedIn {
 }
 
 impl Caller {
-    #[must_use]
-    pub fn tenant(&self) -> TenantId {
-        self.site
-    }
-
     /// Who is asking, where a handler needs them to be somebody.
     pub fn require_user(&self) -> Result<&SignedIn> {
         self.user.as_ref().ok_or(AppError::Unauthenticated)
@@ -209,12 +202,7 @@ impl Caller {
     /// capability and nothing about whose the row is; only the handler that
     /// has read it does, which is why record-level questions are asked here.
     pub fn may(&self, needs: Needs, owner: Option<Uuid>) -> Result<Permit> {
-        authz::check(
-            &self.principal()?,
-            needs,
-            authz::Resource::Site { id: self.site.0 },
-            owner,
-        )
+        authz::check(&self.principal()?, needs, owner)
     }
 
     pub fn principal(&self) -> Result<Principal> {
@@ -222,7 +210,6 @@ impl Caller {
 
         Ok(Principal::SiteUser {
             id: user.user_id,
-            site: self.site.0,
             grants: user.grants.clone(),
         })
     }
@@ -511,7 +498,7 @@ pub fn mount(state: AppState, endpoints: Vec<Endpoint>) -> Router {
 /// traffic to a pod that cannot serve it.
 async fn ready(State(state): State<AppState>) -> Response {
     let asked = tokio::time::timeout(std::time::Duration::from_secs(2), async {
-        let mut conn = state.db.operator().await?;
+        let mut conn = state.db.begin().await?;
         sqlx::query("select 1").execute(conn.conn()).await?;
         conn.commit().await
     })
@@ -537,12 +524,10 @@ async fn identify(
 ) -> Result<Response> {
     let request_id = RequestId(Uuid::now_v7());
 
-    let site = the_site(&state.db).await?;
     let ip = client_ip(&request, state.proxy_hops);
 
-    // Not which site this is — that is not a question any more — but which
-    // address the browser thinks it is on, which is the whole of the check
-    // below.
+    // Which address the browser thinks it is on, which is the whole of the
+    // check below. Nothing here asks which site that address is: there is one.
     let host = request
         .headers()
         .get(HOST)
@@ -559,19 +544,18 @@ async fn identify(
 
     let token = bearer(&request).or_else(|| cookie(&request, USER_COOKIE));
     let user = match token {
-        Some(token) => session_of(&state.db, site, &token).await?,
+        Some(token) => session_of(&state.db, &token).await?,
         None => None,
     };
 
     // A student's token is looked for separately and never in the same place:
     // one cookie is not the other, and a bearer token is a panel account's.
     let student = match cookie(&request, STUDENT_COOKIE) {
-        Some(token) => student_session(&state.db, site, &token).await?,
+        Some(token) => student_session(&state.db, &token).await?,
         None => None,
     };
 
     request.extensions_mut().insert(Caller {
-        site,
         request_id,
         ip,
         user,
@@ -642,12 +626,7 @@ async fn admitting(
             .map(|user| user.user_id.to_string())
             .or_else(|| caller.ip.clone())
     {
-        ratelimit::spend(
-            &state.db,
-            &format!("{}:{}:{who}", caller.tenant(), declared.path),
-            limit,
-        )
-        .await?;
+        ratelimit::spend(&state.db, &format!("{}:{who}", declared.path), limit).await?;
     }
 
     match declared.guard.audience {
@@ -669,8 +648,6 @@ async fn admitting(
 
     if let Some(needs) = declared.guard.needs {
         let principal = caller.principal()?;
-        let resource = authz::Resource::Site { id: caller.site.0 };
-
         // The caller as the owner, because at this point there is no record to
         // ask about — a post being written does not exist yet, and somebody
         // holding only `content:write:own` is entitled to write one. What that
@@ -680,7 +657,7 @@ async fn admitting(
         // where an author is told no about somebody else's.
         let owner = caller.user.as_ref().map(|user| user.user_id);
 
-        match authz::check(&principal, needs, resource, owner) {
+        match authz::check(&principal, needs, owner) {
             Ok(permit) => {
                 request.extensions_mut().insert(permit);
             }
@@ -824,7 +801,7 @@ async fn admitting_operator(
 
 async fn operator_session(db: &Db, token: &str) -> Result<Option<Uuid>> {
     let hash = super::token::hash(token);
-    let mut conn = db.operator().await?;
+    let mut conn = db.begin().await?;
 
     let row: Option<(Uuid,)> = sqlx::query_as(
         "update operator_sessions s
@@ -848,16 +825,15 @@ async fn operator_session(db: &Db, token: &str) -> Result<Option<Uuid>> {
 
 /// "Why could I not get in" is a question with an answer in the log.
 async fn refused(state: &AppState, caller: &Caller, path: &str, needs: Needs) {
-    let Ok(mut conn) = state.db.tenant(caller.tenant()).await else {
+    let Ok(mut conn) = state.db.begin().await else {
         return;
     };
 
     let written = sqlx::query(
         "insert into audit_log
-             (tenant_id, actor_id, actor_kind, action, subject, subject_id, after, request_id)
-         values ($1, $2, 'user', 'refused', 'permission', $3, $4, $5)",
+             (actor_id, actor_kind, action, subject, subject_id, after, request_id)
+         values ($1, 'user', 'refused', 'permission', $2, $3, $4)",
     )
-    .bind(caller.tenant().0)
     .bind(caller.user.as_ref().map(|user| user.user_id))
     .bind(needs.grant())
     .bind(serde_json::json!({ "path": path }))
@@ -870,9 +846,9 @@ async fn refused(state: &AppState, caller: &Caller, path: &str, needs: Needs) {
     }
 }
 
-async fn session_of(db: &Db, tenant: TenantId, token: &str) -> Result<Option<SignedIn>> {
+async fn session_of(db: &Db, token: &str) -> Result<Option<SignedIn>> {
     let hash = super::token::hash(token);
-    let mut conn = db.tenant(tenant).await?;
+    let mut conn = db.begin().await?;
 
     let row: Option<(Uuid, Uuid, String, Vec<String>)> = sqlx::query_as(
         "update sessions s
@@ -901,13 +877,9 @@ async fn session_of(db: &Db, tenant: TenantId, token: &str) -> Result<Option<Sig
     }))
 }
 
-async fn student_session(
-    db: &Db,
-    tenant: TenantId,
-    token: &str,
-) -> Result<Option<SignedInStudent>> {
+async fn student_session(db: &Db, token: &str) -> Result<Option<SignedInStudent>> {
     let hash = super::token::hash(token);
-    let mut conn = db.tenant(tenant).await?;
+    let mut conn = db.begin().await?;
 
     let row: Option<(Uuid, Uuid)> = sqlx::query_as(
         "update student_sessions s

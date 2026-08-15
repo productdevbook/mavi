@@ -12,40 +12,36 @@ use http_body_util::BodyExt;
 use mavi::kernel::authz::{Access, Capability, Needs, every_grant};
 use mavi::kernel::db::Db;
 use mavi::kernel::http::AppState;
-use mavi::kernel::tenant::TenantId;
 use tower::ServiceExt;
 use uuid::Uuid;
 
 mod common;
 
 use common::harness;
-use mavi::testing::{a_role, a_tenant, a_user};
+use mavi::testing::{a_role, a_user};
 
 struct Site {
     db: Db,
     router: axum::Router,
     host: String,
-    tenant: TenantId,
 }
 
 async fn a_site() -> Site {
     let db = harness().await;
     let host = format!("{}.example", Uuid::now_v7().simple());
-    let tenant = a_tenant(&db, &host).await;
 
     Site {
         router: mavi::router(AppState::new(db.clone())),
         db,
         host,
-        tenant,
     }
 }
 
 impl Site {
     async fn somebody(&self, role: &str, grants: &[String]) -> String {
-        let role_id = a_role(&self.db, self.tenant, role, grants).await;
+        let role_id = a_role(&self.db, role, grants).await;
         let password = "a long enough password";
-        let (_, email) = a_user(&self.db, self.tenant, role_id, password).await;
+        let (_, email) = a_user(&self.db, role_id, password).await;
 
         let (_, body) = self
             .send(
@@ -61,14 +57,13 @@ impl Site {
 
     /// A language this site writes in, since a post is written in one.
     async fn writes_in(&self, code: &str) {
-        let mut conn = self.db.tenant(self.tenant).await.expect("begin");
+        let mut conn = self.db.begin().await.expect("begin");
 
         sqlx::query(
-            "insert into languages (tenant_id, code, name, is_default)
-             values ($1, $2, $2, true)
-             on conflict (tenant_id, code) do nothing",
+            "insert into languages (code, name, is_default)
+             values ($1, $1, true)
+             on conflict (code) do nothing",
         )
-        .bind(self.tenant.0)
         .bind(code)
         .execute(conn.conn())
         .await
@@ -342,13 +337,12 @@ async fn a_tool_answers_with_this_site_s_own_rows() {
     let site = a_site().await;
     let token = site.somebody("owner", &every_grant()).await;
 
-    let mut conn = site.db.tenant(site.tenant).await.expect("begin");
+    let mut conn = site.db.begin().await.expect("begin");
 
     sqlx::query(
-        "insert into languages (tenant_id, code, name, is_default)
-         values ($1, 'en', 'English', true)",
+        "insert into languages (code, name, is_default)
+         values ('en', 'English', true)",
     )
-    .bind(site.tenant.0)
     .execute(conn.conn())
     .await
     .expect("a language");
@@ -392,34 +386,6 @@ async fn nothing_reaches_a_tool_without_an_account() {
     assert_eq!(status, StatusCode::UNAUTHORIZED);
 }
 
-#[tokio::test]
-async fn a_site_on_hold_is_read_through_a_tool_and_not_written() {
-    let site = a_site().await;
-    let token = site.somebody("owner", &every_grant()).await;
-
-    let mut conn = site.db.operator().await.expect("begin");
-    sqlx::query("update tenants set state = 'suspended' where id = $1")
-        .bind(site.tenant.0)
-        .execute(conn.conn())
-        .await
-        .expect("on hold");
-    conn.commit().await.expect("commit");
-
-    // Reading still works, which is the same answer the panel gives.
-    let (status, _) = site
-        .rpc(
-            &token,
-            "tools/call",
-            serde_json::json!({ "name": "posts_list", "arguments": {} }),
-        )
-        .await;
-
-    assert_eq!(status, StatusCode::OK);
-}
-
-/// An `:own` grant reaches what the person made. Every tool here reads across
-/// a site, so holding one is not enough for a tool — it would hand back
-/// everybody's.
 #[tokio::test]
 async fn a_grant_over_ones_own_does_not_open_a_tool_that_reads_everything() {
     let site = a_site().await;

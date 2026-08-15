@@ -5,25 +5,23 @@ use axum::body::Body;
 use axum::http::{Request, StatusCode, header};
 use axum::routing::get;
 use http_body_util::BodyExt;
+use mavi::kernel::Address;
 use mavi::kernel::authz::every_grant;
-use mavi::kernel::db::Db;
 use mavi::kernel::http::AppState;
-use mavi::kernel::tenant::TenantId;
 use tower::ServiceExt;
 use uuid::Uuid;
 
 mod common;
 
 use common::harness;
-use mavi::testing::{a_role, a_tenant, a_user};
+use mavi::testing::{a_role, a_user};
 
 const PASSWORD: &str = "a long enough password";
 
 struct Site {
-    db: Db,
+    state: AppState,
     router: axum::Router,
     host: String,
-    tenant: TenantId,
     token: String,
 }
 
@@ -32,17 +30,22 @@ impl Site {
         Self::answering_on(&format!("{}.example", Uuid::now_v7().simple())).await
     }
 
+    /// The address is the installation's own — what it was started with —
+    /// rather than a row somebody attached, so a test that wants to be asked
+    /// about a particular address says so here.
     async fn answering_on(host: &str) -> Self {
         let db = harness().await;
-        let tenant = a_tenant(&db, host).await;
-        let role = a_role(&db, tenant, "owner", &every_grant()).await;
-        let (_, email) = a_user(&db, tenant, role, PASSWORD).await;
+        let role = a_role(&db, "owner", &every_grant()).await;
+        let (_, email) = a_user(&db, role, PASSWORD).await;
+
+        let mut state = AppState::new(db);
+        state.address =
+            std::sync::Arc::new(Address::read(&format!("http://{host}")).expect("an address"));
 
         let site = Self {
-            db: db.clone(),
-            router: mavi::router(AppState::new(db)),
+            router: mavi::router(state.clone()),
+            state,
             host: host.to_owned(),
-            tenant,
             token: String::new(),
         };
 
@@ -155,46 +158,19 @@ async fn an_address_that_answers_is_written_down_as_answering() {
         let _ = axum::serve(listener, app).await;
     });
 
-    let site = Site::new().await;
+    let site = Site::answering_on(&format!("127.0.0.1:{}", address.port())).await;
 
-    // The stand-in is attached as a second address of this site, so that
-    // signing in still happens on an address a site actually answers on.
-    let mut conn = site.db.operator().await.expect("begin");
-    conn.across_sites().await.expect("across sites");
-
-    sqlx::query("insert into tenant_domains (host, tenant_id, is_primary) values ($1, $2, false)")
-        .bind(format!("127.0.0.1:{}", address.port()))
-        .bind(site.tenant.0)
-        .execute(conn.conn())
-        .await
-        .expect("an address");
-
-    conn.commit().await.expect("commit");
-
-    let mut state = AppState::new(site.db.clone());
+    let mut state = site.state.clone();
     state.allow_private_destinations = true;
 
-    let looked = mavi::health::check_domains(&state, site.tenant)
-        .await
-        .expect("a look");
+    let looked = mavi::health::check_domains(&state).await.expect("a look");
 
-    assert_eq!(looked, 2);
+    assert_eq!(looked, 1);
 
     let (_, domains) = site.send("GET", "/api/domains", None).await;
 
-    let stand_in = domains
-        .as_array()
-        .expect("a list")
-        .iter()
-        .find(|domain| {
-            domain["host"]
-                .as_str()
-                .is_some_and(|host| host.starts_with("127.0.0.1"))
-        })
-        .expect("the address that answers");
-
-    assert_eq!(stand_in["resolves"], true, "{domains}");
-    assert_eq!(stand_in["answered"], true, "{domains}");
+    assert_eq!(domains[0]["resolves"], true, "{domains}");
+    assert_eq!(domains[0]["answered"], true, "{domains}");
 }
 
 #[tokio::test]
@@ -203,9 +179,7 @@ async fn an_address_that_resolves_to_nothing_says_which_and_why() {
     // will ever resolve.
     let site = Site::answering_on(&format!("{}.example.invalid", Uuid::now_v7().simple())).await;
 
-    let state = AppState::new(site.db.clone());
-
-    mavi::health::check_domains(&state, site.tenant)
+    mavi::health::check_domains(&site.state)
         .await
         .expect("a look");
 
@@ -230,9 +204,10 @@ async fn an_address_that_resolves_to_nothing_says_which_and_why() {
     assert_eq!(addresses["detail"]["not_answering"], 1);
 }
 
-/// The address being checked is one somebody attached, so it is somewhere they
-/// chose. Asking about it must not become a way to have this machine fetch
-/// from inside its own network.
+/// The address being checked is whatever the installation was started with, so
+/// it is somewhere somebody chose rather than something this machine worked
+/// out. Asking about it must not become a way to have the machine fetch from
+/// inside its own network.
 #[tokio::test]
 async fn checking_an_address_is_not_a_way_to_reach_inside_this_machine() {
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
@@ -245,41 +220,17 @@ async fn checking_an_address_is_not_a_way_to_reach_inside_this_machine() {
         let _ = axum::serve(listener, app).await;
     });
 
-    let site = Site::new().await;
-    let mut conn = site.db.operator().await.expect("begin");
-    conn.across_sites().await.expect("across sites");
-
-    sqlx::query("insert into tenant_domains (host, tenant_id, is_primary) values ($1, $2, false)")
-        .bind(format!("127.0.0.1:{}", address.port()))
-        .bind(site.tenant.0)
-        .execute(conn.conn())
-        .await
-        .expect("an address");
-
-    conn.commit().await.expect("commit");
+    let site = Site::answering_on(&format!("127.0.0.1:{}", address.port())).await;
 
     // The machine as it runs anywhere real: private addresses are not reached.
-    let state = AppState::new(site.db.clone());
-
-    mavi::health::check_domains(&state, site.tenant)
+    mavi::health::check_domains(&site.state)
         .await
         .expect("a look");
 
     let (_, domains) = site.send("GET", "/api/domains", None).await;
 
-    let inside = domains
-        .as_array()
-        .expect("a list")
-        .iter()
-        .find(|domain| {
-            domain["host"]
-                .as_str()
-                .is_some_and(|host| host.starts_with("127.0.0.1"))
-        })
-        .expect("the address pointing inside");
-
     assert_eq!(
-        inside["answered"], false,
+        domains[0]["answered"], false,
         "a check reached something on this machine's own network: {domains}"
     );
 }

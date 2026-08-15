@@ -6,37 +6,33 @@ use http_body_util::BodyExt;
 use mavi::kernel::authz::every_grant;
 use mavi::kernel::db::Db;
 use mavi::kernel::http::AppState;
-use mavi::kernel::tenant::TenantId;
 use tower::ServiceExt;
 use uuid::Uuid;
 
 mod common;
 
 use common::harness;
-use mavi::testing::{a_role, a_tenant, a_user};
+use mavi::testing::{a_role, a_user};
 
 struct Site {
     db: Db,
     router: axum::Router,
     host: String,
-    tenant: TenantId,
     token: String,
 }
 
 async fn a_site() -> Site {
     let db = harness().await;
     let host = format!("{}.example", Uuid::now_v7().simple());
-    let tenant = a_tenant(&db, &host).await;
-    let role = a_role(&db, tenant, "owner", &every_grant()).await;
+    let role = a_role(&db, "owner", &every_grant()).await;
     let password = "a long enough password";
-    let (_, email) = a_user(&db, tenant, role, password).await;
+    let (_, email) = a_user(&db, role, password).await;
 
-    let mut conn = db.tenant(tenant).await.expect("begin");
+    let mut conn = db.begin().await.expect("begin");
     sqlx::query(
-        "insert into languages (tenant_id, code, name, is_default)
-         values ($1, 'en', 'English', true)",
+        "insert into languages (code, name, is_default)
+         values ('en', 'English', true)",
     )
-    .bind(tenant.0)
     .execute(conn.conn())
     .await
     .expect("a language");
@@ -74,7 +70,6 @@ async fn a_site() -> Site {
         db,
         router,
         host,
-        tenant,
         token: body["token"].as_str().expect("a token").to_owned(),
     }
 }
@@ -246,7 +241,7 @@ async fn the_trash_empties_itself_after_a_while() {
 
     site.send("DELETE", &format!("/api/posts/{id}"), None).await;
 
-    let mut conn = site.db.tenant(site.tenant).await.expect("begin");
+    let mut conn = site.db.begin().await.expect("begin");
     sqlx::query("update posts set deleted_at = now() - interval '60 days' where id = $1")
         .bind(id)
         .execute(conn.conn())
@@ -255,9 +250,7 @@ async fn the_trash_empties_itself_after_a_while() {
     conn.commit().await.expect("commit");
 
     let state = AppState::new(site.db.clone());
-    let taken = mavi::trash::empty(&state, site.tenant)
-        .await
-        .expect("empty");
+    let taken = mavi::trash::empty(&state).await.expect("empty");
 
     assert_eq!(taken, 1);
 
@@ -296,15 +289,14 @@ async fn a_trash_bigger_than_one_page_can_still_be_walked_to_the_end() {
     // passed on the old code too, since everything still fit in the one read.
     // Inserted directly and a second apart so the ordering paging depends on
     // is never in question.
-    let mut conn = site.db.tenant(site.tenant).await.expect("begin");
+    let mut conn = site.db.begin().await.expect("begin");
     let ids: Vec<Uuid> = sqlx::query_scalar(
-        "insert into posts (tenant_id, language, slug, title, deleted_at)
+        "insert into posts (language, slug, title, deleted_at)
          select $1, 'en', 'cleared-out-' || gs, 'Cleared Out ' || gs,
                 now() - make_interval(secs => gs)
            from generate_series(1, 130) as gs
          returning id",
     )
-    .bind(site.tenant.0)
     .fetch_all(conn.conn())
     .await
     .expect("130 posts, already in the trash");

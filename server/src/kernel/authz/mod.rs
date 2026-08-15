@@ -146,31 +146,14 @@ impl std::fmt::Display for Needs {
 
 #[derive(Clone, Debug)]
 pub enum Principal {
-    Operator {
-        id: Uuid,
-    },
-    Agency {
-        id: Uuid,
-        agency: Uuid,
-        grants: HashSet<String>,
-    },
-    Customer {
-        id: Uuid,
-        site: Uuid,
-    },
-    SiteUser {
-        id: Uuid,
-        site: Uuid,
-        grants: HashSet<String>,
-    },
+    Operator { id: Uuid },
+    SiteUser { id: Uuid, grants: HashSet<String> },
 }
 
-#[derive(Clone, Copy, Debug)]
-pub enum Resource {
-    Site { id: Uuid },
-    Charge { id: Uuid, site: Uuid },
-    Platform,
-}
+/// The one thing anything is ever asked about. There is no `Resource` type
+/// because there is nothing to choose between: an installation is a site, and
+/// a question about "which site" is the question this whole change removes.
+const THE_SITE: &str = "site";
 
 /// Proof that the engine was asked and answered yes.
 ///
@@ -214,16 +197,11 @@ impl Engine {
 
 /// Asks the engine. Nothing else decides; a resource no policy covers is
 /// refused, which is what makes a forgotten policy closed rather than open.
-pub fn check(
-    principal: &Principal,
-    needs: Needs,
-    resource: Resource,
-    owner: Option<Uuid>,
-) -> Result<Permit> {
+pub fn check(principal: &Principal, needs: Needs, owner: Option<Uuid>) -> Result<Permit> {
     let engine = &*ENGINE;
 
     let principal_uid = principal_uid(principal);
-    let resource_uid = resource_uid(resource);
+    let resource_uid = uid("Site", THE_SITE);
 
     let context = Context::from_pairs([
         (
@@ -250,7 +228,7 @@ pub fn check(
     )
     .map_err(|_| AppError::Forbidden)?;
 
-    let entities = entities(principal, resource)?;
+    let entities = entities(principal)?;
     let answer = engine
         .authorizer
         .is_authorized(&request, &engine.policies, &entities);
@@ -271,17 +249,7 @@ fn uid(kind: &str, id: &str) -> EntityUid {
 fn principal_uid(principal: &Principal) -> EntityUid {
     match principal {
         Principal::Operator { id } => uid("Operator", &id.to_string()),
-        Principal::Agency { id, .. } => uid("AgencyUser", &id.to_string()),
-        Principal::Customer { id, .. } => uid("Customer", &id.to_string()),
         Principal::SiteUser { id, .. } => uid("SiteUser", &id.to_string()),
-    }
-}
-
-fn resource_uid(resource: Resource) -> EntityUid {
-    match resource {
-        Resource::Site { id } => uid("Site", &id.to_string()),
-        Resource::Charge { id, .. } => uid("Charge", &id.to_string()),
-        Resource::Platform => uid("Platform", "platform"),
     }
 }
 
@@ -289,45 +257,13 @@ fn action_uid(access: Access) -> EntityUid {
     uid("Action", access.as_str())
 }
 
-fn site_entity(id: Uuid) -> Result<Entity> {
-    Entity::new(
-        uid("Site", &id.to_string()),
+fn entities(principal: &Principal) -> Result<Entities> {
+    let site = Entity::new(
+        uid("Site", THE_SITE),
         [].into_iter().collect(),
         HashSet::new(),
     )
-    .map_err(|_| AppError::Forbidden)
-}
-
-fn entities(principal: &Principal, resource: Resource) -> Result<Entities> {
-    let mut all = Vec::new();
-
-    match resource {
-        Resource::Site { id } => all.push(site_entity(id)?),
-        Resource::Charge { id, site } => {
-            all.push(site_entity(site)?);
-            all.push(
-                Entity::new(
-                    uid("Charge", &id.to_string()),
-                    [(
-                        "site".to_owned(),
-                        RestrictedExpression::new_entity_uid(uid("Site", &site.to_string())),
-                    )]
-                    .into_iter()
-                    .collect(),
-                    HashSet::new(),
-                )
-                .map_err(|_| AppError::Forbidden)?,
-            );
-        }
-        Resource::Platform => all.push(
-            Entity::new(
-                resource_uid(resource),
-                [].into_iter().collect(),
-                HashSet::new(),
-            )
-            .map_err(|_| AppError::Forbidden)?,
-        ),
-    }
+    .map_err(|_| AppError::Forbidden)?;
 
     let principal_entity = match principal {
         Principal::Operator { .. } => Entity::new(
@@ -335,52 +271,23 @@ fn entities(principal: &Principal, resource: Resource) -> Result<Entities> {
             [].into_iter().collect(),
             HashSet::new(),
         ),
-        Principal::Agency { agency, grants, .. } => Entity::new(
+        Principal::SiteUser { id, grants } => Entity::new(
             principal_uid(principal),
-            [("grants".to_owned(), grant_set(grants))]
-                .into_iter()
-                .collect(),
-            [uid("Agency", &agency.to_string())].into_iter().collect(),
-        ),
-        Principal::Customer { site, .. } => Entity::new(
-            principal_uid(principal),
-            [(
-                "site".to_owned(),
-                RestrictedExpression::new_entity_uid(uid("Site", &site.to_string())),
-            )]
+            [
+                ("grants".to_owned(), grant_set(grants)),
+                (
+                    "id".to_owned(),
+                    RestrictedExpression::new_string(id.to_string()),
+                ),
+            ]
             .into_iter()
             .collect(),
             HashSet::new(),
         ),
-        // The site it belongs to, not the one it is reaching for: a principal
-        // parented to the resource is a principal that is inside every site.
-        Principal::SiteUser { id, site, grants } => {
-            let own = uid("Site", &site.to_string());
-
-            if !matches!(resource, Resource::Site { id } if id == *site) {
-                all.push(site_entity(*site)?);
-            }
-
-            Entity::new(
-                principal_uid(principal),
-                [
-                    ("grants".to_owned(), grant_set(grants)),
-                    (
-                        "id".to_owned(),
-                        RestrictedExpression::new_string(id.to_string()),
-                    ),
-                ]
-                .into_iter()
-                .collect(),
-                [own].into_iter().collect(),
-            )
-        }
     }
     .map_err(|_| AppError::Forbidden)?;
 
-    all.push(principal_entity);
-
-    Entities::from_entities(all, None).map_err(|_| AppError::Forbidden)
+    Entities::from_entities([site, principal_entity], None).map_err(|_| AppError::Forbidden)
 }
 
 fn grant_set(grants: &HashSet<String>) -> RestrictedExpression {

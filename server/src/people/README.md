@@ -50,4 +50,4 @@ seven days after they expire or are spent, swept by `sessions.sweep`.
 **What it deliberately does not do.**
 
 - No two-factor authentication (#146).
-- No sign-in with another site's account, no OAuth.
+- No sign-in with somebody else's account, no OAuth.

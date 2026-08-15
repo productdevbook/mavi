@@ -8,20 +8,18 @@ use http_body_util::BodyExt;
 use mavi::kernel::authz::{Access, Capability, Needs};
 use mavi::kernel::db::Db;
 use mavi::kernel::http::AppState;
-use mavi::kernel::tenant::TenantId;
 use tower::ServiceExt;
 use uuid::Uuid;
 
 mod common;
 
 use common::harness;
-use mavi::testing::{a_role, a_tenant, a_user};
+use mavi::testing::{a_role, a_user};
 
 struct Site {
     db: Db,
     router: axum::Router,
     host: String,
-    tenant: TenantId,
     token: String,
     peer: std::net::SocketAddr,
 }
@@ -39,10 +37,9 @@ fn a_peer() -> std::net::SocketAddr {
 async fn a_site_with(grants: &[String]) -> Site {
     let db = harness().await;
     let host = format!("{}.example", Uuid::now_v7().simple());
-    let tenant = a_tenant(&db, &host).await;
-    let role = a_role(&db, tenant, "tested", grants).await;
+    let role = a_role(&db, "tested", grants).await;
     let password = "a long enough password";
-    let (_, email) = a_user(&db, tenant, role, password).await;
+    let (_, email) = a_user(&db, role, password).await;
 
     let router = mavi::router(AppState::new(db.clone()));
 
@@ -76,7 +73,6 @@ async fn a_site_with(grants: &[String]) -> Site {
         db,
         router,
         host,
-        tenant,
         token: body["token"].as_str().expect("a token").to_owned(),
         peer: a_peer(),
     }
@@ -207,7 +203,7 @@ async fn a_body_that_is_wrong_is_refused_field_by_field() {
         serde_json::json!({ "slug": "Not A Slug", "name": "Fine" }),
         serde_json::json!({ "slug": "fine", "name": "" }),
         serde_json::json!({ "slug": "fine" }),
-        serde_json::json!({ "slug": "fine", "name": "Fine", "tenant_id": Uuid::now_v7() }),
+        serde_json::json!({ "slug": "fine", "name": "Fine", "whose": Uuid::now_v7() }),
     ] {
         let (status, _) = site
             .send("POST", "/api/forms", Some(&site.token), Some(wrong.clone()))
@@ -235,7 +231,7 @@ async fn an_account_without_the_grant_is_refused_and_it_is_written_down() {
 
     assert_eq!(status, StatusCode::FORBIDDEN);
 
-    let mut conn = site.db.tenant(site.tenant).await.expect("begin");
+    let mut conn = site.db.begin().await.expect("begin");
 
     let refusals: (i64,) = sqlx::query_as(
         "select count(*) from audit_log where action = 'refused' and subject_id = $1",

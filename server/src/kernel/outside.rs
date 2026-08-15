@@ -32,9 +32,9 @@ pub struct Outside {
     /// first, silently.
     pub jobs: Vec<(&'static str, JobFn)>,
     /// Tables an outside crate owns. Run after this crate's own migrations
-    /// and never before: theirs may reference a table this crate created —
-    /// a tenant, a site — but nothing this crate does may ever come to
-    /// depend on a table only an outside crate knows how to build.
+    /// and never before: theirs may reference a table this crate created, but
+    /// nothing this crate does may ever come to depend on a table only an
+    /// outside crate knows how to build.
     ///
     /// sqlx tracks every migration, whoever it belongs to, in one
     /// `_sqlx_migrations` table — there is no way to give an outside crate's

@@ -13,7 +13,6 @@ use serde_json::json;
 use sha2::{Digest, Sha256};
 use sqlx::Row;
 
-use crate::kernel::TenantId;
 use crate::kernel::audit::{self, Actor, Audited};
 use crate::kernel::authz::{Access, Capability, Needs, Permit};
 use crate::kernel::error::Result;
@@ -226,15 +225,14 @@ async fn beacon(
     let today = state.clock.now().date_naive();
     let path: String = body.path.chars().take(500).collect();
 
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
-    let mark = mark_of(caller.tenant(), today, caller.ip.as_deref());
+    let mark = mark_of(today, caller.ip.as_deref());
 
     let first_today = sqlx::query(
-        "insert into visitor_marks (tenant_id, on_day, mark) values ($1, $2, $3)
+        "insert into visitor_marks (on_day, mark) values ($1, $2)
          on conflict do nothing",
     )
-    .bind(caller.tenant().0)
     .bind(today)
     .bind(&mark[..])
     .execute(conn.conn())
@@ -242,13 +240,12 @@ async fn beacon(
     .rows_affected();
 
     sqlx::query(
-        "insert into page_views (tenant_id, on_day, path, views, visitors)
-         values ($1, $2, $3, 1, $4)
-         on conflict (tenant_id, on_day, path) do update
+        "insert into page_views (on_day, path, views, visitors)
+         values ($1, $2, 1, $3)
+         on conflict (on_day, path) do update
              set views = page_views.views + 1,
-                 visitors = page_views.visitors + $4",
+                 visitors = page_views.visitors + $3",
     )
-    .bind(caller.tenant().0)
     .bind(today)
     .bind(&path)
     .bind(i64::from(first_today > 0))
@@ -263,10 +260,9 @@ async fn beacon(
     ] {
         if let Some(value) = value.filter(|value| *value >= 0 && *value < 600_000) {
             sqlx::query(
-                "insert into vitals (tenant_id, on_day, path, kind, value)
-                 values ($1, $2, $3, $4::vital_kind, $5)",
+                "insert into vitals (on_day, path, kind, value)
+                 values ($1, $2, $3::vital_kind, $4)",
             )
-            .bind(caller.tenant().0)
             .bind(today)
             .bind(&path)
             .bind(kind)
@@ -293,18 +289,18 @@ async fn beacon(
 
 /// A day's salt is the site and the day. Two sites do not make the same mark
 /// for one person, and neither does the same site tomorrow.
-fn mark_of(tenant: TenantId, day: NaiveDate, ip: Option<&str>) -> [u8; 32] {
-    Sha256::digest(format!("{tenant}:{day}:{}", ip.unwrap_or("nowhere")).as_bytes()).into()
+fn mark_of(day: NaiveDate, ip: Option<&str>) -> [u8; 32] {
+    Sha256::digest(format!("{day}:{}", ip.unwrap_or("nowhere")).as_bytes()).into()
 }
 
 async fn summary(
     Injected(state): Injected<AppState>,
-    caller: Caller,
+    _caller: Caller,
     _permit: Permit,
     axum::extract::Query(over): axum::extract::Query<Over>,
 ) -> Result<Json<Summary>> {
     let days = over.days.unwrap_or(30).clamp(1, 365);
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let rows = sqlx::query(
         "select on_day, sum(views)::bigint as views, sum(visitors)::bigint as visitors
@@ -353,9 +349,9 @@ async fn vitals(
     Ok(Json(read_vitals(&state, &caller, over).await?))
 }
 
-async fn read_vitals(state: &AppState, caller: &Caller, over: Over) -> Result<Vitals> {
+async fn read_vitals(state: &AppState, _caller: &Caller, over: Over) -> Result<Vitals> {
     let days = over.days.unwrap_or(30).clamp(1, 90);
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let measured = sqlx::query(
         "select kind::text as kind,
@@ -434,12 +430,12 @@ pub async fn scores_through_a_tool(
 
 async fn overview(
     Injected(state): Injected<AppState>,
-    caller: Caller,
+    _caller: Caller,
     _permit: Permit,
     axum::extract::Query(over): axum::extract::Query<Over>,
 ) -> Result<Json<Overview>> {
     let days = over.days.unwrap_or(30).clamp(1, 365);
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let totals: Totals = sqlx::query_as(
         "select
@@ -548,8 +544,8 @@ pub fn kinds() -> Vec<String> {
 }
 
 /// Yesterday's marks, which have done what they were for. The counts stay.
-pub async fn sweep_marks(state: &AppState, tenant: TenantId) -> Result<u64> {
-    let mut conn = state.db.tenant(tenant).await?;
+pub async fn sweep_marks(state: &AppState) -> Result<u64> {
+    let mut conn = state.db.begin().await?;
 
     let taken = sqlx::query("delete from visitor_marks where on_day < current_date - 2")
         .execute(conn.conn())

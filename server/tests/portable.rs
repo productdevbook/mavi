@@ -15,7 +15,7 @@ use uuid::Uuid;
 mod common;
 
 use common::harness;
-use mavi::testing::{a_role, a_tenant, a_user};
+use mavi::testing::{a_role, a_user};
 
 struct Site {
     router: axum::Router,
@@ -34,17 +34,15 @@ async fn a_site_somewhere_else() -> Site {
 
 async fn on(db: Db) -> Site {
     let host = format!("{}.example", Uuid::now_v7().simple());
-    let tenant = a_tenant(&db, &host).await;
-    let role = a_role(&db, tenant, "owner", &every_grant()).await;
+    let role = a_role(&db, "owner", &every_grant()).await;
     let password = "a long enough password";
-    let (_, email) = a_user(&db, tenant, role, password).await;
+    let (_, email) = a_user(&db, role, password).await;
 
-    let mut conn = db.tenant(tenant).await.expect("begin");
+    let mut conn = db.begin().await.expect("begin");
     sqlx::query(
-        "insert into languages (tenant_id, code, name, is_default)
-         values ($1, 'en', 'English', true)",
+        "insert into languages (code, name, is_default)
+         values ('en', 'English', true)",
     )
-    .bind(tenant.0)
     .execute(conn.conn())
     .await
     .expect("a language");

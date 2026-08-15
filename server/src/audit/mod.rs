@@ -83,11 +83,11 @@ pub struct Filter {
 
 async fn list(
     Injected(state): Injected<AppState>,
-    caller: Caller,
+    _caller: Caller,
     _permit: Permit,
     HttpQuery(filter): HttpQuery<Filter>,
 ) -> Result<Json<Page<Entry>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let rows: Vec<Entry> = sqlx::query_as(
         "select a.id, a.actor_id, a.actor_kind, u.name as actor_name, a.action,
@@ -126,13 +126,13 @@ async fn list(
 /// file that leaves the machine should not carry them.
 async fn export(
     Injected(state): Injected<AppState>,
-    caller: Caller,
+    _caller: Caller,
     _permit: Permit,
 ) -> Result<axum::response::Response> {
     use axum::response::IntoResponse as _;
     use std::fmt::Write as _;
 
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let rows: Vec<Entry> = sqlx::query_as(
         "select a.id, a.actor_id, a.actor_kind, u.name as actor_name, a.action,

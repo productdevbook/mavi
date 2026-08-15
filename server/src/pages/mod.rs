@@ -10,9 +10,8 @@ use serde::Serialize;
 use sqlx::Row;
 use uuid::Uuid;
 
-use crate::kernel::TenantId;
 use crate::kernel::authz::{Access, Capability, Needs, Permit};
-use crate::kernel::db::TenantConn;
+use crate::kernel::db::Tx;
 use crate::kernel::error::Result;
 use crate::kernel::http::{AppState, Audience, Caller, Endpoint, Guard, RatePolicy};
 // Aliased: what is being checked here is also called a page, and the two are
@@ -166,7 +165,7 @@ const CHECKS: &[Check] = &[
 ///
 /// Called when a post is written or changed, rather than when a screen asks:
 /// computing this per visit is a screen that reads every post to draw a badge.
-pub async fn look_at(conn: &mut TenantConn, tenant: TenantId, post_id: Uuid) -> Result<u64> {
+pub async fn look_at(conn: &mut Tx, post_id: Uuid) -> Result<u64> {
     let found: Option<(String, Option<String>, String, String)> = sqlx::query_as(
         "select title, excerpt, body, slug from posts where id = $1 and deleted_at is null",
     )
@@ -200,11 +199,10 @@ pub async fn look_at(conn: &mut TenantConn, tenant: TenantId, post_id: Uuid) -> 
         };
 
         sqlx::query(
-            "insert into page_issues (tenant_id, post_id, kind, weight, detail)
-             values ($1, $2, $3, $4::issue_weight, $5)
-             on conflict (tenant_id, post_id, kind) do update set detail = excluded.detail",
+            "insert into page_issues (post_id, kind, weight, detail)
+             values ($1, $2, $3::issue_weight, $4)
+             on conflict (post_id, kind) do update set detail = excluded.detail",
         )
-        .bind(tenant.0)
         .bind(post_id)
         .bind(check.kind)
         .bind(check.weight)
@@ -238,11 +236,11 @@ fn issue_cursor(after: Option<&str>) -> Option<(String, DateTime<Utc>, Uuid, Str
 
 async fn all(
     Injected(state): Injected<AppState>,
-    caller: Caller,
+    _caller: Caller,
     _permit: Permit,
     axum::extract::Query(page): axum::extract::Query<Query>,
 ) -> Result<Json<Listing<Issue>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let cursor = issue_cursor(page.after.as_deref());
 
@@ -294,11 +292,11 @@ async fn all(
 
 async fn of_post(
     Injected(state): Injected<AppState>,
-    caller: Caller,
+    _caller: Caller,
     _permit: Permit,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Vec<Issue>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let rows = sqlx::query(
         "select i.post_id, p.title, i.kind, i.weight::text as weight, i.detail,

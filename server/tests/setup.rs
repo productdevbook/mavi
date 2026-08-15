@@ -139,7 +139,7 @@ async fn two_arriving_together_make_one_account() {
 
     assert_eq!(made, 1, "{one:?} and {two:?}");
 
-    let mut conn = machine.db.operator().await.expect("begin");
+    let mut conn = machine.db.begin().await.expect("begin");
 
     let (accounts,): (i64,) = sqlx::query_as("select count(*) from operators")
         .fetch_one(conn.conn())
@@ -162,29 +162,11 @@ async fn setting_up_gives_a_site_you_can_sign_into_and_write_in() {
     let (status, made) = machine.send("POST", "/api/setup", Some(who.clone())).await;
     assert_eq!(status, StatusCode::CREATED, "{made}");
 
-    let mut lookup = machine.db.operator().await.expect("begin");
-    lookup.across_sites().await.expect("across sites");
-
-    let (tenant_id,): (Uuid,) =
-        sqlx::query_as("select tenant_id from tenant_domains where host = 'console.example'")
-            .fetch_one(lookup.conn())
-            .await
-            .expect("a site made by setup");
-
-    lookup.commit().await.expect("commit");
-
-    let mut conn = machine
-        .db
-        .tenant(mavi::kernel::tenant::TenantId(tenant_id))
+    let mut conn = machine.db.begin().await.expect("begin");
+    sqlx::query("insert into languages (code, name, is_default) values ('en', 'English', true)")
+        .execute(conn.conn())
         .await
-        .expect("begin");
-    sqlx::query(
-        "insert into languages (tenant_id, code, name, is_default) values ($1, 'en', 'English', true)",
-    )
-    .bind(tenant_id)
-    .execute(conn.conn())
-    .await
-    .expect("a language");
+        .expect("a language");
     conn.commit().await.expect("commit");
 
     let (status, signed_in) = machine

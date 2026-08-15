@@ -1,170 +1,212 @@
-principal                 capability access  answer
-------------------------- ---------- ------- ------
-site user, holds it       content    view    allow
-site user, holds nothing  content    view    deny
-site user, another site   content    view    deny
-operator                  content    view    allow
-site user, holds it       content    write   allow
-site user, holds nothing  content    write   deny
-site user, another site   content    write   deny
-operator                  content    write   allow
-site user, holds it       content    delete  allow
-site user, holds nothing  content    delete  deny
-site user, another site   content    delete  deny
-operator                  content    delete  allow
-site user, holds it       media      view    allow
-site user, holds nothing  media      view    deny
-site user, another site   media      view    deny
-operator                  media      view    allow
-site user, holds it       media      write   allow
-site user, holds nothing  media      write   deny
-site user, another site   media      write   deny
-operator                  media      write   allow
-site user, holds it       media      delete  allow
-site user, holds nothing  media      delete  deny
-site user, another site   media      delete  deny
-operator                  media      delete  allow
-site user, holds it       taxonomy   view    allow
-site user, holds nothing  taxonomy   view    deny
-site user, another site   taxonomy   view    deny
-operator                  taxonomy   view    allow
-site user, holds it       taxonomy   write   allow
-site user, holds nothing  taxonomy   write   deny
-site user, another site   taxonomy   write   deny
-operator                  taxonomy   write   allow
-site user, holds it       taxonomy   delete  allow
-site user, holds nothing  taxonomy   delete  deny
-site user, another site   taxonomy   delete  deny
-operator                  taxonomy   delete  allow
-site user, holds it       forms      view    allow
-site user, holds nothing  forms      view    deny
-site user, another site   forms      view    deny
-operator                  forms      view    allow
-site user, holds it       forms      write   allow
-site user, holds nothing  forms      write   deny
-site user, another site   forms      write   deny
-operator                  forms      write   allow
-site user, holds it       forms      delete  allow
-site user, holds nothing  forms      delete  deny
-site user, another site   forms      delete  deny
-operator                  forms      delete  allow
-site user, holds it       mail       view    allow
-site user, holds nothing  mail       view    deny
-site user, another site   mail       view    deny
-operator                  mail       view    allow
-site user, holds it       mail       write   allow
-site user, holds nothing  mail       write   deny
-site user, another site   mail       write   deny
-operator                  mail       write   allow
-site user, holds it       mail       delete  allow
-site user, holds nothing  mail       delete  deny
-site user, another site   mail       delete  deny
-operator                  mail       delete  allow
-site user, holds it       flows      view    allow
-site user, holds nothing  flows      view    deny
-site user, another site   flows      view    deny
-operator                  flows      view    allow
-site user, holds it       flows      write   allow
-site user, holds nothing  flows      write   deny
-site user, another site   flows      write   deny
-operator                  flows      write   allow
-site user, holds it       flows      delete  allow
-site user, holds nothing  flows      delete  deny
-site user, another site   flows      delete  deny
-operator                  flows      delete  allow
-site user, holds it       courses    view    allow
-site user, holds nothing  courses    view    deny
-site user, another site   courses    view    deny
-operator                  courses    view    allow
-site user, holds it       courses    write   allow
-site user, holds nothing  courses    write   deny
-site user, another site   courses    write   deny
-operator                  courses    write   allow
-site user, holds it       courses    delete  allow
-site user, holds nothing  courses    delete  deny
-site user, another site   courses    delete  deny
-operator                  courses    delete  allow
-site user, holds it       shop       view    allow
-site user, holds nothing  shop       view    deny
-site user, another site   shop       view    deny
-operator                  shop       view    allow
-site user, holds it       shop       write   allow
-site user, holds nothing  shop       write   deny
-site user, another site   shop       write   deny
-operator                  shop       write   allow
-site user, holds it       shop       delete  allow
-site user, holds nothing  shop       delete  deny
-site user, another site   shop       delete  deny
-operator                  shop       delete  allow
-site user, holds it       people     view    allow
-site user, holds nothing  people     view    deny
-site user, another site   people     view    deny
-operator                  people     view    allow
-site user, holds it       people     write   allow
-site user, holds nothing  people     write   deny
-site user, another site   people     write   deny
-operator                  people     write   allow
-site user, holds it       people     delete  allow
-site user, holds nothing  people     delete  deny
-site user, another site   people     delete  deny
-operator                  people     delete  allow
-site user, holds it       settings   view    allow
-site user, holds nothing  settings   view    deny
-site user, another site   settings   view    deny
-operator                  settings   view    allow
-site user, holds it       settings   write   allow
-site user, holds nothing  settings   write   deny
-site user, another site   settings   write   deny
-operator                  settings   write   allow
-site user, holds it       settings   delete  allow
-site user, holds nothing  settings   delete  deny
-site user, another site   settings   delete  deny
-operator                  settings   delete  allow
-site user, holds it       publish    view    allow
-site user, holds nothing  publish    view    deny
-site user, another site   publish    view    deny
-operator                  publish    view    allow
-site user, holds it       publish    write   allow
-site user, holds nothing  publish    write   deny
-site user, another site   publish    write   deny
-operator                  publish    write   allow
-site user, holds it       publish    delete  allow
-site user, holds nothing  publish    delete  deny
-site user, another site   publish    delete  deny
-operator                  publish    delete  allow
-site user, holds it       design     view    allow
-site user, holds nothing  design     view    deny
-site user, another site   design     view    deny
-operator                  design     view    allow
-site user, holds it       design     write   allow
-site user, holds nothing  design     write   deny
-site user, another site   design     write   deny
-operator                  design     write   allow
-site user, holds it       design     delete  allow
-site user, holds nothing  design     delete  deny
-site user, another site   design     delete  deny
-operator                  design     delete  allow
-site user, holds it       boards     view    allow
-site user, holds nothing  boards     view    deny
-site user, another site   boards     view    deny
-operator                  boards     view    allow
-site user, holds it       boards     write   allow
-site user, holds nothing  boards     write   deny
-site user, another site   boards     write   deny
-operator                  boards     write   allow
-site user, holds it       boards     delete  allow
-site user, holds nothing  boards     delete  deny
-site user, another site   boards     delete  deny
-operator                  boards     delete  allow
-site user, holds it       audit      view    allow
-site user, holds nothing  audit      view    deny
-site user, another site   audit      view    deny
-operator                  audit      view    allow
-site user, holds it       audit      write   allow
-site user, holds nothing  audit      write   deny
-site user, another site   audit      write   deny
-operator                  audit      write   allow
-site user, holds it       audit      delete  allow
-site user, holds nothing  audit      delete  deny
-site user, another site   audit      delete  deny
-operator                  audit      delete  allow
+principal                          capability access  owner        answer
+---------------------------------- ---------- ------- ------------ ------
+holds the grant                    content    view    none         allow
+holds only their own, theirs       content    view    them         allow
+holds only their own, another's    content    view    somebody     deny
+holds only their own, none named   content    view    none         deny
+operator                           content    view    none         allow
+holds the grant                    content    write   none         allow
+holds only their own, theirs       content    write   them         allow
+holds only their own, another's    content    write   somebody     deny
+holds only their own, none named   content    write   none         deny
+operator                           content    write   none         allow
+holds the grant                    content    delete  none         allow
+holds only their own, theirs       content    delete  them         allow
+holds only their own, another's    content    delete  somebody     deny
+holds only their own, none named   content    delete  none         deny
+operator                           content    delete  none         allow
+holds the grant                    media      view    none         allow
+holds only their own, theirs       media      view    them         allow
+holds only their own, another's    media      view    somebody     deny
+holds only their own, none named   media      view    none         deny
+operator                           media      view    none         allow
+holds the grant                    media      write   none         allow
+holds only their own, theirs       media      write   them         allow
+holds only their own, another's    media      write   somebody     deny
+holds only their own, none named   media      write   none         deny
+operator                           media      write   none         allow
+holds the grant                    media      delete  none         allow
+holds only their own, theirs       media      delete  them         allow
+holds only their own, another's    media      delete  somebody     deny
+holds only their own, none named   media      delete  none         deny
+operator                           media      delete  none         allow
+holds the grant                    taxonomy   view    none         allow
+holds only their own, theirs       taxonomy   view    them         allow
+holds only their own, another's    taxonomy   view    somebody     deny
+holds only their own, none named   taxonomy   view    none         deny
+operator                           taxonomy   view    none         allow
+holds the grant                    taxonomy   write   none         allow
+holds only their own, theirs       taxonomy   write   them         allow
+holds only their own, another's    taxonomy   write   somebody     deny
+holds only their own, none named   taxonomy   write   none         deny
+operator                           taxonomy   write   none         allow
+holds the grant                    taxonomy   delete  none         allow
+holds only their own, theirs       taxonomy   delete  them         allow
+holds only their own, another's    taxonomy   delete  somebody     deny
+holds only their own, none named   taxonomy   delete  none         deny
+operator                           taxonomy   delete  none         allow
+holds the grant                    forms      view    none         allow
+holds only their own, theirs       forms      view    them         allow
+holds only their own, another's    forms      view    somebody     deny
+holds only their own, none named   forms      view    none         deny
+operator                           forms      view    none         allow
+holds the grant                    forms      write   none         allow
+holds only their own, theirs       forms      write   them         allow
+holds only their own, another's    forms      write   somebody     deny
+holds only their own, none named   forms      write   none         deny
+operator                           forms      write   none         allow
+holds the grant                    forms      delete  none         allow
+holds only their own, theirs       forms      delete  them         allow
+holds only their own, another's    forms      delete  somebody     deny
+holds only their own, none named   forms      delete  none         deny
+operator                           forms      delete  none         allow
+holds the grant                    mail       view    none         allow
+holds only their own, theirs       mail       view    them         allow
+holds only their own, another's    mail       view    somebody     deny
+holds only their own, none named   mail       view    none         deny
+operator                           mail       view    none         allow
+holds the grant                    mail       write   none         allow
+holds only their own, theirs       mail       write   them         allow
+holds only their own, another's    mail       write   somebody     deny
+holds only their own, none named   mail       write   none         deny
+operator                           mail       write   none         allow
+holds the grant                    mail       delete  none         allow
+holds only their own, theirs       mail       delete  them         allow
+holds only their own, another's    mail       delete  somebody     deny
+holds only their own, none named   mail       delete  none         deny
+operator                           mail       delete  none         allow
+holds the grant                    flows      view    none         allow
+holds only their own, theirs       flows      view    them         allow
+holds only their own, another's    flows      view    somebody     deny
+holds only their own, none named   flows      view    none         deny
+operator                           flows      view    none         allow
+holds the grant                    flows      write   none         allow
+holds only their own, theirs       flows      write   them         allow
+holds only their own, another's    flows      write   somebody     deny
+holds only their own, none named   flows      write   none         deny
+operator                           flows      write   none         allow
+holds the grant                    flows      delete  none         allow
+holds only their own, theirs       flows      delete  them         allow
+holds only their own, another's    flows      delete  somebody     deny
+holds only their own, none named   flows      delete  none         deny
+operator                           flows      delete  none         allow
+holds the grant                    courses    view    none         allow
+holds only their own, theirs       courses    view    them         allow
+holds only their own, another's    courses    view    somebody     deny
+holds only their own, none named   courses    view    none         deny
+operator                           courses    view    none         allow
+holds the grant                    courses    write   none         allow
+holds only their own, theirs       courses    write   them         allow
+holds only their own, another's    courses    write   somebody     deny
+holds only their own, none named   courses    write   none         deny
+operator                           courses    write   none         allow
+holds the grant                    courses    delete  none         allow
+holds only their own, theirs       courses    delete  them         allow
+holds only their own, another's    courses    delete  somebody     deny
+holds only their own, none named   courses    delete  none         deny
+operator                           courses    delete  none         allow
+holds the grant                    shop       view    none         allow
+holds only their own, theirs       shop       view    them         allow
+holds only their own, another's    shop       view    somebody     deny
+holds only their own, none named   shop       view    none         deny
+operator                           shop       view    none         allow
+holds the grant                    shop       write   none         allow
+holds only their own, theirs       shop       write   them         allow
+holds only their own, another's    shop       write   somebody     deny
+holds only their own, none named   shop       write   none         deny
+operator                           shop       write   none         allow
+holds the grant                    shop       delete  none         allow
+holds only their own, theirs       shop       delete  them         allow
+holds only their own, another's    shop       delete  somebody     deny
+holds only their own, none named   shop       delete  none         deny
+operator                           shop       delete  none         allow
+holds the grant                    people     view    none         allow
+holds only their own, theirs       people     view    them         allow
+holds only their own, another's    people     view    somebody     deny
+holds only their own, none named   people     view    none         deny
+operator                           people     view    none         allow
+holds the grant                    people     write   none         allow
+holds only their own, theirs       people     write   them         allow
+holds only their own, another's    people     write   somebody     deny
+holds only their own, none named   people     write   none         deny
+operator                           people     write   none         allow
+holds the grant                    people     delete  none         allow
+holds only their own, theirs       people     delete  them         allow
+holds only their own, another's    people     delete  somebody     deny
+holds only their own, none named   people     delete  none         deny
+operator                           people     delete  none         allow
+holds the grant                    settings   view    none         allow
+holds only their own, theirs       settings   view    them         allow
+holds only their own, another's    settings   view    somebody     deny
+holds only their own, none named   settings   view    none         deny
+operator                           settings   view    none         allow
+holds the grant                    settings   write   none         allow
+holds only their own, theirs       settings   write   them         allow
+holds only their own, another's    settings   write   somebody     deny
+holds only their own, none named   settings   write   none         deny
+operator                           settings   write   none         allow
+holds the grant                    settings   delete  none         allow
+holds only their own, theirs       settings   delete  them         allow
+holds only their own, another's    settings   delete  somebody     deny
+holds only their own, none named   settings   delete  none         deny
+operator                           settings   delete  none         allow
+holds the grant                    publish    view    none         allow
+holds only their own, theirs       publish    view    them         allow
+holds only their own, another's    publish    view    somebody     deny
+holds only their own, none named   publish    view    none         deny
+operator                           publish    view    none         allow
+holds the grant                    publish    write   none         allow
+holds only their own, theirs       publish    write   them         allow
+holds only their own, another's    publish    write   somebody     deny
+holds only their own, none named   publish    write   none         deny
+operator                           publish    write   none         allow
+holds the grant                    publish    delete  none         allow
+holds only their own, theirs       publish    delete  them         allow
+holds only their own, another's    publish    delete  somebody     deny
+holds only their own, none named   publish    delete  none         deny
+operator                           publish    delete  none         allow
+holds the grant                    design     view    none         allow
+holds only their own, theirs       design     view    them         allow
+holds only their own, another's    design     view    somebody     deny
+holds only their own, none named   design     view    none         deny
+operator                           design     view    none         allow
+holds the grant                    design     write   none         allow
+holds only their own, theirs       design     write   them         allow
+holds only their own, another's    design     write   somebody     deny
+holds only their own, none named   design     write   none         deny
+operator                           design     write   none         allow
+holds the grant                    design     delete  none         allow
+holds only their own, theirs       design     delete  them         allow
+holds only their own, another's    design     delete  somebody     deny
+holds only their own, none named   design     delete  none         deny
+operator                           design     delete  none         allow
+holds the grant                    boards     view    none         allow
+holds only their own, theirs       boards     view    them         allow
+holds only their own, another's    boards     view    somebody     deny
+holds only their own, none named   boards     view    none         deny
+operator                           boards     view    none         allow
+holds the grant                    boards     write   none         allow
+holds only their own, theirs       boards     write   them         allow
+holds only their own, another's    boards     write   somebody     deny
+holds only their own, none named   boards     write   none         deny
+operator                           boards     write   none         allow
+holds the grant                    boards     delete  none         allow
+holds only their own, theirs       boards     delete  them         allow
+holds only their own, another's    boards     delete  somebody     deny
+holds only their own, none named   boards     delete  none         deny
+operator                           boards     delete  none         allow
+holds the grant                    audit      view    none         allow
+holds only their own, theirs       audit      view    them         allow
+holds only their own, another's    audit      view    somebody     deny
+holds only their own, none named   audit      view    none         deny
+operator                           audit      view    none         allow
+holds the grant                    audit      write   none         allow
+holds only their own, theirs       audit      write   them         allow
+holds only their own, another's    audit      write   somebody     deny
+holds only their own, none named   audit      write   none         deny
+operator                           audit      write   none         allow
+holds the grant                    audit      delete  none         allow
+holds only their own, theirs       audit      delete  them         allow
+holds only their own, another's    audit      delete  somebody     deny
+holds only their own, none named   audit      delete  none         deny
+operator                           audit      delete  none         allow

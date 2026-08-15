@@ -10,7 +10,6 @@ use mavi::kernel::http::AppState;
 use mavi::kernel::mailer::{Mailer, Recorder};
 use mavi::kernel::payments::{Hosted, Payments};
 use mavi::kernel::secret::Secret;
-use mavi::kernel::tenant::TenantId;
 use mavi::kernel::webhook;
 use tower::ServiceExt;
 use uuid::Uuid;
@@ -18,14 +17,13 @@ use uuid::Uuid;
 mod common;
 
 use common::harness;
-use mavi::testing::{a_role, a_tenant, a_user};
+use mavi::testing::{a_role, a_user};
 
 #[derive(Clone)]
 struct Shop {
     db: Db,
     router: axum::Router,
     host: String,
-    tenant: TenantId,
     token: String,
     /// Where this shop's provider is listening, for the tests that ask it
     /// directly.
@@ -36,10 +34,9 @@ struct Shop {
 async fn a_shop() -> Shop {
     let db = harness().await;
     let host = format!("{}.example", Uuid::now_v7().simple());
-    let tenant = a_tenant(&db, &host).await;
-    let role = a_role(&db, tenant, "owner", &every_grant()).await;
+    let role = a_role(&db, "owner", &every_grant()).await;
     let password = "a long enough password";
-    let (_, email) = a_user(&db, tenant, role, password).await;
+    let (_, email) = a_user(&db, role, password).await;
 
     let post = Recorder::default();
     let mut state = AppState::new(db.clone());
@@ -77,7 +74,6 @@ async fn a_shop() -> Shop {
         db,
         router,
         host,
-        tenant,
         token: body["token"].as_str().expect("a token").to_owned(),
         provider_at: String::new(),
         post,
@@ -171,7 +167,7 @@ impl Shop {
     }
 
     async fn stock_of(&self, product: Uuid) -> i32 {
-        let mut conn = self.db.tenant(self.tenant).await.expect("begin");
+        let mut conn = self.db.begin().await.expect("begin");
 
         let stock: (i32,) = sqlx::query_as("select stock from products where id = $1")
             .bind(product)
@@ -188,9 +184,7 @@ impl Shop {
         state.mailer = std::sync::Arc::new(Mailer::Recorded(self.post.clone()));
 
         for _ in 0..8 {
-            mavi::jobs::tick_within(&state, "test", Some(self.tenant))
-                .await
-                .expect("tick");
+            mavi::jobs::tick(&state, "test").await.expect("tick");
         }
 
         let letters = self.post.all();
@@ -218,7 +212,7 @@ async fn buying_something_takes_it_off_the_shelf_and_holds_it() {
     assert_eq!(order["order"]["state"], "pending");
     assert_eq!(shop.stock_of(thing).await, 1);
 
-    let mut conn = shop.db.tenant(shop.tenant).await.expect("begin");
+    let mut conn = shop.db.begin().await.expect("begin");
 
     let held: (i64,) = sqlx::query_as(
         "select coalesce(sum(quantity), 0) from stock_holds where released_at is null",
@@ -298,7 +292,7 @@ async fn a_hold_that_runs_out_puts_the_stock_back() {
 
     // The hold is half an hour; walking the clock forward is the same thing as
     // waiting for it, without the half hour.
-    let mut conn = shop.db.tenant(shop.tenant).await.expect("begin");
+    let mut conn = shop.db.begin().await.expect("begin");
     sqlx::query("update stock_holds set expires_at = now() - interval '1 minute'")
         .execute(conn.conn())
         .await
@@ -306,9 +300,7 @@ async fn a_hold_that_runs_out_puts_the_stock_back() {
     conn.commit().await.expect("commit");
 
     let state = AppState::new(shop.db.clone());
-    let released = mavi::shop::release_holds(&state, shop.tenant)
-        .await
-        .expect("release");
+    let released = mavi::shop::release_holds(&state).await.expect("release");
 
     assert_eq!(released, 1);
     assert_eq!(
@@ -338,7 +330,7 @@ async fn paying_for_it_keeps_the_stock_gone() {
     assert_eq!(status, StatusCode::OK, "{paid}");
     assert_eq!(paid["state"], "paid");
 
-    let mut conn = shop.db.tenant(shop.tenant).await.expect("begin");
+    let mut conn = shop.db.begin().await.expect("begin");
     sqlx::query("update stock_holds set expires_at = now() - interval '1 minute'")
         .execute(conn.conn())
         .await
@@ -346,9 +338,7 @@ async fn paying_for_it_keeps_the_stock_gone() {
     conn.commit().await.expect("commit");
 
     let state = AppState::new(shop.db.clone());
-    mavi::shop::release_holds(&state, shop.tenant)
-        .await
-        .expect("release");
+    mavi::shop::release_holds(&state).await.expect("release");
 
     assert_eq!(
         shop.stock_of(thing).await,
@@ -470,12 +460,11 @@ async fn a_one_use_code_is_used_once() {
         Uuid::now_v7().simple().to_string()[..8].to_uppercase()
     );
 
-    let mut conn = shop.db.tenant(shop.tenant).await.expect("begin");
+    let mut conn = shop.db.begin().await.expect("begin");
     sqlx::query(
-        "insert into coupons (tenant_id, code, kind, value, uses_allowed)
-         values ($1, $2, 'percent', 10, 1)",
+        "insert into coupons (code, kind, value, uses_allowed)
+         values ($1, 'percent', 10, 1)",
     )
-    .bind(shop.tenant.0)
     .bind(&code)
     .execute(conn.conn())
     .await
@@ -519,7 +508,7 @@ async fn an_order_nobody_paid_for_is_let_go() {
     let thing = shop.a_product(1000, 2).await;
     shop.buy(thing, 1, &format!("k-{}", Uuid::now_v7())).await;
 
-    let mut conn = shop.db.tenant(shop.tenant).await.expect("begin");
+    let mut conn = shop.db.begin().await.expect("begin");
     sqlx::query("update orders set created_at = now() - interval '2 days'")
         .execute(conn.conn())
         .await
@@ -527,9 +516,7 @@ async fn an_order_nobody_paid_for_is_let_go() {
     conn.commit().await.expect("commit");
 
     let state = AppState::new(shop.db.clone());
-    let dropped = mavi::shop::drop_stuck(&state, shop.tenant)
-        .await
-        .expect("drop");
+    let dropped = mavi::shop::drop_stuck(&state).await.expect("drop");
 
     assert_eq!(dropped, 1);
 }
@@ -555,13 +542,11 @@ async fn a_shop_says_when_it_is_running_out() {
         .await;
 
     let state = AppState::new(shop.db.clone());
-    let warned = mavi::shop::warn_on_low_stock(&state, shop.tenant)
-        .await
-        .expect("warn");
+    let warned = mavi::shop::warn_on_low_stock(&state).await.expect("warn");
 
     assert_eq!(warned, 1);
 
-    let mut conn = shop.db.tenant(shop.tenant).await.expect("begin");
+    let mut conn = shop.db.begin().await.expect("begin");
 
     let events: Vec<(String, Option<String>)> =
         sqlx::query_as("select event, subject_id from outbox where event = 'stock.low'")
@@ -585,12 +570,11 @@ async fn a_one_use_code_is_used_once_even_by_two_at_once() {
         Uuid::now_v7().simple().to_string()[..8].to_uppercase()
     );
 
-    let mut conn = shop.db.tenant(shop.tenant).await.expect("begin");
+    let mut conn = shop.db.begin().await.expect("begin");
     sqlx::query(
-        "insert into coupons (tenant_id, code, kind, value, uses_allowed)
-         values ($1, $2, 'amount', 100, 1)",
+        "insert into coupons (code, kind, value, uses_allowed)
+         values ($1, 'amount', 100, 1)",
     )
-    .bind(shop.tenant.0)
     .bind(&code)
     .execute(conn.conn())
     .await
@@ -644,7 +628,7 @@ async fn an_order_whose_hold_lapsed_cannot_then_be_paid_for() {
     let (_, order) = shop.buy(thing, 1, &format!("k-{}", Uuid::now_v7())).await;
     let id = order["order"]["id"].as_str().expect("an id").to_owned();
 
-    let mut conn = shop.db.tenant(shop.tenant).await.expect("begin");
+    let mut conn = shop.db.begin().await.expect("begin");
     sqlx::query("update stock_holds set expires_at = now() - interval '1 minute'")
         .execute(conn.conn())
         .await
@@ -652,9 +636,7 @@ async fn an_order_whose_hold_lapsed_cannot_then_be_paid_for() {
     conn.commit().await.expect("commit");
 
     let state = AppState::new(shop.db.clone());
-    mavi::shop::release_holds(&state, shop.tenant)
-        .await
-        .expect("release");
+    mavi::shop::release_holds(&state).await.expect("release");
 
     assert_eq!(shop.stock_of(thing).await, 1, "the stock did not come back");
 
@@ -807,7 +789,7 @@ async fn a_callback_nobody_signed_pays_for_nothing() {
     let thing = shop.a_product(1000, 1).await;
     let (_, placed) = shop.buy(thing, 1, &format!("k-{}", Uuid::now_v7())).await;
 
-    let mut conn = shop.db.tenant(shop.tenant).await.expect("begin");
+    let mut conn = shop.db.begin().await.expect("begin");
     let payment: (String,) = sqlx::query_as("select provider_ref from payments")
         .fetch_one(conn.conn())
         .await
@@ -853,7 +835,7 @@ async fn a_signed_callback_pays_the_order_once() {
     let thing = shop.a_product(1000, 2).await;
     let (_, placed) = shop.buy(thing, 1, &format!("k-{}", Uuid::now_v7())).await;
 
-    let mut conn = shop.db.tenant(shop.tenant).await.expect("begin");
+    let mut conn = shop.db.begin().await.expect("begin");
     let payment: (String,) = sqlx::query_as("select provider_ref from payments")
         .fetch_one(conn.conn())
         .await
@@ -903,7 +885,7 @@ async fn a_signed_callback_pays_the_order_once() {
     assert_eq!(order["state"], "paid");
 
     // Paid for, so the hold is a sale: a lapse must not put the stock back.
-    let mut conn = shop.db.tenant(shop.tenant).await.expect("begin");
+    let mut conn = shop.db.begin().await.expect("begin");
     sqlx::query("update stock_holds set expires_at = now() - interval '1 minute'")
         .execute(conn.conn())
         .await
@@ -911,9 +893,7 @@ async fn a_signed_callback_pays_the_order_once() {
     conn.commit().await.expect("commit");
 
     let state = AppState::new(shop.db.clone());
-    mavi::shop::release_holds(&state, shop.tenant)
-        .await
-        .expect("release");
+    mavi::shop::release_holds(&state).await.expect("release");
 
     assert_eq!(
         shop.stock_of(thing).await,
@@ -928,7 +908,7 @@ async fn a_callback_for_the_wrong_amount_is_not_a_payment() {
     let thing = shop.a_product(1000, 1).await;
     shop.buy(thing, 1, &format!("k-{}", Uuid::now_v7())).await;
 
-    let mut conn = shop.db.tenant(shop.tenant).await.expect("begin");
+    let mut conn = shop.db.begin().await.expect("begin");
     let payment: (String,) = sqlx::query_as("select provider_ref from payments")
         .fetch_one(conn.conn())
         .await
@@ -979,9 +959,7 @@ async fn reconciliation_finds_what_a_lost_callback_left_behind() {
     let mut state = AppState::new(shop.db.clone());
     state.payments = std::sync::Arc::new(paying(&shop.provider_at));
 
-    let put_right = mavi::shop::reconcile(&state, shop.tenant)
-        .await
-        .expect("reconcile");
+    let put_right = mavi::shop::reconcile(&state).await.expect("reconcile");
 
     assert_eq!(put_right, 1, "the difference was not put right");
 

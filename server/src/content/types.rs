@@ -14,7 +14,7 @@ use uuid::Uuid;
 
 use crate::kernel::audit::{self, Actor, Audited};
 use crate::kernel::authz::{Access, Capability, Needs, Permit};
-use crate::kernel::db::TenantConn;
+use crate::kernel::db::Tx;
 use crate::kernel::error::{AppError, Result};
 use crate::kernel::http::{AppState, Audience, Caller, Endpoint, Guard, RatePolicy};
 use crate::kernel::say::{self, Say};
@@ -141,17 +141,17 @@ pub enum Kind {
 
 async fn list(
     Injected(state): Injected<AppState>,
-    caller: Caller,
+    _caller: Caller,
     _permit: Permit,
 ) -> Result<Json<Vec<ContentType>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
     let rows = all(&mut conn).await?;
     conn.commit().await?;
 
     Ok(Json(rows))
 }
 
-pub(super) async fn all(conn: &mut TenantConn) -> Result<Vec<ContentType>> {
+pub(super) async fn all(conn: &mut Tx) -> Result<Vec<ContentType>> {
     Ok(sqlx::query_as(
         "select t.id, t.key, t.name, t.plural, t.names, t.fields,
                 (select count(*) from posts p
@@ -176,14 +176,13 @@ async fn create(
 
     check(&body.fields)?;
 
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let made: ContentType = sqlx::query_as(
-        "insert into content_types (tenant_id, key, name, plural, names, fields)
-         values ($1, $2, $3, $4, coalesce($5, '{}'::jsonb), $6)
+        "insert into content_types (key, name, plural, names, fields)
+         values ($1, $2, $3, coalesce($4, '{}'::jsonb), $5)
          returning id, key, name, plural, names, fields, 0::bigint as posts",
     )
-    .bind(caller.tenant().0)
     .bind(&key)
     .bind(body.name.as_str())
     .bind(body.plural.as_ref().map(Title::as_str))
@@ -220,7 +219,7 @@ async fn replace(
 ) -> Result<Audited<Json<ContentType>>> {
     check(&body.fields)?;
 
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let changed: Option<ContentType> = sqlx::query_as(
         "update content_types
@@ -265,7 +264,7 @@ async fn remove(
     _permit: Permit,
     Path(key): Path<String>,
 ) -> Result<Audited<StatusCode>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let gone = sqlx::query("delete from content_types where key = $1")
         .bind(&key)
@@ -397,7 +396,7 @@ pub(super) fn fits(declared: &[Field], written: &serde_json::Map<String, Value>)
 }
 
 /// What a type declares, read back for checking or for filtering.
-pub(super) async fn declared(conn: &mut TenantConn, key: &str) -> Result<Vec<Field>> {
+pub(super) async fn declared(conn: &mut Tx, key: &str) -> Result<Vec<Field>> {
     let found: Option<(Value,)> = sqlx::query_as("select fields from content_types where key = $1")
         .bind(key)
         .fetch_optional(conn.conn())

@@ -15,7 +15,6 @@ use axum::response::{IntoResponse, Response};
 
 use crate::kernel::error::{AppError, Result};
 use crate::kernel::http::{AppState, Caller};
-use crate::kernel::tenant::TenantId;
 
 /// Where a build's files live in the store. The publish id is the whole of the
 /// name: a new build is a new folder, and going live is one row changing.
@@ -47,14 +46,14 @@ pub fn preview_path(publish: uuid::Uuid) -> String {
 const HELD_FOR: &str = "public, max-age=60";
 
 /// Anything that is not the API, on a site's own address.
-pub async fn serve(State(state): State<AppState>, caller: Caller, request: Request) -> Response {
+pub async fn serve(State(state): State<AppState>, _caller: Caller, request: Request) -> Response {
     let path = request.uri().path().to_owned();
 
-    match page(&state, caller.tenant(), &path).await {
+    match page(&state, &path).await {
         Ok(answer) => answer,
-        Err(AppError::NotFound(_)) => match moved(&state, caller.tenant(), &path).await {
+        Err(AppError::NotFound(_)) => match moved(&state, &path).await {
             Ok(Some(answer)) => answer,
-            _ => not_found(&state, caller.tenant()).await,
+            _ => not_found(&state).await,
         },
         Err(why) => why.into_response(),
     }
@@ -67,14 +66,14 @@ pub async fn serve(State(state): State<AppState>, caller: Caller, request: Reque
 /// anybody had made to that page answered 404. The prefix is kept because
 /// nothing here knows where a theme puts its posts — `/blog/old` becomes
 /// `/blog/new`, whatever `/blog` is.
-async fn moved(state: &AppState, tenant: TenantId, path: &str) -> Result<Option<Response>> {
+async fn moved(state: &AppState, path: &str) -> Result<Option<Response>> {
     let asked = path.trim_matches('/');
 
     let Some(slug) = asked.rsplit('/').next().filter(|slug| !slug.is_empty()) else {
         return Ok(None);
     };
 
-    let mut conn = state.db.tenant(tenant).await?;
+    let mut conn = state.db.begin().await?;
 
     let rows: Vec<(String, String)> =
         sqlx::query_as("select language, now_at from redirects where was = $1")
@@ -109,16 +108,16 @@ async fn moved(state: &AppState, tenant: TenantId, path: &str) -> Result<Option<
     Ok(Some(response))
 }
 
-async fn page(state: &AppState, tenant: TenantId, path: &str) -> Result<Response> {
+async fn page(state: &AppState, path: &str) -> Result<Response> {
     if let Some(rest) = path.strip_prefix("/_preview/") {
-        return previewed(state, tenant, rest).await;
+        return previewed(state, rest).await;
     }
 
-    let publish = live(state, tenant).await?;
+    let publish = live(state).await?;
 
     let wanted = file_for(path).ok_or(AppError::NotFound("page"))?;
 
-    let bytes = state.store.get(tenant, &at(publish, &wanted)).await?;
+    let bytes = state.store.get(&at(publish, &wanted)).await?;
     let kind = kind_of(&wanted);
 
     Ok(answered(bytes, kind, StatusCode::OK, publish, &wanted))
@@ -166,12 +165,12 @@ pub fn file_for(path: &str) -> Option<String> {
 
 /// The page a site says to show for something that is not there — and, failing
 /// that, the plainest possible answer rather than nothing.
-async fn not_found(state: &AppState, tenant: TenantId) -> Response {
-    let Ok(publish) = live(state, tenant).await else {
+async fn not_found(state: &AppState) -> Response {
+    let Ok(publish) = live(state).await else {
         return (StatusCode::NOT_FOUND, "not found").into_response();
     };
 
-    match state.store.get(tenant, &at(publish, "404.html")).await {
+    match state.store.get(&at(publish, "404.html")).await {
         Ok(bytes) => answered(
             bytes,
             "text/html; charset=utf-8",
@@ -216,14 +215,14 @@ fn answered(
 /// A build somebody asked to look at, served under its own id.
 ///
 /// The id has to be one of this site's own previews: it comes from the address
-/// and the store is asked with the tenant it belongs to, so a build id taken
+/// and the store is asked for exactly that build, so a build id taken
 /// from another site answers nothing here.
-async fn previewed(state: &AppState, tenant: TenantId, rest: &str) -> Result<Response> {
+async fn previewed(state: &AppState, rest: &str) -> Result<Response> {
     let (id, path) = rest.split_once('/').unwrap_or((rest, ""));
 
     let publish: uuid::Uuid = id.parse().map_err(|_| AppError::NotFound("preview"))?;
 
-    let mut conn = state.db.tenant(tenant).await?;
+    let mut conn = state.db.begin().await?;
 
     let mine: Option<(uuid::Uuid,)> =
         sqlx::query_as("select id from publishes where id = $1 and preview")
@@ -238,7 +237,7 @@ async fn previewed(state: &AppState, tenant: TenantId, rest: &str) -> Result<Res
     }
 
     let wanted = file_for(path).ok_or(AppError::NotFound("page"))?;
-    let bytes = state.store.get(tenant, &at(publish, &wanted)).await?;
+    let bytes = state.store.get(&at(publish, &wanted)).await?;
 
     Ok(answered(
         bytes,
@@ -251,8 +250,8 @@ async fn previewed(state: &AppState, tenant: TenantId, rest: &str) -> Result<Res
 
 /// Which build is live. One query, and a site that has never published has
 /// nothing to serve rather than an error.
-async fn live(state: &AppState, tenant: TenantId) -> Result<uuid::Uuid> {
-    let mut conn = state.db.tenant(tenant).await?;
+async fn live(state: &AppState) -> Result<uuid::Uuid> {
+    let mut conn = state.db.begin().await?;
 
     let found: Option<(uuid::Uuid,)> = sqlx::query_as(
         "select id from publishes

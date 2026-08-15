@@ -14,7 +14,6 @@ use std::time::Duration;
 use tokio::sync::Semaphore;
 
 use crate::kernel::error::{AppError, Result};
-use crate::kernel::tenant::TenantId;
 
 /// How long a build may take before it is killed.
 ///
@@ -81,7 +80,6 @@ pub struct Made {
 /// because neither is ever inside a directory the other has a path to.
 pub async fn run(
     generator: &Generator,
-    tenant: TenantId,
     publish: uuid::Uuid,
     files: Vec<(String, String)>,
 ) -> Result<Made> {
@@ -93,14 +91,11 @@ pub async fn run(
         .await
         .map_err(|_| AppError::Bug("nothing is taking builds any more"))?;
 
-    let workspace = generator
-        .workspaces
-        .join(tenant.0.simple().to_string())
-        .join(publish.simple().to_string());
+    let workspace = generator.workspaces.join(publish.simple().to_string());
 
     // Refused rather than reused: a workspace that is already there is one
-    // another build is in, and writing into it is how one site's build sees
-    // another's.
+    // another build is in, and writing into it is how a build reads the half
+    // of another that has not finished.
     if tokio::fs::try_exists(&workspace).await.unwrap_or(false) {
         return Err(AppError::Bug("that workspace is already somebody's"));
     }
@@ -289,7 +284,6 @@ mod tests {
 
         let made = run(
             &generator,
-            TenantId(uuid::Uuid::now_v7()),
             uuid::Uuid::now_v7(),
             vec![("src/page.html".to_owned(), "<h1>A page</h1>".to_owned())],
         )
@@ -307,20 +301,15 @@ mod tests {
     async fn a_workspace_does_not_outlive_the_build() {
         let at = somewhere();
         let generator = a_generator("sh", &["-c", "mkdir -p dist"], at.clone());
-        let tenant = TenantId(uuid::Uuid::now_v7());
         let publish = uuid::Uuid::now_v7();
 
-        run(&generator, tenant, publish, Vec::new())
-            .await
-            .expect("a build");
+        run(&generator, publish, Vec::new()).await.expect("a build");
 
-        let left = at
-            .join(tenant.0.simple().to_string())
-            .join(publish.simple().to_string());
+        let left = at.join(publish.simple().to_string());
 
         assert!(
             !tokio::fs::try_exists(&left).await.unwrap_or(false),
-            "a customer's source was left on a shared disk"
+            "the source was left on the disk after the build"
         );
 
         let _ = tokio::fs::remove_dir_all(&at).await;
@@ -331,14 +320,9 @@ mod tests {
         let at = somewhere();
         let generator = a_generator("sh", &["-c", "echo it went wrong >&2; exit 1"], at.clone());
 
-        let made = run(
-            &generator,
-            TenantId(uuid::Uuid::now_v7()),
-            uuid::Uuid::now_v7(),
-            Vec::new(),
-        )
-        .await
-        .expect("an answer");
+        let made = run(&generator, uuid::Uuid::now_v7(), Vec::new())
+            .await
+            .expect("an answer");
 
         assert!(made.files.is_empty());
         assert!(made.log.contains("it went wrong"), "{}", made.log);
@@ -373,14 +357,9 @@ mod tests {
             at.clone(),
         );
 
-        let made = run(
-            &generator,
-            TenantId(uuid::Uuid::now_v7()),
-            uuid::Uuid::now_v7(),
-            Vec::new(),
-        )
-        .await
-        .expect("a build");
+        let made = run(&generator, uuid::Uuid::now_v7(), Vec::new())
+            .await
+            .expect("a build");
 
         let seen = String::from_utf8_lossy(&made.files[0].1).into_owned();
 

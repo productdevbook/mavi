@@ -107,11 +107,11 @@ const COLUMNS: &str = "c.id, c.code, c.kind::text as kind, c.value, c.uses_allow
 
 async fn list(
     Injected(state): Injected<AppState>,
-    caller: Caller,
+    _caller: Caller,
     _permit: Permit,
     HttpQuery(page): HttpQuery<Query>,
 ) -> Result<Json<Page<Coupon>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let rows: Vec<Coupon> = sqlx::query_as(&format!(
         "select {COLUMNS} from coupons c
@@ -158,21 +158,20 @@ async fn make(
         return Err(AppError::Invalid(say::MOMENT_ALREADY_PASSED.into()));
     }
 
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let made: Coupon = sqlx::query_as(&format!(
         "with made as (
              insert into coupons
-                 (tenant_id, code, kind, value, uses_allowed, expires_at,
+                 (code, kind, value, uses_allowed, expires_at,
                   minimum_minor, per_shopper, currency)
-             values ($1, upper($2), $3::coupon_kind, $4, $5, $6,
-                     coalesce($7, 0), $8, coalesce($9, 'TRY'::currency))
+             values (upper($1), $2::coupon_kind, $3, $4, $5,
+                     coalesce($6, 0), $7, coalesce($8, 'TRY'::currency))
              returning id, code, kind, value, uses_allowed, minimum_minor,
                        per_shopper, currency, expires_at, created_at
          )
          select {COLUMNS} from made c"
     ))
-    .bind(caller.tenant().0)
     .bind(&body.code)
     .bind(&body.kind)
     .bind(body.value)
@@ -211,7 +210,7 @@ async fn stop(
     _permit: Permit,
     Path(code): Path<String>,
 ) -> Result<Audited<StatusCode>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let gone = sqlx::query("delete from coupons where code = upper($1)")
         .bind(&code)

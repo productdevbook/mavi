@@ -10,9 +10,10 @@ use uuid::Uuid;
 
 const SNAPSHOT: &str = "tests/snapshots/permission-matrix.txt";
 
-/// The engine used to be asked which site a person was reaching, and three of
-/// the five cases here were about that. With one site, "holds the grant" is a
-/// `HashSet::contains` and writing it down eighty-four times proves nothing.
+/// The engine used to be asked which site a person was reaching, and which of
+/// four kinds of person they were. Both questions are gone: there is one site
+/// and one kind of person, and "holds the grant" is a `HashSet::contains` that
+/// writing down eighty-four times proves nothing about.
 ///
 /// What the engine still decides that a `contains` cannot is the `:own`
 /// qualifier: a grant ending in `:own` reaches what this person made and
@@ -37,10 +38,10 @@ fn matrix() -> String {
             let holds_it: HashSet<String> = [needs.grant()].into_iter().collect();
             let holds_own: HashSet<String> = [needs.own_grant()].into_iter().collect();
 
-            let cases: [(&str, Principal, Option<Uuid>, &str); 5] = [
+            let cases: [(&str, Principal, Option<Uuid>, &str); 4] = [
                 (
                     "holds the grant",
-                    Principal::SiteUser {
+                    Principal {
                         id: person,
                         grants: holds_it.clone(),
                     },
@@ -49,7 +50,7 @@ fn matrix() -> String {
                 ),
                 (
                     "holds only their own, theirs",
-                    Principal::SiteUser {
+                    Principal {
                         id: person,
                         grants: holds_own.clone(),
                     },
@@ -58,7 +59,7 @@ fn matrix() -> String {
                 ),
                 (
                     "holds only their own, another's",
-                    Principal::SiteUser {
+                    Principal {
                         id: person,
                         grants: holds_own.clone(),
                     },
@@ -67,14 +68,13 @@ fn matrix() -> String {
                 ),
                 (
                     "holds only their own, none named",
-                    Principal::SiteUser {
+                    Principal {
                         id: person,
                         grants: holds_own.clone(),
                     },
                     None,
                     "none",
                 ),
-                ("operator", Principal::Operator { id: person }, None, "none"),
             ];
 
             for (who, principal, owner, said) in cases {

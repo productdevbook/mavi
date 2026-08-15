@@ -33,12 +33,10 @@ impl Machine {
         path: &str,
         body: Option<serde_json::Value>,
     ) -> (StatusCode, serde_json::Value) {
-        // The machine's own screens are reached on an address that is nobody's
-        // site, which is what makes this the console rather than a site.
         let request = Request::builder()
             .method(method)
             .uri(path)
-            .header(header::HOST, "console.example");
+            .header(header::HOST, "somewhere.example");
 
         let request = match body {
             Some(body) => request
@@ -141,7 +139,7 @@ async fn two_arriving_together_make_one_account() {
 
     let mut conn = machine.db.begin().await.expect("begin");
 
-    let (accounts,): (i64,) = sqlx::query_as("select count(*) from operators")
+    let (accounts,): (i64,) = sqlx::query_as("select count(*) from users")
         .fetch_one(conn.conn())
         .await
         .expect("a count");
@@ -186,7 +184,7 @@ async fn setting_up_gives_a_site_you_can_sign_into_and_write_in() {
     let request = axum::http::Request::builder()
         .method("POST")
         .uri("/api/posts")
-        .header(header::HOST, "console.example")
+        .header(header::HOST, "somewhere.example")
         .header(header::AUTHORIZATION, format!("Bearer {token}"))
         .header(header::CONTENT_TYPE, "application/json")
         .body(Body::from(

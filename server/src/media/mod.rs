@@ -1,8 +1,8 @@
 //! Files a site has uploaded.
 //!
 //! What kind of file something is comes from its bytes rather than from its
-//! name, and what a site may keep altogether is a limit the operator sets: a
-//! full disk is every site on the machine rather than one.
+//! name, and what may be kept altogether has a ceiling: an installation with
+//! no limit on what it will store fills its disk one legal upload at a time.
 use axum::Json;
 use axum::body::Bytes;
 use axum::extract::{Path, Query as HttpQuery, State as Injected};

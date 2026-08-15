@@ -15,10 +15,6 @@ mod common;
 
 use common::harness;
 
-/// Personal data the control plane holds about whoever runs the machine, which
-/// is not a customer's and goes when the account does.
-const OPERATORS: [&str; 3] = ["operators", "operator_sessions", "console_log"];
-
 #[tokio::test]
 async fn every_foreign_key_has_something_to_read_it_by() {
     let db = harness().await;
@@ -82,7 +78,6 @@ async fn every_table_holding_somebody_s_own_data_says_how_long_it_keeps_it() {
     let missing: Vec<String> = holders
         .iter()
         .map(|row| row.get::<String, _>("table_name"))
-        .filter(|table| !OPERATORS.contains(&table.as_str()))
         .filter(|table| retention::policy_for(table).is_none())
         .collect();
 

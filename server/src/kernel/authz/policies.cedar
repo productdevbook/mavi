@@ -1,11 +1,3 @@
-// The operator runs the machine. Nothing here is a grant on the site's
-// content; what an operator may reach is the machine's own screens.
-permit (
-    principal is Operator,
-    action,
-    resource
-);
-
 // The site's own people carry grants, and a grant is data the site edits. The
 // policy asks only whether the grant needed is held.
 //

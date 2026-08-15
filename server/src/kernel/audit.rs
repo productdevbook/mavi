@@ -16,7 +16,6 @@ pub enum ActorKind {
     User,
     Student,
     System,
-    Operator,
 }
 
 impl ActorKind {
@@ -26,7 +25,6 @@ impl ActorKind {
             ActorKind::User => "user",
             ActorKind::Student => "student",
             ActorKind::System => "system",
-            ActorKind::Operator => "operator",
         }
     }
 }
@@ -87,15 +85,6 @@ pub struct Audited<T>(Receipt, pub T);
 impl<T> Audited<T> {
     pub fn new(receipt: Receipt, value: T) -> Self {
         Self(receipt, value)
-    }
-}
-
-impl Receipt {
-    /// For the console, which writes to its own log rather than to a tenant's:
-    /// what an operator does is about every site or about none.
-    #[must_use]
-    pub fn for_the_console() -> Self {
-        Self(())
     }
 }
 

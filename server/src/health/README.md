@@ -1,9 +1,8 @@
 # health
 
-Whether a site is well, and whether its addresses work.
+Whether the site is well, and whether the address it was started with works.
 
-**Who reaches it.** The panel, with `settings:view`. The machine's own screens
-read `/api/console/report`.
+**Who reaches it.** The panel, with `settings:view`.
 
 **Tables it owns.** `domain_checks`.
 

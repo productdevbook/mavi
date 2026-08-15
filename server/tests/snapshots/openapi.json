@@ -7212,7 +7212,7 @@
     },
     "/api/setup": {
       "get": {
-        "description": "Whoever runs the machine, on its own screens.",
+        "description": "Anybody.",
         "responses": {
           "200": {
             "description": "What was asked for.",
@@ -7236,7 +7236,7 @@
         }
       },
       "post": {
-        "description": "Whoever runs the machine, on its own screens.",
+        "description": "Anybody.",
         "requestBody": {
           "content": {
             "application/json": {

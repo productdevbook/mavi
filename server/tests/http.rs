@@ -180,6 +180,12 @@ fn what_is_public_is_listed() {
             "/api/sites/videos/callback",
             "/api/auth/reset",
             "/api/auth/password",
+            // Whether this machine has been set up, and setting it up. Public
+            // because at that moment there is nobody who could hold an account
+            // — what keeps the door shut is the rate limit, the advisory lock
+            // and the `where not exists`, and it answers once.
+            "/api/setup",
+            "/api/setup",
             "/api/sites/products",
             "/api/sites/checkout",
             "/api/sites/payments/callback",
@@ -249,12 +255,8 @@ async fn nothing_behind_an_account_answers_without_one() {
 
     for endpoint in mavi::endpoints() {
         // Signing in is the one thing that answers somebody with no account,
-        // by definition — and so is setting the machine up, which exists for
-        // the moment when there is nobody to have an account.
-        if endpoint.guard().audience == Audience::Public
-            || endpoint.path().ends_with("/session")
-            || endpoint.path() == "/api/setup"
-        {
+        // by definition.
+        if endpoint.guard().audience == Audience::Public || endpoint.path().ends_with("/session") {
             continue;
         }
 

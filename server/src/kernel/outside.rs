@@ -1,6 +1,6 @@
 //! What something outside this crate adds to it at startup.
 //!
-//! The operator's own half is going to depend on this crate rather than patch
+//! A hosting business built on this crate depends on it rather than patching
 //! it, and needs a way in that is not a patch: a handful of endpoints, and a
 //! kind of work the queue can be asked to do. One value carries both, and
 //! [`AppState`](super::http::AppState) carries the value — empty by default,

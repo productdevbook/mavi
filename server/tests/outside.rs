@@ -182,7 +182,7 @@ async fn an_outside_endpoint_appears_in_the_description_the_server_serves() {
             Request::builder()
                 .method("GET")
                 .uri("/openapi.json")
-                .header(header::HOST, "operator.invalid")
+                .header(header::HOST, "somewhere.invalid")
                 .body(Body::empty())
                 .expect("a request"),
         )

@@ -26,5 +26,5 @@ by a job. A trash nobody empties is a storage bill somebody pays.
 
 - No restoring what a thing pointed at. Putting a card back when its column has
   gone is refused rather than guessed at.
-- No trash for the control plane. A site that was removed is the console's
-  business and has its own answer.
+- No trash for the site itself. Removing the site is dropping the database,
+  and nothing in here could put that back.

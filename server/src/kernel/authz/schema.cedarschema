@@ -3,27 +3,25 @@
 // stopped being a choice.
 entity Site;
 
-entity Operator;
-
 entity SiteUser {
     grants: Set<String>,
     id: String,
 };
 
 action "view" appliesTo {
-    principal: [Operator, SiteUser],
+    principal: [SiteUser],
     resource: [Site],
     context: { needed: String, needed_own: String, owner: String },
 };
 
 action "write" appliesTo {
-    principal: [Operator, SiteUser],
+    principal: [SiteUser],
     resource: [Site],
     context: { needed: String, needed_own: String, owner: String },
 };
 
 action "delete" appliesTo {
-    principal: [Operator, SiteUser],
+    principal: [SiteUser],
     resource: [Site],
     context: { needed: String, needed_own: String, owner: String },
 };

@@ -5,7 +5,7 @@ use cedar_policy::{ValidationMode, Validator};
 use super::*;
 
 fn site_user(grants: &[&str]) -> Principal {
-    Principal::SiteUser {
+    Principal {
         id: Uuid::now_v7(),
         grants: grants.iter().map(|grant| (*grant).to_owned()).collect(),
     }
@@ -62,20 +62,6 @@ fn holding_nothing_reaches_nothing() {
 }
 
 #[test]
-fn the_operator_is_not_a_site_role() {
-    let operator = Principal::Operator { id: Uuid::now_v7() };
-
-    assert!(
-        check(
-            &operator,
-            Needs::new(Capability::Settings, Access::Write),
-            None
-        )
-        .is_ok()
-    );
-}
-
-#[test]
 fn every_capability_has_six_grants_and_no_more() {
     let grants = every_grant();
 
@@ -90,7 +76,7 @@ fn an_own_grant_reaches_what_the_person_made_and_nothing_else() {
     let person = Uuid::now_v7();
     let somebody_else = Uuid::now_v7();
 
-    let author = Principal::SiteUser {
+    let author = Principal {
         id: person,
         grants: ["content:write:own".to_owned(), "content:view".to_owned()]
             .into_iter()

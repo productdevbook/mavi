@@ -144,10 +144,17 @@ impl std::fmt::Display for Needs {
     }
 }
 
+/// Who is asking. One kind of person: somebody with an account on this site,
+/// carrying whatever their role grants.
+///
+/// There were four, and three of them — an operator over many installations,
+/// an agency renting sites, a customer reading a bill — were a hosting
+/// business's people rather than a site's. Not one was ever constructed
+/// outside a test.
 #[derive(Clone, Debug)]
-pub enum Principal {
-    Operator { id: Uuid },
-    SiteUser { id: Uuid, grants: HashSet<String> },
+pub struct Principal {
+    pub id: Uuid,
+    pub grants: HashSet<String>,
 }
 
 /// The one thing anything is ever asked about. There is no `Resource` type
@@ -247,10 +254,7 @@ fn uid(kind: &str, id: &str) -> EntityUid {
 }
 
 fn principal_uid(principal: &Principal) -> EntityUid {
-    match principal {
-        Principal::Operator { id } => uid("Operator", &id.to_string()),
-        Principal::SiteUser { id, .. } => uid("SiteUser", &id.to_string()),
-    }
+    uid("SiteUser", &principal.id.to_string())
 }
 
 fn action_uid(access: Access) -> EntityUid {
@@ -265,29 +269,22 @@ fn entities(principal: &Principal) -> Result<Entities> {
     )
     .map_err(|_| AppError::Forbidden)?;
 
-    let principal_entity = match principal {
-        Principal::Operator { .. } => Entity::new(
-            principal_uid(principal),
-            [].into_iter().collect(),
-            HashSet::new(),
-        ),
-        Principal::SiteUser { id, grants } => Entity::new(
-            principal_uid(principal),
-            [
-                ("grants".to_owned(), grant_set(grants)),
-                (
-                    "id".to_owned(),
-                    RestrictedExpression::new_string(id.to_string()),
-                ),
-            ]
-            .into_iter()
-            .collect(),
-            HashSet::new(),
-        ),
-    }
+    let asking = Entity::new(
+        principal_uid(principal),
+        [
+            ("grants".to_owned(), grant_set(&principal.grants)),
+            (
+                "id".to_owned(),
+                RestrictedExpression::new_string(principal.id.to_string()),
+            ),
+        ]
+        .into_iter()
+        .collect(),
+        HashSet::new(),
+    )
     .map_err(|_| AppError::Forbidden)?;
 
-    Entities::from_entities([site, principal_entity], None).map_err(|_| AppError::Forbidden)
+    Entities::from_entities([site, asking], None).map_err(|_| AppError::Forbidden)
 }
 
 fn grant_set(grants: &HashSet<String>) -> RestrictedExpression {

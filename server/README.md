@@ -179,18 +179,23 @@ cross-cutting list at the bottom of it is what a domain PR is reviewed against.
 
 Written down rather than left to be discovered.
 
-- **Nothing sends mail.** A campaign, an invitation and a reset all end at a
-  row saying what would have been sent. What is missing is the piece that hands
-  each one to a provider.
-- **Nothing takes money.** An order is marked paid by the panel; there is no
-  provider, and therefore no reconciliation.
 - **Nothing builds a site.** Publishing does everything around a build — one at
   a time, recorded, counted — and the generator itself is a container this
   repository does not hold.
-- **No panel.** The API describes itself at `/openapi.json`; the client types
-  and the screens are the next thing and are not in this.
-- **Domains #188 names that are not written**: `plugins`, `transfers`,
-  `assistant`, `page_issue`, and the import half of `portable`.
-- **No two-factor authentication** (#146), and no OAuth.
+- **This crate cannot make a second site.** `/api/setup` makes the one tenant,
+  its operator and its owner account, in one transaction, and answers once;
+  nothing else here ever inserts a `tenants` row. The isolation machinery under
+  that — `tenant_id`, row-level security, a request resolved from `Host` — is
+  still here today and is coming out rather than staying
+  ([#4](https://github.com/productdevbook/mavi/issues/4)), but running many
+  installations from one machine has never been a mode this crate has, before
+  or after that lands. That is a hosting product built on top of this, through
+  `kernel::outside`, not a mode of this crate.
+- **No billing, metering or plan of any kind.**
+- **No console over more than one installation.** The machine's own screens are
+  this one site's, not a fleet's.
+- **`transfers` has no code behind it.** Everything else once named here as
+  unwritten — `plugins`, `assistant`, the import half of `portable` — has
+  endpoints now.
 - **No data migration from v0.** Nothing here reads the schema-per-tenant
   database beside it; that script belongs with whichever domain moves first.

@@ -34,7 +34,7 @@ fn answer(operation: &Value) -> Option<Value> {
 /// A collection answered as a bare list is a listing with no limit on it, and
 /// the ones that are allowed to be are the ones whose size is not a site's to
 /// grow. Each is named here, which is how it stays a short list.
-const NOT_A_PAGE: [&str; 13] = [
+const NOT_A_PAGE: [&str; 11] = [
     // Fixed by the code: what a site can plug into, and what a role can carry.
     "/api/plugins",
     // Drawn by a sign-in screen before anybody is signed in; a handful at most.
@@ -47,9 +47,7 @@ const NOT_A_PAGE: [&str; 13] = [
     // A theme's files and a site's addresses: both read whole by the screen
     // that shows them whole, one as a tree and one as a short list.
     "/api/design/files",
-    "/api/console/sites/{id}/domains",
     "/api/domains",
-    "/api/permissions/me",
     // What one person is on. A site sells courses by the handful, not by the
     // thousand, and the screen shows all of somebody's beside their name.
     "/api/students/{id}/enrolments",
@@ -126,17 +124,15 @@ fn nothing_named_as_a_page_answers_something_else() {
 /// that record, and what it did is read by reading the record.
 #[test]
 fn everything_that_can_be_written_can_be_read() {
-    const DOING_RATHER_THAN_KEEPING: [&str; 19] = [
+    const DOING_RATHER_THAN_KEEPING: [&str; 17] = [
         // Signing in and out, taking a payment, being told about one, leaving
         // a mailing list: each writes something, none of them keeps a
         // collection anybody would list.
         "/api/auth/session",
         "/api/auth/reset",
         "/api/auth/password",
-        "/api/auth/second-factor",
         "/api/auth/second-factor/confirm",
         "/api/learn/session",
-        "/api/console/session",
         "/api/sites/beacon",
         "/api/sites/checkout",
         "/api/sites/payments/callback",
@@ -178,7 +174,7 @@ fn everything_that_can_be_written_can_be_read() {
 /// where a thing lives.
 #[test]
 fn everything_is_where_it_would_be_looked_for() {
-    const NOT_UNDER_API: [&str; 4] = ["/llms.txt", "/uploads/{id}", "/healthz", "/mcp"];
+    const NOT_UNDER_API: [&str; 3] = ["/llms.txt", "/uploads/{id}", "/mcp"];
 
     for path in paths().keys() {
         assert!(

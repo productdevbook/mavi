@@ -74,8 +74,8 @@ mod tests {
     fn an_address_a_letter_could_reach_is_taken() {
         for right in [
             "someone@example.test",
-            "first.last+tag@mail.example.test",
-            "a@b.co",
+            "first.last+tag@mail.example.com",
+            "a@b.test",
         ] {
             assert!(Email::parse(right).is_ok(), "{right} was refused");
         }

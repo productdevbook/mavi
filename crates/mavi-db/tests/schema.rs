@@ -214,7 +214,8 @@ async fn a_file_is_not_kept_under_the_name_somebody_chose() {
         "holiday.png".to_owned(),
         "../../etc/passwd".to_owned(),
         format!("{front}/../{back}.png"),
-        format!("{front}/{back}.php5x"),
+        format!("{front}/{back}.PNG"),
+        format!("{front}/{back}.p"),
     ] {
         let refused = kept(wrong.clone()).await.expect_err(&wrong);
 

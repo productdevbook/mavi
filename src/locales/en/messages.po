@@ -267,6 +267,11 @@ msgstr "{0} is back"
 #~ msgid "{0} is ready. You're signed in as <0>{1}</0>."
 #~ msgstr "{0} is ready. You're signed in as <0>{1}</0>."
 
+#. placeholder {0}: named.field
+#: src/lib/v1-said.ts:40
+msgid "{0} is wanted."
+msgstr "{0} is wanted."
+
 #. placeholder {0}: row.unsubscribed
 #: src/routes/dashboard.mail.tsx:306
 #~ msgid "{0} left"
@@ -502,6 +507,11 @@ msgstr "{0} sent"
 #: src/routes/dashboard.languages.tsx:150
 msgid "{0} things are written in it"
 msgstr "{0} things are written in it"
+
+#. placeholder {0}: named.posts
+#: src/lib/v1-said.ts:57
+msgid "{0} things are written in that language."
+msgstr "{0} things are written in that language."
 
 #. placeholder {0}: chosen.size
 #: src/components/dashboard/content-list.tsx:187
@@ -824,6 +834,10 @@ msgstr "A key that carries what you carry, expires by itself, and can be taken b
 #~ msgid "A key went with it, until {until}"
 #~ msgstr "A key went with it, until {until}"
 
+#: src/lib/v1-said.ts:52
+msgid "A language is two letters, and a place after them where there is one: en, or en-GB."
+msgstr "A language is two letters, and a place after them where there is one: en, or en-GB."
+
 #: src/routes/dashboard.courses.$courseId.tsx:258
 msgid "A lesson"
 msgstr "A lesson"
@@ -931,6 +945,10 @@ msgstr "A part of the course"
 msgid "A password for {0}"
 msgstr "A password for {0}"
 
+#: src/lib/v1-said.ts:33
+msgid "A password is at least twelve characters."
+msgstr "A password is at least twelve characters."
+
 #: src/routes/dashboard.coupons.tsx:216
 msgid "A percentage"
 msgstr "A percentage"
@@ -972,6 +990,10 @@ msgstr "A second factor"
 #~ msgid "a second, at most"
 #~ msgstr "a second, at most"
 
+#: src/lib/v1-said.ts:50
+msgid "A site already answers to that name."
+msgstr "A site already answers to that name."
+
 #: src/routes/dashboard.themes.tsx:679
 #~ msgid "A site seeded from this demo will have those pictures missing."
 #~ msgstr "A site seeded from this demo will have those pictures missing."
@@ -979,6 +1001,10 @@ msgstr "A second factor"
 #: src/routes/dashboard.platform-mail.tsx:250
 #~ msgid "A site starts at 200 a day — a contact form and some notifications, not a mailing list. Nought stops it without taking anything away: the lists and the history stay, and raising the number starts it again."
 #~ msgstr "A site starts at 200 a day — a contact form and some notifications, not a mailing list. Nought stops it without taking anything away: the lists and the history stay, and raising the number starts it again."
+
+#: src/lib/v1-said.ts:55
+msgid "A site writes in one language unless a post says otherwise, so there has to be one."
+msgstr "A site writes in one language unless a post says otherwise, so there has to be one."
 
 #: src/routes/dashboard.plugins.tsx:63
 msgid "A site's own mail server, so what it sends comes from it rather than from whoever runs the machine."
@@ -3691,6 +3717,10 @@ msgstr "Enquiries"
 #~ msgid "Enter details"
 #~ msgstr "Enter details"
 
+#: src/lib/v1-said.ts:29
+msgid "Enter the six digits from your authenticator."
+msgstr "Enter the six digits from your authenticator."
+
 #: src/routes/dashboard.mail.tsx:822
 #~ msgid "Events arrive once the pipeline is wired up, under the mail plugin's settings. Until then a bounce is only discovered by the next campaign running into it."
 #~ msgstr "Events arrive once the pipeline is wired up, under the mail plugin's settings. Until then a bounce is only discovered by the next campaign running into it."
@@ -6110,6 +6140,11 @@ msgstr "Nothing uploaded yet."
 #~ msgid "Nothing verified yet"
 #~ msgstr "Nothing verified yet"
 
+#. placeholder {0}: named.field
+#: src/lib/v1-said.ts:44
+msgid "Nothing was declared called {0}, so nothing can be asked about it."
+msgstr "Nothing was declared called {0}, so nothing can be asked about it."
+
 #: src/routes/dashboard.boards_.$boardId.tsx:400
 #~ msgid "Nothing was marked as a name or an address on the form this came from."
 #~ msgstr "Nothing was marked as a name or an address on the form this came from."
@@ -8167,6 +8202,14 @@ msgstr "Something is broken"
 #~ msgid "Something is posted"
 #~ msgstr "Something is posted"
 
+#: src/lib/v1-said.ts:63
+msgid "Something went wrong."
+msgstr "Something went wrong."
+
+#: src/lib/v1-said.ts:69
+msgid "Something went wrong. It has been written down."
+msgstr "Something went wrong. It has been written down."
+
 #: src/routes/dashboard.boards_.$boardId.tsx:255
 msgid "Something worth remembering"
 msgstr "Something worth remembering"
@@ -8627,9 +8670,18 @@ msgstr "That is not a copy of a site."
 msgid "That is not a picture"
 msgstr "That is not a picture"
 
+#: src/lib/v1-said.ts:28
+msgid "That is not a sign-in we know."
+msgstr "That is not a sign-in we know."
+
 #: src/routes/dashboard.plugins_.backup.tsx:246
 #~ msgid "That is not an archive"
 #~ msgstr "That is not an archive"
+
+#. placeholder {0}: named.field
+#: src/lib/v1-said.ts:42
+msgid "That is not what {0} holds."
+msgstr "That is not what {0} holds."
 
 #: src/components/assistant-keys.tsx:37
 #~ msgid "That key stopped working"
@@ -8642,6 +8694,10 @@ msgstr "That picture is larger than four megabytes"
 #: src/routes/oauth.tsx:53
 #~ msgid "That request could not be read"
 #~ msgstr "That request could not be read"
+
+#: src/lib/v1-said.ts:35
+msgid "That request did not come from this site. Reload the page and try again."
+msgstr "That request did not come from this site. Reload the page and try again."
 
 #: src/routes/dashboard.flows.tsx:950
 #~ msgid "That run"
@@ -9164,6 +9220,11 @@ msgstr "This is the account that runs the machine. Everybody else is invited fro
 #~ msgid "This is what you sign in with."
 #~ msgstr "This is what you sign in with."
 
+#. placeholder {0}: named.field
+#: src/lib/v1-said.ts:39
+msgid "This kind of thing has no field called {0}."
+msgstr "This kind of thing has no field called {0}."
+
 #: src/learn/app.tsx:308
 #~ msgid "This lesson is not open yet."
 #~ msgstr "This lesson is not open yet."
@@ -9172,11 +9233,20 @@ msgstr "This is the account that runs the machine. Everybody else is invited fro
 #~ msgid "This lesson opens on {when}."
 #~ msgstr "This lesson opens on {when}."
 
+#. placeholder {0}: named.name
+#: src/lib/v1-said.ts:46
+msgid "This letter has nothing to put where it says {{0}}."
+msgstr "This letter has nothing to put where it says {{0}}."
+
 #: src/components/console/console-shell.tsx:55
 #: src/components/console/console-shell.tsx:76
 #: src/routes/console.machine.tsx:63
 #~ msgid "This machine"
 #~ msgstr "This machine"
+
+#: src/lib/v1-said.ts:48
+msgid "This machine already has somebody running it."
+msgstr "This machine already has somebody running it."
 
 #: src/routes/dashboard.billing.tsx:193
 #~ msgid "This month so far"
@@ -9229,6 +9299,10 @@ msgstr "This site"
 #~ msgid "This site already builds from a repository. Point it at the new theme instead? Its next publish will deploy the new theme."
 #~ msgstr "This site already builds from a repository. Point it at the new theme instead? Its next publish will deploy the new theme."
 
+#: src/lib/v1-said.ts:53
+msgid "This site already writes in that."
+msgstr "This site already writes in that."
+
 #: src/components/flows/flow-canvas.tsx:335
 #~ msgid "this site cannot send mail yet — Plugins, Amazon SES"
 #~ msgstr "this site cannot send mail yet — Plugins, Amazon SES"
@@ -9248,6 +9322,12 @@ msgstr "This site"
 #: src/routes/dashboard.students.tsx:499
 #~ msgid "This site has no kind of content to sell yet. Make one under Content types — a course is a post of a kind you added."
 #~ msgstr "This site has no kind of content to sell yet. Make one under Content types — a course is a post of a kind you added."
+
+#. placeholder {0}: bytes(named.used)
+#. placeholder {1}: bytes(named.limit)
+#: src/lib/v1-said.ts:37
+msgid "This site has no room left: it is using {0} of {1}."
+msgstr "This site has no room left: it is using {0} of {1}."
 
 #: src/components/flows/flow-canvas.tsx:336
 #~ msgid "this site has no Telegram bot — Plugins, Telegram"
@@ -9272,6 +9352,10 @@ msgstr "This site's own"
 #: src/learn/app.tsx:312
 #~ msgid "This video is still being prepared. Try again in a few minutes."
 #~ msgstr "This video is still being prepared. Try again in a few minutes."
+
+#: src/lib/v1-said.ts:31
+msgid "Those are not the digits the app is showing."
+msgstr "Those are not the digits the app is showing."
 
 #: src/routes/dashboard.trash.tsx:182
 msgid "Throw it away now"

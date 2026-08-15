@@ -38,6 +38,14 @@ next hundred all go through `mail::post`, which writes the row and queues the
 handing over. A request never waits on somebody else's mail server, and what is
 written down is what is billed.
 
+**A kind a site can word is a kind something presses.** `letters::KINDS` is
+what `/api/mail/letters/{kind}` lets a site read and rewrite; a name on that
+list that nothing calls `letters::press` for is a letter a site can translate
+and preview and that never once goes out. `tests/letters.rs` reads this
+crate's own source for every call and holds it against the list — a kind
+deliberately left unsent goes in `letters::NEVER_PRESSED` with why, rather
+than by being quietly absent from what is checked.
+
 **Where it goes is an enum with two arms.** SMTP where one is configured, and
 recorded where none is — a machine with nothing set up is obviously not
 sending rather than quietly not sending, and a test reads back what would have

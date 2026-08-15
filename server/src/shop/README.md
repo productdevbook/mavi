@@ -51,7 +51,10 @@ rather than a counter something reads and then updates.
 through that, which is why it is one function rather than a condition in four
 handlers.
 
-**Events.** `order.paid`, `order.fulfilled`, `refund.made`, `stock.low`.
+**Events.** `order.paid`, `order.fulfilled`, `refund.made`, `stock.low`. The
+first two also press a letter to the address on the order — whoever paid, and
+whoever it shipped to, whichever way the order got there: an admin marking it,
+the provider's own callback, or reconciliation finding a difference.
 
 **Jobs.** `shop.release-holds` puts back what an abandoned checkout was holding.
 `shop.drop-stuck` lets go of an order nobody paid for after a day.

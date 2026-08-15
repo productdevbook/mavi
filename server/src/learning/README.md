@@ -31,8 +31,10 @@ go thirty days after they lapse, swept with everybody else's.
 
 - No enrolment by the student. Somebody puts them on a course; there is no
   self-service sign-up and no payment attached to one.
-- Nothing sends mail, so enrolling hands the password back in the response —
-  the same honesty as an invitation.
+- Enrolling presses `student.invited` and sends it, but also hands the
+  password back in the response — whoever is enrolling somebody is not
+  signed in as them, so there is no other screen this could be read from if
+  the letter never arrives.
 - No certificates, no quizzes, no marks. A lesson is finished or it is not.
 - No ordering endpoints for modules and lessons. The positions exist and the
   panel has nothing yet to move them with.

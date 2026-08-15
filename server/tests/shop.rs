@@ -7,6 +7,7 @@ use http_body_util::BodyExt;
 use mavi::kernel::authz::every_grant;
 use mavi::kernel::db::Db;
 use mavi::kernel::http::AppState;
+use mavi::kernel::mailer::{Mailer, Recorder};
 use mavi::kernel::payments::{Hosted, Payments};
 use mavi::kernel::secret::Secret;
 use mavi::kernel::tenant::TenantId;
@@ -29,6 +30,7 @@ struct Shop {
     /// Where this shop's provider is listening, for the tests that ask it
     /// directly.
     provider_at: String,
+    post: Recorder,
 }
 
 async fn a_shop() -> Shop {
@@ -39,7 +41,11 @@ async fn a_shop() -> Shop {
     let password = "a long enough password";
     let (_, email) = a_user(&db, tenant, role, password).await;
 
-    let router = mavi::router(AppState::new(db.clone()));
+    let post = Recorder::default();
+    let mut state = AppState::new(db.clone());
+    state.mailer = std::sync::Arc::new(Mailer::Recorded(post.clone()));
+
+    let router = mavi::router(state);
 
     let response = router
         .clone()
@@ -74,6 +80,7 @@ async fn a_shop() -> Shop {
         tenant,
         token: body["token"].as_str().expect("a token").to_owned(),
         provider_at: String::new(),
+        post,
     }
 }
 
@@ -173,6 +180,28 @@ impl Shop {
             .expect("a product");
 
         stock.0
+    }
+
+    /// What was written to somebody, once the queue has been run.
+    async fn letter_to(&self, address: &str) -> (String, String) {
+        let mut state = AppState::new(self.db.clone());
+        state.mailer = std::sync::Arc::new(Mailer::Recorded(self.post.clone()));
+
+        for _ in 0..8 {
+            mavi::jobs::tick_within(&state, "test", Some(self.tenant))
+                .await
+                .expect("tick");
+        }
+
+        let letters = self.post.all();
+
+        let letter = letters
+            .iter()
+            .rev()
+            .find(|letter| letter.to == address)
+            .unwrap_or_else(|| panic!("nothing was written to {address}"));
+
+        (letter.subject.clone(), letter.body.clone())
     }
 }
 
@@ -326,6 +355,64 @@ async fn paying_for_it_keeps_the_stock_gone() {
         1,
         "something paid for came back onto the shelf"
     );
+}
+
+#[tokio::test]
+async fn paying_for_an_order_writes_to_the_address_on_it() {
+    let shop = a_shop().await;
+    let thing = shop.a_product(1000, 2).await;
+
+    let (_, order) = shop.buy(thing, 1, &format!("k-{}", Uuid::now_v7())).await;
+    let id = order["order"]["id"].as_str().expect("an id");
+
+    let (status, paid) = shop
+        .send(
+            "POST",
+            &format!("/api/orders/{id}/paid"),
+            Some(&shop.token),
+            None,
+        )
+        .await;
+
+    assert_eq!(status, StatusCode::OK, "{paid}");
+
+    let (subject, _) = shop.letter_to("somebody@example.test").await;
+
+    assert_eq!(subject, "Your order");
+}
+
+#[tokio::test]
+async fn fulfilling_an_order_writes_to_the_address_on_it() {
+    let shop = a_shop().await;
+    let thing = shop.a_product(1000, 2).await;
+
+    let (_, order) = shop.buy(thing, 1, &format!("k-{}", Uuid::now_v7())).await;
+    let id = order["order"]["id"].as_str().expect("an id");
+
+    shop.send(
+        "POST",
+        &format!("/api/orders/{id}/paid"),
+        Some(&shop.token),
+        None,
+    )
+    .await;
+
+    let (status, done) = shop
+        .send(
+            "POST",
+            &format!("/api/orders/{id}/fulfilled"),
+            Some(&shop.token),
+            None,
+        )
+        .await;
+
+    assert_eq!(status, StatusCode::OK, "{done}");
+
+    // The most recent letter to this address: fulfilling comes after paying,
+    // so this is the "on its way" one rather than the receipt.
+    let (subject, _) = shop.letter_to("somebody@example.test").await;
+
+    assert_eq!(subject, "Your order is on its way");
 }
 
 #[tokio::test]

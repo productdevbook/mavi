@@ -436,8 +436,10 @@ pub struct Enrolling {
 #[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct Enrolled {
     pub student_id: Uuid,
-    /// Handed back for the same reason an invitation's is: nothing sends mail,
-    /// and a token that goes nowhere is worse than one that is visible.
+    /// A `student.invited` letter goes to their address as well, but this is
+    /// also handed back: the panel is signed in as whoever is doing the
+    /// enrolling, not as the student, so there is no other screen this could
+    /// be read from if the letter never arrives.
     pub token: Shown,
 }
 
@@ -539,6 +541,72 @@ async fn list(
 
 fn cursor(after: Option<&str>) -> Option<DateTime<Utc>> {
     after.and_then(|value| DateTime::parse_from_rfc3339(value).ok().map(Into::into))
+}
+
+/// In the site's own words where it has written any, the same two questions
+/// [`crate::people`] and [`crate::shop`] ask before pressing a letter.
+async fn site_language(conn: &mut TenantConn) -> Result<String> {
+    let found: Option<(String,)> =
+        sqlx::query_as("select code from languages where is_default limit 1")
+            .fetch_optional(conn.conn())
+            .await?;
+
+    Ok(found.map_or_else(|| "en".to_owned(), |(code,)| code))
+}
+
+async fn site_name(conn: &mut TenantConn) -> Result<String> {
+    let found: Option<(String,)> =
+        sqlx::query_as("select name from site_settings where tenant_id = $1")
+            .bind(conn.tenant().0)
+            .fetch_optional(conn.conn())
+            .await?;
+
+    Ok(found.map_or_else(String::new, |(name,)| name))
+}
+
+/// What a student is told once they are put on a course. Whoever enrolled
+/// them still gets the password back in the response — the panel is signed
+/// in as them, not as the student — so this letter is a courtesy rather than
+/// the only way in.
+async fn told_the_student(
+    conn: &mut TenantConn,
+    state: &AppState,
+    caller: &Caller,
+    email: &str,
+    name: &str,
+) -> Result<()> {
+    let language = site_language(conn).await?;
+    let site = site_name(conn).await?;
+
+    let (subject, letter) = crate::mail::letters::press(
+        conn,
+        caller.tenant(),
+        "student.invited",
+        &language,
+        &[
+            ("name", name.to_owned()),
+            ("site", site),
+            ("link", state.address.link("/")),
+        ],
+    )
+    .await?;
+
+    crate::mail::post(
+        conn,
+        caller.tenant(),
+        &crate::mail::Outgoing {
+            to: email,
+            subject: &subject,
+            body: &letter,
+            purpose: crate::mail::Purpose::Transactional,
+            campaign_id: None,
+            subscriber_id: None,
+            unsubscribe: None,
+        },
+    )
+    .await?;
+
+    Ok(())
 }
 
 async fn create(
@@ -753,6 +821,15 @@ async fn enrol(
             _ => AppError::Database(error),
         }
     })?;
+
+    told_the_student(
+        &mut conn,
+        &state,
+        &caller,
+        body.email.as_str(),
+        body.name.as_str(),
+    )
+    .await?;
 
     let receipt = audit::record_raw(
         &mut conn,

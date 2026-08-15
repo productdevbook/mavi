@@ -827,7 +827,7 @@ async fn prove_the_new_address(
     let (subject, letter) = crate::mail::letters::press(
         conn,
         caller.tenant(),
-        "invitation",
+        "email_proof",
         &language,
         &[
             ("name", person.name.clone()),

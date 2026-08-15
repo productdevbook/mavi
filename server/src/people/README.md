@@ -32,6 +32,12 @@ same row: hashed, dated, spent when it is used, and any earlier one for the
 same purpose spent when a new one is made. Spending it is what proves the
 address, so somebody invited arrives proved.
 
+**The letter matches the ticket.** `invite` mints an `invitation` ticket and
+presses the `invitation` letter; `ask_to_reset` mints a `password_reset`
+ticket and presses `password`; changing an address mints an `email_proof`
+ticket and presses `email_proof`. A ticket pressed under the wrong kind is a
+person told they were invited when their address was only changed.
+
 **Suspending takes away what they are holding.** The state and the sessions go
 together; changing one without the other leaves somebody signed in for a month.
 
@@ -43,9 +49,5 @@ seven days after they expire or are spent, swept by `sessions.sweep`.
 
 **What it deliberately does not do.**
 
-- Nothing sends mail. An invitation hands the token back in the response, which
-  is honest about what is not built rather than looking finished. When mail
-  exists that stops.
 - No two-factor authentication (#146).
 - No sign-in with another site's account, no OAuth.
-- No changing an address. Somebody with a new address is invited again.

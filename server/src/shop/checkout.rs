@@ -801,6 +801,7 @@ async fn paid_callback(
                 .await?;
 
             events::emit(&mut conn, "order.paid", &order).await?;
+            told_the_customer_it_was_paid(&mut conn, caller.tenant(), &state, &order).await?;
         }
     }
 
@@ -862,6 +863,119 @@ async fn one(conn: &mut TenantConn, id: Uuid) -> Result<Order> {
         .fetch_optional(conn.conn())
         .await?
         .ok_or(AppError::NotFound("order"))
+}
+
+/// In the site's own words where it has written any, the same reason
+/// [`crate::people`] asks the same two questions before it presses a letter.
+async fn site_language(conn: &mut TenantConn) -> Result<String> {
+    let found: Option<(String,)> =
+        sqlx::query_as("select code from languages where is_default limit 1")
+            .fetch_optional(conn.conn())
+            .await?;
+
+    Ok(found.map_or_else(|| "en".to_owned(), |(code,)| code))
+}
+
+async fn site_name(conn: &mut TenantConn) -> Result<String> {
+    let found: Option<(String,)> =
+        sqlx::query_as("select name from site_settings where tenant_id = $1")
+            .bind(conn.tenant().0)
+            .fetch_optional(conn.conn())
+            .await?;
+
+    Ok(found.map_or_else(String::new, |(name,)| name))
+}
+
+/// What an order's own address is told, once a letter has been pressed for
+/// it. An order carries an address and nothing to call anybody by, so
+/// `{name}` goes in blank rather than guessed at.
+async fn told_the_customer(
+    conn: &mut TenantConn,
+    tenant: TenantId,
+    to: &str,
+    subject: &str,
+    body: &str,
+) -> Result<()> {
+    crate::mail::post(
+        conn,
+        tenant,
+        &crate::mail::Outgoing {
+            to,
+            subject,
+            body,
+            purpose: crate::mail::Purpose::Transactional,
+            campaign_id: None,
+            subscriber_id: None,
+            unsubscribe: None,
+        },
+    )
+    .await?;
+
+    Ok(())
+}
+
+/// Pressed and sent from three places — an admin marking it, the provider's
+/// own signed callback, and reconciliation finding a difference — so this is
+/// the one of them that presses `order.paid` rather than each repeating it.
+async fn told_the_customer_it_was_paid(
+    conn: &mut TenantConn,
+    tenant: TenantId,
+    state: &AppState,
+    order: &Order,
+) -> Result<()> {
+    let language = site_language(conn).await?;
+    let site = site_name(conn).await?;
+
+    let (subject, body) = crate::mail::letters::press(
+        conn,
+        tenant,
+        "order.paid",
+        &language,
+        &[
+            ("name", String::new()),
+            ("site", site),
+            (
+                "link",
+                state
+                    .address
+                    .link(&format!("/api/sites/orders/{}", order.id)),
+            ),
+            ("total", order.total.to_string()),
+        ],
+    )
+    .await?;
+
+    told_the_customer(conn, tenant, &order.email, &subject, &body).await
+}
+
+async fn told_the_customer_it_shipped(
+    conn: &mut TenantConn,
+    tenant: TenantId,
+    state: &AppState,
+    order: &Order,
+) -> Result<()> {
+    let language = site_language(conn).await?;
+    let site = site_name(conn).await?;
+
+    let (subject, body) = crate::mail::letters::press(
+        conn,
+        tenant,
+        "order.fulfilled",
+        &language,
+        &[
+            ("name", String::new()),
+            ("site", site),
+            (
+                "link",
+                state
+                    .address
+                    .link(&format!("/api/sites/orders/{}", order.id)),
+            ),
+        ],
+    )
+    .await?;
+
+    told_the_customer(conn, tenant, &order.email, &subject, &body).await
 }
 
 async fn mark_paid(
@@ -958,6 +1072,14 @@ async fn moved(
     }
 
     events::emit(&mut conn, event, &after).await?;
+
+    if next == OrderState::Paid {
+        told_the_customer_it_was_paid(&mut conn, caller.tenant(), state, &after).await?;
+    }
+
+    if next == OrderState::Fulfilled {
+        told_the_customer_it_shipped(&mut conn, caller.tenant(), state, &after).await?;
+    }
 
     let receipt = audit::record(
         &mut conn,
@@ -1161,6 +1283,8 @@ pub async fn reconcile(state: &AppState, tenant: TenantId) -> Result<u64> {
                 .await?;
 
             events::emit(&mut conn, "order.paid", &order).await?;
+            told_the_customer_it_was_paid(&mut conn, tenant, state, &order).await?;
+
             put_right += 1;
         }
     }

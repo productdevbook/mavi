@@ -18,17 +18,14 @@ use uuid::Uuid;
 /// Where Postgres is. Absent, these do not run — except in CI, where a test
 /// that quietly does not run is worse than no test at all.
 fn postgres() -> Option<String> {
-    match std::env::var("TEST_DATABASE_URL") {
-        Ok(address) => Some(address),
-        Err(_) => {
-            assert!(
-                std::env::var("CI").is_err(),
-                "CI has no TEST_DATABASE_URL, so the schema was never run"
-            );
+    let address = std::env::var("TEST_DATABASE_URL").ok();
 
-            None
-        }
-    }
+    assert!(
+        address.is_some() || std::env::var("CI").is_err(),
+        "CI has no TEST_DATABASE_URL, so the schema was never run"
+    );
+
+    address
 }
 
 /// A database of this test's own, migrated.

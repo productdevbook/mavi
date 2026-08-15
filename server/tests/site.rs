@@ -398,8 +398,20 @@ async fn what_a_site_may_take_is_read_and_not_set() {
     );
 }
 
+/// What `/api/site/usage` answers, fetched once and read from by whichever
+/// test is asking about one part of it.
+async fn usage_of(site: &Site) -> serde_json::Value {
+    let (status, body) = site
+        .send("GET", "/api/site/usage", Some(&site.token), None)
+        .await;
+
+    assert_eq!(status, StatusCode::OK, "{body}");
+
+    serde_json::from_str(&body).expect("json")
+}
+
 #[tokio::test]
-async fn what_the_site_is_holding_is_read_back_as_the_numbers_it_wrote() {
+async fn storage_and_rows_by_kind_are_read_back_as_what_was_written() {
     let site = a_site().await;
     let mut conn = site.db.tenant(site.tenant).await.expect("begin");
 
@@ -433,6 +445,46 @@ async fn what_the_site_is_holding_is_read_back_as_the_numbers_it_wrote() {
     .execute(conn.conn())
     .await
     .expect("media");
+
+    // `reltuples` is only as fresh as the last analyze; a test asserting an
+    // estimate has to ask for one rather than trust it arrived on its own.
+    sqlx::query("analyze posts")
+        .execute(conn.conn())
+        .await
+        .expect("analyze");
+    sqlx::query("analyze media")
+        .execute(conn.conn())
+        .await
+        .expect("analyze");
+
+    conn.commit().await.expect("commit");
+
+    let read = usage_of(&site).await;
+
+    assert_eq!(read["storage"]["used_bytes"], 5000, "{read}");
+
+    let by_kind = read["storage"]["by_kind"].as_array().expect("kinds");
+    let image = by_kind
+        .iter()
+        .find(|kind| kind["kind"] == "image")
+        .expect("an image kind");
+
+    assert_eq!(image["bytes"], 1000, "{read}");
+    assert_eq!(image["count"], 1, "{read}");
+
+    let rows = read["rows"].as_array().expect("rows");
+    let posts = rows
+        .iter()
+        .find(|row| row["kind"] == "posts")
+        .expect("a posts row");
+
+    assert_eq!(posts["approx_rows"], 3, "{read}");
+}
+
+#[tokio::test]
+async fn mail_attempted_delivered_bounced_and_failed_are_read_back() {
+    let site = a_site().await;
+    let mut conn = site.db.tenant(site.tenant).await.expect("begin");
 
     // Not attempted: still queued, nothing has tried it yet.
     sqlx::query(
@@ -482,6 +534,21 @@ async fn what_the_site_is_holding_is_read_back_as_the_numbers_it_wrote() {
     .await
     .expect("a delivery");
 
+    conn.commit().await.expect("commit");
+
+    let read = usage_of(&site).await;
+
+    assert_eq!(read["mail"]["attempted"], 3, "{read}");
+    assert_eq!(read["mail"]["delivered"], 1, "{read}");
+    assert_eq!(read["mail"]["bounced"], 1, "{read}");
+    assert_eq!(read["mail"]["failed"], 1, "{read}");
+}
+
+#[tokio::test]
+async fn builds_and_the_queue_are_read_back() {
+    let site = a_site().await;
+    let mut conn = site.db.tenant(site.tenant).await.expect("begin");
+
     sqlx::query(
         "insert into publishes (tenant_id, branch, state, seconds, finished_at)
          values ($1, 'live', 'live', 42, now())",
@@ -509,59 +576,18 @@ async fn what_the_site_is_holding_is_read_back_as_the_numbers_it_wrote() {
     .await
     .expect("a running job");
 
-    // `reltuples` is only as fresh as the last analyze; a test asserting an
-    // estimate has to ask for one rather than trust it arrived on its own.
-    sqlx::query("analyze posts")
-        .execute(conn.conn())
-        .await
-        .expect("analyze");
-    sqlx::query("analyze media")
-        .execute(conn.conn())
-        .await
-        .expect("analyze");
-
     conn.commit().await.expect("commit");
 
-    let (status, body) = site
-        .send("GET", "/api/site/usage", Some(&site.token), None)
-        .await;
+    let read = usage_of(&site).await;
 
-    assert_eq!(status, StatusCode::OK, "{body}");
+    assert_eq!(read["builds"][0]["state"], "live", "{read}");
+    assert_eq!(read["builds"][0]["seconds"], 42, "{read}");
 
-    let read: serde_json::Value = serde_json::from_str(&body).expect("json");
-
-    assert_eq!(read["storage"]["used_bytes"], 5000, "{body}");
-
-    let by_kind = read["storage"]["by_kind"].as_array().expect("kinds");
-    let image = by_kind
-        .iter()
-        .find(|kind| kind["kind"] == "image")
-        .expect("an image kind");
-
-    assert_eq!(image["bytes"], 1000, "{body}");
-    assert_eq!(image["count"], 1, "{body}");
-
-    let rows = read["rows"].as_array().expect("rows");
-    let posts = rows
-        .iter()
-        .find(|row| row["kind"] == "posts")
-        .expect("a posts row");
-
-    assert_eq!(posts["approx_rows"], 3, "{body}");
-
-    assert_eq!(read["mail"]["attempted"], 3, "{body}");
-    assert_eq!(read["mail"]["delivered"], 1, "{body}");
-    assert_eq!(read["mail"]["bounced"], 1, "{body}");
-    assert_eq!(read["mail"]["failed"], 1, "{body}");
-
-    assert_eq!(read["builds"][0]["state"], "live", "{body}");
-    assert_eq!(read["builds"][0]["seconds"], 42, "{body}");
-
-    assert_eq!(read["queue"]["waiting"], 1, "{body}");
-    assert_eq!(read["queue"]["running"], 1, "{body}");
+    assert_eq!(read["queue"]["waiting"], 1, "{read}");
+    assert_eq!(read["queue"]["running"], 1, "{read}");
     assert!(
         read["queue"]["oldest_waiting_since"].is_string(),
-        "the wait had no age: {body}"
+        "the wait had no age: {read}"
     );
 }
 

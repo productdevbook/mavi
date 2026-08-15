@@ -51,9 +51,10 @@ jobs:
                 - 'server/**'
                 - 'crates/**'
 
-  # What `server/` is being rewritten into, one crate at a time. It has no
-  # database yet, so this is seconds rather than minutes — and it stays that
-  # way for exactly as long as the foundation has nothing to store.
+  # What `server/` is being rewritten into, one crate at a time. Most of it is
+  # vocabulary and runs in seconds; the schema is the part that has to meet a
+  # real Postgres, because a check constraint nothing ever ran is a claim
+  # rather than a rule.
   crates:
     needs: what
     if: needs.what.outputs.skip != 'true' && !fromJSON(needs.what.outputs.paths).crates.should_skip
@@ -63,11 +64,28 @@ jobs:
       run:
         working-directory: crates
     env:
+      TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5434/mavi_crates
       CARGO_PROFILE_DEV_DEBUG: 0
       CARGO_PROFILE_TEST_DEBUG: 0
       CARGO_INCREMENTAL: 0
     steps:
       - uses: actions/checkout@v4
+
+      # Its own port, so that running beside the `server` job's Postgres is
+      # two databases rather than one race.
+      - name: A Postgres that is not protecting anything
+        run: |
+          docker run -d --name pgcrates \
+            --tmpfs /var/lib/postgresql/data:rw,size=2g \
+            -p 5434:5432 \
+            -e POSTGRES_PASSWORD=postgres \
+            -e POSTGRES_DB=mavi_crates \
+            -e PGDATA=/var/lib/postgresql/data/pgdata \
+            postgres:18-alpine \
+            -c fsync=off \
+            -c synchronous_commit=off \
+            -c full_page_writes=off
+          until docker exec pgcrates pg_isready -U postgres >/dev/null 2>&1; do sleep 1; done
 
       - uses: dtolnay/rust-toolchain@stable
         with:

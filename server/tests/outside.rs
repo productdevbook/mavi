@@ -453,7 +453,7 @@ fn a_schedule_for_a_job_never_handed_in_is_refused() {
 /// in: a policy naming a sweep with no job for it is a table nobody empties.
 #[test]
 fn an_outside_retention_policy_is_held_to_the_same_gate() {
-    use mavi::kernel::retention::{self, Keeps, Policy};
+    use mavi::retention::{self, Keeps, Policy};
 
     let outside = Outside {
         jobs: vec![("outside.ledger.sweep", run_beacon)],

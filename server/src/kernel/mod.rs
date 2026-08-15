@@ -12,7 +12,6 @@ pub mod clock;
 pub mod config;
 pub mod crypto;
 pub mod db;
-pub mod domain;
 pub mod error;
 pub mod events;
 pub mod http;
@@ -39,6 +38,7 @@ pub mod trash;
 pub mod types;
 pub mod typescript;
 pub mod webhook;
+pub mod wiring;
 pub mod worker;
 
 pub use config::{Address, Config};

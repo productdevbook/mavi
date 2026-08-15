@@ -592,7 +592,7 @@ mod tests {
     /// data ends up in a table nobody thought to look in.
     #[test]
     fn everything_a_person_is_in_has_a_retention_policy() {
-        use crate::kernel::retention;
+        use crate::retention;
 
         for (table, _) in ABOUT_A_PERSON {
             assert!(

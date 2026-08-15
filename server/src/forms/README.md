@@ -21,7 +21,7 @@ read it; the answers stay on the site.
 them, because that number is the form's to choose.
 
 **Retention.** `retention_days` on the form, between one day and ten years,
-365 by default. Registered in `kernel::retention`, which a test reads: a table
+365 by default. Registered in `retention`, which a test reads: a table
 holding somebody's own words and no policy fails the build.
 
 **Rate limit.** Twenty submissions a minute per address per form. A form is the

@@ -18,16 +18,17 @@ use uuid::Uuid;
 
 use crate::kernel::audit::{self, Actor, Auditable, Audited};
 use crate::kernel::authz::{Access, Capability, Needs, Permit};
-use crate::kernel::db::Tx;
+use crate::kernel::db::{Db, Tx};
 use crate::kernel::error::{AppError, Result};
 use crate::kernel::http::{
-    AppState, Audience, Caller, Endpoint, Guard, RatePolicy, STUDENT_COOKIE,
+    AppState, Audience, Caller, Endpoint, Guard, RatePolicy, STUDENT_COOKIE, SignedInStudent,
 };
 use crate::kernel::page::{Page, Query, older_than};
 use crate::kernel::ratelimit::Limit;
 use crate::kernel::say;
 use crate::kernel::secret::{Secret, Shown};
 use crate::kernel::types::{Email, Slug, Title};
+use crate::kernel::wiring::Answers;
 use crate::kernel::{password, token};
 
 const SESSION_DAYS: i64 = 30;
@@ -1523,6 +1524,45 @@ pub struct Watching {
     /// What to play, where there is one and this person may watch it.
     pub video_id: Option<Uuid>,
     pub done: bool,
+}
+
+/// Whoever a student's cookie belongs to, and nobody if the session has been
+/// revoked, has run out, or the student is no longer on the site.
+///
+/// Handed to the kernel rather than read by it: `student_sessions` is this
+/// module's table, and a kernel that read it would be a kernel that has to know
+/// there are students at all.
+#[must_use]
+pub fn a_student<'a>(db: &'a Db, token: &'a str) -> Answers<'a, Option<SignedInStudent>> {
+    Box::pin(whose_session(db, token))
+}
+
+async fn whose_session(db: &Db, token: &str) -> Result<Option<SignedInStudent>> {
+    let hash = token::hash(token);
+    let mut conn = db.begin().await?;
+
+    let row: Option<(Uuid, Uuid)> = sqlx::query_as(
+        "update student_sessions s
+            set last_seen_at = now()
+           from students t
+          where s.token_hash = $1
+            and s.student_id = t.id
+            and s.revoked_at is null
+            and s.expires_at > now()
+            and t.state = 'active'
+            and t.deleted_at is null
+         returning s.id, t.id",
+    )
+    .bind(&hash[..])
+    .fetch_optional(conn.conn())
+    .await?;
+
+    conn.commit().await?;
+
+    Ok(row.map(|(session_id, student_id)| SignedInStudent {
+        student_id,
+        session_id,
+    }))
 }
 
 /// Signing out, which is the student's own session and nothing else.

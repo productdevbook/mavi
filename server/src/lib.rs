@@ -11,6 +11,7 @@ pub mod auth;
 pub mod boards;
 pub mod building;
 pub mod content;
+pub mod domain;
 pub mod edge;
 pub mod flows;
 pub mod forms;
@@ -29,6 +30,7 @@ pub mod portable;
 pub mod publishing;
 pub mod recover;
 pub mod reports;
+pub mod retention;
 pub mod setup;
 pub mod shop;
 pub mod site;
@@ -39,6 +41,65 @@ pub mod trash;
 pub mod webhooks;
 
 use kernel::http::{AppState, Endpoint};
+use kernel::wiring::{Answers, Wiring};
+
+/// What the kernel is handed: what serves a page, what takes work off the
+/// queue, what follows an event, who a student's cookie belongs to, and what
+/// describes the whole of it.
+///
+/// The kernel needs each of these to happen and knows what none of them are.
+/// This is the one place that says which of this crate's modules does which —
+/// so a domain is reached from above rather than reached for from below.
+#[must_use]
+pub fn wiring() -> Wiring {
+    Wiring {
+        // Anything that is not one of the endpoints is one of the site's pages.
+        otherwise: Some(axum::Router::new().fallback(edge::serve)),
+        takes_work: Some(takes_work),
+        keeps_time: Some(keeps_time),
+        follows_an_event: vec![webhooks::after_an_event, flows::after_an_event],
+        names_an_event: Some(domain::of_event),
+        a_student: Some(learning::a_student),
+        describes: Some(openapi_with),
+    }
+}
+
+fn takes_work<'a>(state: &'a AppState, worker: &'a str) -> Answers<'a, bool> {
+    Box::pin(jobs::tick(state, worker))
+}
+
+fn keeps_time(state: &AppState) -> Answers<'_, ()> {
+    Box::pin(jobs::schedule_due(state))
+}
+
+impl AppState {
+    /// A state for whatever has nothing to hand in: the environment, read here,
+    /// and this crate's own wiring.
+    ///
+    /// [`AppState::new_with`] is the one to build a state with where any of
+    /// that is somebody else's to decide.
+    #[must_use]
+    pub fn new(db: kernel::db::Db) -> Self {
+        // `start` says this in prose before anything reaches here; this is the
+        // same refusal for whatever builds a state without going through it. A
+        // key that was meant and mistyped is not a key to fall back from.
+        let keyring = kernel::crypto::Keyring::from_the_environment()
+            .unwrap_or_else(|why| panic!("MAVI_KEYS: {why}"));
+
+        // The same distinction, for the same reason: an address that was meant
+        // and mistyped is refused here, and one nobody gave falls back to the
+        // obviously invented one. Not the silence #18 was — what a machine
+        // anybody can reach runs through is `start`, and that refuses to come
+        // up without a real one.
+        let address = kernel::config::Address::from_the_environment()
+            .unwrap_or_else(|why| panic!("MAVI_URL: {why}"))
+            .unwrap_or_else(kernel::config::Address::invented);
+
+        let mut state = Self::new_with(db, kernel::Config::from_env(keyring, address));
+        state.wiring = std::sync::Arc::new(wiring());
+        state
+    }
+}
 
 /// Everything reachable. A domain not in this list is not served.
 #[must_use]
@@ -73,7 +134,7 @@ pub fn endpoints() -> Vec<Endpoint> {
 /// rather than once for each of them.
 fn within(domain: &'static str, endpoints: Vec<Endpoint>) -> Vec<Endpoint> {
     assert!(
-        kernel::domain::known(domain),
+        crate::domain::known(domain),
         "{domain} is not one of the domains this is made of"
     );
 
@@ -107,7 +168,7 @@ fn outside_endpoints(outside: &kernel::outside::Outside) -> Vec<Endpoint> {
         );
 
         assert!(
-            !kernel::domain::known(endpoint.domain()),
+            !crate::domain::known(endpoint.domain()),
             "{} is one of this crate's own domains and cannot be claimed from outside it",
             endpoint.domain()
         );

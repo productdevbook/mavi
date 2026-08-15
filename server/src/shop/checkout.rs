@@ -786,7 +786,7 @@ async fn paid_callback(
                 .execute(conn.conn())
                 .await?;
 
-            events::emit(&mut conn, "order.paid", &order).await?;
+            events::emit(&state, &mut conn, "order.paid", &order).await?;
             told_the_customer_it_was_paid(&mut conn, &state, &order).await?;
         }
     }
@@ -1044,7 +1044,7 @@ async fn moved(
         put_back(&mut conn, id).await?;
     }
 
-    events::emit(&mut conn, event, &after).await?;
+    events::emit(state, &mut conn, event, &after).await?;
 
     if next == OrderState::Paid {
         told_the_customer_it_was_paid(&mut conn, state, &after).await?;
@@ -1255,7 +1255,7 @@ pub async fn reconcile(state: &AppState) -> Result<u64> {
                 .execute(conn.conn())
                 .await?;
 
-            events::emit(&mut conn, "order.paid", &order).await?;
+            events::emit(state, &mut conn, "order.paid", &order).await?;
             told_the_customer_it_was_paid(&mut conn, state, &order).await?;
 
             put_right += 1;
@@ -1299,6 +1299,7 @@ pub async fn warn_on_low_stock(state: &AppState) -> Result<u64> {
 
     for product in &low {
         events::emit(
+            state,
             &mut conn,
             "stock.low",
             &LowStock {

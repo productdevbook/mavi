@@ -19,7 +19,7 @@ use super::scheduler::Every;
 pub type JobFuture<'a> = Pin<Box<dyn Future<Output = Result<()>> + Send + 'a>>;
 
 /// Runs a job of a kind nothing in this crate declares. Takes the same two
-/// things [`crate::jobs::run`] does, and answers the same way.
+/// things whatever runs this crate's own kinds does, and answers the same way.
 pub type JobFn = for<'a> fn(&'a AppState, &'a Job) -> JobFuture<'a>;
 
 /// Endpoints and job kinds handed in from outside this crate.
@@ -45,14 +45,13 @@ pub struct Outside {
     /// checksum, and migrating refuses to run at all.
     pub migrations: Option<sqlx::migrate::Migrator>,
     /// How often one of `jobs` runs on its own, rather than in answer to a
-    /// request. Every kind named here must also be a kind in `jobs` —
-    /// checked at startup, in [`crate::jobs::kinds`] — because a schedule for
-    /// a job nobody handed in is work that queues and nothing ever claims.
+    /// request. Every kind named here must also be a kind in `jobs` — checked
+    /// at startup, wherever the kinds of work are gathered — because a schedule
+    /// for a job nobody handed in is work that queues and nothing ever claims.
     pub schedules: Vec<(&'static str, Every)>,
     /// Retention policies for tables an outside crate owns, held to the same
-    /// rule this crate's own [`POLICIES`](super::retention::POLICIES) are:
-    /// every one must name a sweep that is a real job kind, checked wherever
-    /// this crate checks its own.
+    /// rule this crate's own are: every one must name a sweep that is a real
+    /// job kind, checked wherever this crate checks its own.
     pub policies: Vec<Policy>,
 }
 

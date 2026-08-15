@@ -49,6 +49,9 @@ pub async fn start(mut outside: Outside) -> Result<(), Box<dyn std::error::Error
     // one is a global every caller of this crate would inherit.
     let mut state = AppState::new_with(db, Config::from_env(keyring, address));
     state.outside = std::sync::Arc::new(outside);
+    // What the kernel is to serve, run and announce with. Handed in here, where
+    // everything else this process is made of is decided.
+    state.wiring = std::sync::Arc::new(crate::wiring());
     // Set where something in front is known to be rewriting the header; unset
     // it is not believed at all.
     state.proxy_hops = env::var("PROXY_HOPS")

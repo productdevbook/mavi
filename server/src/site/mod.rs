@@ -405,16 +405,26 @@ async fn read_rows(conn: &mut TenantConn) -> Result<Vec<RowCount>> {
            from pg_class c
            join pg_namespace n on n.oid = c.relnamespace
           where n.nspname = current_schema()
-            and c.relname = any($1::text[])
-          order by array_position($1::text[], c.relname)",
+            and c.relname = any($1::text[])",
     )
     .bind(ROW_KINDS)
     .fetch_all(conn.conn())
     .await?;
 
-    let mut rows = Vec::with_capacity(estimated.len());
+    let mut rows = Vec::with_capacity(ROW_KINDS.len());
 
-    for guess in estimated {
+    // Walking `ROW_KINDS` itself, rather than what came back from the query
+    // above, is what lets `{kind}` go straight into a query below: `kind` is
+    // bound by this loop over a constant this crate wrote, the same rule
+    // `gather` and `erase` splice a table name under, and never a value a
+    // caller sent — even though every `estimated[_].kind` could only ever be
+    // one of these same names too, nothing here traces that back to prove it.
+    for &kind in ROW_KINDS {
+        let guess = estimated
+            .iter()
+            .find(|row| row.kind == kind)
+            .map_or(0.0, |row| row.reltuples);
+
         // Negative means "never analyzed" (Postgres 14 on; this crate's tests
         // run against 18) rather than "confirmed empty", so it is floored to
         // zero before the comparison rather than trusted as a count.
@@ -423,27 +433,33 @@ async fn read_rows(conn: &mut TenantConn) -> Result<Vec<RowCount>> {
             reason = "reltuples never approaches i64's range; this rounds a whole \
                       number a planner stored as a float back to an integer"
         )]
-        let estimate = guess.reltuples.max(0.0).round() as i64;
+        let estimate = guess.max(0.0).round() as i64;
 
         if estimate >= COUNT_BELOW {
             rows.push(RowCount {
-                kind: guess.kind,
+                kind: kind.to_owned(),
                 rows: estimate,
                 exact: false,
             });
             continue;
         }
 
-        // Both come from `ROW_KINDS`, a constant this crate wrote, and never
-        // from a caller — the same rule `gather` and `erase` below splice a
-        // table name under.
-        let (counted,): (i64,) =
-            sqlx::query_as(&format!("select count(*)::bigint from {}", guess.kind))
-                .fetch_one(conn.conn())
-                .await?;
+        // A table this small (or never analyzed, which reads as small) costs
+        // nothing to walk, and counting it is always correct — the only
+        // question a wrong branch here could raise is speed, never a wrong
+        // answer. The one way this stays slow is a table that grew past
+        // `COUNT_BELOW` in one burst faster than autovacuum could react,
+        // which needs roughly fifty rows plus a tenth of the table's own
+        // size to trigger and runs on the order of a minute: an install
+        // writing content one post or order at a time never outruns it, and
+        // a bulk import that does is answered slowly exactly once — the load
+        // right after is back to the estimate.
+        let (counted,): (i64,) = sqlx::query_as(&format!("select count(*)::bigint from {kind}"))
+            .fetch_one(conn.conn())
+            .await?;
 
         rows.push(RowCount {
-            kind: guess.kind,
+            kind: kind.to_owned(),
             rows: counted,
             exact: true,
         });

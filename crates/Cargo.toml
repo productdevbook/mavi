@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["mavi-core", "mavi-db", "mavi-api", "mavi-content", "mavi-people", "mavi-http", "mavi-taxonomy", "mavi-media", "mavi-forms", "mavi-mail", "mavi-work", "mavi-audit", "mavi-settings", "mavi-shop", "mavi-courses", "mavi-flows", "mavi-design", "mavi-boards", "mavi-everything"]
+members = ["mavi-core", "mavi-db", "mavi-api", "mavi-content", "mavi-people", "mavi-http", "mavi-taxonomy", "mavi-media", "mavi-forms", "mavi-mail", "mavi-work", "mavi-audit", "mavi-settings", "mavi-shop", "mavi-courses", "mavi-flows", "mavi-design", "mavi-boards", "mavi-everything", "mavi-serve"]
 
 # One place, so a member cannot quietly hold a different version of the thing
 # beside it. A member names the dependency and says `workspace = true`.
@@ -9,6 +9,8 @@ chrono = { version = "0.4", default-features = false, features = ["serde", "cloc
 rust_decimal = { version = "1", features = ["serde-with-str"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+axum = { version = "0.8", default-features = false, features = ["json", "http1", "tokio"] }
+tower = { version = "0.5", features = ["util"] }
 sqlx = { version = "0.8", default-features = false, features = [
   "runtime-tokio-rustls",
   "postgres",

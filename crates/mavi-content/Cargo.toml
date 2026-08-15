@@ -1,0 +1,23 @@
+[package]
+name = "mavi-content"
+version = "0.0.0"
+edition = "2024"
+publish = false
+description = "What a site writes: posts, pages, and whatever else it decides a thing is."
+
+[dependencies]
+mavi-api = { path = "../mavi-api" }
+mavi-core = { path = "../mavi-core" }
+mavi-db = { path = "../mavi-db" }
+
+chrono = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sqlx = { workspace = true }
+uuid = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt"] }
+
+[lints]
+workspace = true

@@ -908,7 +908,8 @@ export interface RoleChanges {
 
 export interface RowCount {
   kind: string;
-  approx_rows: number;
+  rows: number;
+  exact: boolean;
 }
 
 export interface Run {

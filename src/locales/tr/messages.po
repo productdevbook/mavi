@@ -618,7 +618,7 @@ msgstr "{0} kendi belgeleri"
 #. placeholder {0}: answer.builds[0].seconds
 #. placeholder {0}: build.seconds
 #: src/routes/dashboard.usage.tsx:132
-#: src/routes/dashboard.usage.tsx:206
+#: src/routes/dashboard.usage.tsx:210
 msgid "{0}s"
 msgstr "{0} sn"
 
@@ -1864,7 +1864,7 @@ msgstr "En az on iki karakter."
 msgid "At least twelve characters. Everything else that was open closes when you do this."
 msgstr "En az on iki karakter. Bunu yaptığınızda açık olan diğer her şey kapanır."
 
-#: src/routes/dashboard.usage.tsx:241
+#: src/routes/dashboard.usage.tsx:245
 msgid "Attempted"
 msgstr "Denenen"
 
@@ -2092,7 +2092,7 @@ msgstr "Kalın"
 #~ msgid "Bot token"
 #~ msgstr "Bot jetonu"
 
-#: src/routes/dashboard.usage.tsx:247
+#: src/routes/dashboard.usage.tsx:251
 msgid "Bounced"
 msgstr "Geri dönen"
 
@@ -3352,7 +3352,7 @@ msgstr "Panel"
 #~ msgid "days after they start"
 #~ msgstr "başladıktan kaç gün sonra"
 
-#: src/routes/dashboard.usage.tsx:231
+#: src/routes/dashboard.usage.tsx:235
 msgid "Dead"
 msgstr "Ölü"
 
@@ -3458,7 +3458,7 @@ msgstr "Bu dosya silinsin mi?"
 #~ msgid "deleted by {0}"
 #~ msgstr "{0} sildi"
 
-#: src/routes/dashboard.usage.tsx:245
+#: src/routes/dashboard.usage.tsx:249
 msgid "Delivered"
 msgstr "Teslim edilen"
 
@@ -3759,8 +3759,12 @@ msgid "Enter the six digits from your authenticator."
 msgstr "Kimlik doğrulayıcınızdaki altı basamağı girin."
 
 #: src/routes/dashboard.usage.tsx:164
-msgid "Estimated, not counted"
-msgstr "Tahmini, sayılmamış"
+#~ msgid "Estimated, not counted"
+#~ msgstr "Tahmini, sayılmamış"
+
+#: src/routes/dashboard.usage.tsx:177
+msgid "Estimated, on a table this large"
+msgstr "Bu kadar büyük bir tabloda tahmini"
 
 #: src/routes/dashboard.mail.tsx:822
 #~ msgid "Events arrive once the pipeline is wired up, under the mail plugin's settings. Until then a bounce is only discovered by the next campaign running into it."
@@ -3903,8 +3907,8 @@ msgstr "Özet"
 #~ msgid "failed"
 #~ msgstr "başarısız"
 
-#: src/routes/dashboard.usage.tsx:226
-#: src/routes/dashboard.usage.tsx:252
+#: src/routes/dashboard.usage.tsx:230
+#: src/routes/dashboard.usage.tsx:256
 msgid "Failed"
 msgstr "Başarısız"
 
@@ -3971,7 +3975,7 @@ msgid "Find…"
 msgstr "Ara…"
 
 #: src/learn/app.tsx:390
-#: src/routes/dashboard.usage.tsx:195
+#: src/routes/dashboard.usage.tsx:199
 msgid "Finished"
 msgstr "Bitti"
 
@@ -5164,7 +5168,7 @@ msgstr "Küçük harf, harf, rakam ve tire. Bir kişinin hesabı bunun altında 
 #: src/routes/dashboard.mail.tsx:180
 #: src/routes/dashboard.plugins.tsx:62
 #: src/routes/dashboard.roles.tsx:171
-#: src/routes/dashboard.usage.tsx:238
+#: src/routes/dashboard.usage.tsx:242
 msgid "Mail"
 msgstr "Posta"
 
@@ -6051,7 +6055,7 @@ msgstr "Henüz anahtar verilmedi."
 
 #: src/routes/dashboard.design.tsx:171
 #: src/routes/dashboard.publish.tsx:94
-#: src/routes/dashboard.usage.tsx:186
+#: src/routes/dashboard.usage.tsx:190
 msgid "Nothing has been published yet."
 msgstr "Henüz hiçbir şey yayınlanmadı."
 
@@ -7111,7 +7115,7 @@ msgstr "Geri al"
 #~ msgid "Put this in a .env beside the project. It points at the live site, so what a designer sees on their machine is what is actually written here."
 #~ msgstr "Bunu projenin yanına bir .env dosyasına koyun. Canlı siteyi gösterir; tasarımcının kendi makinesinde gördüğü, burada gerçekten yazılmış olandır."
 
-#: src/routes/dashboard.usage.tsx:221
+#: src/routes/dashboard.usage.tsx:225
 msgid "Queue"
 msgstr "Kuyruk"
 
@@ -7201,7 +7205,7 @@ msgstr "Hazır"
 #~ msgid "Real money"
 #~ msgstr "Gerçek para"
 
-#: src/routes/dashboard.usage.tsx:183
+#: src/routes/dashboard.usage.tsx:187
 msgid "Recent builds"
 msgstr "Son derlemeler"
 
@@ -7519,7 +7523,7 @@ msgstr "Bunu çalıştırın. Adresin giriş istediğini fark edip girişi kendi
 #~ msgid "running"
 #~ msgstr "çalışıyor"
 
-#: src/routes/dashboard.usage.tsx:224
+#: src/routes/dashboard.usage.tsx:228
 msgid "Running"
 msgstr "Çalışan"
 
@@ -8345,7 +8349,7 @@ msgstr "Yazmaya başla veya komutlar için “/” yaz…"
 #~ msgid "Started and not finished — finish paying or it simply lapses."
 #~ msgstr "Başlatıldı ama bitirilmedi — ödemeyi tamamlayın, yoksa kendiliğinden düşer."
 
-#: src/routes/dashboard.usage.tsx:193
+#: src/routes/dashboard.usage.tsx:197
 msgid "State"
 msgstr "Durum"
 
@@ -9540,7 +9544,7 @@ msgstr "Bugünün tarihi"
 #~ msgid "Tokens"
 #~ msgstr "Jetonlar"
 
-#: src/routes/dashboard.usage.tsx:194
+#: src/routes/dashboard.usage.tsx:198
 msgid "Took"
 msgstr "Süre"
 
@@ -9861,7 +9865,7 @@ msgstr "Ziyaretçiler"
 #~ msgstr "bekliyor"
 
 #: src/routes/dashboard.publish.tsx:69
-#: src/routes/dashboard.usage.tsx:223
+#: src/routes/dashboard.usage.tsx:227
 #: src/routes/dashboard.videos.tsx:111
 msgid "Waiting"
 msgstr "Bekleyen"

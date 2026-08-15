@@ -618,7 +618,7 @@ msgstr "{0}'s own instructions"
 #. placeholder {0}: answer.builds[0].seconds
 #. placeholder {0}: build.seconds
 #: src/routes/dashboard.usage.tsx:132
-#: src/routes/dashboard.usage.tsx:206
+#: src/routes/dashboard.usage.tsx:210
 msgid "{0}s"
 msgstr "{0}s"
 
@@ -1864,7 +1864,7 @@ msgstr "At least twelve characters."
 msgid "At least twelve characters. Everything else that was open closes when you do this."
 msgstr "At least twelve characters. Everything else that was open closes when you do this."
 
-#: src/routes/dashboard.usage.tsx:241
+#: src/routes/dashboard.usage.tsx:245
 msgid "Attempted"
 msgstr "Attempted"
 
@@ -2092,7 +2092,7 @@ msgstr "Bold"
 #~ msgid "Bot token"
 #~ msgstr "Bot token"
 
-#: src/routes/dashboard.usage.tsx:247
+#: src/routes/dashboard.usage.tsx:251
 msgid "Bounced"
 msgstr "Bounced"
 
@@ -3352,7 +3352,7 @@ msgstr "Dashboard"
 #~ msgid "days after they start"
 #~ msgstr "days after they start"
 
-#: src/routes/dashboard.usage.tsx:231
+#: src/routes/dashboard.usage.tsx:235
 msgid "Dead"
 msgstr "Dead"
 
@@ -3458,7 +3458,7 @@ msgstr "Delete this file?"
 #~ msgid "deleted by {0}"
 #~ msgstr "deleted by {0}"
 
-#: src/routes/dashboard.usage.tsx:245
+#: src/routes/dashboard.usage.tsx:249
 msgid "Delivered"
 msgstr "Delivered"
 
@@ -3759,8 +3759,12 @@ msgid "Enter the six digits from your authenticator."
 msgstr "Enter the six digits from your authenticator."
 
 #: src/routes/dashboard.usage.tsx:164
-msgid "Estimated, not counted"
-msgstr "Estimated, not counted"
+#~ msgid "Estimated, not counted"
+#~ msgstr "Estimated, not counted"
+
+#: src/routes/dashboard.usage.tsx:177
+msgid "Estimated, on a table this large"
+msgstr "Estimated, on a table this large"
 
 #: src/routes/dashboard.mail.tsx:822
 #~ msgid "Events arrive once the pipeline is wired up, under the mail plugin's settings. Until then a bounce is only discovered by the next campaign running into it."
@@ -3903,8 +3907,8 @@ msgstr "Excerpt"
 #~ msgid "failed"
 #~ msgstr "failed"
 
-#: src/routes/dashboard.usage.tsx:226
-#: src/routes/dashboard.usage.tsx:252
+#: src/routes/dashboard.usage.tsx:230
+#: src/routes/dashboard.usage.tsx:256
 msgid "Failed"
 msgstr "Failed"
 
@@ -3971,7 +3975,7 @@ msgid "Find…"
 msgstr "Find…"
 
 #: src/learn/app.tsx:390
-#: src/routes/dashboard.usage.tsx:195
+#: src/routes/dashboard.usage.tsx:199
 msgid "Finished"
 msgstr "Finished"
 
@@ -5164,7 +5168,7 @@ msgstr "Lower-case, letters, digits and dashes. This is what a person's account 
 #: src/routes/dashboard.mail.tsx:180
 #: src/routes/dashboard.plugins.tsx:62
 #: src/routes/dashboard.roles.tsx:171
-#: src/routes/dashboard.usage.tsx:238
+#: src/routes/dashboard.usage.tsx:242
 msgid "Mail"
 msgstr "Mail"
 
@@ -6051,7 +6055,7 @@ msgstr "Nothing has been handed over."
 
 #: src/routes/dashboard.design.tsx:171
 #: src/routes/dashboard.publish.tsx:94
-#: src/routes/dashboard.usage.tsx:186
+#: src/routes/dashboard.usage.tsx:190
 msgid "Nothing has been published yet."
 msgstr "Nothing has been published yet."
 
@@ -7111,7 +7115,7 @@ msgstr "Put it back"
 #~ msgid "Put this in a .env beside the project. It points at the live site, so what a designer sees on their machine is what is actually written here."
 #~ msgstr "Put this in a .env beside the project. It points at the live site, so what a designer sees on their machine is what is actually written here."
 
-#: src/routes/dashboard.usage.tsx:221
+#: src/routes/dashboard.usage.tsx:225
 msgid "Queue"
 msgstr "Queue"
 
@@ -7201,7 +7205,7 @@ msgstr "Ready"
 #~ msgid "Real money"
 #~ msgstr "Real money"
 
-#: src/routes/dashboard.usage.tsx:183
+#: src/routes/dashboard.usage.tsx:187
 msgid "Recent builds"
 msgstr "Recent builds"
 
@@ -7519,7 +7523,7 @@ msgstr "Run this. It notices that the address asks for a sign-in and opens one."
 #~ msgid "running"
 #~ msgstr "running"
 
-#: src/routes/dashboard.usage.tsx:224
+#: src/routes/dashboard.usage.tsx:228
 msgid "Running"
 msgstr "Running"
 
@@ -8345,7 +8349,7 @@ msgstr "Start writing, or type “/” for commands…"
 #~ msgid "Started and not finished — finish paying or it simply lapses."
 #~ msgstr "Started and not finished — finish paying or it simply lapses."
 
-#: src/routes/dashboard.usage.tsx:193
+#: src/routes/dashboard.usage.tsx:197
 msgid "State"
 msgstr "State"
 
@@ -9540,7 +9544,7 @@ msgstr "Today's date"
 #~ msgid "Tokens"
 #~ msgstr "Tokens"
 
-#: src/routes/dashboard.usage.tsx:194
+#: src/routes/dashboard.usage.tsx:198
 msgid "Took"
 msgstr "Took"
 
@@ -9861,7 +9865,7 @@ msgstr "Visitors"
 #~ msgstr "waiting"
 
 #: src/routes/dashboard.publish.tsx:69
-#: src/routes/dashboard.usage.tsx:223
+#: src/routes/dashboard.usage.tsx:227
 #: src/routes/dashboard.videos.tsx:111
 msgid "Waiting"
 msgstr "Waiting"

@@ -7418,7 +7418,7 @@
                       "items": {
                         "$ref": "#/components/schemas/RowCount"
                       },
-                      "description": "How many rows of each kind, estimated rather than counted: see\n`RowCount`."
+                      "description": "How many rows of each kind: see `RowCount`."
                     },
                     "mail": {
                       "$ref": "#/components/schemas/MailUsage"
@@ -12326,18 +12326,22 @@
       },
       "RowCount": {
         "type": "object",
-        "description": "Rows of one kind, estimated from what Postgres already tracks for its own\nplanner rather than counted fresh on every load. `reltuples` is refreshed\nby autovacuum without a table having to be walked for this alone; it lags\nwhatever has not been analyzed since the last change, which is close\nenough for \"how big has this gotten\" and is not offered as anything more\nexact than that.",
+        "description": "Rows of one kind. `exact` says which promise `rows` is making: a table\nsmall enough that counting it costs nothing is counted outright, and only\na table too big to walk on every load falls back to what Postgres already\ntracks for its own planner. See `COUNT_BELOW` for where that line is and\nwhy.",
         "required": [
           "kind",
-          "approx_rows"
+          "rows",
+          "exact"
         ],
         "properties": {
           "kind": {
             "type": "string"
           },
-          "approx_rows": {
+          "rows": {
             "type": "integer",
             "format": "int64"
+          },
+          "exact": {
+            "type": "boolean"
           }
         }
       },
@@ -13174,7 +13178,7 @@
             "items": {
               "$ref": "#/components/schemas/RowCount"
             },
-            "description": "How many rows of each kind, estimated rather than counted: see\n`RowCount`."
+            "description": "How many rows of each kind: see `RowCount`."
           },
           "mail": {
             "$ref": "#/components/schemas/MailUsage"

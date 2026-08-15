@@ -453,17 +453,10 @@ async fn storage_and_rows_by_kind_are_read_back_as_what_was_written() {
     .await
     .expect("media");
 
-    // `reltuples` is only as fresh as the last analyze; a test asserting an
-    // estimate has to ask for one rather than trust it arrived on its own.
-    sqlx::query("analyze posts")
-        .execute(conn.conn())
-        .await
-        .expect("analyze");
-    sqlx::query("analyze media")
-        .execute(conn.conn())
-        .await
-        .expect("analyze");
-
+    // No `analyze`, on purpose: a table this small has usually never had one
+    // run against it, and that used to be exactly when this screen was
+    // wrong — `reltuples` reads `-1` on a table nothing has looked at, and
+    // an earlier version of this endpoint read that back as zero rows.
     conn.commit().await.expect("commit");
 
     let read = usage_of(&site).await;
@@ -485,17 +478,50 @@ async fn storage_and_rows_by_kind_are_read_back_as_what_was_written() {
         .find(|row| row["kind"] == "posts")
         .expect("a posts row");
 
-    // `reltuples` is a whole-table estimate, not a per-tenant one — nothing in
-    // Postgres's own catalog is scoped to a tenant, only what RLS filters on a
-    // real read. On a real install that is exactly the same number, because
-    // `/api/setup` is the only place a tenant is ever made and there is never
-    // a second one; in this test's shared database other tests are writing
-    // posts of their own into the same physical table at the same time, so
-    // this asserts "at least what was written" rather than "exactly".
-    let approx_rows = posts["approx_rows"].as_i64().expect("a number");
+    // Three written, three read back — not an estimate rounded down to
+    // nothing because nothing has analyzed this table yet.
+    assert_eq!(posts["rows"], 3, "{read}");
+    assert_eq!(posts["exact"], true, "{read}");
+}
+
+#[tokio::test]
+async fn rows_past_the_threshold_are_estimated_rather_than_counted() {
+    let site = a_site().await;
+    let mut conn = site.db.tenant(site.tenant).await.expect("begin");
+
+    // One statement, not one row at a time: this is standing a table up past
+    // the threshold to prove the estimate branch, not testing the insert.
+    sqlx::query(
+        "insert into media (tenant_id, location, original_name, mime, bytes, checksum)
+         select $1, 'bulk/' || g, 'bulk.bin', 'application/octet-stream', 1, '\\x00'::bytea
+           from generate_series(1, 10001) as g",
+    )
+    .bind(site.tenant.0)
+    .execute(conn.conn())
+    .await
+    .expect("many files");
+
+    sqlx::query("analyze media")
+        .execute(conn.conn())
+        .await
+        .expect("analyze");
+
+    conn.commit().await.expect("commit");
+
+    let read = usage_of(&site).await;
+
+    let rows = read["rows"].as_array().expect("rows");
+    let media = rows
+        .iter()
+        .find(|row| row["kind"] == "media")
+        .expect("a media row");
+
+    assert_eq!(media["exact"], false, "{read}");
+
+    let estimated = media["rows"].as_i64().expect("a number");
     assert!(
-        approx_rows >= 3,
-        "wrote 3 posts, estimated {approx_rows}: {read}"
+        (9_000..11_000).contains(&estimated),
+        "wrote 10001 rows, estimated {estimated}: {read}"
     );
 }
 

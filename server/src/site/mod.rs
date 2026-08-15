@@ -50,6 +50,21 @@ const ROW_KINDS: &[&str] = &[
     "cards",
 ];
 
+/// Below this many estimated rows, `read_rows` counts the table outright
+/// instead of trusting `pg_class.reltuples`.
+///
+/// A table Postgres has never analyzed reports `reltuples = -1` (from
+/// Postgres 14 on, which is what this targets; before that it read `0`,
+/// indistinguishable from a table confirmed empty) — a signal, not a
+/// measurement, and clamping it to zero the way an earlier version of this
+/// query did turns "nobody has looked" into a confident lie: a site that just
+/// wrote its first forty posts and opened this screen would have read zero.
+/// Autovacuum's own analyze threshold is 50 rows plus a tenth of the table,
+/// so any table this small has every reason to still be unanalyzed and none
+/// of the cost concern this endpoint exists for — counting a few thousand
+/// rows is milliseconds, and it is exact.
+const COUNT_BELOW: i64 = 10_000;
+
 #[must_use]
 pub fn endpoints() -> Vec<Endpoint> {
     vec![
@@ -225,8 +240,7 @@ async fn read_settings(conn: &mut TenantConn, caller: &Caller) -> Result<Setting
 #[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct Usage {
     pub storage: StorageUsage,
-    /// How many rows of each kind, estimated rather than counted: see
-    /// `RowCount`.
+    /// How many rows of each kind: see `RowCount`.
     pub rows: Vec<RowCount>,
     pub mail: MailUsage,
     /// Most recent first.
@@ -249,16 +263,16 @@ pub struct StorageKind {
     pub count: i64,
 }
 
-/// Rows of one kind, estimated from what Postgres already tracks for its own
-/// planner rather than counted fresh on every load. `reltuples` is refreshed
-/// by autovacuum without a table having to be walked for this alone; it lags
-/// whatever has not been analyzed since the last change, which is close
-/// enough for "how big has this gotten" and is not offered as anything more
-/// exact than that.
+/// Rows of one kind. `exact` says which promise `rows` is making: a table
+/// small enough that counting it costs nothing is counted outright, and only
+/// a table too big to walk on every load falls back to what Postgres already
+/// tracks for its own planner. See `COUNT_BELOW` for where that line is and
+/// why.
 #[derive(Debug, Serialize, sqlx::FromRow, utoipa::ToSchema)]
 pub struct RowCount {
     pub kind: String,
-    pub approx_rows: i64,
+    pub rows: i64,
+    pub exact: bool,
 }
 
 /// What was sent, and what became of it. `attempted` is everything this site
@@ -318,20 +332,7 @@ async fn read_usage(conn: &mut TenantConn) -> Result<Usage> {
 
     let used_bytes = by_kind.iter().map(|kind| kind.bytes).sum();
 
-    // An estimate rather than a count: `count(*)` once per table on every load
-    // of this screen is a page that gets slower exactly as the site gets
-    // bigger, which is the moment nobody wants to be waiting on it.
-    let rows: Vec<RowCount> = sqlx::query_as(
-        "select c.relname as kind, greatest(c.reltuples, 0)::bigint as approx_rows
-           from pg_class c
-           join pg_namespace n on n.oid = c.relnamespace
-          where n.nspname = current_schema()
-            and c.relname = any($1::text[])
-          order by array_position($1::text[], c.relname)",
-    )
-    .bind(ROW_KINDS)
-    .fetch_all(conn.conn())
-    .await?;
+    let rows = read_rows(conn).await?;
 
     // `email_log` is swept at two years old, so this scan is bounded by that
     // rather than by everything a site has ever sent. `delivered` comes from
@@ -387,6 +388,68 @@ async fn read_usage(conn: &mut TenantConn) -> Result<Usage> {
         builds,
         queue,
     })
+}
+
+#[derive(sqlx::FromRow)]
+struct Reltuples {
+    kind: String,
+    reltuples: f32,
+}
+
+/// How many rows of each kind, without a `count(*)` over every table on every
+/// load — but also without trusting a stale or absent statistic to still be
+/// zero. See `COUNT_BELOW` for the line between the two.
+async fn read_rows(conn: &mut TenantConn) -> Result<Vec<RowCount>> {
+    let estimated: Vec<Reltuples> = sqlx::query_as(
+        "select c.relname as kind, c.reltuples
+           from pg_class c
+           join pg_namespace n on n.oid = c.relnamespace
+          where n.nspname = current_schema()
+            and c.relname = any($1::text[])
+          order by array_position($1::text[], c.relname)",
+    )
+    .bind(ROW_KINDS)
+    .fetch_all(conn.conn())
+    .await?;
+
+    let mut rows = Vec::with_capacity(estimated.len());
+
+    for guess in estimated {
+        // Negative means "never analyzed" (Postgres 14 on; this crate's tests
+        // run against 18) rather than "confirmed empty", so it is floored to
+        // zero before the comparison rather than trusted as a count.
+        #[expect(
+            clippy::cast_possible_truncation,
+            reason = "reltuples never approaches i64's range; this rounds a whole \
+                      number a planner stored as a float back to an integer"
+        )]
+        let estimate = guess.reltuples.max(0.0).round() as i64;
+
+        if estimate >= COUNT_BELOW {
+            rows.push(RowCount {
+                kind: guess.kind,
+                rows: estimate,
+                exact: false,
+            });
+            continue;
+        }
+
+        // Both come from `ROW_KINDS`, a constant this crate wrote, and never
+        // from a caller — the same rule `gather` and `erase` below splice a
+        // table name under.
+        let (counted,): (i64,) =
+            sqlx::query_as(&format!("select count(*)::bigint from {}", guess.kind))
+                .fetch_one(conn.conn())
+                .await?;
+
+        rows.push(RowCount {
+            kind: guess.kind,
+            rows: counted,
+            exact: true,
+        });
+    }
+
+    Ok(rows)
 }
 
 /// What a site is, for something reading rather than browsing. Written from

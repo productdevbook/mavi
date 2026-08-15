@@ -22,15 +22,21 @@ tally kept beside them, and `storage_bytes_day`, `bandwidth_bytes`, and
 everything in `charges` and `ledger` are the second kind and answer nothing
 here.
 
-**Rows by kind are estimated, not counted.** A `count(*)` over every table on
-every load of this screen is a page that gets slower exactly as the site gets
-bigger — the moment nobody wants to be waiting on it. `reltuples`, which
-Postgres already keeps for its own planner, stands in instead; it lags
-whatever autovacuum has not analyzed yet, close enough for "how big has this
-gotten" and offered as nothing more exact than that. It is also a whole-table
-number rather than a tenant-scoped one, since nothing in Postgres's own
-catalog stats is filtered by row-level security — the same number as a real
-count for as long as `/api/setup` stays the only place a tenant is ever made.
+**Rows by kind is a count below `COUNT_BELOW`, an estimate above it.** A
+`count(*)` over every table on every load of this screen is a page that gets
+slower exactly as the site gets bigger — the moment nobody wants to be
+waiting on it. `reltuples`, which Postgres already keeps for its own planner,
+stands in instead once a table has grown large enough for that to matter. A
+table smaller than that has usually never been analyzed at all — Postgres
+reports `reltuples = -1` for one, not zero, and treating that as zero once
+turned "wrote forty posts, then read zero back" into this screen's own bug —
+so below the line an exact `count(*)` runs instead: cheap on a table that
+small, and a stale or absent statistic never gets the chance to look like a
+confident answer. `rows.exact` on each entry says which promise was kept.
+This is also a whole-table number rather than a tenant-scoped one, since
+nothing in Postgres's own catalog stats is filtered by row-level security —
+the same number as a real count for as long as `/api/setup` stays the only
+place a tenant is ever made.
 
 **Tables it owns.** None. It reads across the domains that hold somebody's
 data, from one list.

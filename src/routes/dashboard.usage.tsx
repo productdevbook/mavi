@@ -161,7 +161,7 @@ function UsageRoute() {
         )}
       </Panel>
 
-      <Panel title={t`Rows by kind`} aside={t`Estimated, not counted`}>
+      <Panel title={t`Rows by kind`}>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {answer.rows.map((row) => (
             <div
@@ -172,8 +172,12 @@ function UsageRoute() {
                 <ListOrdered className="size-4" />
                 {kindNames[row.kind] ?? row.kind}
               </span>
-              <span className="text-sm font-semibold tabular-nums">
-                {row.approx_rows}
+              <span
+                className="text-sm font-semibold tabular-nums"
+                title={row.exact ? undefined : t`Estimated, on a table this large`}
+              >
+                {row.exact ? "" : "≈"}
+                {row.rows}
               </span>
             </div>
           ))}

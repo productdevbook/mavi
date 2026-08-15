@@ -130,7 +130,14 @@ mod tests {
     /// link, proving an address. The list is written out here so that a fourth
     /// one is a line somebody adds on purpose in this file, rather than a
     /// declaration in a domain that nothing ever compares against anything.
-    const THE_WAYS_IN: &[&str] = &["/api/sessions", "/api/passwords", "/api/addresses"];
+    const THE_WAYS_IN: &[&str] = &[
+        // The one that exists before anybody does. It answers once, and after
+        // that it is a conflict rather than a door.
+        "/api/setup",
+        "/api/sessions",
+        "/api/passwords",
+        "/api/addresses",
+    ];
 
     #[test]
     fn everything_anybody_at_all_can_reach_is_a_way_in_or_says_it_is_open() {

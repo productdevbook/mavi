@@ -370,6 +370,162 @@ async fn nobody_changes_what_they_themselves_are() {
 }
 
 #[tokio::test]
+async fn the_last_owner_is_not_taken_away_by_somebody_else_either() {
+    let site = a_site().await;
+    let password = "a long enough password";
+    let admin_role = a_role(
+        &site.db,
+        site.tenant,
+        "admin",
+        &["people:delete".to_owned()],
+    )
+    .await;
+    let (_, admin_email) = a_user(&site.db, site.tenant, admin_role, password).await;
+
+    let (_, session) = site
+        .send(
+            "POST",
+            "/api/auth/session",
+            None,
+            Some(serde_json::json!({ "email": admin_email, "password": password })),
+        )
+        .await;
+
+    let theirs = session["token"].as_str().expect("a token").to_owned();
+
+    let (status, refused) = site
+        .send(
+            "DELETE",
+            &format!("/api/people/{}", site.me),
+            Some(&theirs),
+            None,
+        )
+        .await;
+
+    assert_eq!(
+        status,
+        StatusCode::FORBIDDEN,
+        "the site's only owner was taken away by somebody else: {refused}"
+    );
+}
+
+#[tokio::test]
+async fn the_last_owner_is_not_suspended_either() {
+    let site = a_site().await;
+
+    // Suspending locks the door from outside without deleting anything, which
+    // is the same "nobody left to sign in as an owner" outcome removal is
+    // already refused for.
+    let (status, refused) = site
+        .send(
+            "PATCH",
+            &format!("/api/people/{}", site.me),
+            Some(&site.token),
+            Some(serde_json::json!({ "suspended": true })),
+        )
+        .await;
+
+    assert_eq!(
+        status,
+        StatusCode::FORBIDDEN,
+        "the site's only owner was suspended: {refused}"
+    );
+}
+
+#[tokio::test]
+async fn the_last_owner_s_role_is_not_moved_away_either() {
+    let site = a_site().await;
+    let password = "a long enough password";
+    let admin_role = a_role(&site.db, site.tenant, "admin", &["people:write".to_owned()]).await;
+    let (_, admin_email) = a_user(&site.db, site.tenant, admin_role, password).await;
+    // No grants of its own, so `within_reach` never stands between this test
+    // and the check it means to exercise.
+    let lesser_role = a_role(&site.db, site.tenant, "lesser", &[]).await;
+
+    let (_, session) = site
+        .send(
+            "POST",
+            "/api/auth/session",
+            None,
+            Some(serde_json::json!({ "email": admin_email, "password": password })),
+        )
+        .await;
+
+    let theirs = session["token"].as_str().expect("a token").to_owned();
+
+    let (status, refused) = site
+        .send(
+            "PATCH",
+            &format!("/api/people/{}", site.me),
+            Some(&theirs),
+            Some(serde_json::json!({ "role_id": lesser_role })),
+        )
+        .await;
+
+    assert_eq!(
+        status,
+        StatusCode::FORBIDDEN,
+        "the site's only owner was moved to a role that cannot grant it back: {refused}"
+    );
+}
+
+#[tokio::test]
+async fn a_suspended_owner_does_not_count_as_one_still_standing() {
+    let site = a_site().await;
+    let password = "a long enough password";
+    let (second_owner, _) = a_user(&site.db, site.tenant, site.owner_role, password).await;
+    let admin_role = a_role(
+        &site.db,
+        site.tenant,
+        "admin",
+        &["people:write".to_owned(), "people:delete".to_owned()],
+    )
+    .await;
+    let (_, admin_email) = a_user(&site.db, site.tenant, admin_role, password).await;
+
+    let (_, session) = site
+        .send(
+            "POST",
+            "/api/auth/session",
+            None,
+            Some(serde_json::json!({ "email": admin_email, "password": password })),
+        )
+        .await;
+
+    let theirs = session["token"].as_str().expect("a token").to_owned();
+
+    // A second row holding the owner role, but suspended: nobody could sign
+    // into it to grant the role onward.
+    let (status, _) = site
+        .send(
+            "PATCH",
+            &format!("/api/people/{second_owner}"),
+            Some(&theirs),
+            Some(serde_json::json!({ "suspended": true })),
+        )
+        .await;
+
+    assert_eq!(status, StatusCode::OK);
+
+    // site.me is the only owner left who could actually sign in. Taking it
+    // away would leave the suspended row as the site's only "owner".
+    let (status, refused) = site
+        .send(
+            "DELETE",
+            &format!("/api/people/{}", site.me),
+            Some(&theirs),
+            None,
+        )
+        .await;
+
+    assert_eq!(
+        status,
+        StatusCode::FORBIDDEN,
+        "a suspended owner was counted as one still able to grant the role: {refused}"
+    );
+}
+
+#[tokio::test]
 async fn suspending_somebody_takes_away_what_they_are_holding() {
     let site = a_site().await;
     let password = "a long enough password";

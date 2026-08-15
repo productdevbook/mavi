@@ -18,6 +18,15 @@ around every other check there is.
 **Nobody changes what they themselves are**, and nobody removes their own
 account. Both would leave a site with nobody able to put it back.
 
+**The last owner is never stranded**, by any route. Deleting the account
+(`remove`), erasing it (`site::erase`), suspending it, or moving it to another
+role (`change`) all ask `refuse_if_last_owner` first — one answer to "is
+anybody else left who could sign in as an owner" rather than four call sites
+guessing at it separately. "Anybody else" means able to sign in: active, not
+deleted, with a password chosen, the same test `auth::sign_in` itself uses —
+an owner still sitting on an unused invitation, or already suspended, does
+not count as one still standing.
+
 **A ticket is good once.** An invitation, a reset and an address proof are the
 same row: hashed, dated, spent when it is used, and any earlier one for the
 same purpose spent when a new one is made. Spending it is what proves the

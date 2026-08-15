@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sqlx::Row;
 use std::fmt::Write as _;
+use uuid::Uuid;
 
 use crate::kernel::audit::{self, Actor, Audited};
 use crate::kernel::authz::{Access, Capability, Needs, Permit};
@@ -301,6 +302,14 @@ async fn gather(conn: &mut TenantConn, email: &str) -> Result<serde_json::Value>
 /// What is a financial record is emptied of the person rather than deleted: an
 /// order that vanishes is a bill nobody can explain, and the rule that says
 /// keep it and the rule that says remove them are both true.
+///
+/// An address that is the site's only owner is not touched at all, here or
+/// anywhere else this reaches: blanking that account the way an order is
+/// blanked would leave a row that satisfies "an owner exists" in name only —
+/// nobody able to sign into it, so nobody able to grant the role onward
+/// either, which is worse than refusing outright. The request answers with
+/// why, and a retry after another owner exists starts from everything still
+/// in place.
 async fn erase(
     Injected(state): Injected<AppState>,
     caller: Caller,
@@ -309,6 +318,16 @@ async fn erase(
 ) -> Result<Audited<Json<serde_json::Value>>> {
     let email = body.email.as_str();
     let mut conn = state.db.tenant(caller.tenant()).await?;
+
+    let holder: Option<(Uuid,)> =
+        sqlx::query_as("select id from users where email = $1 and deleted_at is null")
+            .bind(email)
+            .fetch_optional(conn.conn())
+            .await?;
+
+    if let Some((id,)) = holder {
+        crate::people::refuse_if_last_owner(&mut conn, id).await?;
+    }
 
     let mut taken = serde_json::Map::new();
 

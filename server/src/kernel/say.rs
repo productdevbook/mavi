@@ -258,6 +258,8 @@ pub const THERE_IS_ALREADY_A_COUPON_WITH_THAT_CODE: &str =
 pub const A_CODE_IS_BETWEEN_THREE_AND_FORTY_CHARACTERS: &str =
     "a_code_is_between_three_and_forty_characters";
 
+pub const THAT_IS_THE_LAST_OWNER: &str = "that_is_the_last_owner";
+
 /// Every key, and what it says in English. Adding a refusal is adding a line
 /// here, which is the point: a sentence written at the place it is refused is a
 /// sentence nobody can translate.
@@ -274,6 +276,10 @@ pub const ENGLISH: &[(&str, &str)] = &[
     (
         A_CODE_IS_BETWEEN_THREE_AND_FORTY_CHARACTERS,
         "a code is between three and forty characters",
+    ),
+    (
+        THAT_IS_THE_LAST_OWNER,
+        "that is the last owner, and there would be nobody left who could grant the role again",
     ),
     (
         A_SITE_WRITES_IN_ONE_LANGUAGE_BY_DEFAULT,

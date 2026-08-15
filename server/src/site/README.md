@@ -21,6 +21,14 @@ way past, and there is a test that checks the answer for one.
 is a bill nobody can explain; the rule that says keep the record and the rule
 that says remove the person are both true, and this is where they meet.
 
+**Erasing the site's only owner is refused, not blanked.** Whether an address
+belongs to the last account holding the owner role is `people`'s question to
+answer, not a second copy of it here — this domain calls into
+`people::refuse_if_last_owner` before it touches the `users` row, the one
+place `people::remove` asks the same question. Nothing is erased at all when
+it refuses: leaving some tables emptied and `users` untouched would be the
+site disagreeing with itself about what happened to one address.
+
 **`llms.txt` is written from what is published**, not from a file somebody has
 to remember to update, and a draft is not in it.
 

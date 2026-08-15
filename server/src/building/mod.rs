@@ -8,12 +8,14 @@
 
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
-use std::sync::Arc;
 use std::time::Duration;
 
-use tokio::sync::Semaphore;
-
 use crate::kernel::error::{AppError, Result};
+
+/// What is run and where, which is configuration rather than anything this
+/// module decides — so it is read where the rest of an installation's outside
+/// programs are, and used here.
+pub use crate::kernel::builder::Generator;
 
 /// How long a build may take before it is killed.
 ///
@@ -21,49 +23,6 @@ use crate::kernel::error::{AppError, Result};
 /// `bun` that has stopped making progress will hold them until somebody
 /// notices — which on the old machine was hours.
 const AT_MOST: Duration = Duration::from_mins(20);
-
-/// What is run, where, and how many at once.
-#[derive(Clone, Debug)]
-pub struct Generator {
-    /// The command, as a program and its arguments — never a shell line. A
-    /// shell line is how a site's own name ends up being executed.
-    pub program: String,
-    pub arguments: Vec<String>,
-    /// What the command leaves behind, relative to the workspace.
-    pub output: String,
-    /// Where workspaces are made. Each build gets one of its own inside it.
-    pub workspaces: PathBuf,
-    /// How many builds may run at once on this machine. One, because a build
-    /// takes every core it can and this machine is also serving.
-    pub at_once: Arc<Semaphore>,
-}
-
-impl Generator {
-    /// From the environment, or nothing — a machine with no generator is a
-    /// machine whose sites are their own files, which is what most are.
-    #[must_use]
-    pub fn from_env() -> Option<Self> {
-        let line = std::env::var("GENERATOR").ok()?;
-        let mut words = line.split_whitespace().map(str::to_owned);
-        let program = words.next()?;
-
-        let at_once = std::env::var("BUILDS_AT_ONCE")
-            .ok()
-            .and_then(|how_many| how_many.parse().ok())
-            .unwrap_or(1_usize)
-            .clamp(1, 8);
-
-        Some(Self {
-            program,
-            arguments: words.collect(),
-            output: std::env::var("GENERATOR_OUTPUT").unwrap_or_else(|_| "dist".to_owned()),
-            workspaces: std::env::var("WORKSPACES")
-                .unwrap_or_else(|_| "workspaces".to_owned())
-                .into(),
-            at_once: Arc::new(Semaphore::new(at_once)),
-        })
-    }
-}
 
 /// What a build left behind: what it said, and the files it produced.
 #[derive(Debug)]
@@ -254,6 +213,10 @@ async fn gather(from: &Path) -> Result<Vec<(String, Vec<u8>)>> {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+
+    use tokio::sync::Semaphore;
+
     use super::*;
 
     fn somewhere() -> PathBuf {

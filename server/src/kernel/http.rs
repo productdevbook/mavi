@@ -26,6 +26,7 @@ use super::db::Db;
 use super::error::{AppError, Result};
 use super::outside::Outside;
 use super::ratelimit::{self, Limit};
+use super::wiring::Wiring;
 
 pub const USER_COOKIE: &str = "mavi_user";
 pub const STUDENT_COOKIE: &str = "mavi_student";
@@ -64,6 +65,10 @@ pub struct AppState {
     /// kinds of work. Empty where nothing is built against this crate, which
     /// is this crate on its own.
     pub outside: Arc<Outside>,
+    /// What is built on the kernel: what serves a page, what takes work, what
+    /// follows an event. Empty is a kernel on its own, which answers its own
+    /// probes and nothing else.
+    pub wiring: Arc<Wiring>,
 }
 
 impl AppState {
@@ -107,29 +112,8 @@ impl AppState {
             transcoder: Arc::new(config.transcoder),
             keyring: Arc::new(config.keyring),
             outside: Arc::new(Outside::default()),
+            wiring: Arc::new(Wiring::default()),
         }
-    }
-
-    /// The same, for whatever has nothing to hand in: the environment, read
-    /// here.
-    #[must_use]
-    pub fn new(db: Db) -> Self {
-        // `start` says this in prose before anything reaches here; this is the
-        // same refusal for whatever builds a state without going through it. A
-        // key that was meant and mistyped is not a key to fall back from.
-        let keyring = super::crypto::Keyring::from_the_environment()
-            .unwrap_or_else(|why| panic!("MAVI_KEYS: {why}"));
-
-        // The same distinction, for the same reason: an address that was meant
-        // and mistyped is refused here, and one nobody gave falls back to the
-        // obviously invented one. Not the silence #18 was — what a machine
-        // anybody can reach runs through is `start`, and that refuses to come
-        // up without a real one.
-        let address = super::config::Address::from_the_environment()
-            .unwrap_or_else(|why| panic!("MAVI_URL: {why}"))
-            .unwrap_or_else(super::config::Address::invented);
-
-        Self::new_with(db, Config::from_env(keyring, address))
     }
 }
 
@@ -416,16 +400,19 @@ pub fn mount(state: AppState, endpoints: Vec<Endpoint>) -> Router {
         router = router.route(endpoint.path, guarded);
     }
 
-    router
-        // Anything that is not one of the site's endpoints is one of its pages.
-        // A fallback is not a route, so it cannot be layered the way one is,
-        // and it needs the same layer: a page is served to a caller.
-        .fallback_service(
-            Router::new()
-                .fallback(crate::edge::serve)
+    // Anything that is not one of the site's endpoints is answered by whatever
+    // was handed in for the purpose. A fallback is not a route, so it cannot be
+    // layered the way one is, and it needs the same layer: what it serves is
+    // served to a caller.
+    if let Some(otherwise) = state.wiring.otherwise.clone() {
+        router = router.fallback_service(
+            otherwise
                 .layer(middleware::from_fn_with_state(state.clone(), identify))
                 .with_state(state.clone()),
-        )
+        );
+    }
+
+    router
         // Outside all of it: a probe does not wait for a site to exist, and
         // neither does whatever is scraping the numbers.
         // Alive is not ready. A pod whose database has gone is not something
@@ -437,7 +424,12 @@ pub fn mount(state: AppState, endpoints: Vec<Endpoint>) -> Router {
         .route(
             "/openapi.json",
             get(|State(state): State<AppState>| async move {
-                axum::Json(crate::openapi_with(&state.outside))
+                // Nothing handed in is nothing served, and a description of
+                // nothing says exactly that rather than failing to answer.
+                axum::Json(state.wiring.describes.map_or_else(
+                    || super::openapi::describe(&[]),
+                    |describes| describes(&state.outside),
+                ))
             }),
         )
         .layer(middleware::from_fn(super::metrics::observe))
@@ -504,9 +496,14 @@ async fn identify(
 
     // A student's token is looked for separately and never in the same place:
     // one cookie is not the other, and a bearer token is a panel account's.
-    let student = match cookie(&request, STUDENT_COOKIE) {
-        Some(token) => student_session(&state.db, &token).await?,
-        None => None,
+    // Whose it is, is asked of whatever was handed in for the purpose: students
+    // belong to something built on the kernel rather than to the kernel.
+    let student = if let Some(token) = cookie(&request, STUDENT_COOKIE)
+        && let Some(a_student) = state.wiring.a_student
+    {
+        a_student(&state.db, &token).await?
+    } else {
+        None
     };
 
     request.extensions_mut().insert(Caller {
@@ -690,34 +687,6 @@ async fn session_of(db: &Db, token: &str) -> Result<Option<SignedIn>> {
         session_id,
         role_key,
         grants: grants.into_iter().collect(),
-    }))
-}
-
-async fn student_session(db: &Db, token: &str) -> Result<Option<SignedInStudent>> {
-    let hash = super::token::hash(token);
-    let mut conn = db.begin().await?;
-
-    let row: Option<(Uuid, Uuid)> = sqlx::query_as(
-        "update student_sessions s
-            set last_seen_at = now()
-           from students t
-          where s.token_hash = $1
-            and s.student_id = t.id
-            and s.revoked_at is null
-            and s.expires_at > now()
-            and t.state = 'active'
-            and t.deleted_at is null
-         returning s.id, t.id",
-    )
-    .bind(&hash[..])
-    .fetch_optional(conn.conn())
-    .await?;
-
-    conn.commit().await?;
-
-    Ok(row.map(|(session_id, student_id)| SignedInStudent {
-        student_id,
-        session_id,
     }))
 }
 

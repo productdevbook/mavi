@@ -818,9 +818,9 @@ async fn changed(
 
     if before.state != after.state {
         match after.state {
-            State::Published => events::emit(conn, "post.published", &after).await?,
+            State::Published => events::emit(state, conn, "post.published", &after).await?,
             _ if before.state == State::Published => {
-                events::emit(conn, "post.unpublished", &after).await?
+                events::emit(state, conn, "post.unpublished", &after).await?
             }
             _ => Uuid::nil(),
         };
@@ -1071,7 +1071,7 @@ pub async fn publish_due(state: &AppState) -> Result<u64> {
     .await?;
 
     for post in &due {
-        events::emit(&mut conn, "post.published", post).await?;
+        events::emit(state, &mut conn, "post.published", post).await?;
 
         audit::record_raw(
             &mut conn,

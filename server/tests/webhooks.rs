@@ -106,7 +106,7 @@ async fn an_event_reaches_a_receiver_signed_the_way_the_specification_says() {
     .await
     .expect("endpoint");
 
-    let outbox_id = events::emit(&mut conn, "order.paid", &Order(Uuid::now_v7()))
+    let outbox_id = events::emit(&state, &mut conn, "order.paid", &Order(Uuid::now_v7()))
         .await
         .expect("emit");
 
@@ -167,7 +167,7 @@ async fn a_receiver_that_keeps_failing_ends_in_the_dead_letter() {
     .await
     .expect("endpoint");
 
-    let outbox_id = events::emit(&mut conn, "order.paid", &Order(Uuid::now_v7()))
+    let outbox_id = events::emit(&state, &mut conn, "order.paid", &Order(Uuid::now_v7()))
         .await
         .expect("emit");
 

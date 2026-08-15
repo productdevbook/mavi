@@ -1,15 +1,15 @@
 //! What happened, said once and heard by whatever cares.
 //!
-//! A domain announces — a post published, an order paid — and flows and
-//! webhooks are what listen. Written into the outbox in the same transaction
-//! as the change itself, so an event exists exactly when the thing it is about
-//! did.
+//! A domain announces that something happened, and whatever this installation
+//! arranged to follow one is queued beside it. Written into the outbox in the
+//! same transaction as the change itself, so an event exists exactly when the
+//! thing it is about did.
 use sqlx::Row;
 use uuid::Uuid;
 
 use super::db::Tx;
 use super::error::Result;
-use super::queue;
+use super::http::AppState;
 
 /// What a domain change tells the outside world.
 ///
@@ -28,7 +28,15 @@ pub trait EmitsEvents {
     fn payload(&self) -> serde_json::Value;
 }
 
-pub async fn emit<T: EmitsEvents>(tx: &mut Tx, event: &str, subject: &T) -> Result<Uuid> {
+/// Writes the event down, and queues whatever this installation arranged to
+/// follow one. What follows is handed in: the kernel is what announces, and
+/// what listens is a domain's.
+pub async fn emit<T: EmitsEvents>(
+    state: &AppState,
+    tx: &mut Tx,
+    event: &str,
+    subject: &T,
+) -> Result<Uuid> {
     debug_assert!(
         T::EVENTS.contains(&event),
         "{event} is not one of the events this type declares"
@@ -47,17 +55,22 @@ pub async fn emit<T: EmitsEvents>(tx: &mut Tx, event: &str, subject: &T) -> Resu
 
     let outbox_id: Uuid = row.get("id");
 
-    super::metrics::domain_emitted(super::domain::of_event(event), event);
+    // Which name a graph reads this under is a thing the kernel is told, the
+    // same way an endpoint is told which domain it belongs to.
+    let counted_as = state
+        .wiring
+        .names_an_event
+        .map_or("unnamed", |names_an_event| names_an_event(event));
 
-    // Enqueued here rather than by a sweep over the table: the work belongs to
+    super::metrics::domain_emitted(counted_as, event);
+
+    // Queued here rather than by a sweep over the table: the work belongs to
     // the transaction that made the change, and a row written and swept later
-    // is a row that is sent twice when the change rolls back.
-    queue::enqueue(tx, &crate::webhooks::Dispatch { outbox_id }, None).await?;
-
-    // And whatever the site arranged to happen when this occurs. Both queued
-    // in this transaction, so neither is scheduled for something that then
-    // rolled back.
-    queue::enqueue(tx, &crate::flows::Start { outbox_id }, None).await?;
+    // is a row that is sent twice when the change rolls back. All of it in this
+    // transaction, so nothing is arranged for something that then rolled back.
+    for follows in state.wiring.follows_an_event.iter().copied() {
+        follows(tx, outbox_id).await?;
+    }
 
     Ok(outbox_id)
 }

@@ -59,7 +59,7 @@ const PERSONAL: [&str; 5] = ["email", "from_ip", "user_agent", "answers", "actor
 
 #[tokio::test]
 async fn every_table_holding_somebody_s_own_data_says_how_long_it_keeps_it() {
-    use mavi::kernel::retention;
+    use mavi::retention;
 
     let db = harness().await;
     let mut conn = db.begin().await.expect("begin");
@@ -94,7 +94,7 @@ async fn every_table_holding_somebody_s_own_data_says_how_long_it_keeps_it() {
 #[test]
 fn what_a_policy_says_sweeps_it_is_a_job_that_exists() {
     use mavi::kernel::outside::Outside;
-    use mavi::kernel::retention::{self, Keeps};
+    use mavi::retention::{self, Keeps};
 
     let outside = Outside::default();
     let kinds = mavi::jobs::kinds(&outside);

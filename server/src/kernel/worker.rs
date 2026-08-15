@@ -36,7 +36,14 @@ pub async fn work(state: AppState, name: String, mut stop: watch::Receiver<bool>
             break;
         }
 
-        let took = crate::jobs::tick(&state, &name).await;
+        // What a kind of work *is* belongs to whatever was built on the kernel;
+        // what is here is the loop around it. Nothing handed in is a machine
+        // with nothing to do, which waits rather than spins.
+        let took = if let Some(takes_work) = state.wiring.takes_work {
+            takes_work(&state, &name).await
+        } else {
+            Ok(false)
+        };
 
         let wait = match took {
             // Something was done: straight back for the next one, because a
@@ -90,7 +97,11 @@ pub async fn keep_time(state: AppState, mut stop: watch::Receiver<bool>) {
 }
 
 async fn tick(state: &AppState) -> Result<()> {
-    crate::jobs::schedule_due(state).await
+    if let Some(keeps_time) = state.wiring.keeps_time {
+        keeps_time(state).await
+    } else {
+        Ok(())
+    }
 }
 
 /// Fires once when the process is asked to stop, and again is not asked twice.

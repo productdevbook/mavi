@@ -9,6 +9,7 @@ use crate::kernel::error::{AppError, Result};
 use crate::kernel::http::AppState;
 use crate::kernel::queue::{self, Task};
 use crate::kernel::webhook;
+use crate::kernel::wiring::Answers;
 
 /// Long enough for a receiver that is thinking, short enough that a receiver
 /// that has stopped answering does not hold a worker.
@@ -39,6 +40,21 @@ impl Task for Deliver {
 #[must_use]
 pub fn kinds() -> Vec<String> {
     vec![Dispatch::KIND.to_owned(), Deliver::KIND.to_owned()]
+}
+
+/// The fan-out to whoever asked for this event, queued in the transaction that
+/// wrote the event down — so nothing is sent for a change that then rolled back.
+///
+/// Handed to the kernel rather than reached for by it: what listens to an event
+/// is this crate's business, and a kernel naming it could not carry a domain
+/// that listens some other way.
+#[must_use]
+pub fn after_an_event(tx: &mut Tx, outbox_id: Uuid) -> Answers<'_, ()> {
+    Box::pin(async move {
+        queue::enqueue(tx, &Dispatch { outbox_id }, None)
+            .await
+            .map(|_| ())
+    })
 }
 
 pub async fn dispatch(state: &AppState, task: &Dispatch) -> Result<()> {

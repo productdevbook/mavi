@@ -4,6 +4,10 @@
 //! every number this machine publishes is counted under one. A dashboard can
 //! then ask "is the shop slow" rather than "is `/api/sites/checkout` slow",
 //! which is the question somebody actually has.
+//!
+//! Beside the modules rather than in the kernel: this is the list of what this
+//! particular installation is made of, and a kernel holding it is a kernel that
+//! knows the name of every domain built on it.
 
 /// Every domain there is. A name not here is not one, and a test refuses an
 /// endpoint that claims otherwise.

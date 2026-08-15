@@ -20,6 +20,7 @@ use crate::kernel::page::{Page, Query as Paging, older_than};
 use crate::kernel::queue::{self, Task};
 use crate::kernel::say::{self, Say};
 use crate::kernel::types::Title;
+use crate::kernel::wiring::Answers;
 use crate::kernel::{crypto, secret::Secret};
 
 fn flows(access: Access) -> Needs {
@@ -672,6 +673,18 @@ impl Task for Step {
 #[must_use]
 pub fn kinds() -> Vec<String> {
     vec![Start::KIND.to_owned(), Step::KIND.to_owned()]
+}
+
+/// Whatever the site arranged to happen when this occurs, queued in the
+/// transaction that wrote the event down — so nothing is arranged for a change
+/// that then rolled back.
+#[must_use]
+pub fn after_an_event(tx: &mut Tx, outbox_id: Uuid) -> Answers<'_, ()> {
+    Box::pin(async move {
+        queue::enqueue(tx, &Start { outbox_id }, None)
+            .await
+            .map(|_| ())
+    })
 }
 
 /// An event arrived; whichever flows were waiting for it get a run each.

@@ -3,7 +3,7 @@
 use axum::body::Body;
 use axum::http::{Request, StatusCode, header};
 use http_body_util::BodyExt;
-use mavi::kernel::domain;
+use mavi::domain;
 use mavi::kernel::http::AppState;
 use tower::ServiceExt;
 use uuid::Uuid;

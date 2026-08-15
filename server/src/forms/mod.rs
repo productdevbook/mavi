@@ -671,7 +671,7 @@ async fn submit(
     .fetch_one(conn.conn())
     .await?;
 
-    events::emit(&mut conn, "form.submitted", &submission).await?;
+    events::emit(&state, &mut conn, "form.submitted", &submission).await?;
 
     // A visitor has no account, so what is recorded is the submission itself.
     let receipt = audit::record_raw(

@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use crate::kernel::error::Result;
 use crate::kernel::http::AppState;
 use crate::kernel::queue::Task;
-use crate::kernel::retention::{Keeps, POLICIES};
+use crate::retention::{Keeps, POLICIES};
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct SweepSessions;

@@ -156,13 +156,21 @@ async fn begin(State(state): State<AppState>, caller: Caller) -> Result<Audited<
     .execute(conn.conn())
     .await?;
 
-    let (email, slug): (String, String) = sqlx::query_as(
-        "select u.email, t.slug from users u join tenants t on t.id = u.tenant_id
+    let (email, name): (String, Option<String>) = sqlx::query_as(
+        "select u.email, s.name from users u
+           left join site_settings s on s.tenant_id = u.tenant_id
           where u.id = $1",
     )
     .bind(user.user_id)
     .fetch_one(conn.conn())
     .await?;
+
+    // An installation with no name yet, or an empty one, still needs an
+    // issuer an authenticator app can show: "A site" is what `/llms.txt`
+    // falls back to for the same reason, so a phone and a crawler agree.
+    let issuer = name
+        .filter(|name| !name.trim().is_empty())
+        .unwrap_or_else(|| "A site".to_owned());
 
     let receipt = audit::record_raw(
         &mut conn,
@@ -180,7 +188,7 @@ async fn begin(State(state): State<AppState>, caller: Caller) -> Result<Audited<
         receipt,
         Json(Begun {
             secret: Shown::new(totp::to_base32(&secret)),
-            uri: totp::otpauth(&secret, &slug, &email),
+            uri: totp::otpauth(&secret, &issuer, &email),
         }),
     ))
 }

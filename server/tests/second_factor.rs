@@ -295,6 +295,57 @@ async fn nothing_says_whether_an_account_has_one_before_the_password_is_right() 
 }
 
 #[tokio::test]
+async fn the_issuer_is_the_sites_own_name_not_the_word_site() {
+    let site = Site::new().await;
+
+    let (status, _) = site
+        .send(
+            "PATCH",
+            "/api/site",
+            Some(&site.token),
+            Some(serde_json::json!({ "name": "Café Örnek: A Test Site" })),
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK);
+
+    let (status, begun) = site
+        .send("POST", "/api/auth/second-factor", Some(&site.token), None)
+        .await;
+    assert_eq!(status, StatusCode::OK, "{begun}");
+
+    let uri = begun["uri"].as_str().expect("a uri");
+
+    // The colon, the space and the non-ASCII letters are all significant in
+    // an otpauth:// URI, so a name carrying them has to survive as bytes an
+    // authenticator can still parse, not as a broken issuer.
+    assert!(
+        uri.contains("issuer=Caf%C3%A9%20%C3%96rnek%3A%20A%20Test%20Site"),
+        "the site's own name was not carried into the issuer, colon and all: {uri}"
+    );
+}
+
+#[tokio::test]
+async fn a_site_with_no_name_yet_still_gets_an_issuer() {
+    let site = Site::new().await;
+
+    let (status, begun) = site
+        .send("POST", "/api/auth/second-factor", Some(&site.token), None)
+        .await;
+    assert_eq!(status, StatusCode::OK, "{begun}");
+
+    let uri = begun["uri"].as_str().expect("a uri");
+
+    assert!(
+        !uri.ends_with("issuer="),
+        "an empty issuer is worse than a wrong one: {uri}"
+    );
+    assert!(
+        uri.contains("issuer=A%20site"),
+        "an unnamed site should still say something rather than nothing: {uri}"
+    );
+}
+
+#[tokio::test]
 async fn a_second_authenticator_does_not_quietly_replace_the_first() {
     let site = Site::new().await;
     let (secret, _) = site.turn_it_on().await;

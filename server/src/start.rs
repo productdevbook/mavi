@@ -152,7 +152,11 @@ impl Doing {
     /// Both, unless told otherwise: a single process is what somebody trying
     /// this out runs, and it should work without reading anything first.
     fn from_env() -> Self {
-        Self::of(env::var("ROLE").ok().as_deref())
+        // `ROLE` is what this was called before the project had a name of its
+        // own, and something is deployed with it set.
+        let said = env::var("MAVI_ROLE").or_else(|_| env::var("ROLE")).ok();
+
+        Self::of(said.as_deref())
     }
 
     fn of(role: Option<&str>) -> Self {

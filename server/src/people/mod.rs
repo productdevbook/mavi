@@ -719,6 +719,29 @@ async fn change(
         return Err(AppError::Conflict(say::SOMEBODY_ELSE_CHANGES_WHAT.into()));
     }
 
+    if let Some(role_id) = changes.role_id {
+        // A no-op reassignment to the role already held, or a promotion into
+        // it, cannot strand the site; only moving away from it can, and only
+        // `refuse_if_last_owner` knows whether anybody else is left to grant
+        // it back.
+        let (becomes_owner,): (bool,) =
+            sqlx::query_as("select key = 'owner' from roles where id = $1")
+                .bind(role_id)
+                .fetch_one(conn.conn())
+                .await?;
+
+        if !becomes_owner {
+            refuse_if_last_owner(&mut conn, id).await?;
+        }
+    }
+
+    // Suspending is locking the door from outside: the account is still
+    // there, but nobody can sign into it to grant the role onward, which is
+    // the same outcome `remove` and `erase` are already refused for.
+    if changes.suspended == Some(true) {
+        refuse_if_last_owner(&mut conn, id).await?;
+    }
+
     let after: Person = sqlx::query_as(
         "update users
             set name = coalesce($2, name),
@@ -818,12 +841,19 @@ async fn change(
     Ok(Audited::new(receipt, Json(after)))
 }
 
-/// Refuses to take this account away when it is the last one holding the
-/// owner role: with it gone nobody could grant that role to anyone else, and
-/// there is no operator account this installation can be recovered through
-/// (#7 confirmed that door has never worked). `people::remove` and
-/// `site::erase` both take an account away by a different route, so both ask
-/// here rather than each keeping its own idea of what an owner is.
+/// Refuses to take this account's ownership away — by deletion, by erasure,
+/// by suspending it or by moving it to another role — when it is the last
+/// one that could still be signed into as an owner: with it gone nobody
+/// could grant that role to anyone else, and there is no operator account
+/// this installation can be recovered through (#7 confirmed that door has
+/// never worked). `people::remove`, `people::change` and `site::erase` each
+/// take ownership away by a different route, so all three ask here rather
+/// than each keeping its own idea of what a usable owner is.
+///
+/// "Remaining" means able to sign in as one, the same test `auth::sign_in`
+/// itself uses: active, not deleted, and a password chosen. A suspended
+/// owner, or one still sitting on an unused invitation, cannot be asked to
+/// grant the role to anyone, so does not count as one still standing.
 pub(crate) async fn refuse_if_last_owner(conn: &mut TenantConn, id: Uuid) -> Result<()> {
     let holds_owner: Option<(bool,)> = sqlx::query_as(
         "select r.key = 'owner'
@@ -840,7 +870,8 @@ pub(crate) async fn refuse_if_last_owner(conn: &mut TenantConn, id: Uuid) -> Res
 
     let (remaining,): (i64,) = sqlx::query_as(
         "select count(*) from users u join roles r on r.id = u.role_id
-          where r.key = 'owner' and u.id != $1 and u.deleted_at is null",
+          where r.key = 'owner' and u.id != $1 and u.deleted_at is null
+            and u.state = 'active' and u.password_hash is not null",
     )
     .bind(id)
     .fetch_one(conn.conn())

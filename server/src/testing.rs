@@ -69,16 +69,9 @@ async fn lease() -> Db {
         .await
         .expect("wait for the shape");
 
-    if exists(&mut holding, &name).await && carries_somebody_elses(&its_own).await {
-        // A test that carried an outside crate's migrations in left tables
-        // this crate has never heard of, and the tests that ask the schema
-        // what it is would fail on them.
-        sqlx::query(&format!("drop database {name} with (force)"))
-            .execute(&mut holding)
-            .await
-            .expect("drop");
-    }
-
+    // Emptied rather than remade, and nothing can leave anything behind that
+    // emptying it would miss: a leased database is only ever handed out as the
+    // role a request is served as, and that role cannot make a table.
     if !exists(&mut holding, &name).await {
         sqlx::query(&format!("create database {name}"))
             .execute(&mut holding)
@@ -138,37 +131,6 @@ async fn exists(holding: &mut PgConnection, name: &str) -> bool {
             .expect("ask after a database");
 
     there
-}
-
-/// Whether a crate outside this one has migrated this database. Its migrations
-/// are numbered above every one of this crate's, which is what `migrate_with`
-/// refuses anything else for.
-async fn carries_somebody_elses(url: &str) -> bool {
-    let mut conn = PgConnection::connect(url).await.expect("connect");
-
-    let (recorded,): (bool,) = sqlx::query_as("select to_regclass('_sqlx_migrations') is not null")
-        .fetch_one(&mut conn)
-        .await
-        .expect("ask after the record");
-
-    if !recorded {
-        return false;
-    }
-
-    let highest = sqlx::migrate!("./migrations")
-        .iter()
-        .map(|one| one.version)
-        .max()
-        .unwrap_or(0);
-
-    let (somebody_elses,): (bool,) =
-        sqlx::query_as("select exists (select 1 from _sqlx_migrations where version > $1)")
-            .bind(highest)
-            .fetch_one(&mut conn)
-            .await
-            .expect("ask after the record");
-
-    somebody_elses
 }
 
 /// The migrations, and the role a request is served as. Every time rather than

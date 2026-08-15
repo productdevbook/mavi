@@ -162,16 +162,21 @@ async fn begin(
             .fetch_one(conn.conn())
             .await?;
 
+    // From here on this transaction writes to tables row-level security governs
+    // by tenant, and there is no separate tenant-scoped connection to open for
+    // them: the site does not exist to one until this transaction commits.
+    //
+    // Before the first of those writes rather than after: `tenant_domains` is
+    // one of them, and it was inserted above this line — which every test of
+    // setting up missed, because they were the only tests that ran as a
+    // superuser, and row-level security does not apply to one.
+    conn.provisioning_for(TenantId(tenant_id)).await?;
+
     sqlx::query("insert into tenant_domains (host, tenant_id, is_primary) values ($1, $2, true)")
         .bind(&host)
         .bind(tenant_id)
         .execute(conn.conn())
         .await?;
-
-    // What is left writes to a table row-level security governs by tenant, and
-    // there is no separate tenant-scoped connection to open for it: the site
-    // does not exist to one until this transaction commits.
-    conn.provisioning_for(TenantId(tenant_id)).await?;
 
     sqlx::query("insert into site_settings (tenant_id, name) values ($1, $2)")
         .bind(tenant_id)

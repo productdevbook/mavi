@@ -12326,7 +12326,7 @@
       },
       "RowCount": {
         "type": "object",
-        "description": "Rows of one kind. `exact` says which promise `rows` is making: a table\nsmall enough that counting it costs nothing is counted outright, and only\na table too big to walk on every load falls back to what Postgres already\ntracks for its own planner. See `COUNT_BELOW` for where that line is and\nwhy.",
+        "description": "Rows of one kind, counted outright.\n\n`exact` is always `true` today. A table large enough to make that count\nworth avoiding should fall back to what Postgres already tracks for its\nown planner instead — the same question #60 is open about for\n`/api/overview` — but making `pg_class.reltuples` trustworthy here turned\nout to need more rounds than this endpoint could spend on it; see #72 for\nwhat was tried and what is still unknown. `exact` stays on the shape now\nso a caller does not have to change again when that lands.",
         "required": [
           "kind",
           "rows",

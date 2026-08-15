@@ -50,21 +50,6 @@ const ROW_KINDS: &[&str] = &[
     "cards",
 ];
 
-/// Below this many estimated rows, `read_rows` counts the table outright
-/// instead of trusting `pg_class.reltuples`.
-///
-/// A table Postgres has never analyzed reports `reltuples = -1` (from
-/// Postgres 14 on, which is what this targets; before that it read `0`,
-/// indistinguishable from a table confirmed empty) — a signal, not a
-/// measurement, and clamping it to zero the way an earlier version of this
-/// query did turns "nobody has looked" into a confident lie: a site that just
-/// wrote its first forty posts and opened this screen would have read zero.
-/// Autovacuum's own analyze threshold is 50 rows plus a tenth of the table,
-/// so any table this small has every reason to still be unanalyzed and none
-/// of the cost concern this endpoint exists for — counting a few thousand
-/// rows is milliseconds, and it is exact.
-const COUNT_BELOW: i64 = 10_000;
-
 #[must_use]
 pub fn endpoints() -> Vec<Endpoint> {
     vec![
@@ -263,11 +248,15 @@ pub struct StorageKind {
     pub count: i64,
 }
 
-/// Rows of one kind. `exact` says which promise `rows` is making: a table
-/// small enough that counting it costs nothing is counted outright, and only
-/// a table too big to walk on every load falls back to what Postgres already
-/// tracks for its own planner. See `COUNT_BELOW` for where that line is and
-/// why.
+/// Rows of one kind, counted outright.
+///
+/// `exact` is always `true` today. A table large enough to make that count
+/// worth avoiding should fall back to what Postgres already tracks for its
+/// own planner instead — the same question #60 is open about for
+/// `/api/overview` — but making `pg_class.reltuples` trustworthy here turned
+/// out to need more rounds than this endpoint could spend on it; see #72 for
+/// what was tried and what is still unknown. `exact` stays on the shape now
+/// so a caller does not have to change again when that lands.
 #[derive(Debug, Serialize, sqlx::FromRow, utoipa::ToSchema)]
 pub struct RowCount {
     pub kind: String,
@@ -390,70 +379,20 @@ async fn read_usage(conn: &mut TenantConn) -> Result<Usage> {
     })
 }
 
-#[derive(sqlx::FromRow)]
-struct Reltuples {
-    kind: String,
-    reltuples: f32,
-}
-
-/// How many rows of each kind, without a `count(*)` over every table on every
-/// load — but also without trusting a stale or absent statistic to still be
-/// zero. See `COUNT_BELOW` for the line between the two.
+/// How many rows of each kind, one `count(*)` per table in `ROW_KINDS`.
+///
+/// This is exactly the cost the rest of this endpoint exists to avoid — see
+/// the doc comment on `RowCount` for why, and #72 for why an estimate is not
+/// standing in for it yet.
+///
+/// Walking `ROW_KINDS` itself, rather than a name read back from a query, is
+/// what lets `{kind}` go straight into the query below: `kind` is bound by
+/// this loop over a constant this crate wrote, the same rule `gather` and
+/// `erase` splice a table name under, and never a value a caller sent.
 async fn read_rows(conn: &mut TenantConn) -> Result<Vec<RowCount>> {
-    let estimated: Vec<Reltuples> = sqlx::query_as(
-        "select c.relname as kind, c.reltuples
-           from pg_class c
-           join pg_namespace n on n.oid = c.relnamespace
-          where n.nspname = current_schema()
-            and c.relname = any($1::text[])",
-    )
-    .bind(ROW_KINDS)
-    .fetch_all(conn.conn())
-    .await?;
-
     let mut rows = Vec::with_capacity(ROW_KINDS.len());
 
-    // Walking `ROW_KINDS` itself, rather than what came back from the query
-    // above, is what lets `{kind}` go straight into a query below: `kind` is
-    // bound by this loop over a constant this crate wrote, the same rule
-    // `gather` and `erase` splice a table name under, and never a value a
-    // caller sent — even though every `estimated[_].kind` could only ever be
-    // one of these same names too, nothing here traces that back to prove it.
     for &kind in ROW_KINDS {
-        let guess = estimated
-            .iter()
-            .find(|row| row.kind == kind)
-            .map_or(0.0, |row| row.reltuples);
-
-        // Negative means "never analyzed" (Postgres 14 on; this crate's tests
-        // run against 18) rather than "confirmed empty", so it is floored to
-        // zero before the comparison rather than trusted as a count.
-        #[expect(
-            clippy::cast_possible_truncation,
-            reason = "reltuples never approaches i64's range; this rounds a whole \
-                      number a planner stored as a float back to an integer"
-        )]
-        let estimate = guess.max(0.0).round() as i64;
-
-        if estimate >= COUNT_BELOW {
-            rows.push(RowCount {
-                kind: kind.to_owned(),
-                rows: estimate,
-                exact: false,
-            });
-            continue;
-        }
-
-        // A table this small (or never analyzed, which reads as small) costs
-        // nothing to walk, and counting it is always correct — the only
-        // question a wrong branch here could raise is speed, never a wrong
-        // answer. The one way this stays slow is a table that grew past
-        // `COUNT_BELOW` in one burst faster than autovacuum could react,
-        // which needs roughly fifty rows plus a tenth of the table's own
-        // size to trigger and runs on the order of a minute: an install
-        // writing content one post or order at a time never outruns it, and
-        // a bulk import that does is answered slowly exactly once — the load
-        // right after is back to the estimate.
         let (counted,): (i64,) = sqlx::query_as(&format!("select count(*)::bigint from {kind}"))
             .fetch_one(conn.conn())
             .await?;

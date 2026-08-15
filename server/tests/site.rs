@@ -453,10 +453,6 @@ async fn storage_and_rows_by_kind_are_read_back_as_what_was_written() {
     .await
     .expect("media");
 
-    // No `analyze`, on purpose: a table this small has usually never had one
-    // run against it, and that used to be exactly when this screen was
-    // wrong — `reltuples` reads `-1` on a table nothing has looked at, and
-    // an earlier version of this endpoint read that back as zero rows.
     conn.commit().await.expect("commit");
 
     let read = usage_of(&site).await;
@@ -478,65 +474,9 @@ async fn storage_and_rows_by_kind_are_read_back_as_what_was_written() {
         .find(|row| row["kind"] == "posts")
         .expect("a posts row");
 
-    // Three written, three read back — not an estimate rounded down to
-    // nothing because nothing has analyzed this table yet.
+    // Three written, three read back.
     assert_eq!(posts["rows"], 3, "{read}");
     assert_eq!(posts["exact"], true, "{read}");
-}
-
-#[tokio::test]
-async fn rows_past_the_threshold_are_estimated_rather_than_counted() {
-    let site = a_site().await;
-
-    // One statement, not one row at a time: this is standing a table up past
-    // the threshold to prove the estimate branch, not testing the insert.
-    // Committed on its own, before `analyze` runs: the estimate this test is
-    // asking about only exists once a statistic has been taken and written
-    // down, and `analyze` inside the same transaction as the insert it is
-    // meant to be measuring is not a fair test of that — it is exactly the
-    // "we already know because we just wrote it" case a real site never gets.
-    {
-        let mut conn = site.db.tenant(site.tenant).await.expect("begin");
-
-        sqlx::query(
-            "insert into media (tenant_id, location, original_name, mime, bytes, checksum)
-             select $1, 'bulk/' || g, 'bulk.bin', 'application/octet-stream', 1, '\\x00'::bytea
-               from generate_series(1, 10001) as g",
-        )
-        .bind(site.tenant.0)
-        .execute(conn.conn())
-        .await
-        .expect("many files");
-
-        conn.commit().await.expect("commit the rows");
-    }
-
-    {
-        let mut conn = site.db.tenant(site.tenant).await.expect("begin");
-
-        sqlx::query("analyze media")
-            .execute(conn.conn())
-            .await
-            .expect("analyze");
-
-        conn.commit().await.expect("commit the analyze");
-    }
-
-    let read = usage_of(&site).await;
-
-    let rows = read["rows"].as_array().expect("rows");
-    let media = rows
-        .iter()
-        .find(|row| row["kind"] == "media")
-        .expect("a media row");
-
-    assert_eq!(media["exact"], false, "{read}");
-
-    let estimated = media["rows"].as_i64().expect("a number");
-    assert!(
-        (9_000..11_000).contains(&estimated),
-        "wrote 10001 rows, estimated {estimated}: {read}"
-    );
 }
 
 #[tokio::test]

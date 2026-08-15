@@ -275,7 +275,10 @@ async fn a_body_that_is_not_json_is_refused_before_the_handler() {
 
     let (status, body) = asked(site, signed_in(request)).await;
 
-    assert_eq!(status, StatusCode::BAD_REQUEST);
+    // 422 rather than 400, because it is the same refusal a missing field
+    // gets: what a caller has to do about it is the same, and one code for
+    // "what you sent is not what this takes" is one thing to branch on.
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
     assert_eq!(body["key"], "that_is_not_something_this_understands");
 }
 

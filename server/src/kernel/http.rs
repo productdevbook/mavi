@@ -44,6 +44,10 @@ pub struct AppState {
     /// Whether an outbound webhook may reach a private address. False
     /// everywhere but a test, which has nowhere else to put its receiver.
     pub allow_private_destinations: bool,
+    /// Where this installation answers. What anything building a link with no
+    /// request in front of it reads: a scheduled job has no `Host` header to
+    /// take one from, and that is exactly when a letter needs one.
+    pub address: Arc<super::config::Address>,
     pub store: Arc<super::storage::Store>,
     /// What a site's stored credentials are sealed with.
     pub keyring: Arc<super::crypto::Keyring>,
@@ -97,6 +101,7 @@ impl AppState {
             clock: Arc::new(SystemClock),
             proxy_hops: 0,
             allow_private_destinations: false,
+            address: Arc::new(config.address),
             store: Arc::new(config.store),
             mailer: Arc::new(config.mailer),
             payments: Arc::new(config.payments),
@@ -117,7 +122,16 @@ impl AppState {
         let keyring = super::crypto::Keyring::from_the_environment()
             .unwrap_or_else(|why| panic!("MAVI_KEYS: {why}"));
 
-        Self::new_with(db, Config::from_env(keyring))
+        // The same distinction, for the same reason: an address that was meant
+        // and mistyped is refused here, and one nobody gave falls back to the
+        // obviously invented one. Not the silence #18 was — what a machine
+        // anybody can reach runs through is `start`, and that refuses to come
+        // up without a real one.
+        let address = super::config::Address::from_the_environment()
+            .unwrap_or_else(|why| panic!("MAVI_URL: {why}"))
+            .unwrap_or_else(super::config::Address::invented);
+
+        Self::new_with(db, Config::from_env(keyring, address))
     }
 }
 

@@ -41,15 +41,23 @@ curl -O https://raw.githubusercontent.com/productdevbook/mavi/main/Caddyfile
 {
   echo "POSTGRES_PASSWORD=$(openssl rand -base64 24)"
   echo "MAVI_KEYS=1:$(openssl rand -base64 32)"
+  echo "MAVI_URL=http://localhost"
 } > .env
 docker compose up -d
 ```
 
-Neither line is optional and neither has a default. The database holds every
-site on the machine, and `MAVI_KEYS` is what seals every secret a site keeps
-— its mail password, its payment keys. A key that ships with the software is
-one everybody else running it also has; a key that changes on restart is a site
-whose secrets can no longer be read.
+No line is optional and none has a default. The database holds every site on
+the machine, and `MAVI_KEYS` is what seals every secret a site keeps — its mail
+password, its payment keys. A key that ships with the software is one everybody
+else running it also has; a key that changes on restart is a site whose secrets
+can no longer be read.
+
+`MAVI_URL` is the address this answers on, as somebody outside would type it,
+and it is what a link in a letter is built from. It has no default because the
+letter that needs it most — the one somebody clicks to choose a password — is
+sent by a scheduled job, which has no request to take an address off; a guess
+here would send everybody a link that works on the machine that sent it and
+nowhere else.
 
 Open <http://localhost> and set up the first account. That makes the site too
 — its address is whatever you reached the machine on — and signs that account
@@ -57,8 +65,8 @@ into it. That is the whole of setup: where the database is was decided before
 the process started, and there is nothing after this to make a site with.
 
 On a machine other people can reach, give it your own name instead — put
-`MAVI_DOMAIN=example.com` in `.env`, point the name at the machine, and Caddy
-asks for a certificate on the first request. Anything else can stand in front
+`MAVI_DOMAIN=example.com` and `MAVI_URL=https://example.com` in `.env`, point
+the name at the machine, and Caddy asks for a certificate on the first request. Anything else can stand in front
 instead: nginx, Traefik, whatever is already there. All this needs from it is
 the `Host` header passed through and `X-Forwarded-For` and `X-Forwarded-Proto`
 set — how often somebody may try a password, and what the record says a change
@@ -89,6 +97,7 @@ The API reads these; everything else is set from the panel.
 |---|---|---|
 | `DATABASE_URL` | — | PostgreSQL. Required. |
 | `MAVI_KEYS` | — | What seals a site's secrets. `1:<thirty-two bytes, base64>`, and a version and comma for each older key. Required; the process refuses to start without it, and refuses to start on one it cannot read rather than making one up. |
+| `MAVI_URL` | — | The address this answers on, as somebody outside would type it: `https://example.com`, or with the path it is served under. What a link in a letter is built from. Required; the process refuses to start without it, because a letter with an unusable link in it is a person who never got back into their account. |
 | `MAVI_ROLE` | `both` | `api`, `worker`, or `both`. One process can do both; two make the queue somebody else's problem when the API is busy. |
 | `MAVI_DATA_DIR` | `uploads` beside the process, and `/data` in the image | Uploaded media. **Must be a persistent volume**, or everything anybody uploads goes with the container. |
 | `HOST` / `PORT` | `0.0.0.0` / `8080` | |

@@ -10,7 +10,7 @@
 //! instead calls it with its own.
 use std::env;
 
-use crate::kernel::config::Config;
+use crate::kernel::config::{Address, Config};
 use crate::kernel::crypto::Keyring;
 use crate::kernel::db::Db;
 use crate::kernel::http::AppState;
@@ -23,8 +23,12 @@ use crate::kernel::worker;
 /// Refuses to start at all if `MAVI_KEYS` is not set and `MAVI_INVENT_KEYS`
 /// does not say `yes`: a machine that invents a key cannot read what the
 /// last one sealed, and that is cheaper to say here than to discover later.
+/// Refuses on `MAVI_URL` for the same kind of reason: a machine that cannot
+/// name its own address sends letters with links nobody can click, and says
+/// nothing about it.
 pub async fn start(mut outside: Outside) -> Result<(), Box<dyn std::error::Error>> {
     let keyring = keys_or_refuse()?;
+    let address = address_or_refuse()?;
     crate::jobs::assert_schedules_are_runnable(&outside);
 
     let doing = Doing::from_env();
@@ -43,7 +47,7 @@ pub async fn start(mut outside: Outside) -> Result<(), Box<dyn std::error::Error
     // The environment, read here and nowhere below: what a process is
     // started with is the edge's business, and a state built in the middle of
     // one is a global every caller of this crate would inherit.
-    let mut state = AppState::new_with(db, Config::from_env(keyring));
+    let mut state = AppState::new_with(db, Config::from_env(keyring, address));
     state.outside = std::sync::Arc::new(outside);
     // Set where something in front is known to be rewriting the header; unset
     // it is not believed at all.
@@ -161,6 +165,39 @@ fn keys_or_refuse() -> Result<Keyring, Box<dyn std::error::Error>> {
          MAVI_INVENT_KEYS=yes if nothing here is worth keeping."
             .into(),
     )
+}
+
+/// A machine that cannot name its own address sends letters with links nobody
+/// can follow, and does it silently: a password reset built out of a bare path
+/// is not clickable in a plain-text mail and goes nowhere pasted into a
+/// browser, so the failure is a person who never got in rather than anything
+/// in a log.
+///
+/// There is nothing to work it out from, either. Resolving a site from `Host`
+/// means every request carries an address, but a scheduled job sending a
+/// letter carries none — and defaulting to `localhost` would make links that
+/// work on the machine that sent them and nowhere else, which is how this
+/// class of bug survives. So it is asked for, once, before anything can send
+/// one.
+fn address_or_refuse() -> Result<Address, Box<dyn std::error::Error>> {
+    match Address::from_the_environment() {
+        Ok(Some(address)) => Ok(address),
+        Ok(None) => Err(
+            "MAVI_URL is not set. It is the address this installation answers \
+             on, as somebody outside it would type it — `https://example.com` \
+             — and it is what a link in a letter is built from. There is no \
+             default: a scheduled job sending a password reset has no request \
+             to take an address off, and one guessed here would send links \
+             that work on this machine and nowhere else."
+                .into(),
+        ),
+        Err(why) => Err(format!(
+            "MAVI_URL is set and cannot be read: {why}. It is a scheme and a \
+             host — `https://example.com`, or with the path it is served under \
+             — and nothing else; what is joined onto it brings its own query."
+        )
+        .into()),
+    }
 }
 
 /// What this process is for.

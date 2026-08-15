@@ -364,7 +364,10 @@ async fn invite(
         &[
             ("name", person.name.clone()),
             ("site", site),
-            ("link", format!("/forgotten?token={secret}")),
+            (
+                "link",
+                state.address.link(&format!("/forgotten?token={secret}")),
+            ),
         ],
     )
     .await?;
@@ -796,7 +799,10 @@ async fn change(
             &[
                 ("name", after.name.clone()),
                 ("site", site),
-                ("link", format!("/forgotten?token={secret}")),
+                (
+                    "link",
+                    state.address.link(&format!("/forgotten?token={secret}")),
+                ),
             ],
         )
         .await?;
@@ -1080,7 +1086,10 @@ async fn ask_to_reset(
                 // one.
                 ("name", String::new()),
                 ("site", site),
-                ("link", format!("/forgotten?token={secret}")),
+                (
+                    "link",
+                    state.address.link(&format!("/forgotten?token={secret}")),
+                ),
             ],
         )
         .await?;

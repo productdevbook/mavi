@@ -25,6 +25,10 @@ services:
       # Nothing here is worth keeping, so a made-up key is allowed to be made
       # up. A machine with anything on it sets MAVI_KEYS instead.
       MAVI_INVENT_KEYS: "yes"
+      # Where this answers, for the links in the letters it sends. Right for
+      # something published on this machine's own port and wrong the moment
+      # anybody else has to click one, which is why it is never a default.
+      MAVI_URL: http://localhost:8080
       RUST_LOG: info
       UPLOADS_DIR: /data/uploads
     ports:

@@ -43,27 +43,27 @@ pub fn admit<'a>(
     needs: Option<Needs>,
     owner: Option<&str>,
 ) -> Result<Admitted<'a>> {
-    match (endpoint.who, caller) {
-        (Who::Anybody, _) => {}
-        (Who::AnAccount, Caller::AnAccount { .. }) => {}
-        (Who::AStudent, Caller::AStudent { .. }) => {}
+    // The three that are let in, said as one thing rather than as three empty
+    // arms — which reads better and, more to the point, means adding a fourth
+    // audience has to be written here rather than falling through.
+    let the_right_sort = matches!(
+        (endpoint.who, caller),
+        (Who::Anybody, _)
+            | (Who::AnAccount, Caller::AnAccount { .. })
+            | (Who::AStudent, Caller::AStudent { .. })
+    );
 
+    if !the_right_sort {
         // A student reaching an account's endpoint is not "signed in as the
         // wrong thing" — from the endpoint's side there is nobody here who
         // could be let in, and saying which would answer a question about who
         // else exists.
-        (Who::AnAccount, _) => {
-            return Err(Error::new(
-                Code::Unauthenticated,
-                Say::of(YOU_ARE_NOT_SIGNED_IN),
-            ));
-        }
-        (Who::AStudent, _) => {
-            return Err(Error::new(
-                Code::Unauthenticated,
-                Say::of(THAT_IS_FOR_SOMEBODY_ENROLLED),
-            ));
-        }
+        let said = match endpoint.who {
+            Who::AStudent => THAT_IS_FOR_SOMEBODY_ENROLLED,
+            _ => YOU_ARE_NOT_SIGNED_IN,
+        };
+
+        return Err(Error::new(Code::Unauthenticated, Say::of(said)));
     }
 
     if let Some(needs) = needs {

@@ -107,12 +107,14 @@ pub const BY_RECENT: Keyset = Keyset(&[
 /// most important thing about this domain.
 #[must_use]
 pub fn endpoints() -> Vec<Endpoint> {
-    let mut all = for_the_panel();
+    let mut all = the_forms();
+    all.extend(what_came_in());
     all.extend(for_anybody());
     all
 }
 
-fn for_the_panel() -> Vec<Endpoint> {
+/// The forms themselves, which only somebody signed in touches.
+fn the_forms() -> Vec<Endpoint> {
     vec![
         Endpoint {
             method: Method::Get,
@@ -177,6 +179,12 @@ fn for_the_panel() -> Vec<Endpoint> {
             refuses: &[Code::NotFound],
             changes: true,
         },
+    ]
+}
+
+/// What people sent them, which only somebody signed in reads.
+fn what_came_in() -> Vec<Endpoint> {
+    vec![
         Endpoint {
             method: Method::Get,
             path: "/api/forms/{id}/filled",
@@ -221,6 +229,7 @@ fn for_the_panel() -> Vec<Endpoint> {
     ]
 }
 
+/// What anybody at all reaches. Every one of these is under `/api/open/`.
 fn for_anybody() -> Vec<Endpoint> {
     vec![
         Endpoint {

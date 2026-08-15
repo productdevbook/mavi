@@ -2245,7 +2245,7 @@
                     },
                     "token": {
                       "$ref": "#/components/schemas/Shown",
-                      "description": "Handed back for the same reason an invitation's is: nothing sends mail,\nand a token that goes nowhere is worse than one that is visible."
+                      "description": "A `student.invited` letter goes to their address as well, but this is\nalso handed back: the panel is signed in as whoever is doing the\nenrolling, not as the student, so there is no other screen this could\nbe read from if the letter never arrives."
                     }
                   }
                 }
@@ -9576,7 +9576,7 @@
           },
           "token": {
             "$ref": "#/components/schemas/Shown",
-            "description": "Handed back for the same reason an invitation's is: nothing sends mail,\nand a token that goes nowhere is worse than one that is visible."
+            "description": "A `student.invited` letter goes to their address as well, but this is\nalso handed back: the panel is signed in as whoever is doing the\nenrolling, not as the student, so there is no other screen this could\nbe read from if the letter never arrives."
           }
         }
       },

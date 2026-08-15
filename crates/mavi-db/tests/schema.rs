@@ -97,6 +97,8 @@ async fn every_migration_applies_to_an_empty_database() {
         "on_a_list",
         "jobs",
         "receipts",
+        "settings",
+        "languages",
     ] {
         let there: bool = sqlx::query_scalar("select to_regclass($1) is not null")
             .bind(table)
@@ -300,4 +302,57 @@ async fn one_address_cannot_be_two_readers() {
         .await
         .expect_err("an address that was not folded");
     assert!(broke(&shouted).contains("email"), "{}", broke(&shouted));
+}
+
+#[tokio::test]
+async fn one_installation_is_one_site() {
+    if postgres().is_none() {
+        return;
+    }
+
+    let db = fresh("one").await;
+
+    sqlx::query("insert into settings (name) values ('A Site')")
+        .execute(db.pool())
+        .await
+        .expect("the site");
+
+    // Not a convention and not a rule the code remembers: the second row is
+    // refused by the database, whoever is inserting it and whatever they think
+    // they are doing.
+    let second = sqlx::query("insert into settings (name) values ('Another Site')")
+        .execute(db.pool())
+        .await
+        .expect_err("a second site");
+
+    assert!(
+        broke(&second).contains("settings"),
+        "a second site: {}",
+        broke(&second)
+    );
+}
+
+#[tokio::test]
+async fn at_most_one_language_is_the_sites_own() {
+    if postgres().is_none() {
+        return;
+    }
+
+    let db = fresh("languages").await;
+
+    let language = |tag: &'static str, own: bool| {
+        sqlx::query(
+            "insert into languages (tag, name, is_the_sites_own) values ($1, 'A Language', $2)",
+        )
+        .bind(tag)
+        .bind(own)
+        .execute(db.pool())
+    };
+
+    language("en", true).await.expect("the site's own");
+    language("tr", false).await.expect("another");
+
+    let two = language("de", true).await.expect_err("a second default");
+
+    assert_eq!(broke(&two), "languages_one_is_the_sites_own");
 }

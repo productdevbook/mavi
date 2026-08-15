@@ -30,7 +30,14 @@ fn postgres() -> Option<String> {
 /// it with — two shoppers are two connections, or they are not two shoppers.
 async fn fresh(named: &str) -> (Db, String) {
     let address = postgres().expect("checked by the caller");
-    let named = format!("mavi_shop_{named}_{}", Uuid::now_v7().simple());
+    // Underscores, not dashes: an unquoted identifier is what `create
+    // database` takes, and a dash in one is a syntax error rather than a
+    // name.
+    let named = format!(
+        "mavi_shop_{}_{}",
+        named.replace('-', "_"),
+        Uuid::now_v7().simple()
+    );
 
     let mut admin = PgConnection::connect(&address).await.expect("a connection");
     sqlx::query(&format!("create database {named}"))

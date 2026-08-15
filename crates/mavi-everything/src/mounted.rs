@@ -47,13 +47,13 @@ pub fn site(db: &Db, who_is_asking: WhoIsAsking) -> Site {
             "writings.read" => Some(handling(db, |db, asked| {
                 Box::pin(async move { one(&db, &asked).await })
             })),
-            "writings.make" => Some(handling(db, |db, asked| {
+            "writings.write" => Some(handling(db, |db, asked| {
                 Box::pin(async move { made(&db, &asked).await })
             })),
             "writings.change" => Some(handling(db, |db, asked| {
                 Box::pin(async move { changed(&db, &asked).await })
             })),
-            "writings.remove" => Some(handling(db, |db, asked| {
+            "writings.throw-away" => Some(handling(db, |db, asked| {
                 Box::pin(async move { thrown(&db, &asked).await })
             })),
             _ => None,

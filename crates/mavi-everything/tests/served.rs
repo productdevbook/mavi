@@ -142,7 +142,7 @@ async fn writing_something_writes_the_row_and_the_record_of_it() {
             .map(|row| (row.get("did"), row.get("about_id")))
             .expect("a receipt");
 
-    assert_eq!(did, "writings.make");
+    assert_eq!(did, "writings.write");
     assert_eq!(about.as_deref(), made["id"].as_str());
 }
 

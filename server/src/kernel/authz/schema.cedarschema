@@ -1,0 +1,44 @@
+entity Platform;
+
+entity Site {
+    frozen: Bool,
+};
+
+entity Agency;
+
+entity Charge {
+    site: Site,
+};
+
+entity Operator;
+
+entity AgencyUser in [Agency] {
+    grants: Set<String>,
+};
+
+entity Customer {
+    site: Site,
+};
+
+entity SiteUser in [Site] {
+    grants: Set<String>,
+    id: String,
+};
+
+action "view" appliesTo {
+    principal: [Operator, AgencyUser, Customer, SiteUser],
+    resource: [Site, Charge, Agency, Platform],
+    context: { needed: String, needed_own: String, is_change: Bool, owner: String },
+};
+
+action "write" appliesTo {
+    principal: [Operator, AgencyUser, Customer, SiteUser],
+    resource: [Site, Charge, Agency, Platform],
+    context: { needed: String, needed_own: String, is_change: Bool, owner: String },
+};
+
+action "delete" appliesTo {
+    principal: [Operator, AgencyUser, Customer, SiteUser],
+    resource: [Site, Charge, Agency, Platform],
+    context: { needed: String, needed_own: String, is_change: Bool, owner: String },
+};

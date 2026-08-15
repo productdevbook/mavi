@@ -1,0 +1,12 @@
+# The scanner's own rules, plus what it has to be told is not a credential.
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = """
+An invented click token in a mailing test: base64 for two English words, there
+to be handed to a reader that must refuse it. Allowed by its own text rather
+than by file and line, so that moving the test does not quietly re-open it.
+"""
+regexTarget = "line"
+regexes = ['''"aGVsbG8gdGhlcmU"''']

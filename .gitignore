@@ -1,0 +1,52 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Env files (never commit secrets/connection strings)
+.env
+.env.*
+!.env.example
+
+# What a server running from here writes beside itself: the key it signs with,
+# and whatever anybody uploaded — including what a test run uploads.
+data/
+server/uploads/
+*.db
+*.db-shm
+*.db-wal
+
+# Local agent/tooling state. The agent definitions are not state — they are
+# how this project asks to be worked on, and they are the same for everybody.
+.claude/*
+!.claude/agents/
+.tanstack/
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+src/routeTree.gen.ts
+dist-learn
+dist-shop
+
+# The rewrite builds beside the one it replaces.
+server/target
+# What the old backend left on this disk when its sources went: a target
+# directory of build output that once got swept into a commit by `add -A`.
+backend/

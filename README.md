@@ -1,0 +1,284 @@
+# Mavi
+
+A content management system you run yourself. One Rust binary, one PostgreSQL
+and a React panel: a site with pages and posts, that sells things, teaches
+courses, takes what people type into forms and sends mail about all of it.
+
+One installation can serve many sites, each on its own address — but it is a
+CMS, not a hosting business. What such a business needs on top of this —
+metering, billing, a console over many sites — is deliberately not here; see
+[what this is not](#what-this-is-not).
+
+MIT. Run it, change it, sell it.
+
+- **One binary, one database** — Axum and sqlx over PostgreSQL. Migrations run
+  at boot, and the tests run against a real Postgres rather than a substitute.
+- **Many sites, one machine** — a request is resolved from its `Host` header to
+  a site, and every table carrying a site's data is behind row-level security
+  that the database itself enforces.
+- **[Whatever the site publishes](#more-than-posts)** — posts and pages, and
+  any kind of thing a site makes up: a course with a price and a level, a
+  property with rooms. Each carries its own fields beside the title and the
+  body.
+- **Multilingual** — a site says which languages it writes in, and the same
+  writing in two of them is one group rather than two unrelated posts.
+- **[Publishing](#publishing)** — a design is written to a draft, built
+  somewhere to look at, and put live when somebody says so. A post given a date
+  goes out on it, within the minute.
+- **[Assistants](#assistants)** — every site answers the Model Context
+  Protocol. Point an assistant at it and ask it to do the work.
+- **[Teaching](#teaching)** — courses, modules, lessons and videos, with access
+  that can be sold for ninety days and actually ends after ninety days.
+- **Selling** — products, stock held at checkout, discount codes with
+  conditions, and orders numbered per site.
+- **Everything is written down** — every change writes an audit row before it
+  can answer, and the log can be read, filtered and taken away as a file.
+
+## Quick start
+
+```bash
+curl -O https://raw.githubusercontent.com/productdevbook/mavi/main/docker-compose.yml
+curl -O https://raw.githubusercontent.com/productdevbook/mavi/main/Caddyfile
+{
+  echo "POSTGRES_PASSWORD=$(openssl rand -base64 24)"
+  echo "MAVI_KEYS=$(openssl rand -base64 32)"
+} > .env
+docker compose up -d
+```
+
+Neither line is optional and neither has a default. The database holds every
+site on the machine, and `MAVI_KEYS` is what seals every secret a site keeps
+— its mail password, its payment keys. A key that ships with the software is
+one everybody else running it also has; a key that changes on restart is a site
+whose secrets can no longer be read.
+
+Open <http://localhost> and set up the first account. That is the whole of
+setup: where the database is was decided before the process started.
+
+On a machine other people can reach, give it your own name instead — put
+`MAVI_DOMAIN=example.com` in `.env`, point the name at the machine, and Caddy
+asks for a certificate on the first request. Anything else can stand in front
+instead: nginx, Traefik, whatever is already there. All this needs from it is
+the `Host` header passed through and `X-Forwarded-For` and `X-Forwarded-Proto`
+set — how often somebody may try a password, and what the record says a change
+was made from, are decided from the address they arrive on.
+
+The compose file runs a bundled Postgres. To use your own, set `DATABASE_URL`
+and drop the `postgres` service — which is also what stops `POSTGRES_PASSWORD`
+being asked for:
+
+```bash
+DATABASE_URL=postgres://user:password@your-host:5432/mavi docker compose up -d
+```
+
+### Images
+
+| | |
+|---|---|
+| API | `ghcr.io/productdevbook/mavi` |
+| Panel | `ghcr.io/productdevbook/mavi-panel` |
+
+Both are built for `linux/amd64` and `linux/arm64`.
+
+### Configuration
+
+The API reads these; everything else is set from the panel.
+
+| Variable | Default | Notes |
+|---|---|---|
+| `DATABASE_URL` | — | PostgreSQL. Required. |
+| `MAVI_KEYS` | — | What seals a site's secrets. Required; the process refuses to start without it. |
+| `MAVI_ROLE` | `both` | `api`, `worker`, or `both`. One process can do both; two make the queue somebody else's problem when the API is busy. |
+| `MAVI_DATA_DIR` | `/data` | Uploaded media. **Must be a persistent volume.** |
+| `HOST` / `PORT` | `0.0.0.0` / `8080` | |
+| `RUST_LOG` | `info` | |
+
+The panel is static files behind nginx, which proxies `/api`, `/mcp`,
+`/uploads` and `/openapi.json` to the API.
+
+## Many sites on one machine
+
+Every site's data lives in shared tables with a `tenant_id`, and every one of
+those tables has row-level security **enabled and forced**: a connection is
+opened with the site it belongs to and the database refuses to hand it anything
+else, whatever a query says. Nothing has to remember to filter by tenant, and
+the one test that matters is a schema test — a table with a `tenant_id` and no
+policy on it fails the build.
+
+Adding a site — creating its tenant row, pointing an address at it — is not
+something this CMS does on its own; it is a decision for whatever runs the
+machine, made against the database directly or through a layer built on top.
+
+## More than posts
+
+A site is not always a blog. **Content types** in the panel say what this one
+publishes: every site has posts and pages, and a site adds its own when what it
+publishes has facts of its own — a course with a price and a level, a property
+with rooms.
+
+What a kind declares is what may be written: a field nothing declared is
+refused rather than quietly kept, and a number that is not a number is refused
+too. What was written under a field the kind no longer has is kept as it was,
+and comes back if the field does.
+
+Those fields are also what a front end asks about:
+`/api/posts?type=recipe&field=minutes&at_most=30` is every recipe under thirty
+minutes, and a field nothing declared is refused rather than matching nothing.
+
+## Publishing
+
+A design is rows on a draft: what a site looks like is written to `src/` and
+`public/`, built by whatever this machine is configured to build with, and put
+live when somebody presses publish. Before that it can be built to an address
+to look at — a preview, billed the same as a publish, that leaves what is live
+alone.
+
+A build that fails leaves what is live alone as well, because half a site is
+worse than an old one.
+
+A post given a state of **scheduled** and a moment goes out when that moment
+arrives — the machine looks every minute — and whatever was waiting for it is
+told.
+
+## Teaching
+
+Courses hold modules and lessons; a lesson plays a video the site uploaded.
+Somebody is put on a course for as long as the site says, and access that was
+sold for ninety days stops opening the course after ninety days. What they
+finished stays finished, and letting them back in is one call rather than an
+enrolment written again.
+
+A student is not a panel account: they sign in at the site's own front, hold no
+grants at all, and reach nothing in the panel.
+
+## Assistants
+
+Every site answers the [Model Context Protocol](https://modelcontextprotocol.io)
+at `https://your-site/mcp`.
+
+An assistant is handed a key from **API** in the panel: it carries the grants
+of whoever handed it over, expires by itself, and can be taken back. Nothing is
+written with it that the record does not say was written by an assistant.
+
+What it can do is what the panel can do, through the same grants — reading and
+writing posts, filing them, uploading, reading what has come in through a form,
+looking at orders, and working on the design. What it cannot do is publish:
+that is a person's, and there is no tool for it.
+
+## Connecting a front end
+
+Every site publishes an `llms.txt` describing itself, and the API describes
+itself at `/openapi.json`. The panel's own TypeScript types are generated from
+that description, and a test fails while they are stale — so a path this build
+does not serve is a type error rather than a 404 somebody finds later.
+
+## Moving a site here
+
+A site running the build before this one is carried across by the mover:
+
+```bash
+mavicms carry --from postgres://old-host/mavicms --schema site_example --to <tenant-id>
+```
+
+It carries the languages, the categories and tags, the posts and what they are
+filed under, the media rows, the forms and what came in through them, the
+people and their roles. What it deliberately leaves behind is written down in
+its output rather than guessed at.
+
+## Development
+
+Requires [Bun](https://bun.sh) and a Rust toolchain.
+
+```bash
+bun install
+bun run dev          # http://localhost:5173, proxies the API to :8080
+
+cd server
+cargo run            # http://localhost:8080
+```
+
+The panel expects the API on `:8080`; point it elsewhere with
+`VITE_API_PROXY_TARGET`.
+
+```bash
+bun run build        # builds, then typechecks — vite generates the route tree
+bun run typecheck
+bun run lint
+bun run extract      # pull new translatable strings into src/locales/*/messages.po
+
+cd server
+cargo clippy --all-targets -- -D warnings
+cargo nextest run --profile ci
+```
+
+The tests want a PostgreSQL, because a site is rows in one and a test of what a
+site holds should be asked of one:
+
+```bash
+docker run -d --name mavicms-test-db -p 127.0.0.1:5433:5432 \
+  -e POSTGRES_PASSWORD=test -e POSTGRES_DB=mavicms_test postgres:18-alpine
+export TEST_DATABASE_URL=postgres://postgres:test@127.0.0.1:5433/mavicms_test
+```
+
+Each shape is migrated once into a template and every test is handed a copy, so
+nothing has to be run beforehand.
+
+Or run the whole thing in containers, built from your checkout:
+
+```bash
+docker compose -f docker-compose.dev.yml up --build
+```
+
+### Layout
+
+```
+src/                 React 19, Vite, TanStack Router, Tailwind 4, Tiptap 3
+server/src/kernel/       what every domain is built out of: the router, the
+                     database, authorization, the queue, the words a refusal
+                     is said in
+server/src/<domain>/     one folder per thing a site does — content, media, mail,
+                     shop, learning, flows, publishing, people
+server/migrations/       the schema, run at boot
+server/types/            the panel's types, generated from the API's description
+wordpress-plugin/    the WordPress migration plugin (GPLv2+)
+```
+
+The panel is English and Turkish, via [Lingui](https://lingui.dev). Which
+language the panel is read in has nothing to do with which languages the site
+writes in.
+
+## The parts that need more than a paragraph
+
+| | |
+|---|---|
+| [media.md](docs/media.md) | where uploaded pictures are kept |
+| [flows.md](docs/flows.md) | what a site does on its own when something happens |
+| [boards.md](docs/boards.md) | what a site works through in stages |
+| [commerce.md](docs/commerce.md) | selling things |
+| [courses.md](docs/courses.md) | selling courses, and why a student is not a panel account |
+| [video.md](docs/video.md) | putting a lesson's video somewhere that is not this machine |
+
+## License
+
+MIT — see [LICENSE](LICENSE). The WordPress plugin is GPL-2.0-or-later, as
+WordPress plugins must be.
+
+Every dependency has been checked against that, and what was deliberately not
+borrowed is written down too: [LICENSES.md](LICENSES.md).
+
+## What this is not
+
+It is not a hosting business, and the parts that make one are not here:
+metering what each site uses, billing for it, making and unmaking sites on a
+machine, moving one between machines, a console that reads across all of them.
+That is somebody's product, and this is the CMS such a product would run.
+
+The seam it is built on is real rather than a promise:
+`server/src/kernel/outside.rs` lets a crate that depends on this one hand in
+its own endpoints and its own kinds of queued work, mounted through the same
+guard, the same rate limit and the same audit rule as everything here. Nothing
+mounted that way can skip a permission check or a receipt, and a test says so.
+
+It is also not a plugin marketplace. What a site can be made to talk to — its
+mail server, its payment provider — is a decision in the software rather than
+a form somebody fills in, and adding a third is a change to this repository.

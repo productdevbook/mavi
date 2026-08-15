@@ -1,0 +1,84 @@
+# What somebody who has not cloned this runs.
+#
+# The compose file names published images, so until this workflow has run once
+# for a tag, `docker compose up` has nothing to pull and the quickest way to
+# try this is building Rust from source. That is the difference between a
+# project somebody can run and a project somebody can read.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  # For the first one, and for rebuilding a tag whose base image has been
+  # patched underneath it.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: The tag to build, e.g. v0.1.0
+        required: true
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  images:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      # Both images, independently: the panel is minutes and the API is not,
+      # and a failure in one should not hide the other's result.
+      matrix:
+        include:
+          - name: mavi
+            context: server
+            file: server/Dockerfile
+          - name: mavi-panel
+            context: .
+            file: Dockerfile
+    steps:
+      # What is asked for by hand is checked before it is used as a ref or
+      # baked into an image name: a version is three numbers after a v, and
+      # anything else is somebody's mistake or somebody's attempt.
+      - id: version
+        env:
+          ASKED: ${{ inputs.tag }}
+          PUSHED: ${{ github.ref_name }}
+        run: |
+          version="${ASKED:-$PUSHED}"
+          case "$version" in
+            v[0-9]*.[0-9]*.[0-9]*) ;;
+            *) echo "not a version: $version" >&2; exit 1 ;;
+          esac
+          echo "tag=$version" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: refs/tags/${{ steps.version.outputs.tag }}
+
+      # arm64 as well as amd64: a machine somebody runs this on themselves is
+      # as likely to be an Arm box as not, and an amd64-only image on one runs
+      # under emulation slowly enough to look broken.
+      - uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf # v3.2.0
+      - uses: docker/setup-buildx-action@c47758b77c9736f4b2ef4073d4d51994fabfe349 # v3.7.1
+
+      - uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@4f58ea79222b3b9dc2c8bbdd6debcef730109a75 # v6.9.0
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
+          platforms: linux/amd64,linux/arm64
+          push: true
+          # The tag itself and `latest`. No `main`: an image that moves under
+          # somebody who pinned nothing is how an installation changes version
+          # without anybody deciding to.
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/${{ matrix.name }}:${{ steps.version.outputs.tag }}
+            ghcr.io/${{ github.repository_owner }}/${{ matrix.name }}:latest
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}

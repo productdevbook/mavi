@@ -1,0 +1,166 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+# Third-party actions run with whatever this grants, and nothing here writes.
+permissions:
+  contents: read
+
+# On main a run is the record of what main is, so it is not cancelled.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  # Whether these exact files have already been checked, and which half of the
+  # repository the change touches.
+  #
+  # A job with an `if` rather than a `paths:` filter on the trigger: a job
+  # skipped by its own condition still reports, and satisfies a required check,
+  # where a workflow that never starts leaves one pending forever.
+  what:
+    runs-on: blacksmith-2vcpu-ubuntu-2404-arm
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      # To find the earlier run that already checked these files.
+      actions: read
+    outputs:
+      skip: ${{ steps.check.outputs.should_skip }}
+      paths: ${{ steps.check.outputs.paths_result }}
+    steps:
+      - id: check
+        # Pinned to a commit, which cannot be moved under us the way a tag can.
+        uses: fkirc/skip-duplicate-actions@b974a9395958c231af965b70070979a577efa578 # v5.3.2
+        with:
+          paths_filter: |
+            server:
+              paths:
+                - 'server/**'
+                - '.github/workflows/ci.yml'
+            frontend:
+              paths_ignore:
+                - 'server/**'
+
+  frontend:
+    needs: what
+    if: needs.what.outputs.skip != 'true' && !fromJSON(needs.what.outputs.paths).frontend.should_skip
+    runs-on: blacksmith-2vcpu-ubuntu-2404-arm
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          # A released version, not the canary: the lockfile format tracks the
+          # bun version, and a canary writes one no release can read.
+          bun-version: "1.3.14"
+      - run: bun install --frozen-lockfile
+
+      # `--bun` because vite's own bin declares node in its shebang, and
+      # without it bun hands the build back to whatever node the image carries.
+      #
+      # Build before typecheck: vite generates the route tree that tsc reads.
+      - run: bun run --bun build
+      - run: bun run --bun lint
+
+  # The API: the formatter, clippy with warnings denied, and the whole test
+  # suite against a real Postgres.
+  server:
+    needs: what
+    if: needs.what.outputs.skip != 'true' && !fromJSON(needs.what.outputs.paths).server.should_skip
+    runs-on: blacksmith-4vcpu-ubuntu-2404-arm
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: server
+    env:
+      TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5433/mavi_test
+      CARGO_PROFILE_DEV_DEBUG: 0
+      CARGO_PROFILE_TEST_DEBUG: 0
+      CARGO_INCREMENTAL: 0
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: A Postgres that is not protecting anything
+        run: |
+          docker run -d --name pgserver \
+            --tmpfs /var/lib/postgresql/data:rw,size=2g \
+            -p 5433:5432 \
+            -e POSTGRES_PASSWORD=postgres \
+            -e POSTGRES_DB=mavi_test \
+            -e PGDATA=/var/lib/postgresql/data/pgdata \
+            postgres:18-alpine \
+            -c fsync=off \
+            -c synchronous_commit=off \
+            -c full_page_writes=off
+          until docker exec pgserver pg_isready -U postgres >/dev/null 2>&1; do sleep 1; done
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: server
+          cache-on-failure: true
+
+      # A prebuilt binary; `cargo install` would compile a test runner first.
+      - uses: taiki-e/install-action@nextest
+
+      - run: cargo fmt --check
+      - run: cargo clippy --all-targets -- -D warnings
+      # A process per test, which is what makes a test that leaks state fail on
+      # its own rather than poisoning whatever ran beside it.
+      - run: cargo nextest run --profile ci
+      # `cargo test` above does not run these; a crate whose examples do not
+      # compile is a crate whose documentation is wrong.
+      - run: cargo test --doc
+
+      # A dependency with a known hole is a hole. Advisories only: a licence or
+      # a duplicate version is a conversation, not a failing build.
+      - uses: taiki-e/install-action@cargo-deny
+      - run: cargo deny check advisories bans
+
+  # This repository is public, and what must never be in it is not a matter of
+  # anybody remembering.
+  nothing-that-should-not-be-here:
+    needs: what
+    if: needs.what.outputs.skip != 'true'
+    runs-on: blacksmith-2vcpu-ubuntu-2404-arm
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The history as well, because a commit message is as public as the
+          # code and this has been the way it got out before.
+          fetch-depth: 0
+
+      - name: Secrets
+        # The scanner, not the action that wraps it: the action refuses to run
+        # for an organisation without a licence key, and the scanner it would
+        # have run is the same free binary. Pinned and checksummed because this
+        # step is trusted with the whole history.
+        env:
+          GITLEAKS_VERSION: 8.30.1
+          GITLEAKS_SHA256: e4a487ee7ccd7d3a7f7ec08657610aa3606637dab924210b3aee62570fb4b080
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          curl -fsSL -o gitleaks.tar.gz \
+            "https://github.com/gitleaks/gitleaks/releases/download/v$GITLEAKS_VERSION/gitleaks_${GITLEAKS_VERSION}_linux_arm64.tar.gz"
+          echo "$GITLEAKS_SHA256  gitleaks.tar.gz" | sha256sum -c -
+          tar -xzf gitleaks.tar.gz gitleaks
+          cd "$GITHUB_WORKSPACE"
+          # Every commit, not the tree: something committed once is out whether
+          # or not a later commit took it back out again.
+          "$RUNNER_TEMP/gitleaks" git --no-banner --redact --exit-code 1 .
+
+      - name: Anything belonging to whoever is running it
+        # What the change adds, not what the tree already holds: the tests are
+        # full of invented addresses and a check that flags those is one that
+        # gets turned off.
+        run: ./scripts/nothing-of-theirs.sh origin/${{ github.base_ref || 'main' }}

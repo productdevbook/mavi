@@ -1,0 +1,7 @@
+node_modules
+dist
+backend
+.git
+*.md
+.env
+.env.local

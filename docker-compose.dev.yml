@@ -1,0 +1,64 @@
+# Builds both images from this checkout. For the published images use
+# docker-compose.yml instead.
+services:
+  postgres:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-mavicms}
+      # Asked for rather than defaulted, for the reason given in
+      # docker-compose.yml: `:-` makes a default the real password.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env — see .env.example}
+      POSTGRES_DB: ${POSTGRES_DB:-mavicms}
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-mavicms}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ./server
+    restart: unless-stopped
+    environment:
+      # Point this at any PostgreSQL you like — the bundled "postgres"
+      # service above is just the default.
+      DATABASE_URL: ${DATABASE_URL:-postgres://${POSTGRES_USER:-mavicms}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-mavicms}}
+      HOST: 0.0.0.0
+      PORT: 8080
+      RUST_LOG: ${RUST_LOG:-info}
+      # What seals every secret a site keeps: its mail password, its payment
+      # keys. Asked for rather than defaulted, because a default here would
+      # mean every installation sealed everything with one known key — and
+      # because a key that changes on restart is a site whose secrets are
+      # unreadable afterwards.
+      MAVI_KEYS: ${MAVI_KEYS:?set MAVI_KEYS in .env — see .env.example}
+      # api, worker, or both. One process can do both; two make the queue
+      # somebody else's problem when the API is busy.
+      MAVI_ROLE: ${MAVI_ROLE:-both}
+    volumes:
+      # Uploaded media and the key that encrypts stored credentials live here.
+      # Without this volume both are lost on every restart.
+      - api-data:/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # Not published to the host — see docker-compose.yml for why. To reach it
+    # while working on something:  ports: ["127.0.0.1:8080:8080"]
+    expose:
+      - "8080"
+
+  frontend:
+    build:
+      context: .
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "${FRONTEND_PORT:-8081}:80"
+
+volumes:
+  postgres-data:
+  api-data:

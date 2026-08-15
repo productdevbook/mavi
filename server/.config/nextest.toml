@@ -1,0 +1,14 @@
+# A process per test. Each one makes its own site inside the one database, so
+# they do not see each other's rows — and a test that leaks state fails on its
+# own rather than poisoning whatever ran beside it.
+
+[profile.ci]
+# Every failure in one run: a run that stopped at the first would report one
+# problem per push.
+fail-fast = false
+
+# Retrying a flaky test until it passes is how a flaky test stays.
+retries = 0
+
+[profile.ci.junit]
+path = "junit.xml"

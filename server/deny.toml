@@ -1,0 +1,7 @@
+# Advisories only. A licence question or a duplicated version is a
+# conversation to have, not a reason a branch cannot merge.
+[advisories]
+yanked = "deny"
+
+[bans]
+multiple-versions = "allow"

@@ -188,7 +188,7 @@ async fn a_file_is_not_kept_under_the_name_somebody_chose() {
 
     let db = fresh("files").await;
 
-    let kept = |at: &'static str| {
+    let kept = |at: String| {
         sqlx::query(
             "insert into files (id, kind, mime, name, kept_at, bytes)
              values ($1, 'image', 'image/png', 'holiday.png', $2, 100)",
@@ -198,17 +198,25 @@ async fn a_file_is_not_kept_under_the_name_somebody_chose() {
         .execute(db.pool())
     };
 
-    // What the code makes: two characters of the id, then the rest of it.
-    kept("ab/cdef0123456789abcdef01234567.png")
+    // Built the way the code builds one rather than typed out. The first
+    // version of this test had a literal with twenty-eight characters where
+    // thirty belong, and the constraint caught it — which is the whole reason
+    // this file exists, and a good enough argument for never hand-writing what
+    // the code can produce.
+    let flat = Uuid::now_v7().simple().to_string();
+    let (front, back) = flat.split_at(2);
+
+    kept(format!("{front}/{back}.png"))
         .await
         .expect("where the code puts one");
 
     for wrong in [
-        "holiday.png",
-        "../../etc/passwd",
-        "ab/../cdef0123456789abcdef012345.png",
+        "holiday.png".to_owned(),
+        "../../etc/passwd".to_owned(),
+        format!("{front}/../{back}.png"),
+        format!("{front}/{back}.php5x"),
     ] {
-        let refused = kept(wrong).await.expect_err(wrong);
+        let refused = kept(wrong.clone()).await.expect_err(&wrong);
 
         assert!(
             broke(&refused).contains("kept_at"),

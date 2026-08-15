@@ -205,33 +205,6 @@ async fn reading_the_log_asks_for_the_grant_that_is_for_it() {
 }
 
 #[tokio::test]
-async fn another_site_s_log_is_not_this_one_s() {
-    let one = Site::new().await;
-
-    one.send(
-        "POST",
-        "/api/posts",
-        Some(serde_json::json!({ "language": "en", "title": "Theirs" })),
-    )
-    .await;
-
-    let other = Site::new().await;
-    let (_, log) = other.send("GET", "/api/audit", None).await;
-
-    assert!(
-        !log["items"]
-            .as_array()
-            .expect("a page")
-            .iter()
-            .any(|entry| entry["after"]["title"] == "Theirs"),
-        "a site read what another site did: {log}"
-    );
-
-    let _ = one.db;
-    let _ = one.tenant;
-}
-
-#[tokio::test]
 async fn the_log_can_be_taken_away_as_a_file() {
     let site = Site::new().await;
 

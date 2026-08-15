@@ -346,14 +346,13 @@ async fn the_secret_a_site_configured_never_comes_back_out() {
     );
 }
 
+/// Nothing is configured, so there is nowhere to send anybody. Said as not
+/// found rather than by sending them to a provider this site never named.
 #[tokio::test]
-async fn a_provider_another_site_configured_is_not_this_site_s() {
-    let one = Site::new().await;
-    let (at, _) = a_provider(&one.email).await;
-    one.trusts(&at).await;
+async fn a_provider_nobody_configured_is_not_one_to_leave_through() {
+    let site = Site::new().await;
 
-    let other = Site::new().await;
-    let (status, _) = other.leaves(None).await;
+    let (status, _) = site.leaves(None).await;
 
     assert_eq!(status, StatusCode::NOT_FOUND);
 }

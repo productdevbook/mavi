@@ -209,17 +209,11 @@ async fn an_outside_endpoint_appears_in_the_description_the_server_serves() {
     );
 }
 
-/// A database of its own rather than the one every other test in this suite
-/// shares: `_sqlx_migrations` has no room in it for a migration that belongs
-/// to one test and not the rest of the run, and this crate's own `migrate` —
-/// called by `harness`, everywhere else — has no `Outside` to tell it that
-/// `900000001` is not its problem.
-///
-/// Migrates and grants exactly as [`start`](mavi::start::start) does: this
-/// crate's own migrations, unqualified — the same connection an outside
-/// crate's migrations run as — then the outside migration, then the
-/// row-scoped role every other test in this file already runs requests as.
-async fn an_outside_database() -> mavi::kernel::db::Db {
+/// A database nothing else has touched, reached as whoever may make tables in
+/// it. The leased ones are handed out as the role a request is served as,
+/// which by design cannot: row-level security has no effect on a superuser,
+/// so the role every other test runs as is not one.
+async fn a_database_of_its_own() -> (mavi::kernel::db::Db, String) {
     let url = std::env::var("TEST_DATABASE_URL").expect("TEST_DATABASE_URL");
     let name = format!("v1_outside_{}", Uuid::now_v7().simple());
 
@@ -235,6 +229,21 @@ async fn an_outside_database() -> mavi::kernel::db::Db {
     let admin = mavi::kernel::db::Db::connect(&its_own, 4)
         .await
         .expect("connect");
+
+    (admin, its_own)
+}
+
+/// A database made here rather than one of the leased ones: what a test
+/// leaves in a leased database is emptied out of it, and a migration is not a
+/// row anybody wrote — `900000001` would still be recorded as run when the
+/// next test was handed it.
+///
+/// Migrates and grants exactly as [`start`](mavi::start::start) does: this
+/// crate's own migrations, unqualified — the same connection an outside
+/// crate's migrations run as — then the outside migration, then the
+/// row-scoped role every other test in this file already runs requests as.
+async fn an_outside_database() -> mavi::kernel::db::Db {
+    let (admin, its_own) = a_database_of_its_own().await;
     admin.migrate().await.expect("this crate's own migrations");
 
     let migrator = sqlx::migrate::Migrator::new(std::path::Path::new(concat!(
@@ -249,6 +258,8 @@ async fn an_outside_database() -> mavi::kernel::db::Db {
         .await
         .expect("the outside migration ran");
 
+    let mut tx = admin.operator().await.expect("begin");
+
     sqlx::query(&format!(
         "do $$ begin
              if not exists (select from pg_roles where rolname = '{APP_ROLE}') then
@@ -256,13 +267,10 @@ async fn an_outside_database() -> mavi::kernel::db::Db {
              end if;
          end $$;"
     ))
-    .execute(&mut making)
+    .execute(tx.conn())
     .await
     .expect("role");
 
-    drop(making);
-
-    let mut tx = admin.operator().await.expect("begin");
     for grant in [
         format!("grant usage on schema public to {APP_ROLE}"),
         format!(
@@ -419,9 +427,7 @@ async fn an_outside_migration_numbered_like_one_of_ours_is_refused() {
 /// queue unless something schedules it, whoever it belongs to.
 #[tokio::test]
 async fn an_outside_schedule_puts_its_job_in_the_queue() {
-    // A machine of its own: `schedule_due` walks every site there is, and
-    // every other test's site is not this test's business.
-    let db = common::a_machine_of_its_own().await;
+    let db = harness().await;
     let tenant = a_tenant(&db, &format!("{}.example", Uuid::now_v7().simple())).await;
 
     let mut state = AppState::new(db.clone());
@@ -492,9 +498,13 @@ fn an_outside_retention_policy_is_held_to_the_same_gate() {
 /// never again: everything that has run is recorded in one table, so after an
 /// outside crate's migrations are in it, this crate's own run has to go on
 /// working — every restart is that run.
+///
+/// A database of its own, for the same reason the one above has one, and
+/// reached as whoever may make a table in it: a migration is DDL, and the role
+/// a request is served as deliberately cannot.
 #[tokio::test]
 async fn this_crate_still_migrates_after_an_outside_crate_has() {
-    let db = common::a_machine_of_its_own().await;
+    let (db, _) = a_database_of_its_own().await;
 
     db.migrate_with(sqlx::migrate!("./tests/fixtures/outside_migrations"))
         .await

@@ -18,7 +18,7 @@ use crate::kernel::error::{AppError, Result};
 use crate::kernel::http::{AppState, Audience, Console, Endpoint, Guard, RatePolicy};
 use crate::kernel::ratelimit::Limit;
 use crate::kernel::secret::Secret;
-use crate::kernel::tenant::{TenantId, normalize_host};
+use crate::kernel::tenant::TenantId;
 use crate::kernel::types::{Email, Title};
 use crate::kernel::{password, say};
 
@@ -26,6 +26,18 @@ use crate::kernel::{password, say};
 /// its bare IP while somebody is trying it still gets a site, and still gets
 /// in.
 const FALLBACK_HOST: &str = "localhost";
+
+/// The form an address is written down in: no port, no trailing dot,
+/// lowercase. Nothing compares it to anything — no request is resolved to a
+/// site — so this is only so that what was recorded reads like an address
+/// rather than like a header.
+fn as_an_address(host: &str) -> String {
+    host.split(':')
+        .next()
+        .unwrap_or(host)
+        .trim_end_matches('.')
+        .to_ascii_lowercase()
+}
 
 /// Slowly. The window is small and this is behind no account at all, so what is
 /// counted here is somebody hammering an address that answers with a machine.
@@ -112,7 +124,7 @@ async fn begin(
     let host = headers
         .get(HOST)
         .and_then(|value| value.to_str().ok())
-        .map(normalize_host)
+        .map(as_an_address)
         .filter(|host| !host.is_empty())
         .unwrap_or_else(|| FALLBACK_HOST.to_owned());
 
@@ -150,16 +162,21 @@ async fn begin(
             .fetch_one(conn.conn())
             .await?;
 
+    // From here on this transaction writes to tables row-level security governs
+    // by tenant, and there is no separate tenant-scoped connection to open for
+    // them: the site does not exist to one until this transaction commits.
+    //
+    // Before the first of those writes rather than after: `tenant_domains` is
+    // one of them, and it was inserted above this line — which every test of
+    // setting up missed, because they were the only tests that ran as a
+    // superuser, and row-level security does not apply to one.
+    conn.provisioning_for(TenantId(tenant_id)).await?;
+
     sqlx::query("insert into tenant_domains (host, tenant_id, is_primary) values ($1, $2, true)")
         .bind(&host)
         .bind(tenant_id)
         .execute(conn.conn())
         .await?;
-
-    // What is left writes to a table row-level security governs by tenant, and
-    // there is no separate tenant-scoped connection to open for it: the site
-    // does not exist to one until this transaction commits.
-    conn.provisioning_for(TenantId(tenant_id)).await?;
 
     sqlx::query("insert into site_settings (tenant_id, name) values ($1, $2)")
         .bind(tenant_id)

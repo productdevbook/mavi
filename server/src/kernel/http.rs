@@ -4,9 +4,9 @@
 //! the router builds the description of the API out of those declarations —
 //! so a path that is served and a path that is documented cannot differ.
 //!
-//! The layers, in order: which site this address is, who is asking, what they
-//! may do, and how often they may ask. A handler is reached with those already
-//! decided, which is why none of them can be forgotten in one.
+//! The layers, in order: who is asking, what they may do, and how often they
+//! may ask. A handler is reached with those already decided, which is why none
+//! of them can be forgotten in one.
 use std::collections::HashSet;
 use std::sync::Arc;
 
@@ -26,7 +26,7 @@ use super::db::Db;
 use super::error::{AppError, Result};
 use super::outside::Outside;
 use super::ratelimit::{self, Limit};
-use super::tenant::{Site, TenantId, resolve_host};
+use super::tenant::{TenantId, the_site};
 
 pub const USER_COOKIE: &str = "mavi_user";
 pub const STUDENT_COOKIE: &str = "mavi_student";
@@ -166,7 +166,7 @@ impl<S: Send + Sync> FromRequestParts<S> for Console {
 
 #[derive(Clone, Debug)]
 pub struct Caller {
-    pub site: Site,
+    pub site: TenantId,
     pub request_id: RequestId,
     pub ip: Option<String>,
     pub user: Option<SignedIn>,
@@ -193,7 +193,7 @@ pub struct SignedIn {
 impl Caller {
     #[must_use]
     pub fn tenant(&self) -> TenantId {
-        self.site.tenant
+        self.site
     }
 
     /// Who is asking, where a handler needs them to be somebody.
@@ -212,10 +212,7 @@ impl Caller {
         authz::check(
             &self.principal()?,
             needs,
-            authz::Resource::Site {
-                id: self.site.tenant.0,
-                frozen: self.site.frozen,
-            },
+            authz::Resource::Site { id: self.site.0 },
             owner,
         )
     }
@@ -225,7 +222,7 @@ impl Caller {
 
         Ok(Principal::SiteUser {
             id: user.user_id,
-            site: self.site.tenant.0,
+            site: self.site.0,
             grants: user.grants.clone(),
         })
     }
@@ -263,9 +260,9 @@ pub enum Audience {
     User,
     Student,
     Public,
-    /// The machine's own screens. Reached on an address that is nobody's site,
-    /// so these are mounted outside the resolution every other route goes
-    /// through, and a site's grants never add up to one of them.
+    /// The machine's own screens. Whoever runs the machine is not somebody
+    /// on the site, so these are reached through a layer of their own, and a
+    /// site's grants never add up to one of them.
     Operator,
 }
 
@@ -435,14 +432,14 @@ struct Declared {
     domain: &'static str,
 }
 
+/// One router. What told a site's endpoints from the console's was the address
+/// each was reached on, and no address decides anything now — so what is left
+/// is which of the two an endpoint declared itself to be, said once per
+/// endpoint rather than once per router.
 pub fn mount(state: AppState, endpoints: Vec<Endpoint>) -> Router {
-    let (console, sites): (Vec<Endpoint>, Vec<Endpoint>) = endpoints
-        .into_iter()
-        .partition(|endpoint| endpoint.guard.audience == Audience::Operator);
-
     let mut router = Router::new();
 
-    for endpoint in sites {
+    for endpoint in endpoints {
         let declared = Declared {
             path: endpoint.path,
             method: endpoint.method,
@@ -450,51 +447,46 @@ pub fn mount(state: AppState, endpoints: Vec<Endpoint>) -> Router {
             domain: endpoint.domain,
         };
 
-        let guarded = endpoint.router.route_layer(from_fn_with_state(
-            state.clone(),
-            move |state: State<AppState>, request: Request, next: Next| {
-                admit(state, declared, request, next)
-            },
-        ));
+        // The identifying layer goes on second so it runs first: who is asking
+        // is decided before what they may do, and the console's caller is not
+        // a site's.
+        let guarded = if declared.guard.audience == Audience::Operator {
+            endpoint
+                .router
+                .route_layer(from_fn_with_state(
+                    state.clone(),
+                    move |state: State<AppState>, request: Request, next: Next| {
+                        admit_operator(state, declared, request, next)
+                    },
+                ))
+                .route_layer(from_fn_with_state(state.clone(), identify_operator))
+        } else {
+            endpoint
+                .router
+                .route_layer(from_fn_with_state(
+                    state.clone(),
+                    move |state: State<AppState>, request: Request, next: Next| {
+                        admit(state, declared, request, next)
+                    },
+                ))
+                .route_layer(from_fn_with_state(state.clone(), identify))
+        };
 
         router = router.route(endpoint.path, guarded);
     }
 
-    let mut own = Router::new();
-
-    for endpoint in console {
-        let declared = Declared {
-            path: endpoint.path,
-            method: endpoint.method,
-            guard: endpoint.guard,
-            domain: endpoint.domain,
-        };
-
-        let guarded = endpoint.router.route_layer(from_fn_with_state(
-            state.clone(),
-            move |state: State<AppState>, request: Request, next: Next| {
-                admit_operator(state, declared, request, next)
-            },
-        ));
-
-        own = own.route(endpoint.path, guarded);
-    }
-
     router
-        // Anything on a site's own address that is not one of its endpoints is
-        // one of its pages. Inside the layer that resolves the address, because
-        // which site's page it is is the whole question.
-        .fallback(crate::edge::serve)
-        .layer(middleware::from_fn_with_state(state.clone(), identify))
-        // Outside the resolution: the machine's own screens are reached on an
-        // address that is nobody's site, and everything above would turn them
-        // away.
-        .merge(own.layer(middleware::from_fn_with_state(
-            state.clone(),
-            identify_operator,
-        )))
-        // Outside the layer: a probe arrives at an address no site claims, and
-        // so does whatever is scraping the numbers.
+        // Anything that is not one of the site's endpoints is one of its pages.
+        // A fallback is not a route, so it cannot be layered the way one is,
+        // and it needs the same layer: a page is served to a caller.
+        .fallback_service(
+            Router::new()
+                .fallback(crate::edge::serve)
+                .layer(middleware::from_fn_with_state(state.clone(), identify))
+                .with_state(state.clone()),
+        )
+        // Outside all of it: a probe does not wait for a site to exist, and
+        // neither does whatever is scraping the numbers.
         // Alive is not ready. A pod whose database has gone is not something
         // to restart — restarting it does not bring the database back — so
         // liveness stays cheap and readiness is what asks.
@@ -545,15 +537,18 @@ async fn identify(
 ) -> Result<Response> {
     let request_id = RequestId(Uuid::now_v7());
 
+    let site = the_site(&state.db).await?;
+    let ip = client_ip(&request, state.proxy_hops);
+
+    // Not which site this is — that is not a question any more — but which
+    // address the browser thinks it is on, which is the whole of the check
+    // below.
     let host = request
         .headers()
         .get(HOST)
         .and_then(|value| value.to_str().ok())
-        .ok_or(AppError::UnknownHost)?
+        .unwrap_or_default()
         .to_owned();
-
-    let site = resolve_host(&state.db, &host).await?;
-    let ip = client_ip(&request, state.proxy_hops);
 
     // A cookie is sent by the browser whichever page asked, so a change made
     // with one is asked where it came from. A bearer token is not sent by
@@ -564,14 +559,14 @@ async fn identify(
 
     let token = bearer(&request).or_else(|| cookie(&request, USER_COOKIE));
     let user = match token {
-        Some(token) => session_of(&state.db, site.tenant, &token).await?,
+        Some(token) => session_of(&state.db, site, &token).await?,
         None => None,
     };
 
     // A student's token is looked for separately and never in the same place:
     // one cookie is not the other, and a bearer token is a panel account's.
     let student = match cookie(&request, STUDENT_COOKIE) {
-        Some(token) => student_session(&state.db, site.tenant, &token).await?,
+        Some(token) => student_session(&state.db, site, &token).await?,
         None => None,
     };
 
@@ -657,7 +652,8 @@ async fn admitting(
 
     match declared.guard.audience {
         Audience::Public => {}
-        // Mounted on its own router; nothing of a site's reaches one.
+        // Admitted through `admit_operator` instead; a route reaching here
+        // saying it is the console's is one mounted the wrong way round.
         Audience::Operator => return Err(AppError::Forbidden),
         Audience::User => {
             if caller.user.is_none() {
@@ -673,10 +669,7 @@ async fn admitting(
 
     if let Some(needs) = declared.guard.needs {
         let principal = caller.principal()?;
-        let resource = authz::Resource::Site {
-            id: caller.site.tenant.0,
-            frozen: caller.site.frozen,
-        };
+        let resource = authz::Resource::Site { id: caller.site.0 };
 
         // The caller as the owner, because at this point there is no record to
         // ask about — a post being written does not exist yet, and somebody

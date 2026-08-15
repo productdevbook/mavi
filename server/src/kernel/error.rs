@@ -52,9 +52,6 @@ pub enum AppError {
     #[error("too many requests")]
     RateLimited,
 
-    #[error("no site answers for that address")]
-    UnknownHost,
-
     #[error(transparent)]
     Database(#[from] sqlx::Error),
 
@@ -73,7 +70,6 @@ pub enum Code {
     Conflict,
     SecondFactorRequired,
     RateLimited,
-    UnknownHost,
     Internal,
 }
 
@@ -88,7 +84,6 @@ impl AppError {
             AppError::Conflict(_) => Code::Conflict,
             AppError::SecondFactorRequired => Code::SecondFactorRequired,
             AppError::RateLimited => Code::RateLimited,
-            AppError::UnknownHost => Code::UnknownHost,
             AppError::Database(_) | AppError::Bug(_) => Code::Internal,
         }
     }
@@ -96,7 +91,7 @@ impl AppError {
     #[must_use]
     pub fn status(&self) -> StatusCode {
         match self.code() {
-            Code::NotFound | Code::UnknownHost => StatusCode::NOT_FOUND,
+            Code::NotFound => StatusCode::NOT_FOUND,
             Code::Invalid => StatusCode::UNPROCESSABLE_ENTITY,
             Code::Unauthenticated | Code::SecondFactorRequired => StatusCode::UNAUTHORIZED,
             Code::Forbidden => StatusCode::FORBIDDEN,

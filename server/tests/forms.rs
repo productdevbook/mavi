@@ -15,7 +15,7 @@ use uuid::Uuid;
 mod common;
 
 use common::harness;
-use mavi::testing::{a_role, a_tenant, a_user, an_owner_role};
+use mavi::testing::{a_role, a_tenant, a_user};
 
 struct Site {
     db: Db,
@@ -83,11 +83,6 @@ async fn a_site_with(grants: &[String]) -> Site {
 }
 
 async fn everything_granted() -> Site {
-    let db = harness().await;
-    let host = format!("{}.example", Uuid::now_v7().simple());
-    let tenant = a_tenant(&db, &host).await;
-    let _ = an_owner_role(&db, tenant).await;
-
     a_site_with(&mavi::kernel::authz::every_grant()).await
 }
 
@@ -253,29 +248,6 @@ async fn an_account_without_the_grant_is_refused_and_it_is_written_down() {
     assert_eq!(
         refusals.0, 1,
         "why somebody could not get in has to be answerable from the log"
-    );
-}
-
-#[tokio::test]
-async fn another_site_s_form_is_not_there_rather_than_refused() {
-    let one = everything_granted().await;
-    let two = everything_granted().await;
-
-    let id = one.a_form("contact").await;
-
-    let (status, _) = two
-        .send("GET", &format!("/api/forms/{id}"), Some(&two.token), None)
-        .await;
-
-    assert_eq!(status, StatusCode::NOT_FOUND);
-
-    let (status, body) = two.send("GET", "/api/forms", Some(&two.token), None).await;
-
-    assert_eq!(status, StatusCode::OK);
-    assert_eq!(
-        body["items"].as_array().expect("a list").len(),
-        0,
-        "another site's forms were listed"
     );
 }
 

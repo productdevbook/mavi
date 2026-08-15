@@ -15,15 +15,6 @@ permit (
 )
 when { principal in resource && principal.grants.contains(context.needed) };
 
-// A hold closes every access that changes something, without a handler having
-// to remember the hold exists.
-forbid (
-    principal,
-    action,
-    resource is Site
-)
-when { resource.frozen && context.is_change };
-
 // A grant that ends in `:own` reaches only what the person made. An author
 // holding `content:write:own` edits their own posts and nobody else's; the
 // domain says whose the record is, and a domain that does not say passes an

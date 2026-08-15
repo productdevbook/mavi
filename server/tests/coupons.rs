@@ -199,20 +199,3 @@ async fn stopping_one_stops_it_and_leaves_what_it_was_spent_on() {
 
     assert_eq!(listed["items"].as_array().expect("a page").len(), 0);
 }
-
-#[tokio::test]
-async fn another_site_s_coupons_are_not_this_one_s() {
-    let one = Site::new().await;
-
-    one.send(
-        "POST",
-        "/api/coupons",
-        Some(serde_json::json!({ "code": "theirs", "kind": "amount", "value": 500 })),
-    )
-    .await;
-
-    let other = Site::new().await;
-    let (_, listed) = other.send("GET", "/api/coupons", None).await;
-
-    assert_eq!(listed["items"].as_array().expect("a page").len(), 0);
-}

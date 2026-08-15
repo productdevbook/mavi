@@ -267,30 +267,6 @@ async fn a_mail_server_that_does_not_answer_is_said_to_not_answer() {
 }
 
 #[tokio::test]
-async fn what_a_site_plugged_in_is_not_another_site_s() {
-    let one = Site::new().await;
-    one.send(
-        "PUT",
-        "/api/plugins/mail",
-        Some(&one.token),
-        Some(serde_json::json!({
-            "settings": { "url": NOWHERE, "from": "post@example.test" },
-        })),
-    )
-    .await;
-
-    let other = Site::new().await;
-    let (_, listed) = other
-        .send("GET", "/api/plugins", Some(&other.token), None)
-        .await;
-
-    assert_eq!(
-        listed[0]["configured"], false,
-        "one site's mail server showed up on another's: {listed}"
-    );
-}
-
-#[tokio::test]
 async fn a_site_that_plugged_in_nothing_still_sends() {
     let site = Site::new().await;
 

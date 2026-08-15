@@ -1,13 +1,18 @@
-//! Which site an address is.
+//! Which site this is.
 //!
-//! Every request carries a `Host`, and that is the whole of how one site is
-//! told from another: the same program serves all of them. An address nothing
-//! matches is turned away rather than handed the machine's own installation.
+//! Nothing decides. One installation is one site, so a request carries no
+//! question about whose data it is looking at: the site is the one row there
+//! is, and an address is only ever the address somebody typed.
+//!
+//! The id is still carried through everything below here, because the column
+//! it names is still on every table that holds a site's data. When that goes,
+//! this file goes with it.
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use super::db::Db;
 use super::error::{AppError, Result};
+use super::say;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize, sqlx::Type)]
 #[sqlx(transparent)]
@@ -19,49 +24,47 @@ impl std::fmt::Display for TenantId {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
-pub struct Site {
-    pub tenant: TenantId,
-    pub frozen: bool,
-}
-
-/// An address nothing claims is refused, rather than answered by whichever site
-/// is first or by the operator's own installation.
-/// The form every address is compared in: no port, no trailing dot, lowercase.
-#[must_use]
-pub fn normalize_host(host: &str) -> String {
-    host.split(':')
-        .next()
-        .unwrap_or(host)
-        .trim_end_matches('.')
-        .to_ascii_lowercase()
-}
-
-pub async fn resolve_host(db: &Db, host: &str) -> Result<Site> {
-    let host = normalize_host(host);
-
-    // Every site's addresses, said out loud: at this point nobody is a site
-    // yet, which is the whole reason this read exists.
+/// The one site, read from the one row.
+///
+/// Read per request rather than held anywhere: what it reads is a table on its
+/// way out, and a cache would outlive the thing it caches.
+///
+/// Two rows are read rather than one, so that "more than one" is something
+/// this can see rather than something it silently picks from. Both of the
+/// answers it cannot give are refusals a person can read:
+///
+/// - **No row.** `/api/setup` has not run. The endpoint exists and the caller
+///   is nobody in particular; the machine is simply not a site yet.
+/// - **Two rows.** The database was made by a build that served many, and the
+///   `tenant_id` and the policies dividing them are still in the schema. There
+///   is no honest way to choose, and choosing wrongly is one site's panel
+///   showing another site's posts with nothing anywhere saying so. So it
+///   refuses at the door, on every request, which is also how somebody finds
+///   out their database has to be split before this version can serve it.
+pub async fn the_site(db: &Db) -> Result<TenantId> {
     let mut conn = db.operator().await?;
     conn.across_sites().await?;
 
-    let found: Option<(Uuid, bool)> = sqlx::query_as(
-        "select t.id, t.state = 'suspended'
-           from tenant_domains d
-           join tenants t on t.id = d.tenant_id
-          where d.host = $1
-            and t.state in ('live', 'suspended')",
-    )
-    .bind(&host)
-    .fetch_optional(conn.conn())
-    .await?;
+    let found: Vec<(Uuid,)> = sqlx::query_as("select id from tenants limit 2")
+        .fetch_all(conn.conn())
+        .await?;
 
     conn.commit().await?;
 
-    found
-        .map(|(id, frozen)| Site {
-            tenant: TenantId(id),
-            frozen,
-        })
-        .ok_or(AppError::UnknownHost)
+    match found.as_slice() {
+        [(id,)] => Ok(TenantId(*id)),
+        [] => Err(AppError::Conflict(
+            say::THIS_MACHINE_IS_NOT_SET_UP_YET.into(),
+        )),
+        _ => {
+            tracing::error!(
+                "this database holds more than one site and this build serves one: \
+                 nothing here can say which site a request is about"
+            );
+
+            Err(AppError::Conflict(
+                say::THIS_DATABASE_HOLDS_MORE_THAN_ONE_SITE.into(),
+            ))
+        }
+    }
 }

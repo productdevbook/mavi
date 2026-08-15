@@ -9244,6 +9244,14 @@ msgstr "This letter has nothing to put where it says {{0}}."
 #~ msgid "This machine"
 #~ msgstr "This machine"
 
+#: src/lib/v1-said.ts:49
+msgid "This machine has nobody running it yet. Set it up first."
+msgstr "This machine has nobody running it yet. Set it up first."
+
+#: src/lib/v1-said.ts:51
+msgid "This database holds more than one site and this version serves one. It has to be split before this version can serve it."
+msgstr "This database holds more than one site and this version serves one. It has to be split before this version can serve it."
+
 #: src/lib/v1-said.ts:48
 msgid "This machine already has somebody running it."
 msgstr "This machine already has somebody running it."

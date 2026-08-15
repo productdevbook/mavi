@@ -131,6 +131,7 @@ fn everything_that_can_be_written_can_be_read() {
         "/api/auth/session",
         "/api/auth/reset",
         "/api/auth/password",
+        "/api/auth/email-proof",
         "/api/auth/second-factor/confirm",
         "/api/learn/session",
         "/api/sites/beacon",

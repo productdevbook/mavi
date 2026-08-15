@@ -1,0 +1,19 @@
+[package]
+name = "mavi-taxonomy"
+version = "0.0.0"
+edition = "2024"
+publish = false
+description = "What a writing is filed under: categories and tags, which are one thing with a rule."
+
+[dependencies]
+mavi-api = { path = "../mavi-api" }
+mavi-core = { path = "../mavi-core" }
+mavi-people = { path = "../mavi-people" }
+
+chrono = { workspace = true }
+serde = { workspace = true }
+sqlx = { workspace = true }
+uuid = { workspace = true }
+
+[lints]
+workspace = true

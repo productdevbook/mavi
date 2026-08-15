@@ -1632,7 +1632,7 @@ msgstr "Anything this site works through in order: enquiries, repairs, applicati
 #~ msgid "Anything this site works through in stages: applications, enquiries, jobs. You decide what the stages are and what they are called."
 #~ msgstr "Anything this site works through in stages: applications, enquiries, jobs. You decide what the stages are and what they are called."
 
-#: src/components/dashboard/dashboard-shell.tsx:224
+#: src/components/dashboard/dashboard-shell.tsx:213
 #: src/routes/dashboard.api.tsx:101
 msgid "API"
 msgstr "API"
@@ -1990,7 +1990,7 @@ msgstr "Being written"
 #~ msgid "Bills"
 #~ msgstr "Bills"
 
-#: src/components/dashboard/dashboard-shell.tsx:152
+#: src/components/dashboard/dashboard-shell.tsx:141
 #: src/routes/dashboard.trash.tsx:125
 msgid "Bin"
 msgstr "Bin"
@@ -2028,7 +2028,7 @@ msgstr "Blue"
 msgid "board"
 msgstr "board"
 
-#: src/components/dashboard/dashboard-shell.tsx:218
+#: src/components/dashboard/dashboard-shell.tsx:207
 #: src/routes/dashboard.boards_.$boardId.tsx:167
 #: src/routes/dashboard.boards.tsx:107
 #: src/routes/dashboard.roles.tsx:175
@@ -2281,7 +2281,7 @@ msgstr "card"
 msgid "Case sensitive"
 msgstr "Case sensitive"
 
-#: src/components/dashboard/dashboard-shell.tsx:145
+#: src/components/dashboard/dashboard-shell.tsx:134
 #: src/components/editor/post-settings.tsx:290
 #: src/routes/dashboard.categories.tsx:159
 msgid "Categories"
@@ -2590,7 +2590,7 @@ msgstr "Connecting with a token instead, from a terminal"
 #~ msgid "contains"
 #~ msgstr "contains"
 
-#: src/components/dashboard/dashboard-shell.tsx:132
+#: src/components/dashboard/dashboard-shell.tsx:121
 #: src/routes/dashboard.roles.tsx:167
 msgid "Content"
 msgstr "Content"
@@ -2603,7 +2603,7 @@ msgstr "Content already written in this language blocks removal — you'll be to
 #~ msgid "Content deleted"
 #~ msgstr "Content deleted"
 
-#: src/components/dashboard/dashboard-shell.tsx:215
+#: src/components/dashboard/dashboard-shell.tsx:204
 msgid "Content types"
 msgstr "Content types"
 
@@ -3437,7 +3437,7 @@ msgstr "Delete this file?"
 msgid "Description text shown in search results."
 msgstr "Description text shown in search results."
 
-#: src/components/dashboard/dashboard-shell.tsx:225
+#: src/components/dashboard/dashboard-shell.tsx:214
 #: src/routes/dashboard.design.tsx:97
 #: src/routes/dashboard.roles.tsx:176
 msgid "Design"
@@ -3489,7 +3489,7 @@ msgstr "Did not work"
 #~ msgid "Discount code"
 #~ msgstr "Discount code"
 
-#: src/components/dashboard/dashboard-shell.tsx:206
+#: src/components/dashboard/dashboard-shell.tsx:195
 #: src/routes/dashboard.coupons.tsx:72
 msgid "Discount codes"
 msgstr "Discount codes"
@@ -3926,7 +3926,7 @@ msgstr "flow"
 #~ msgid "Flow written"
 #~ msgstr "Flow written"
 
-#: src/components/dashboard/dashboard-shell.tsx:151
+#: src/components/dashboard/dashboard-shell.tsx:140
 #: src/routes/dashboard.flows.tsx:164
 #: src/routes/dashboard.index.tsx:194
 #: src/routes/dashboard.roles.tsx:172
@@ -4015,7 +4015,7 @@ msgstr "Format"
 msgid "Formatting"
 msgstr "Formatting"
 
-#: src/components/dashboard/dashboard-shell.tsx:149
+#: src/components/dashboard/dashboard-shell.tsx:138
 #: src/routes/dashboard.forms_.$formId.tsx:148
 #: src/routes/dashboard.forms.tsx:150
 #: src/routes/dashboard.roles.tsx:170
@@ -4835,7 +4835,7 @@ msgstr "Keyboard shortcuts"
 msgid "Language"
 msgstr "Language"
 
-#: src/components/dashboard/dashboard-shell.tsx:219
+#: src/components/dashboard/dashboard-shell.tsx:208
 #: src/routes/dashboard.languages.tsx:96
 msgid "Languages"
 msgstr "Languages"
@@ -4962,7 +4962,7 @@ msgstr "Let back in"
 #~ msgid "Letterhead"
 #~ msgstr "Letterhead"
 
-#: src/components/dashboard/dashboard-shell.tsx:207
+#: src/components/dashboard/dashboard-shell.tsx:196
 #: src/routes/dashboard.letters.tsx:109
 msgid "Letters"
 msgstr "Letters"
@@ -5081,7 +5081,7 @@ msgstr "Lower-case, letters, digits and dashes. This is what a person's account 
 #~ msgid "Made in the channel's own settings, under incoming webhooks. Anybody holding it can post to that channel, so it is treated as a password and kept out of the run record."
 #~ msgstr "Made in the channel's own settings, under incoming webhooks. Anybody holding it can post to that channel, so it is treated as a password and kept out of the run record."
 
-#: src/components/dashboard/dashboard-shell.tsx:150
+#: src/components/dashboard/dashboard-shell.tsx:139
 #: src/routes/dashboard.mail_.campaigns.$campaignId.tsx:94
 #: src/routes/dashboard.mail.tsx:180
 #: src/routes/dashboard.plugins.tsx:62
@@ -5218,7 +5218,7 @@ msgstr "Measured"
 msgid "Measurements"
 msgstr "Measurements"
 
-#: src/components/dashboard/dashboard-shell.tsx:142
+#: src/components/dashboard/dashboard-shell.tsx:131
 #: src/routes/dashboard.roles.tsx:169
 msgid "Media"
 msgstr "Media"
@@ -5419,7 +5419,7 @@ msgstr "never signed in"
 #~ msgstr "New · Spoken to · Quoted · Signed · Went elsewhere"
 
 #. placeholder {0}: writing.name
-#: src/components/dashboard/dashboard-shell.tsx:324
+#: src/components/dashboard/dashboard-shell.tsx:310
 msgid "New {0}"
 msgstr "New {0}"
 
@@ -6529,7 +6529,7 @@ msgstr "Order #{0}"
 #~ msgid "Order received"
 #~ msgstr "Order received"
 
-#: src/components/dashboard/dashboard-shell.tsx:205
+#: src/components/dashboard/dashboard-shell.tsx:194
 #: src/routes/dashboard.orders.tsx:128
 msgid "Orders"
 msgstr "Orders"
@@ -6555,7 +6555,7 @@ msgstr "Other ways in"
 msgid "over {0} days"
 msgstr "over {0} days"
 
-#: src/components/dashboard/dashboard-shell.tsx:134
+#: src/components/dashboard/dashboard-shell.tsx:123
 #: src/routes/dashboard.index.tsx:89
 msgid "Overview"
 msgstr "Overview"
@@ -6692,7 +6692,7 @@ msgstr "Paste the video link."
 msgid "Payments"
 msgstr "Payments"
 
-#: src/components/dashboard/dashboard-shell.tsx:221
+#: src/components/dashboard/dashboard-shell.tsx:210
 #: src/routes/dashboard.roles.tsx:178
 #: src/routes/dashboard.users.tsx:172
 msgid "People"
@@ -6714,7 +6714,7 @@ msgstr "People join it from your own pages, and leave it from any letter this si
 #~ msgid "Per GB stored, monthly"
 #~ msgstr "Per GB stored, monthly"
 
-#: src/components/dashboard/dashboard-shell.tsx:138
+#: src/components/dashboard/dashboard-shell.tsx:127
 #: src/routes/dashboard.performance.tsx:71
 msgid "Performance"
 msgstr "Performance"
@@ -6789,7 +6789,7 @@ msgstr "Plain text block"
 #~ msgid "Play"
 #~ msgstr "Play"
 
-#: src/components/dashboard/dashboard-shell.tsx:220
+#: src/components/dashboard/dashboard-shell.tsx:209
 #: src/routes/dashboard.plugins.tsx:145
 msgid "Plugins"
 msgstr "Plugins"
@@ -6865,7 +6865,7 @@ msgstr "post-url"
 #~ msgid "Postcode"
 #~ msgstr "Postcode"
 
-#: src/components/dashboard/dashboard-shell.tsx:141
+#: src/components/dashboard/dashboard-shell.tsx:130
 #: src/lib/use-content-types.ts:73
 msgid "Posts"
 msgstr "Posts"
@@ -6903,7 +6903,7 @@ msgstr "Previous"
 msgid "product"
 msgstr "product"
 
-#: src/components/dashboard/dashboard-shell.tsx:204
+#: src/components/dashboard/dashboard-shell.tsx:193
 #: src/routes/dashboard.products.tsx:125
 msgid "Products"
 msgstr "Products"
@@ -6912,7 +6912,7 @@ msgstr "Products"
 #~ msgid "Public base URL"
 #~ msgstr "Public base URL"
 
-#: src/components/dashboard/dashboard-shell.tsx:227
+#: src/components/dashboard/dashboard-shell.tsx:216
 #: src/components/editor/mavi-editor.tsx:736
 #: src/routes/dashboard.design.tsx:130
 #: src/routes/dashboard.publish.tsx:80
@@ -7088,7 +7088,7 @@ msgstr "Ready"
 #~ msgid "Recommended"
 #~ msgstr "Recommended"
 
-#: src/components/dashboard/dashboard-shell.tsx:223
+#: src/components/dashboard/dashboard-shell.tsx:212
 #: src/routes/dashboard.audit.tsx:72
 #: src/routes/dashboard.roles.tsx:180
 msgid "Record"
@@ -7280,8 +7280,8 @@ msgstr "Replace…"
 #~ msgid "Reply-to"
 #~ msgstr "Reply-to"
 
-#: src/components/dashboard/dashboard-shell.tsx:331
-#: src/components/dashboard/dashboard-shell.tsx:332
+#: src/components/dashboard/dashboard-shell.tsx:317
+#: src/components/dashboard/dashboard-shell.tsx:318
 #: src/components/report-a-problem.tsx:169
 msgid "Report a problem"
 msgstr "Report a problem"
@@ -7373,7 +7373,7 @@ msgstr "Role changed"
 msgid "Role made"
 msgstr "Role made"
 
-#: src/components/dashboard/dashboard-shell.tsx:222
+#: src/components/dashboard/dashboard-shell.tsx:211
 #: src/routes/dashboard.roles.tsx:288
 msgid "Roles"
 msgstr "Roles"
@@ -7935,7 +7935,7 @@ msgstr "Several, in {0}"
 #~ msgid "Shared mail"
 #~ msgstr "Shared mail"
 
-#: src/components/dashboard/dashboard-shell.tsx:202
+#: src/components/dashboard/dashboard-shell.tsx:191
 #: src/routes/dashboard.roles.tsx:174
 msgid "Shop"
 msgstr "Shop"
@@ -7992,7 +7992,7 @@ msgstr "Sign in to manage your site."
 #~ msgid "Sign in; sets the session cookie."
 #~ msgstr "Sign in; sets the session cookie."
 
-#: src/components/dashboard/dashboard-shell.tsx:343
+#: src/components/dashboard/dashboard-shell.tsx:329
 #: src/components/editor/mavi-editor.tsx:696
 #: src/components/editor/mavi-editor.tsx:983
 #: src/learn/app.tsx:104
@@ -8188,7 +8188,7 @@ msgstr "Stages"
 #~ msgid "Start"
 #~ msgstr "Start"
 
-#: src/components/dashboard/dashboard-shell.tsx:190
+#: src/components/dashboard/dashboard-shell.tsx:179
 msgid "Start a course"
 msgstr "Start a course"
 
@@ -8307,7 +8307,7 @@ msgstr "Strikethrough"
 #~ msgid "Strong"
 #~ msgstr "Strong"
 
-#: src/components/dashboard/dashboard-shell.tsx:196
+#: src/components/dashboard/dashboard-shell.tsx:185
 #: src/routes/dashboard.index.tsx:200
 #: src/routes/dashboard.students.tsx:141
 msgid "Students"
@@ -8441,7 +8441,7 @@ msgstr "Table of contents"
 #~ msgid "Tagline"
 #~ msgstr "Tagline"
 
-#: src/components/dashboard/dashboard-shell.tsx:148
+#: src/components/dashboard/dashboard-shell.tsx:137
 #: src/components/editor/post-settings.tsx:342
 #: src/routes/dashboard.tags.tsx:115
 msgid "Tags"
@@ -8528,7 +8528,7 @@ msgstr "Taking answers"
 msgid "Task list"
 msgstr "Task list"
 
-#: src/components/dashboard/dashboard-shell.tsx:186
+#: src/components/dashboard/dashboard-shell.tsx:175
 #: src/routes/dashboard.roles.tsx:173
 msgid "Teaching"
 msgstr "Teaching"
@@ -9219,8 +9219,8 @@ msgstr "This role came with the build and is not a site's to change."
 #~ msgid "This signs you in to the server itself. Everyone else signs in somewhere else:"
 #~ msgstr "This signs you in to the server itself. Everyone else signs in somewhere else:"
 
-#: src/components/dashboard/dashboard-shell.tsx:211
-#: src/components/dashboard/dashboard-shell.tsx:226
+#: src/components/dashboard/dashboard-shell.tsx:200
+#: src/components/dashboard/dashboard-shell.tsx:215
 #: src/routes/dashboard.settings.tsx:64
 msgid "This site"
 msgstr "This site"
@@ -9261,7 +9261,7 @@ msgstr "This site"
 #~ msgid "This site's address"
 #~ msgstr "This site's address"
 
-#: src/components/dashboard/dashboard-shell.tsx:176
+#: src/components/dashboard/dashboard-shell.tsx:165
 msgid "This site's own"
 msgstr "This site's own"
 
@@ -9604,7 +9604,7 @@ msgstr "video"
 #~ msgid "Video settings"
 #~ msgstr "Video settings"
 
-#: src/components/dashboard/dashboard-shell.tsx:193
+#: src/components/dashboard/dashboard-shell.tsx:182
 #: src/routes/dashboard.videos.tsx:121
 msgid "Videos"
 msgstr "Videos"
@@ -9625,7 +9625,7 @@ msgstr "Views by day"
 #~ msgid "Violet"
 #~ msgstr "Violet"
 
-#: src/components/dashboard/dashboard-shell.tsx:135
+#: src/components/dashboard/dashboard-shell.tsx:124
 #: src/routes/dashboard.index.tsx:157
 #: src/routes/dashboard.visitors.tsx:64
 #: src/routes/dashboard.visitors.tsx:84
@@ -10433,7 +10433,7 @@ msgstr "Working on it"
 #~ msgid "Working on this site locally"
 #~ msgstr "Working on this site locally"
 
-#: src/components/dashboard/dashboard-shell.tsx:161
+#: src/components/dashboard/dashboard-shell.tsx:150
 msgid "Working through"
 msgstr "Working through"
 

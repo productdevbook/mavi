@@ -566,18 +566,8 @@
   .hljs-strong { font-weight: 600; }
 }
 
-/* The stripe along the top of whichever surface you are on. Same program,
-   three jobs, and the colour is the fastest way to know which one. */
+/* The stripe along the top, and the mark beside the menu. */
 :root {
-  --surface: var(--primary);
-}
-:root[data-surface="server"] {
-  --surface: oklch(0.45 0.03 255);
-}
-:root[data-surface="console"] {
-  --surface: oklch(0.52 0.22 293);
-}
-:root[data-surface="site"] {
   --surface: oklch(0.55 0.2 258);
 }
 

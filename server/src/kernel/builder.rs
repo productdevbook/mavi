@@ -14,7 +14,6 @@ use super::secret::Secret;
 /// that drifts is found by a build that quietly does nothing.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Building {
-    pub tenant: uuid::Uuid,
     pub branch: String,
     pub publish: uuid::Uuid,
 }

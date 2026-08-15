@@ -167,8 +167,8 @@ pub struct Arrival {
     pub redirect: String,
 }
 
-async fn offered(State(state): State<AppState>, caller: Caller) -> Result<Json<Vec<Offered>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+async fn offered(State(state): State<AppState>, _caller: Caller) -> Result<Json<Vec<Offered>>> {
+    let mut conn = state.db.begin().await?;
 
     let rows: Vec<(String, String)> =
         sqlx::query_as("select key, label from oauth_providers where enabled order by label")
@@ -202,14 +202,14 @@ async fn configure(
     }
 
     let sealed = crypto::seal(&state.keyring, body.client_secret.expose())?;
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let row: (Uuid,) = sqlx::query_as(
         "insert into oauth_providers
-            (tenant_id, key, label, client_id, sealed_secret,
+            (key, label, client_id, sealed_secret,
              authorize_url, token_url, profile_url, scope, enabled)
-         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-         on conflict (tenant_id, key) do update set
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+         on conflict (key) do update set
             label = excluded.label,
             client_id = excluded.client_id,
             sealed_secret = excluded.sealed_secret,
@@ -220,7 +220,6 @@ async fn configure(
             enabled = excluded.enabled
          returning id",
     )
-    .bind(caller.tenant().0)
     .bind(&key)
     .bind(&body.label)
     .bind(&body.client_id)
@@ -265,7 +264,7 @@ async fn forget(
     caller: Caller,
     Path(key): Path<String>,
 ) -> Result<Audited<axum::http::StatusCode>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let gone = sqlx::query("delete from oauth_providers where key = $1")
         .bind(&key)
@@ -299,7 +298,7 @@ async fn start(
     Json(body): Json<Leaving>,
 ) -> Result<Audited<Json<Sent>>> {
     let redirect = landing(body.redirect.as_deref())?;
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let provider: Option<(Uuid, String, String, String)> = sqlx::query_as(
         "select id, client_id, authorize_url, scope
@@ -317,10 +316,9 @@ async fn start(
 
     sqlx::query(
         "insert into oauth_attempts
-            (tenant_id, provider_id, state_hash, sealed, redirect, expires_at)
-         values ($1, $2, $3, $4, $5, $6)",
+            (provider_id, state_hash, sealed, redirect, expires_at)
+         values ($1, $2, $3, $4, $5)",
     )
-    .bind(caller.tenant().0)
     .bind(id)
     .bind(&token::hash(&secret)[..])
     .bind(crypto::seal(&state.keyring, &verifier)?)
@@ -369,7 +367,7 @@ async fn callback(
     Path(key): Path<String>,
     Json(body): Json<Returned>,
 ) -> Result<Audited<Response>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     // Spent as it is found: an answer that arrives twice is one this machine
     // asked for once, and the second one is somebody replaying it.
@@ -426,8 +424,7 @@ async fn callback(
     // The second factor is a second factor whichever door was used.
     super::second::demand(&state, &mut conn, user_id, body.second_factor.as_deref()).await?;
 
-    let (secret, expires_at) =
-        super::open_session(&state, &mut conn, caller.tenant(), user_id, &headers).await?;
+    let (secret, expires_at) = super::open_session(&state, &mut conn, user_id, &headers).await?;
 
     let me: (Uuid, String, String, String, Vec<String>) = sqlx::query_as(
         "select u.id, u.email, u.name, r.key, r.grants
@@ -452,7 +449,7 @@ async fn callback(
     )
     .await?;
 
-    let (site_state, site_name) = super::site_of(&mut conn, caller.tenant()).await?;
+    let site_name = super::site_named(&mut conn).await?;
 
     conn.commit().await?;
 
@@ -466,7 +463,6 @@ async fn callback(
             role: me.3,
             grants: me.4,
             site: site_name,
-            site_state,
         },
         redirect,
     };

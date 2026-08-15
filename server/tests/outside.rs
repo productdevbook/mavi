@@ -20,7 +20,7 @@ use uuid::Uuid;
 
 mod common;
 use common::harness;
-use mavi::testing::{APP_ROLE, a_role, a_tenant, a_user};
+use mavi::testing::{APP_ROLE, a_role, a_user};
 
 const PASSWORD: &str = "a long enough password";
 
@@ -68,9 +68,8 @@ fn an_outside_crate() -> Outside {
 async fn an_outside_endpoint_answers_and_its_guard_is_enforced() {
     let db = harness().await;
     let host = format!("{}.example", Uuid::now_v7().simple());
-    let tenant = a_tenant(&db, &host).await;
-    let role = a_role(&db, tenant, "owner", &every_grant()).await;
-    let (_, email) = a_user(&db, tenant, role, PASSWORD).await;
+    let role = a_role(&db, "owner", &every_grant()).await;
+    let (_, email) = a_user(&db, role, PASSWORD).await;
 
     let mut state = AppState::new(db);
     state.outside = Arc::new(an_outside_crate());
@@ -183,7 +182,7 @@ async fn an_outside_endpoint_appears_in_the_description_the_server_serves() {
             Request::builder()
                 .method("GET")
                 .uri("/openapi.json")
-                .header(header::HOST, "operator.invalid")
+                .header(header::HOST, "somewhere.invalid")
                 .body(Body::empty())
                 .expect("a request"),
         )
@@ -258,7 +257,7 @@ async fn an_outside_database() -> mavi::kernel::db::Db {
         .await
         .expect("the outside migration ran");
 
-    let mut tx = admin.operator().await.expect("begin");
+    let mut tx = admin.begin().await.expect("begin");
 
     sqlx::query(&format!(
         "do $$ begin
@@ -295,9 +294,8 @@ async fn an_outside_migration_runs_before_the_endpoint_and_job_it_carries_in_are
     let router = mavi::router(state.clone());
 
     let host = format!("{}.example", Uuid::now_v7().simple());
-    let tenant = a_tenant(&db, &host).await;
-    let role = a_role(&db, tenant, "owner", &every_grant()).await;
-    let (_, email) = a_user(&db, tenant, role, PASSWORD).await;
+    let role = a_role(&db, "owner", &every_grant()).await;
+    let (_, email) = a_user(&db, role, PASSWORD).await;
 
     let signed_in = router
         .clone()
@@ -345,21 +343,19 @@ async fn an_outside_migration_runs_before_the_endpoint_and_job_it_carries_in_are
     assert_eq!(answered.status(), StatusCode::OK);
 
     // The job kind is claimed by the core worker loop.
-    let mut conn = db.tenant(tenant).await.expect("begin");
+    let mut conn = db.begin().await.expect("begin");
     queue::enqueue(&mut conn, &Beacon, None)
         .await
         .expect("queued");
     conn.commit().await.expect("commit");
 
-    let claimed = mavi::jobs::tick_within(&state, "a test", Some(tenant))
-        .await
-        .expect("tick");
+    let claimed = mavi::jobs::tick(&state, "a test").await.expect("tick");
     assert!(claimed, "a job of an outside kind was never claimed");
 
     // And the table the outside migration created is really there, usable by
     // the role this process runs as day to day, not just by the admin
     // connection that migrated it.
-    let mut tx = db.operator().await.expect("begin");
+    let mut tx = db.begin().await.expect("begin");
     sqlx::query("insert into outside_beacons default values")
         .execute(tx.conn())
         .await
@@ -375,30 +371,25 @@ async fn an_outside_migration_runs_before_the_endpoint_and_job_it_carries_in_are
 #[tokio::test]
 async fn a_job_of_an_outside_kind_is_claimed_and_run_by_the_core_worker_loop() {
     let db = harness().await;
-    let tenant = a_tenant(&db, &format!("{}.example", Uuid::now_v7().simple())).await;
 
     let mut state = AppState::new(db.clone());
     state.outside = Arc::new(an_outside_crate());
 
-    let mut conn = db.tenant(tenant).await.expect("begin");
+    let mut conn = db.begin().await.expect("begin");
     queue::enqueue(&mut conn, &Beacon, None)
         .await
         .expect("queued");
     conn.commit().await.expect("commit");
 
-    let claimed = mavi::jobs::tick_within(&state, "a test", Some(tenant))
-        .await
-        .expect("tick");
+    let claimed = mavi::jobs::tick(&state, "a test").await.expect("tick");
 
     assert!(claimed, "a job of an outside kind was never claimed");
 
-    let mut conn = db.tenant(tenant).await.expect("begin");
-    let left: i64 =
-        sqlx::query_scalar("select count(*) from jobs where tenant_id = $1 and state <> 'done'")
-            .bind(tenant.0)
-            .fetch_one(conn.conn())
-            .await
-            .expect("count");
+    let mut conn = db.begin().await.expect("begin");
+    let left: i64 = sqlx::query_scalar("select count(*) from jobs where state <> 'done'")
+        .fetch_one(conn.conn())
+        .await
+        .expect("count");
 
     assert_eq!(left, 0, "the outside job was claimed but never finished");
 }
@@ -428,21 +419,17 @@ async fn an_outside_migration_numbered_like_one_of_ours_is_refused() {
 #[tokio::test]
 async fn an_outside_schedule_puts_its_job_in_the_queue() {
     let db = harness().await;
-    let tenant = a_tenant(&db, &format!("{}.example", Uuid::now_v7().simple())).await;
 
     let mut state = AppState::new(db.clone());
     state.outside = Arc::new(an_outside_crate());
 
     mavi::jobs::schedule_due(&state).await.expect("schedule");
 
-    let mut conn = db.tenant(tenant).await.expect("begin");
-    let queued: i64 = sqlx::query_scalar(
-        "select count(*) from jobs where tenant_id = $1 and kind = 'outside.beacon'",
-    )
-    .bind(tenant.0)
-    .fetch_one(conn.conn())
-    .await
-    .expect("count");
+    let mut conn = db.begin().await.expect("begin");
+    let queued: i64 = sqlx::query_scalar("select count(*) from jobs where kind = 'outside.beacon'")
+        .fetch_one(conn.conn())
+        .await
+        .expect("count");
 
     assert_eq!(queued, 1, "the outside schedule never queued its job");
 }

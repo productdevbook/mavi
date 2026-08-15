@@ -7,10 +7,9 @@ use serde::Serialize;
 use sqlx::Row;
 use uuid::Uuid;
 
-use crate::kernel::TenantId;
 use crate::kernel::audit::{self, Actor, Audited};
 use crate::kernel::authz::{Access, Capability, Needs, Permit};
-use crate::kernel::db::TenantConn;
+use crate::kernel::db::Tx;
 use crate::kernel::error::{AppError, Result};
 use crate::kernel::http::{AppState, Audience, Caller, Endpoint, Guard, RatePolicy};
 use crate::kernel::page::{Page, Query, older_than};
@@ -71,11 +70,11 @@ pub struct Thrown {
 /// screen for it.
 async fn list(
     Injected(state): Injected<AppState>,
-    caller: Caller,
+    _caller: Caller,
     _permit: Permit,
     axum::extract::Query(page): axum::extract::Query<Query>,
 ) -> Result<Json<Page<Thrown>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
     let after = older_than(page.after.as_deref());
     let mut all = what_was_thrown(&mut conn, after, page.fetch()).await?;
 
@@ -102,7 +101,7 @@ async fn list(
 /// whole bin a page at a time, rather than only ever seeing each table's
 /// newest hundred.
 pub async fn what_was_thrown(
-    conn: &mut TenantConn,
+    conn: &mut Tx,
     after: Option<DateTime<Utc>>,
     fetch: i64,
 ) -> Result<Vec<Thrown>> {
@@ -152,7 +151,7 @@ async fn restore(
 ) -> Result<Audited<Json<Thrown>>> {
     let kept = trash::of(&kind).ok_or(AppError::NotFound("kind"))?;
 
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let row = sqlx::query(&format!(
         "update {TABLE} set deleted_at = null
@@ -219,7 +218,7 @@ async fn for_good(
 ) -> Result<Audited<StatusCode>> {
     let kept = trash::of(&kind).ok_or(AppError::NotFound("kind"))?;
 
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let gone = sqlx::query(&format!(
         "delete from {TABLE} where id = $1 and deleted_at is not null",
@@ -265,8 +264,8 @@ pub fn kinds() -> Vec<String> {
 ///
 /// A trash that grows forever is a trash nobody empties, and what pays for it
 /// is the site's own storage bill.
-pub async fn empty(state: &AppState, tenant: TenantId) -> Result<u64> {
-    let mut conn = state.db.tenant(tenant).await?;
+pub async fn empty(state: &AppState) -> Result<u64> {
+    let mut conn = state.db.begin().await?;
     let mut taken = 0;
 
     for kept in KEPT {

@@ -13,10 +13,9 @@ use uuid::Uuid;
 
 use super::products::BROWSE_LIMIT;
 use super::shop;
-use crate::kernel::TenantId;
 use crate::kernel::audit::{self, Actor, Auditable, Audited};
 use crate::kernel::authz::{Access, Permit};
-use crate::kernel::db::TenantConn;
+use crate::kernel::db::Tx;
 use crate::kernel::error::{AppError, Result};
 use crate::kernel::events::{self, EmitsEvents};
 use crate::kernel::http::{AppState, Audience, Caller, Endpoint, Guard, RatePolicy};
@@ -250,7 +249,7 @@ async fn checkout(
         ));
     }
 
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     // The same attempt twice is the same order. Asked before anything is
     // taken, so a repeat does not move stock again.
@@ -300,11 +299,10 @@ async fn checkout(
     };
 
     let order: Order = sqlx::query_as(&format!(
-        "insert into orders (tenant_id, email, total_minor, currency, idempotency_key)
-         values ($1, $2, $3, $4, $5)
+        "insert into orders (email, total_minor, currency, idempotency_key)
+         values ($1, $2, $3, $4)
          returning {COLUMNS}"
     ))
-    .bind(caller.tenant().0)
     .bind(body.email.as_str())
     .bind(total)
     .bind(currency)
@@ -325,7 +323,6 @@ async fn checkout(
 
     take_stock(
         &mut conn,
-        caller.tenant(),
         order.id,
         &lines,
         state.clock.now() + Duration::minutes(HOLD_MINUTES),
@@ -333,10 +330,10 @@ async fn checkout(
     .await?;
 
     if let Some(coupon) = coupon {
-        spend_coupon(&mut conn, caller.tenant(), coupon.id, order.id).await?;
+        spend_coupon(&mut conn, coupon.id, order.id).await?;
     }
 
-    let pay_at = somewhere_to_pay(&state, &mut conn, caller.tenant(), &order, &body.email).await?;
+    let pay_at = somewhere_to_pay(&state, &mut conn, &order, &body.email).await?;
 
     let receipt = audit::record(
         &mut conn,
@@ -359,7 +356,7 @@ async fn checkout(
 /// transaction: what is read here is what is written below, with nobody else
 /// in between. This is the fault that made the old shop sell what it did not
 /// have.
-async fn price(conn: &mut TenantConn, wanted: &[Wanted]) -> Result<(Vec<Line>, Currency, i64)> {
+async fn price(conn: &mut Tx, wanted: &[Wanted]) -> Result<(Vec<Line>, Currency, i64)> {
     let mut lines = Vec::with_capacity(wanted.len());
     let mut currency: Option<Currency> = None;
     let mut total = 0_i64;
@@ -432,18 +429,16 @@ struct Line {
 /// a race that got this far is a transaction that fails rather than a shop
 /// that owes somebody something.
 async fn take_stock(
-    conn: &mut TenantConn,
-    tenant: TenantId,
+    conn: &mut Tx,
     order: Uuid,
     lines: &[Line],
     held_until: DateTime<Utc>,
 ) -> Result<()> {
     for line in lines {
         sqlx::query(
-            "insert into order_items (tenant_id, order_id, product_id, name, unit_minor, quantity)
-             values ($1, $2, $3, $4, $5, $6)",
+            "insert into order_items (order_id, product_id, name, unit_minor, quantity)
+             values ($1, $2, $3, $4, $5)",
         )
-        .bind(tenant.0)
         .bind(order)
         .bind(line.product_id)
         .bind(&line.name)
@@ -462,10 +457,9 @@ async fn take_stock(
             })?;
 
         sqlx::query(
-            "insert into stock_holds (tenant_id, order_id, product_id, quantity, expires_at)
-             values ($1, $2, $3, $4, $5)",
+            "insert into stock_holds (order_id, product_id, quantity, expires_at)
+             values ($1, $2, $3, $4)",
         )
-        .bind(tenant.0)
         .bind(order)
         .bind(line.product_id)
         .bind(line.quantity)
@@ -479,16 +473,10 @@ async fn take_stock(
 
 /// A one-use code spent twice is what the unique key refuses. Nothing here
 /// counts anything and hopes.
-async fn spend_coupon(
-    conn: &mut TenantConn,
-    tenant: TenantId,
-    coupon: Uuid,
-    order: Uuid,
-) -> Result<()> {
-    sqlx::query("insert into coupon_uses (coupon_id, order_id, tenant_id) values ($1, $2, $3)")
+async fn spend_coupon(conn: &mut Tx, coupon: Uuid, order: Uuid) -> Result<()> {
+    sqlx::query("insert into coupon_uses (coupon_id, order_id) values ($1, $2)")
         .bind(coupon)
         .bind(order)
-        .bind(tenant.0)
         .execute(conn.conn())
         .await
         .map_err(|_| AppError::Conflict(say::CODE_BEEN_USED.into()))?;
@@ -518,15 +506,14 @@ async fn spend_coupon(
 /// that cannot sell look like one that can.
 async fn somewhere_to_pay(
     state: &AppState,
-    conn: &mut TenantConn,
-    tenant: TenantId,
+    conn: &mut Tx,
     order: &Order,
     email: &Email,
 ) -> Result<Option<String>> {
     // The site's own provider where it has one, and the machine's where it has
     // not. Read here rather than held in the state, because which provider a
     // site uses is the site's.
-    let provider = crate::plugins::payments_for(state, tenant).await?;
+    let provider = crate::plugins::payments_for(state).await?;
 
     let taking = match provider
         .ask(&crate::kernel::payments::Asking {
@@ -546,10 +533,9 @@ async fn somewhere_to_pay(
 
     sqlx::query(
         "insert into payments
-             (tenant_id, order_id, provider, provider_ref, amount_minor, currency, pay_at)
-         values ($1, $2, $3, $4, $5, $6, $7)",
+             (order_id, provider, provider_ref, amount_minor, currency, pay_at)
+         values ($1, $2, $3, $4, $5, $6)",
     )
-    .bind(tenant.0)
     .bind(order.id)
     .bind(provider.name())
     .bind(&taking.provider_ref)
@@ -579,11 +565,11 @@ fn discounted(total: i64, kind: &str, value: i64) -> i64 {
 /// order.
 async fn whole(
     Injected(state): Injected<AppState>,
-    caller: Caller,
+    _caller: Caller,
     _permit: Permit,
     axum::extract::Path(id): axum::extract::Path<Uuid>,
 ) -> Result<Json<Whole>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let order: Option<Order> =
         sqlx::query_as(&format!("select {COLUMNS} from orders where id = $1"))
@@ -641,7 +627,7 @@ impl sqlx::FromRow<'_, sqlx::postgres::PgRow> for Bought {
 /// checkouts reaching for the last use of a one-use code are two transactions
 /// in a queue rather than two that each count one use and each see one.
 async fn a_coupon(
-    conn: &mut TenantConn,
+    conn: &mut Tx,
     code: &str,
     basket: i64,
     currency: Currency,
@@ -705,7 +691,7 @@ struct Spending {
     currency: Currency,
 }
 
-async fn by_key(conn: &mut TenantConn, key: &str) -> Result<Option<Order>> {
+async fn by_key(conn: &mut Tx, key: &str) -> Result<Option<Order>> {
     Ok(sqlx::query_as(&format!(
         "select {COLUMNS} from orders where idempotency_key = $1"
     ))
@@ -730,7 +716,7 @@ async fn paid_callback(
         .and_then(|value| value.to_str().ok())
         .unwrap_or_default();
 
-    let provider = crate::plugins::payments_for(&state, caller.tenant()).await?;
+    let provider = crate::plugins::payments_for(&state).await?;
 
     if !provider.signature_holds(&body, signature) {
         return Err(AppError::Forbidden);
@@ -739,7 +725,7 @@ async fn paid_callback(
     let said: crate::kernel::payments::Settled = serde_json::from_str(&body)
         .map_err(|_| AppError::Invalid(say::NOT_SOMETHING_PROVIDER_SAYS.into()))?;
 
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let payment: Option<(Uuid, Uuid, i64, String)> = sqlx::query_as(
         "select id, order_id, amount_minor, state::text from payments
@@ -801,7 +787,7 @@ async fn paid_callback(
                 .await?;
 
             events::emit(&mut conn, "order.paid", &order).await?;
-            told_the_customer_it_was_paid(&mut conn, caller.tenant(), &state, &order).await?;
+            told_the_customer_it_was_paid(&mut conn, &state, &order).await?;
         }
     }
 
@@ -812,11 +798,11 @@ async fn paid_callback(
 
 async fn list(
     Injected(state): Injected<AppState>,
-    caller: Caller,
+    _caller: Caller,
     _permit: Permit,
     HttpQuery(query): HttpQuery<Query>,
 ) -> Result<Json<Page<Order>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let rows: Vec<Order> = sqlx::query_as(&format!(
         "select {COLUMNS} from orders
@@ -847,17 +833,17 @@ async fn list(
 /// have to be signed in to be shown.
 async fn look_up(
     Injected(state): Injected<AppState>,
-    caller: Caller,
+    _caller: Caller,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Order>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
     let order = one(&mut conn, id).await?;
     conn.commit().await?;
 
     Ok(Json(order))
 }
 
-async fn one(conn: &mut TenantConn, id: Uuid) -> Result<Order> {
+async fn one(conn: &mut Tx, id: Uuid) -> Result<Order> {
     sqlx::query_as(&format!("select {COLUMNS} from orders where id = $1"))
         .bind(id)
         .fetch_optional(conn.conn())
@@ -867,7 +853,7 @@ async fn one(conn: &mut TenantConn, id: Uuid) -> Result<Order> {
 
 /// In the site's own words where it has written any, the same reason
 /// [`crate::people`] asks the same two questions before it presses a letter.
-async fn site_language(conn: &mut TenantConn) -> Result<String> {
+async fn site_language(conn: &mut Tx) -> Result<String> {
     let found: Option<(String,)> =
         sqlx::query_as("select code from languages where is_default limit 1")
             .fetch_optional(conn.conn())
@@ -876,12 +862,10 @@ async fn site_language(conn: &mut TenantConn) -> Result<String> {
     Ok(found.map_or_else(|| "en".to_owned(), |(code,)| code))
 }
 
-async fn site_name(conn: &mut TenantConn) -> Result<String> {
-    let found: Option<(String,)> =
-        sqlx::query_as("select name from site_settings where tenant_id = $1")
-            .bind(conn.tenant().0)
-            .fetch_optional(conn.conn())
-            .await?;
+async fn site_name(conn: &mut Tx) -> Result<String> {
+    let found: Option<(String,)> = sqlx::query_as("select name from site_settings")
+        .fetch_optional(conn.conn())
+        .await?;
 
     Ok(found.map_or_else(String::new, |(name,)| name))
 }
@@ -889,16 +873,9 @@ async fn site_name(conn: &mut TenantConn) -> Result<String> {
 /// What an order's own address is told, once a letter has been pressed for
 /// it. An order carries an address and nothing to call anybody by, so
 /// `{name}` goes in blank rather than guessed at.
-async fn told_the_customer(
-    conn: &mut TenantConn,
-    tenant: TenantId,
-    to: &str,
-    subject: &str,
-    body: &str,
-) -> Result<()> {
+async fn told_the_customer(conn: &mut Tx, to: &str, subject: &str, body: &str) -> Result<()> {
     crate::mail::post(
         conn,
-        tenant,
         &crate::mail::Outgoing {
             to,
             subject,
@@ -918,8 +895,7 @@ async fn told_the_customer(
 /// own signed callback, and reconciliation finding a difference — so this is
 /// the one of them that presses `order.paid` rather than each repeating it.
 async fn told_the_customer_it_was_paid(
-    conn: &mut TenantConn,
-    tenant: TenantId,
+    conn: &mut Tx,
     state: &AppState,
     order: &Order,
 ) -> Result<()> {
@@ -928,7 +904,6 @@ async fn told_the_customer_it_was_paid(
 
     let (subject, body) = crate::mail::letters::press(
         conn,
-        tenant,
         "order.paid",
         &language,
         &[
@@ -945,12 +920,11 @@ async fn told_the_customer_it_was_paid(
     )
     .await?;
 
-    told_the_customer(conn, tenant, &order.email, &subject, &body).await
+    told_the_customer(conn, &order.email, &subject, &body).await
 }
 
 async fn told_the_customer_it_shipped(
-    conn: &mut TenantConn,
-    tenant: TenantId,
+    conn: &mut Tx,
     state: &AppState,
     order: &Order,
 ) -> Result<()> {
@@ -959,7 +933,6 @@ async fn told_the_customer_it_shipped(
 
     let (subject, body) = crate::mail::letters::press(
         conn,
-        tenant,
         "order.fulfilled",
         &language,
         &[
@@ -975,7 +948,7 @@ async fn told_the_customer_it_shipped(
     )
     .await?;
 
-    told_the_customer(conn, tenant, &order.email, &subject, &body).await
+    told_the_customer(conn, &order.email, &subject, &body).await
 }
 
 async fn mark_paid(
@@ -1022,7 +995,7 @@ async fn moved(
     next: OrderState,
     event: &str,
 ) -> Result<Audited<Json<Order>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let before: Option<Order> = sqlx::query_as(&format!(
         "select {COLUMNS} from orders where id = $1 for update"
@@ -1074,11 +1047,11 @@ async fn moved(
     events::emit(&mut conn, event, &after).await?;
 
     if next == OrderState::Paid {
-        told_the_customer_it_was_paid(&mut conn, caller.tenant(), state, &after).await?;
+        told_the_customer_it_was_paid(&mut conn, state, &after).await?;
     }
 
     if next == OrderState::Fulfilled {
-        told_the_customer_it_shipped(&mut conn, caller.tenant(), state, &after).await?;
+        told_the_customer_it_shipped(&mut conn, state, &after).await?;
     }
 
     let receipt = audit::record(
@@ -1100,7 +1073,7 @@ async fn moved(
     Ok(Audited::new(receipt, Json(after)))
 }
 
-async fn put_back(conn: &mut TenantConn, order: Uuid) -> Result<()> {
+async fn put_back(conn: &mut Tx, order: Uuid) -> Result<()> {
     let items = sqlx::query(
         "select product_id, quantity from order_items
           where order_id = $1 and product_id is not null",
@@ -1156,8 +1129,8 @@ impl Task for WarnOnLowStock {
 }
 
 /// Stock held for a checkout nobody finished goes back on the shelf.
-pub async fn release_holds(state: &AppState, tenant: TenantId) -> Result<u64> {
-    let mut conn = state.db.tenant(tenant).await?;
+pub async fn release_holds(state: &AppState) -> Result<u64> {
+    let mut conn = state.db.begin().await?;
 
     let lapsed = sqlx::query(
         "update stock_holds
@@ -1196,8 +1169,8 @@ pub async fn release_holds(state: &AppState, tenant: TenantId) -> Result<u64> {
 
 /// An order nobody ever paid for is let go, so that a shop's list of orders is
 /// what happened rather than what was attempted.
-pub async fn drop_stuck(state: &AppState, tenant: TenantId) -> Result<u64> {
-    let mut conn = state.db.tenant(tenant).await?;
+pub async fn drop_stuck(state: &AppState) -> Result<u64> {
+    let mut conn = state.db.begin().await?;
 
     let dropped = sqlx::query(
         "update orders
@@ -1220,9 +1193,9 @@ pub async fn drop_stuck(state: &AppState, tenant: TenantId) -> Result<u64> {
 /// unpaid that somebody has paid for. This asks the provider directly and puts
 /// the difference right — and says what it found, because a difference that
 /// keeps appearing is a fault somewhere else.
-pub async fn reconcile(state: &AppState, tenant: TenantId) -> Result<u64> {
+pub async fn reconcile(state: &AppState) -> Result<u64> {
     let since = state.clock.now() - Duration::days(7);
-    let theirs = crate::plugins::payments_for(state, tenant)
+    let theirs = crate::plugins::payments_for(state)
         .await?
         .taken_since(since)
         .await?;
@@ -1231,7 +1204,7 @@ pub async fn reconcile(state: &AppState, tenant: TenantId) -> Result<u64> {
         return Ok(0);
     }
 
-    let mut conn = state.db.tenant(tenant).await?;
+    let mut conn = state.db.begin().await?;
     let mut put_right = 0;
 
     for settled in &theirs {
@@ -1283,7 +1256,7 @@ pub async fn reconcile(state: &AppState, tenant: TenantId) -> Result<u64> {
                 .await?;
 
             events::emit(&mut conn, "order.paid", &order).await?;
-            told_the_customer_it_was_paid(&mut conn, tenant, state, &order).await?;
+            told_the_customer_it_was_paid(&mut conn, state, &order).await?;
 
             put_right += 1;
         }
@@ -1296,8 +1269,8 @@ pub async fn reconcile(state: &AppState, tenant: TenantId) -> Result<u64> {
 
 /// An order carries an address, and an address belongs to a person. Ten years
 /// is what a financial record is kept for; after that it goes, lines and all.
-pub async fn sweep_orders(state: &AppState, tenant: TenantId) -> Result<u64> {
-    let mut conn = state.db.tenant(tenant).await?;
+pub async fn sweep_orders(state: &AppState) -> Result<u64> {
+    let mut conn = state.db.begin().await?;
 
     let taken =
         sqlx::query("delete from orders where created_at < now() - make_interval(days => $1)")
@@ -1313,8 +1286,8 @@ pub async fn sweep_orders(state: &AppState, tenant: TenantId) -> Result<u64> {
 
 /// Says when there is nearly none of something left, once, rather than every
 /// time somebody looks.
-pub async fn warn_on_low_stock(state: &AppState, tenant: TenantId) -> Result<u64> {
-    let mut conn = state.db.tenant(tenant).await?;
+pub async fn warn_on_low_stock(state: &AppState) -> Result<u64> {
+    let mut conn = state.db.begin().await?;
 
     let low = sqlx::query(
         "select id, name, stock from products

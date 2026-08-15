@@ -259,8 +259,7 @@
                     "name",
                     "role",
                     "grants",
-                    "site",
-                    "site_state"
+                    "site"
                   ],
                   "properties": {
                     "id": {
@@ -285,10 +284,6 @@
                     "site": {
                       "type": "string",
                       "description": "What the site is called, for the tab and the header."
-                    },
-                    "site_state": {
-                      "type": "string",
-                      "description": "`active`, or `on_hold` for a site that may be read and not written."
                     }
                   }
                 }
@@ -2726,15 +2721,11 @@
                   "items": {
                     "type": "object",
                     "required": [
-                      "host",
-                      "is_primary"
+                      "host"
                     ],
                     "properties": {
                       "host": {
                         "type": "string"
-                      },
-                      "is_primary": {
-                        "type": "boolean"
                       },
                       "resolves": {
                         "type": [
@@ -7250,7 +7241,7 @@
     },
     "/api/setup": {
       "get": {
-        "description": "Whoever runs the machine, on its own screens.",
+        "description": "Anybody.",
         "responses": {
           "200": {
             "description": "What was asked for.",
@@ -7274,7 +7265,7 @@
         }
       },
       "post": {
-        "description": "Whoever runs the machine, on its own screens.",
+        "description": "Anybody.",
         "requestBody": {
           "content": {
             "application/json": {
@@ -7335,10 +7326,11 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "description": "What a site's own people may see of its settings.\n\n`contact` and `notes` are the operator's, not the site's, and are not here:\nthey are how one machine's operator keeps track of who to talk to, which is\nnothing to do with whoever runs the site.",
+                  "description": "What a site's own people may see of its settings.",
                   "required": [
                     "name",
-                    "storage_used_bytes"
+                    "storage_used_bytes",
+                    "storage_limit_bytes"
                   ],
                   "properties": {
                     "name": {
@@ -7347,13 +7339,10 @@
                     "storage_used_bytes": {
                       "type": "integer",
                       "format": "int64",
-                      "description": "How much has been uploaded, and how much may be. Read here rather than\nset: what a site is allowed is the operator's to decide, and finding out\nat the point of an upload being refused is finding out too late."
+                      "description": "How much has been uploaded, and how much may be. Read rather than set:\nthe ceiling is the machine's, and finding out at the point of an upload\nbeing refused is finding out too late."
                     },
                     "storage_limit_bytes": {
-                      "type": [
-                        "integer",
-                        "null"
-                      ],
+                      "type": "integer",
                       "format": "int64"
                     }
                   }
@@ -7391,10 +7380,11 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "description": "What a site's own people may see of its settings.\n\n`contact` and `notes` are the operator's, not the site's, and are not here:\nthey are how one machine's operator keeps track of who to talk to, which is\nnothing to do with whoever runs the site.",
+                  "description": "What a site's own people may see of its settings.",
                   "required": [
                     "name",
-                    "storage_used_bytes"
+                    "storage_used_bytes",
+                    "storage_limit_bytes"
                   ],
                   "properties": {
                     "name": {
@@ -7403,13 +7393,10 @@
                     "storage_used_bytes": {
                       "type": "integer",
                       "format": "int64",
-                      "description": "How much has been uploaded, and how much may be. Read here rather than\nset: what a site is allowed is the operator's to decide, and finding out\nat the point of an upload being refused is finding out too late."
+                      "description": "How much has been uploaded, and how much may be. Read rather than set:\nthe ceiling is the machine's, and finding out at the point of an upload\nbeing refused is finding out too late."
                     },
                     "storage_limit_bytes": {
-                      "type": [
-                        "integer",
-                        "null"
-                      ],
+                      "type": "integer",
                       "format": "int64"
                     }
                   }
@@ -10590,8 +10577,7 @@
           "name",
           "role",
           "grants",
-          "site",
-          "site_state"
+          "site"
         ],
         "properties": {
           "id": {
@@ -10616,10 +10602,6 @@
           "site": {
             "type": "string",
             "description": "What the site is called, for the tab and the header."
-          },
-          "site_state": {
-            "type": "string",
-            "description": "`active`, or `on_hold` for a site that may be read and not written."
           }
         }
       },
@@ -12534,10 +12516,11 @@
       },
       "Settings": {
         "type": "object",
-        "description": "What a site's own people may see of its settings.\n\n`contact` and `notes` are the operator's, not the site's, and are not here:\nthey are how one machine's operator keeps track of who to talk to, which is\nnothing to do with whoever runs the site.",
+        "description": "What a site's own people may see of its settings.",
         "required": [
           "name",
-          "storage_used_bytes"
+          "storage_used_bytes",
+          "storage_limit_bytes"
         ],
         "properties": {
           "name": {
@@ -12546,13 +12529,10 @@
           "storage_used_bytes": {
             "type": "integer",
             "format": "int64",
-            "description": "How much has been uploaded, and how much may be. Read here rather than\nset: what a site is allowed is the operator's to decide, and finding out\nat the point of an upload being refused is finding out too late."
+            "description": "How much has been uploaded, and how much may be. Read rather than set:\nthe ceiling is the machine's, and finding out at the point of an upload\nbeing refused is finding out too late."
           },
           "storage_limit_bytes": {
-            "type": [
-              "integer",
-              "null"
-            ],
+            "type": "integer",
             "format": "int64"
           }
         }

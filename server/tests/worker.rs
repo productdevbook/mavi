@@ -10,22 +10,19 @@ use std::time::Duration;
 use mavi::kernel::http::AppState;
 use mavi::kernel::worker;
 use tokio::sync::watch;
-use uuid::Uuid;
 
 mod common;
 
 use common::harness;
-use mavi::testing::a_tenant;
 
 #[tokio::test]
 async fn a_worker_takes_what_is_waiting_and_stops_when_it_is_asked_to() {
     let db = harness().await;
-    let tenant = a_tenant(&db, &format!("{}.example", Uuid::now_v7().simple())).await;
     let state = AppState::new(db.clone());
 
     // Something real and harmless: sweeping a site that has nothing to sweep
     // still has to be claimed, run, and marked done.
-    let mut conn = db.tenant(tenant).await.expect("begin");
+    let mut conn = db.begin().await.expect("begin");
 
     mavi::kernel::queue::enqueue(&mut conn, &mavi::housekeeping::SweepSessions, None)
         .await
@@ -40,15 +37,13 @@ async fn a_worker_takes_what_is_waiting_and_stops_when_it_is_asked_to() {
     // loop does the work at all, and a fixed sleep is how that becomes flaky.
     let done = tokio::time::timeout(Duration::from_secs(20), async {
         loop {
-            let mut conn = db.tenant(tenant).await.expect("begin");
+            let mut conn = db.begin().await.expect("begin");
 
-            let (waiting,): (i64,) = sqlx::query_as(
-                "select count(*) from jobs where tenant_id = $1 and state <> 'done'",
-            )
-            .bind(tenant.0)
-            .fetch_one(conn.conn())
-            .await
-            .expect("a count");
+            let (waiting,): (i64,) =
+                sqlx::query_as("select count(*) from jobs where state <> 'done'")
+                    .fetch_one(conn.conn())
+                    .await
+                    .expect("a count");
 
             conn.commit().await.expect("commit");
 
@@ -76,15 +71,13 @@ async fn a_worker_takes_what_is_waiting_and_stops_when_it_is_asked_to() {
 #[tokio::test]
 async fn keeping_time_puts_the_day_s_work_in_the_queue() {
     let db = harness().await;
-    let tenant = a_tenant(&db, &format!("{}.example", Uuid::now_v7().simple())).await;
     let state = AppState::new(db.clone());
 
     mavi::jobs::schedule_due(&state).await.expect("scheduled");
 
-    let mut conn = db.tenant(tenant).await.expect("begin");
+    let mut conn = db.begin().await.expect("begin");
 
-    let kinds: Vec<(String,)> = sqlx::query_as("select kind from jobs where tenant_id = $1")
-        .bind(tenant.0)
+    let kinds: Vec<(String,)> = sqlx::query_as("select kind from jobs ")
         .fetch_all(conn.conn())
         .await
         .expect("kinds");
@@ -104,22 +97,19 @@ async fn keeping_time_puts_the_day_s_work_in_the_queue() {
 #[tokio::test]
 async fn what_is_scheduled_is_scheduled_once() {
     let db = harness().await;
-    let tenant = a_tenant(&db, &format!("{}.example", Uuid::now_v7().simple())).await;
     let state = AppState::new(db.clone());
 
     for _ in 0..3 {
         mavi::jobs::schedule_due(&state).await.expect("scheduled");
     }
 
-    let mut conn = db.tenant(tenant).await.expect("begin");
+    let mut conn = db.begin().await.expect("begin");
 
-    let (sweeps,): (i64,) = sqlx::query_as(
-        "select count(*) from jobs where tenant_id = $1 and kind = 'sessions.sweep'",
-    )
-    .bind(tenant.0)
-    .fetch_one(conn.conn())
-    .await
-    .expect("a count");
+    let (sweeps,): (i64,) =
+        sqlx::query_as("select count(*) from jobs where kind = 'sessions.sweep'")
+            .fetch_one(conn.conn())
+            .await
+            .expect("a count");
 
     conn.commit().await.expect("commit");
 

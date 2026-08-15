@@ -6,14 +6,13 @@ use http_body_util::BodyExt;
 use mavi::kernel::authz::every_grant;
 use mavi::kernel::db::Db;
 use mavi::kernel::http::AppState;
-use mavi::kernel::tenant::TenantId;
 use tower::ServiceExt;
 use uuid::Uuid;
 
 mod common;
 
 use common::harness;
-use mavi::testing::{a_role, a_tenant, a_user};
+use mavi::testing::{a_role, a_user};
 
 const PASSWORD: &str = "a long enough password";
 
@@ -24,7 +23,6 @@ struct Site {
     db: Db,
     router: axum::Router,
     host: String,
-    tenant: TenantId,
     token: String,
 }
 
@@ -32,15 +30,13 @@ impl Site {
     async fn new() -> Self {
         let db = harness().await;
         let host = format!("{}.example", Uuid::now_v7().simple());
-        let tenant = a_tenant(&db, &host).await;
-        let role = a_role(&db, tenant, "owner", &every_grant()).await;
-        let (_, email) = a_user(&db, tenant, role, PASSWORD).await;
+        let role = a_role(&db, "owner", &every_grant()).await;
+        let (_, email) = a_user(&db, role, PASSWORD).await;
 
         let site = Self {
             db: db.clone(),
             router: mavi::router(AppState::new(db)),
             host,
-            tenant,
             token: String::new(),
         };
 
@@ -62,14 +58,13 @@ impl Site {
 
     /// A file in the library, put there the way an upload would.
     async fn a_file(&self, mime: &str) -> Uuid {
-        let mut conn = self.db.tenant(self.tenant).await.expect("begin");
+        let mut conn = self.db.begin().await.expect("begin");
 
         let row: (Uuid,) = sqlx::query_as(
-            "insert into media (tenant_id, original_name, mime, bytes, location, checksum)
-             values ($1, 'a-film.mp4', $2, $3, 'nowhere', decode('00', 'hex'))
+            "insert into media (original_name, mime, bytes, location, checksum)
+             values ('a-film.mp4', $1, $2, 'nowhere', decode('00', 'hex'))
              returning id",
         )
-        .bind(self.tenant.0)
         .bind(mime)
         .bind(i64::try_from(AN_MP4.len()).expect("a size"))
         .fetch_one(conn.conn())
@@ -85,9 +80,7 @@ impl Site {
         let state = AppState::new(self.db.clone());
 
         for _ in 0..4 {
-            mavi::jobs::tick_within(&state, "test", Some(self.tenant))
-                .await
-                .expect("tick");
+            mavi::jobs::tick(&state, "test").await.expect("tick");
         }
     }
 

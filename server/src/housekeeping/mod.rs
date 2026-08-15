@@ -6,7 +6,6 @@
 //! twice.
 use serde::{Deserialize, Serialize};
 
-use crate::kernel::TenantId;
 use crate::kernel::error::Result;
 use crate::kernel::http::AppState;
 use crate::kernel::queue::Task;
@@ -63,8 +62,8 @@ fn days(table: &str) -> i32 {
 /// A session that has expired is not a session, and a ticket that was never
 /// spent is not one either. Both are somebody's, so both go — along with the
 /// sign-ins somebody started somewhere else and never came back from.
-pub async fn sweep_sessions(state: &AppState, tenant: TenantId) -> Result<u64> {
-    let mut conn = state.db.tenant(tenant).await?;
+pub async fn sweep_sessions(state: &AppState) -> Result<u64> {
+    let mut conn = state.db.begin().await?;
 
     let sessions = sqlx::query(
         "delete from sessions
@@ -109,8 +108,8 @@ pub async fn sweep_sessions(state: &AppState, tenant: TenantId) -> Result<u64> {
     Ok(sessions + students + tickets + attempts)
 }
 
-pub async fn sweep_audit(state: &AppState, tenant: TenantId) -> Result<u64> {
-    let mut conn = state.db.tenant(tenant).await?;
+pub async fn sweep_audit(state: &AppState) -> Result<u64> {
+    let mut conn = state.db.begin().await?;
 
     let taken =
         sqlx::query("delete from audit_log where created_at < now() - make_interval(days => $1)")
@@ -126,8 +125,8 @@ pub async fn sweep_audit(state: &AppState, tenant: TenantId) -> Result<u64> {
 
 /// A report is kept the same length of time an audit row is: long enough to
 /// answer "was this looked at", not forever.
-pub async fn sweep_reports(state: &AppState, tenant: TenantId) -> Result<u64> {
-    let mut conn = state.db.tenant(tenant).await?;
+pub async fn sweep_reports(state: &AppState) -> Result<u64> {
+    let mut conn = state.db.begin().await?;
 
     let taken =
         sqlx::query("delete from reports where created_at < now() - make_interval(days => $1)")
@@ -143,8 +142,8 @@ pub async fn sweep_reports(state: &AppState, tenant: TenantId) -> Result<u64> {
 
 /// What was sent and what came back, kept long enough to answer "did it arrive"
 /// and no longer.
-pub async fn sweep_deliveries(state: &AppState, tenant: TenantId) -> Result<u64> {
-    let mut conn = state.db.tenant(tenant).await?;
+pub async fn sweep_deliveries(state: &AppState) -> Result<u64> {
+    let mut conn = state.db.begin().await?;
 
     let taken = sqlx::query(
         "delete from webhook_deliveries where sent_at < now() - make_interval(days => $1)",

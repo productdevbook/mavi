@@ -3,8 +3,8 @@
 
 const SNAPSHOT: &str = "tests/snapshots/openapi.json";
 
-// Written down for the build that carries everything. A build without the
-// operator's own half serves less, and comparing it to this would say the
+// Written down for the build that carries everything. A build with something
+// mounted on this crate serves more, and comparing that to this would say the
 // description had changed when only the build had.
 #[test]
 fn the_description_is_what_it_was() {

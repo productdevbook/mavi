@@ -199,12 +199,8 @@ pub const PLUGIN_TAKES_NO_SUCH_SETTING: &str = "plugin_takes_no_such_setting";
 pub const PLUGIN_WANTS_SETTING: &str = "plugin_wants_setting";
 pub const POST_DOES_NOT_BECOME_THAT: &str = "post_does_not_become_that";
 pub const ROLE_CARRIES_WHAT_YOU_DO_NOT: &str = "role_carries_what_you_do_not";
-pub const SITE_DOES_NOT_BECOME_THAT: &str = "site_does_not_become_that";
 pub const VERSION_READ_IS_NOT_VERSION_GIVEN: &str = "version_read_is_not_version_given";
 pub const YOU_DO_NOT_HOLD_THAT_YOURSELF: &str = "you_do_not_hold_that_yourself";
-
-pub const SITE_ALREADY_ANSWERS_TO_THAT_NAME: &str = "site_already_answers_to_that_name";
-pub const ANOTHER_SITE_ANSWERS_ON_THAT_ADDRESS: &str = "another_site_answers_on_that_address";
 
 pub const CHANGE_ASKED_FOR_FROM_SOMEWHERE_ELSE: &str = "change_asked_for_from_somewhere_else";
 
@@ -232,8 +228,6 @@ pub const THAT_FILE_IS_NOT_A_VIDEO: &str = "that_file_is_not_a_video";
 pub const NOT_SOMETHING_A_TRANSCODER_SAYS: &str = "not_something_a_transcoder_says";
 
 pub const THIS_MACHINE_IS_ALREADY_SET_UP: &str = "this_machine_is_already_set_up";
-pub const THIS_MACHINE_IS_NOT_SET_UP_YET: &str = "this_machine_is_not_set_up_yet";
-pub const THIS_DATABASE_HOLDS_MORE_THAN_ONE_SITE: &str = "this_database_holds_more_than_one_site";
 
 pub const THAT_SITE_HAS_NO_ROOM_LEFT: &str = "that_site_has_no_room_left";
 
@@ -321,14 +315,6 @@ pub const ENGLISH: &[(&str, &str)] = &[
         THIS_MACHINE_IS_ALREADY_SET_UP,
         "this machine already has somebody running it",
     ),
-    (
-        THIS_MACHINE_IS_NOT_SET_UP_YET,
-        "this machine has nobody running it yet, and is not a site until it does",
-    ),
-    (
-        THIS_DATABASE_HOLDS_MORE_THAN_ONE_SITE,
-        "this database holds more than one site and this serves one; it has to be split first",
-    ),
     (THAT_FILE_IS_NOT_A_VIDEO, "that file is not a video"),
     (
         NOT_SOMETHING_A_TRANSCODER_SAYS,
@@ -389,14 +375,6 @@ pub const ENGLISH: &[(&str, &str)] = &[
     (
         CHANGE_ASKED_FOR_FROM_SOMEWHERE_ELSE,
         "a change asked for from somewhere else is not a change this site makes",
-    ),
-    (
-        SITE_ALREADY_ANSWERS_TO_THAT_NAME,
-        "a site already answers to that name",
-    ),
-    (
-        ANOTHER_SITE_ANSWERS_ON_THAT_ADDRESS,
-        "another site already answers on that address",
     ),
     (
         ACCOUNT_NOT_BEEN_INVITED_SITE,
@@ -697,10 +675,6 @@ pub const ENGLISH: &[(&str, &str)] = &[
     (
         ROLE_CARRIES_WHAT_YOU_DO_NOT,
         "that role carries {beyond}, which you do not hold yourself",
-    ),
-    (
-        SITE_DOES_NOT_BECOME_THAT,
-        "a {from} site does not become {to}",
     ),
     (
         VERSION_READ_IS_NOT_VERSION_GIVEN,

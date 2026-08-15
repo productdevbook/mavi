@@ -14,7 +14,6 @@ use super::secret::Secret;
 /// can be fetched.
 #[derive(Clone, Debug, Serialize)]
 pub struct Handing {
-    pub tenant: uuid::Uuid,
     pub video: uuid::Uuid,
     pub source: String,
 }
@@ -128,7 +127,6 @@ mod tests {
         assert_eq!(
             nothing
                 .hand_over(&Handing {
-                    tenant: uuid::Uuid::nil(),
                     video: uuid::Uuid::nil(),
                     source: "/uploads/something".to_owned(),
                 })

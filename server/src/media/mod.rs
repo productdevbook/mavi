@@ -1,8 +1,8 @@
 //! Files a site has uploaded.
 //!
 //! What kind of file something is comes from its bytes rather than from its
-//! name, and what a site may keep altogether is a limit the operator sets: a
-//! full disk is every site on the machine rather than one.
+//! name, and what may be kept altogether has a ceiling: an installation with
+//! no limit on what it will store fills its disk one legal upload at a time.
 use axum::Json;
 use axum::body::Bytes;
 use axum::extract::{Path, Query as HttpQuery, State as Injected};
@@ -16,25 +16,25 @@ use uuid::Uuid;
 
 use crate::kernel::audit::{self, Actor, Auditable, Audited};
 use crate::kernel::authz::{Access, Capability, Needs, Permit};
-use crate::kernel::db::TenantConn;
+use crate::kernel::db::Tx;
 use crate::kernel::error::{AppError, Result};
 use crate::kernel::http::{AppState, Audience, Caller, Endpoint, Guard, RatePolicy};
 use crate::kernel::page::{Page, Query};
 use crate::kernel::ratelimit::Limit;
 use crate::kernel::say::{self, Say};
 use crate::kernel::storage;
-use crate::kernel::tenant::TenantId;
 
 /// Twenty megabytes. Big enough for a photograph off a phone, small enough that
 /// a hundred of them do not fill a disk somebody else is also using.
 const MOST_BYTES: usize = 20 * 1024 * 1024;
 
-/// What one site's library may come to, unless an operator has sold it more.
+/// What this installation's library may come to. One number, and the reason
+/// it exists is the disk rather than a plan somebody is on.
 ///
 /// A limit on a single file and none on the total is a site filling the disk
 /// one legal upload at a time — and a full disk on this machine is the kubelet
 /// evicting Postgres, which is every site rather than one.
-const MOST_BYTES_A_SITE: i64 = 5 * 1024 * 1024 * 1024;
+pub(crate) const MOST_BYTES_A_SITE: i64 = 5 * 1024 * 1024 * 1024;
 
 /// What a visitor may ask for. Generous, because this is how a page's pictures
 /// arrive, and still a limit, because it is a public endpoint.
@@ -133,11 +133,11 @@ pub struct Named {
 
 async fn list(
     Injected(state): Injected<AppState>,
-    caller: Caller,
+    _caller: Caller,
     _permit: Permit,
     HttpQuery(query): HttpQuery<Query>,
 ) -> Result<Json<Page<Media>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let rows: Vec<Media> = sqlx::query_as(
         "select id, original_name, mime, bytes, created_at
@@ -171,24 +171,24 @@ async fn list(
 /// place and decremented in another is a total that goes wrong the first time
 /// something fails halfway, and a library is not big enough for the sum to be
 /// slow.
-async fn room_for(conn: &mut TenantConn, tenant: TenantId, arriving: usize) -> Result<()> {
-    let held: (i64, Option<i64>) = sqlx::query_as(
+async fn room_for(conn: &mut Tx, arriving: usize) -> Result<()> {
+    // One ceiling rather than a column somebody could raise for a paying
+    // customer. The refusal is the part that matters: an installation with no
+    // limit on what it will store fills its disk one legal upload at a time.
+    let (used,): (i64,) = sqlx::query_as(
         // `sum` of a bigint is numeric, which is not what this reads it as.
-        "select coalesce((select sum(bytes)::bigint from media where deleted_at is null), 0),
-                (select storage_limit_bytes from site_settings where tenant_id = $1)",
+        "select coalesce((select sum(bytes)::bigint from media where deleted_at is null), 0)",
     )
-    .bind(tenant.0)
     .fetch_one(conn.conn())
     .await?;
 
-    let limit = held.1.unwrap_or(MOST_BYTES_A_SITE);
     let arriving = i64::try_from(arriving).unwrap_or(i64::MAX);
 
-    if held.0.saturating_add(arriving) > limit {
+    if used.saturating_add(arriving) > MOST_BYTES_A_SITE {
         return Err(AppError::Refused(
             Say::of(say::THAT_SITE_HAS_NO_ROOM_LEFT)
-                .naming("used", held.0)
-                .naming("limit", limit),
+                .naming("used", used)
+                .naming("limit", MOST_BYTES_A_SITE),
         ));
     }
 
@@ -226,25 +226,21 @@ async fn upload(
         .as_deref()
         .map_or_else(|| format!("file.{}", allowed.extension), clean_name);
 
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     // Asked before the bytes are written, so a site that is full does not fill
     // up further while being told it is full.
-    room_for(&mut conn, caller.tenant(), body.len()).await?;
+    room_for(&mut conn, body.len()).await?;
 
-    state
-        .store
-        .put(caller.tenant(), &location, body.to_vec())
-        .await?;
+    state.store.put(&location, body.to_vec()).await?;
 
     let file: Media = sqlx::query_as(
         "insert into media
-             (id, tenant_id, uploaded_by, location, original_name, mime, bytes, checksum)
-         values ($1, $2, $3, $4, $5, $6, $7, $8)
+             (id, uploaded_by, location, original_name, mime, bytes, checksum)
+         values ($1, $2, $3, $4, $5, $6, $7)
          returning id, original_name, mime, bytes, created_at",
     )
     .bind(id)
-    .bind(caller.tenant().0)
     .bind(caller.user.as_ref().map(|user| user.user_id))
     .bind(&location)
     .bind(&original_name)
@@ -279,10 +275,10 @@ fn clean_name(name: &str) -> String {
 
 async fn serve(
     Injected(state): Injected<AppState>,
-    caller: Caller,
+    _caller: Caller,
     Path(id): Path<Uuid>,
 ) -> Result<Response> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let found: Option<(String, String, String)> = sqlx::query_as(
         "select location, mime, original_name from media where id = $1 and deleted_at is null",
@@ -300,7 +296,7 @@ async fn serve(
     let allowed =
         storage::allowed_for(&mime).ok_or(AppError::Bug("a file of a kind nothing serves"))?;
 
-    let bytes = state.store.get(caller.tenant(), &location).await?;
+    let bytes = state.store.get(&location).await?;
 
     let mut headers = HeaderMap::new();
 
@@ -342,7 +338,7 @@ async fn remove(
     _permit: Permit,
     Path(id): Path<Uuid>,
 ) -> Result<Audited<StatusCode>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
     let before = one(&mut conn, id).await?;
 
     // The row goes first and the bytes after: a row pointing at nothing is a
@@ -366,7 +362,7 @@ async fn remove(
     Ok(Audited::new(receipt, StatusCode::NO_CONTENT))
 }
 
-async fn one(conn: &mut TenantConn, id: Uuid) -> Result<Media> {
+async fn one(conn: &mut Tx, id: Uuid) -> Result<Media> {
     sqlx::query_as(
         "select id, original_name, mime, bytes, created_at
            from media where id = $1 and deleted_at is null",

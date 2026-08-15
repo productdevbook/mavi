@@ -14,9 +14,8 @@ use serde::de::DeserializeOwned;
 use sqlx::Row;
 use uuid::Uuid;
 
-use super::db::{Db, TenantConn};
+use super::db::{Db, Tx};
 use super::error::Result;
-use super::tenant::TenantId;
 
 /// How long a claim is good for before another worker may take the job. Work
 /// that runs longer than this calls [`extend`] while it runs.
@@ -29,7 +28,6 @@ fn lease_until() -> DateTime<Utc> {
 #[derive(Clone, Debug)]
 pub struct Job {
     pub id: Uuid,
-    pub tenant_id: Option<TenantId>,
     pub kind: String,
     pub payload: serde_json::Value,
     pub attempts: i32,
@@ -53,7 +51,7 @@ impl Job {
 
 /// Schedules work in the transaction that is making the change it belongs to.
 pub async fn enqueue<T: Task>(
-    tx: &mut TenantConn,
+    tx: &mut Tx,
     task: &T,
     run_at: Option<DateTime<Utc>>,
 ) -> Result<Uuid> {
@@ -62,29 +60,23 @@ pub async fn enqueue<T: Task>(
 
 /// Schedules work of a kind known only as a string — what an outside crate's
 /// own schedule has, having no [`Task`] type this crate could name.
-pub async fn enqueue_kind(
-    tx: &mut TenantConn,
-    kind: &str,
-    run_at: Option<DateTime<Utc>>,
-) -> Result<Uuid> {
+pub async fn enqueue_kind(tx: &mut Tx, kind: &str, run_at: Option<DateTime<Utc>>) -> Result<Uuid> {
     enqueue_raw(tx, kind, &serde_json::json!({}), run_at).await
 }
 
 async fn enqueue_raw(
-    tx: &mut TenantConn,
+    tx: &mut Tx,
     kind: &str,
     payload: &impl Serialize,
     run_at: Option<DateTime<Utc>>,
 ) -> Result<Uuid> {
-    let tenant = tx.tenant();
     let payload = serde_json::to_value(payload).unwrap_or(serde_json::Value::Null);
 
     let row = sqlx::query(
-        "insert into jobs (tenant_id, kind, payload, run_at)
-         values ($1, $2, $3, coalesce($4, now()))
+        "insert into jobs (kind, payload, run_at)
+         values ($1, $2, coalesce($3, now()))
          returning id",
     )
-    .bind(tenant.0)
     .bind(kind)
     .bind(payload)
     .bind(run_at)
@@ -94,27 +86,13 @@ async fn enqueue_raw(
     Ok(row.get("id"))
 }
 
-/// Takes one job of any tenant's, skipping whatever another worker is holding.
+/// Takes one job, skipping whatever another worker is holding.
 ///
 /// `SKIP LOCKED` is what lets a second replica run: two workers reaching for
-/// the same row do not queue behind each other, they take different rows.
+/// the same row do not queue behind each other, they take different rows. That
+/// is the claim, and it is the half of this that was never about tenancy.
 pub async fn claim(db: &Db, worker: &str, kinds: &[String]) -> Result<Option<Job>> {
-    claim_within(db, worker, kinds, None).await
-}
-
-/// The same, for a worker told to take one site's work only — and for a test,
-/// which shares the queue with every other test in the run.
-pub async fn claim_within(
-    db: &Db,
-    worker: &str,
-    kinds: &[String],
-    tenant: Option<TenantId>,
-) -> Result<Option<Job>> {
-    let mut tx = db.operator().await?;
-
-    sqlx::query("select set_config('app.worker', 'on', true)")
-        .execute(tx.conn())
-        .await?;
+    let mut tx = db.begin().await?;
 
     let claimed_until = lease_until();
 
@@ -127,7 +105,6 @@ pub async fn claim_within(
           where id = (
                 select id from jobs
                  where kind = any($3)
-                   and ($4::uuid is null or tenant_id = $4)
                    and (
                         (state = 'ready' and run_at <= now())
                      or (state = 'running' and claimed_until < now())
@@ -136,12 +113,11 @@ pub async fn claim_within(
                  for update skip locked
                  limit 1
           )
-         returning id, tenant_id, kind, payload, attempts, max_attempts",
+         returning id, kind, payload, attempts, max_attempts",
     )
     .bind(claimed_until)
     .bind(worker)
     .bind(kinds)
-    .bind(tenant.map(|tenant| tenant.0))
     .fetch_optional(tx.conn())
     .await?;
 
@@ -149,7 +125,6 @@ pub async fn claim_within(
 
     Ok(row.map(|row| Job {
         id: row.get("id"),
-        tenant_id: row.get::<Option<Uuid>, _>("tenant_id").map(TenantId),
         kind: row.get("kind"),
         payload: row.get("payload"),
         attempts: row.get("attempts"),
@@ -227,11 +202,7 @@ where
         sqlx::query::Query<'q, sqlx::Postgres, sqlx::postgres::PgArguments>,
     ) -> sqlx::query::Query<'q, sqlx::Postgres, sqlx::postgres::PgArguments>,
 {
-    let mut tx = db.operator().await?;
-
-    sqlx::query("select set_config('app.worker', 'on', true)")
-        .execute(tx.conn())
-        .await?;
+    let mut tx = db.begin().await?;
 
     let done = bind(sqlx::query(sql))
         .execute(tx.conn())

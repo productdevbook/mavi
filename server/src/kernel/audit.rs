@@ -7,7 +7,7 @@
 use serde::Serialize;
 use uuid::Uuid;
 
-use super::db::TenantConn;
+use super::db::Tx;
 use super::error::Result;
 use super::http::{Caller, RequestId};
 
@@ -16,7 +16,6 @@ pub enum ActorKind {
     User,
     Student,
     System,
-    Operator,
 }
 
 impl ActorKind {
@@ -26,7 +25,6 @@ impl ActorKind {
             ActorKind::User => "user",
             ActorKind::Student => "student",
             ActorKind::System => "system",
-            ActorKind::Operator => "operator",
         }
     }
 }
@@ -90,15 +88,6 @@ impl<T> Audited<T> {
     }
 }
 
-impl Receipt {
-    /// For the console, which writes to its own log rather than to a tenant's:
-    /// what an operator does is about every site or about none.
-    #[must_use]
-    pub fn for_the_console() -> Self {
-        Self(())
-    }
-}
-
 #[derive(Clone, Copy, Debug)]
 pub struct Wrote;
 
@@ -113,7 +102,7 @@ impl<T: axum::response::IntoResponse> axum::response::IntoResponse for Audited<T
 /// Written in the caller's transaction: an audit line cannot survive a change
 /// that rolled back, and the change cannot commit without its line.
 pub async fn record<T: Auditable>(
-    conn: &mut TenantConn,
+    conn: &mut Tx,
     actor: Actor,
     action: &str,
     before: Option<&T>,
@@ -137,7 +126,7 @@ pub async fn record<T: Auditable>(
 
 /// For what is not a domain type: a sign-in, a refusal, a role change.
 pub async fn record_raw(
-    conn: &mut TenantConn,
+    conn: &mut Tx,
     actor: Actor,
     action: &str,
     subject: &str,
@@ -150,7 +139,7 @@ pub async fn record_raw(
 }
 
 async fn write(
-    conn: &mut TenantConn,
+    conn: &mut Tx,
     actor: Actor,
     action: &str,
     subject: &str,
@@ -158,15 +147,12 @@ async fn write(
     before: Option<serde_json::Value>,
     after: Option<serde_json::Value>,
 ) -> Result<Receipt> {
-    let tenant = conn.tenant();
-
     sqlx::query(
         "insert into audit_log
-             (tenant_id, actor_id, actor_kind, action, subject, subject_id,
+             (actor_id, actor_kind, action, subject, subject_id,
               before, after, request_id)
-         values ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+         values ($1, $2, $3, $4, $5, $6, $7, $8)",
     )
-    .bind(tenant.0)
     .bind(actor.id)
     .bind(actor.kind.as_str())
     .bind(action)

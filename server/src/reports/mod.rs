@@ -130,7 +130,7 @@ async fn ours(
 ) -> Result<Json<Page<Report>>> {
     caller.require_user()?;
 
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let rows: Vec<Report> = sqlx::query_as(&format!(
         "select {COLUMNS} from reports
@@ -174,7 +174,7 @@ async fn say_something(
         ));
     }
 
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     // An assistant reporting the same gap in forty sites is one thing to fix,
     // not forty, and telling them apart is what makes that visible.
@@ -188,12 +188,11 @@ async fn say_something(
 
     let said: Report = sqlx::query_as(&format!(
         "insert into reports
-             (tenant_id, said_by, by_a_person, screen, body, kind, environment, media_id)
-         values ($1, $2, $3, $4, $5, $6::report_kind,
-                 $7, $8)
+             (said_by, by_a_person, screen, body, kind, environment, media_id)
+         values ($1, $2, $3, $4, $5::report_kind,
+                 $6, $7)
          returning {COLUMNS}"
     ))
-    .bind(caller.tenant().0)
     .bind(who.user_id)
     .bind(by_a_person.0)
     .bind(saying.screen.as_deref())
@@ -239,14 +238,13 @@ pub async fn said_by_a_tool(
         ));
     }
 
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let said: Report = sqlx::query_as(&format!(
-        "insert into reports (tenant_id, said_by, by_a_person, screen, body)
-         values ($1, $2, false, $3, $4)
+        "insert into reports (said_by, by_a_person, screen, body)
+         values ($1, false, $2, $3)
          returning {COLUMNS}"
     ))
-    .bind(caller.tenant().0)
     .bind(who.user_id)
     .bind(screen)
     .bind(body.trim())

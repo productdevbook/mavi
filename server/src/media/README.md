@@ -28,7 +28,7 @@ contains its id and a changed file is a new one.
 **Limits.** Twenty megabytes a file, and five gigabytes a site unless an
 operator has sold it more — a limit on one file and none on the total is a site
 filling the disk one legal upload at a time, and a full disk on this machine is
-the kubelet evicting Postgres, which is every site rather than one. The total is
+the kubelet evicting Postgres, which takes the whole installation. The total is
 counted rather than kept as a running number: one that is written in one place
 and decremented in another goes wrong the first time something fails halfway.
 Six hundred requests a minute per caller on the public endpoint.

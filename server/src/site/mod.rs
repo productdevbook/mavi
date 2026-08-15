@@ -16,7 +16,7 @@ use uuid::Uuid;
 
 use crate::kernel::audit::{self, Actor, Audited};
 use crate::kernel::authz::{Access, Capability, Needs, Permit};
-use crate::kernel::db::TenantConn;
+use crate::kernel::db::Tx;
 use crate::kernel::error::Result;
 use crate::kernel::http::{AppState, Audience, Caller, Endpoint, Guard, RatePolicy};
 use crate::kernel::ratelimit::Limit;
@@ -118,18 +118,14 @@ pub fn endpoints() -> Vec<Endpoint> {
 }
 
 /// What a site's own people may see of its settings.
-///
-/// `contact` and `notes` are the operator's, not the site's, and are not here:
-/// they are how one machine's operator keeps track of who to talk to, which is
-/// nothing to do with whoever runs the site.
 #[derive(Clone, Debug, Serialize, sqlx::FromRow, utoipa::ToSchema)]
 pub struct Settings {
     pub name: String,
-    /// How much has been uploaded, and how much may be. Read here rather than
-    /// set: what a site is allowed is the operator's to decide, and finding out
-    /// at the point of an upload being refused is finding out too late.
+    /// How much has been uploaded, and how much may be. Read rather than set:
+    /// the ceiling is the machine's, and finding out at the point of an upload
+    /// being refused is finding out too late.
     pub storage_used_bytes: i64,
-    pub storage_limit_bytes: Option<i64>,
+    pub storage_limit_bytes: i64,
 }
 
 #[derive(Debug, Deserialize, utoipa::ToSchema)]
@@ -156,7 +152,7 @@ async fn settings(
     caller: Caller,
     _permit: Permit,
 ) -> Result<Json<Settings>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
     let found = read_settings(&mut conn, &caller).await?;
     conn.commit().await?;
 
@@ -169,16 +165,15 @@ async fn rename(
     _permit: Permit,
     Json(wanted): Json<SettingsChanges>,
 ) -> Result<Audited<Json<Settings>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     // Written rather than updated: a site carried in from elsewhere may have no
     // row here, and a name that cannot be set until somebody runs an insert by
     // hand is a name that cannot be set.
     sqlx::query(
-        "insert into site_settings (tenant_id, name) values ($1, $2)
-         on conflict (tenant_id) do update set name = excluded.name",
+        "insert into site_settings (name) values ($1)
+         on conflict ((true)) do update set name = excluded.name",
     )
-    .bind(caller.tenant().0)
     .bind(wanted.name.as_str())
     .execute(conn.conn())
     .await?;
@@ -200,21 +195,22 @@ async fn rename(
     Ok(Audited::new(receipt, Json(after)))
 }
 
-async fn read_settings(conn: &mut TenantConn, caller: &Caller) -> Result<Settings> {
+async fn read_settings(conn: &mut Tx, _caller: &Caller) -> Result<Settings> {
     let found: Option<Settings> = sqlx::query_as(
-        "select s.name, s.storage_limit_bytes,
+        "select s.name,
                 coalesce((select sum(m.bytes) from media m
-                           where m.deleted_at is null), 0)::bigint as storage_used_bytes
-           from site_settings s where s.tenant_id = $1",
+                           where m.deleted_at is null), 0)::bigint as storage_used_bytes,
+                $1::bigint as storage_limit_bytes
+           from site_settings s",
     )
-    .bind(caller.tenant().0)
+    .bind(crate::media::MOST_BYTES_A_SITE)
     .fetch_optional(conn.conn())
     .await?;
 
     Ok(found.unwrap_or_else(|| Settings {
         name: String::new(),
         storage_used_bytes: 0,
-        storage_limit_bytes: None,
+        storage_limit_bytes: crate::media::MOST_BYTES_A_SITE,
     }))
 }
 
@@ -296,17 +292,17 @@ pub struct QueueUsage {
 
 async fn usage(
     Injected(state): Injected<AppState>,
-    caller: Caller,
+    _caller: Caller,
     _permit: Permit,
 ) -> Result<Json<Usage>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
     let found = read_usage(&mut conn).await?;
     conn.commit().await?;
 
     Ok(Json(found))
 }
 
-async fn read_usage(conn: &mut TenantConn) -> Result<Usage> {
+async fn read_usage(conn: &mut Tx) -> Result<Usage> {
     let by_kind: Vec<StorageKind> = sqlx::query_as(
         "select split_part(mime, '/', 1) as kind,
                 sum(bytes)::bigint as bytes,
@@ -389,7 +385,7 @@ async fn read_usage(conn: &mut TenantConn) -> Result<Usage> {
 /// what lets `{kind}` go straight into the query below: `kind` is bound by
 /// this loop over a constant this crate wrote, the same rule `gather` and
 /// `erase` splice a table name under, and never a value a caller sent.
-async fn read_rows(conn: &mut TenantConn) -> Result<Vec<RowCount>> {
+async fn read_rows(conn: &mut Tx) -> Result<Vec<RowCount>> {
     let mut rows = Vec::with_capacity(ROW_KINDS.len());
 
     for &kind in ROW_KINDS {
@@ -409,14 +405,12 @@ async fn read_rows(conn: &mut TenantConn) -> Result<Vec<RowCount>> {
 
 /// What a site is, for something reading rather than browsing. Written from
 /// what is published rather than from a file somebody has to remember.
-async fn llms(Injected(state): Injected<AppState>, caller: Caller) -> Result<Response> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+async fn llms(Injected(state): Injected<AppState>, _caller: Caller) -> Result<Response> {
+    let mut conn = state.db.begin().await?;
 
-    let name: Option<(String,)> =
-        sqlx::query_as("select name from site_settings where tenant_id = $1")
-            .bind(caller.tenant().0)
-            .fetch_optional(conn.conn())
-            .await?;
+    let name: Option<(String,)> = sqlx::query_as("select name from site_settings ")
+        .fetch_optional(conn.conn())
+        .await?;
 
     let pages = sqlx::query(
         "select title, slug, excerpt from posts
@@ -459,7 +453,7 @@ async fn export(
     _permit: Permit,
     Json(body): Json<About>,
 ) -> Result<Audited<Json<Copied>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
     let found = gather(&mut conn, body.email.as_str()).await?;
 
     let receipt = audit::record_raw(
@@ -483,7 +477,7 @@ async fn export(
     ))
 }
 
-async fn gather(conn: &mut TenantConn, email: &str) -> Result<serde_json::Value> {
+async fn gather(conn: &mut Tx, email: &str) -> Result<serde_json::Value> {
     let mut found = serde_json::Map::new();
 
     for (table, column) in ABOUT_A_PERSON {
@@ -532,7 +526,7 @@ async fn erase(
     Json(body): Json<About>,
 ) -> Result<Audited<Json<serde_json::Value>>> {
     let email = body.email.as_str();
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let holder: Option<(Uuid,)> =
         sqlx::query_as("select id from users where email = $1 and deleted_at is null")

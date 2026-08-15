@@ -7,14 +7,13 @@ use mavi::kernel::authz::every_grant;
 use mavi::kernel::db::Db;
 use mavi::kernel::http::AppState;
 use mavi::kernel::mailer::{Mailer, Recorder};
-use mavi::kernel::tenant::TenantId;
 use tower::ServiceExt;
 use uuid::Uuid;
 
 mod common;
 
 use common::harness;
-use mavi::testing::{a_role, a_tenant, a_user};
+use mavi::testing::{a_role, a_user};
 
 const PASSWORD: &str = "a long enough password";
 
@@ -23,7 +22,6 @@ struct Site {
     role: Uuid,
     router: axum::Router,
     host: String,
-    tenant: TenantId,
     token: String,
     post: Recorder,
 }
@@ -32,26 +30,23 @@ impl Site {
     async fn new() -> Self {
         let db = harness().await;
         let host = format!("{}.example", Uuid::now_v7().simple());
-        let tenant = a_tenant(&db, &host).await;
-        let role = a_role(&db, tenant, "owner", &every_grant()).await;
-        let (_, email) = a_user(&db, tenant, role, PASSWORD).await;
+        let role = a_role(&db, "owner", &every_grant()).await;
+        let (_, email) = a_user(&db, role, PASSWORD).await;
 
-        let mut conn = db.tenant(tenant).await.expect("begin");
+        let mut conn = db.begin().await.expect("begin");
 
         sqlx::query(
-            "insert into site_settings (tenant_id, name) values ($1, 'A shop')
-             on conflict (tenant_id) do update set name = 'A shop'",
+            "insert into site_settings (name) values ('A shop')
+             on conflict ((true)) do update set name = 'A shop'",
         )
-        .bind(tenant.0)
         .execute(conn.conn())
         .await
         .expect("a name");
 
         sqlx::query(
-            "insert into languages (tenant_id, code, name, is_default)
-             values ($1, 'tr', 'Türkçe', true)",
+            "insert into languages (code, name, is_default)
+             values ('tr', 'Türkçe', true)",
         )
-        .bind(tenant.0)
         .execute(conn.conn())
         .await
         .expect("a language");
@@ -67,7 +62,6 @@ impl Site {
             role,
             router: mavi::router(state),
             host,
-            tenant,
             token: String::new(),
             post,
         };
@@ -94,9 +88,7 @@ impl Site {
         state.mailer = std::sync::Arc::new(Mailer::Recorded(self.post.clone()));
 
         for _ in 0..8 {
-            mavi::jobs::tick_within(&state, "test", Some(self.tenant))
-                .await
-                .expect("tick");
+            mavi::jobs::tick(&state, "test").await.expect("tick");
         }
 
         let letters = self.post.all();

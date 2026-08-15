@@ -132,11 +132,11 @@ const COLUMNS: &str =
 
 async fn list(
     Injected(state): Injected<AppState>,
-    caller: Caller,
+    _caller: Caller,
     _permit: Permit,
     HttpQuery(query): HttpQuery<Query>,
 ) -> Result<Json<Page<Product>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let rows: Vec<Product> = sqlx::query_as(&format!(
         "select {COLUMNS} from products
@@ -161,10 +161,10 @@ async fn list(
 /// what is not for sale, and nothing about what has been sold.
 async fn on_sale(
     Injected(state): Injected<AppState>,
-    caller: Caller,
+    _caller: Caller,
     HttpQuery(query): HttpQuery<Query>,
 ) -> Result<Json<Page<Product>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let rows: Vec<Product> = sqlx::query_as(&format!(
         "select {COLUMNS} from products
@@ -195,15 +195,14 @@ async fn create(
     _permit: Permit,
     Json(body): Json<NewProduct>,
 ) -> Result<Audited<(StatusCode, Json<Product>)>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let product: Product = sqlx::query_as(&format!(
         "insert into products
-             (tenant_id, slug, name, description, price_minor, currency, stock, low_stock_at)
-         values ($1, $2, $3, $4, $5, $6, coalesce($7, 0), $8)
+             (slug, name, description, price_minor, currency, stock, low_stock_at)
+         values ($1, $2, $3, $4, $5, coalesce($6, 0), $7)
          returning {COLUMNS}"
     ))
-    .bind(caller.tenant().0)
     .bind(body.slug.as_str())
     .bind(body.name.as_str())
     .bind(body.description.as_deref())
@@ -236,7 +235,7 @@ async fn change(
     Path(id): Path<Uuid>,
     Json(changes): Json<ProductChanges>,
 ) -> Result<Audited<Json<Product>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let before: Product = sqlx::query_as(&format!(
         "select {COLUMNS} from products where id = $1 and deleted_at is null"

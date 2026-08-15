@@ -19,9 +19,8 @@ async fn a_user_built_through_the_testing_module_can_sign_in() {
     let db = mavi::testing::harness().await;
     let host = format!("{}.example", Uuid::now_v7().simple());
 
-    let tenant = mavi::testing::a_tenant(&db, &host).await;
-    let role = mavi::testing::a_role(&db, tenant, "owner", &every_grant()).await;
-    let (_, email) = mavi::testing::a_user(&db, tenant, role, PASSWORD).await;
+    let role = mavi::testing::a_role(&db, "owner", &every_grant()).await;
+    let (_, email) = mavi::testing::a_user(&db, role, PASSWORD).await;
 
     let router = mavi::router(AppState::new(db));
 
@@ -63,9 +62,8 @@ async fn an_owner_role_built_through_the_testing_module_is_admitted_to_a_guarded
     let db = mavi::testing::harness().await;
     let host = format!("{}.example", Uuid::now_v7().simple());
 
-    let tenant = mavi::testing::a_tenant(&db, &host).await;
-    let role = mavi::testing::an_owner_role(&db, tenant).await;
-    let (_, email) = mavi::testing::a_user(&db, tenant, role, PASSWORD).await;
+    let role = mavi::testing::an_owner_role(&db).await;
+    let (_, email) = mavi::testing::a_user(&db, role, PASSWORD).await;
 
     let router = mavi::router(AppState::new(db));
 

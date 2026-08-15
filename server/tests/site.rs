@@ -7,20 +7,18 @@ use http_body_util::BodyExt;
 use mavi::kernel::authz::every_grant;
 use mavi::kernel::db::Db;
 use mavi::kernel::http::AppState;
-use mavi::kernel::tenant::TenantId;
 use tower::ServiceExt;
 use uuid::Uuid;
 
 mod common;
 
 use common::harness;
-use mavi::testing::{a_role, a_tenant, a_user};
+use mavi::testing::{a_role, a_user};
 
 struct Site {
     db: Db,
     router: axum::Router,
     host: String,
-    tenant: TenantId,
     token: String,
     email: String,
     owner_role: Uuid,
@@ -42,10 +40,9 @@ async fn a_site_where_somebody_can(grants: &[String]) -> Site {
 async fn a_site_where_somebody_holding(key: &str, grants: &[String]) -> Site {
     let db = harness().await;
     let host = format!("{}.example", Uuid::now_v7().simple());
-    let tenant = a_tenant(&db, &host).await;
-    let role = a_role(&db, tenant, key, grants).await;
+    let role = a_role(&db, key, grants).await;
     let password = "a long enough password";
-    let (_, email) = a_user(&db, tenant, role, password).await;
+    let (_, email) = a_user(&db, role, password).await;
 
     let router = mavi::router(AppState::new(db.clone()));
 
@@ -79,7 +76,6 @@ async fn a_site_where_somebody_holding(key: &str, grants: &[String]) -> Site {
         db,
         router,
         host,
-        tenant,
         token: body["token"].as_str().expect("a token").to_owned(),
         email,
         owner_role: role,
@@ -135,21 +131,19 @@ async fn somebody_can_be_given_everything_the_site_holds_about_them() {
     let site = a_site().await;
     let address = format!("reader-{}@example.test", Uuid::now_v7().simple());
 
-    let mut conn = site.db.tenant(site.tenant).await.expect("begin");
+    let mut conn = site.db.begin().await.expect("begin");
 
     sqlx::query(
-        "insert into subscribers (tenant_id, email, token_hash)
-         values ($1, $2, sha256($3::bytea))",
+        "insert into subscribers (email, token_hash)
+         values ($1, sha256($2::bytea))",
     )
-    .bind(site.tenant.0)
     .bind(&address)
     .bind(Uuid::now_v7().as_bytes().to_vec())
     .execute(conn.conn())
     .await
     .expect("a subscriber");
 
-    sqlx::query("insert into email_log (tenant_id, to_email, subject) values ($1, $2, 'Hello')")
-        .bind(site.tenant.0)
+    sqlx::query("insert into email_log (to_email, subject) values ($1, 'Hello')")
         .bind(&address)
         .execute(conn.conn())
         .await
@@ -189,13 +183,12 @@ async fn erasing_takes_them_away_and_keeps_the_bill() {
     let site = a_site().await;
     let address = format!("buyer-{}@example.test", Uuid::now_v7().simple());
 
-    let mut conn = site.db.tenant(site.tenant).await.expect("begin");
+    let mut conn = site.db.begin().await.expect("begin");
 
     sqlx::query(
-        "insert into subscribers (tenant_id, email, token_hash)
-         values ($1, $2, sha256($3::bytea))",
+        "insert into subscribers (email, token_hash)
+         values ($1, sha256($2::bytea))",
     )
-    .bind(site.tenant.0)
     .bind(&address)
     .bind(Uuid::now_v7().as_bytes().to_vec())
     .execute(conn.conn())
@@ -203,10 +196,9 @@ async fn erasing_takes_them_away_and_keeps_the_bill() {
     .expect("a subscriber");
 
     sqlx::query(
-        "insert into orders (tenant_id, email, total_minor, currency, idempotency_key)
-         values ($1, $2, 1000, 'TRY', $3)",
+        "insert into orders (email, total_minor, currency, idempotency_key)
+         values ($1, 1000, 'TRY', $2)",
     )
-    .bind(site.tenant.0)
     .bind(&address)
     .bind(Uuid::now_v7().to_string())
     .execute(conn.conn())
@@ -226,7 +218,7 @@ async fn erasing_takes_them_away_and_keeps_the_bill() {
 
     assert_eq!(status, StatusCode::OK, "{body}");
 
-    let mut conn = site.db.tenant(site.tenant).await.expect("begin");
+    let mut conn = site.db.begin().await.expect("begin");
 
     let left: (i64,) = sqlx::query_as("select count(*) from subscribers where email = $1")
         .bind(&address)
@@ -262,7 +254,7 @@ async fn erasing_the_site_s_only_owner_is_refused() {
 
     assert_eq!(status, StatusCode::FORBIDDEN, "{body}");
 
-    let mut conn = site.db.tenant(site.tenant).await.expect("begin");
+    let mut conn = site.db.begin().await.expect("begin");
 
     let left: (i64,) =
         sqlx::query_as("select count(*) from users where email = $1 and deleted_at is null")
@@ -278,15 +270,14 @@ async fn erasing_the_site_s_only_owner_is_refused() {
 async fn erasing_an_owner_who_is_not_the_last_one_still_works() {
     let site = a_site().await;
 
-    let mut conn = site.db.tenant(site.tenant).await.expect("begin");
+    let mut conn = site.db.begin().await.expect("begin");
     let hash = mavi::kernel::password::hash("a long enough password").expect("hash");
     let second = format!("second-owner-{}@example.test", Uuid::now_v7().simple());
 
     sqlx::query(
-        "insert into users (tenant_id, role_id, email, name, password_hash, state)
-         values ($1, $2, $3, 'Another Owner', $4, 'active')",
+        "insert into users (role_id, email, name, password_hash, state)
+         values ($1, $2, 'Another Owner', $3, 'active')",
     )
-    .bind(site.tenant.0)
     .bind(site.owner_role)
     .bind(&second)
     .bind(&hash)
@@ -307,7 +298,7 @@ async fn erasing_an_owner_who_is_not_the_last_one_still_works() {
 
     assert_eq!(status, StatusCode::OK, "{body}");
 
-    let mut conn = site.db.tenant(site.tenant).await.expect("begin");
+    let mut conn = site.db.begin().await.expect("begin");
 
     let left: (i64,) = sqlx::query_as("select count(*) from users where email = $1")
         .bind(&second)
@@ -322,31 +313,28 @@ async fn erasing_an_owner_who_is_not_the_last_one_still_works() {
 async fn a_site_says_what_it_has_published() {
     let site = a_site().await;
 
-    let mut conn = site.db.tenant(site.tenant).await.expect("begin");
+    let mut conn = site.db.begin().await.expect("begin");
 
     sqlx::query(
-        "insert into languages (tenant_id, code, name, is_default)
-         values ($1, 'en', 'English', true)",
+        "insert into languages (code, name, is_default)
+         values ('en', 'English', true)",
     )
-    .bind(site.tenant.0)
     .execute(conn.conn())
     .await
     .expect("a language");
 
     sqlx::query(
-        "insert into posts (tenant_id, language, slug, title, state, published_at, excerpt)
-         values ($1, 'en', 'hello', 'Hello There', 'published', now(), 'A first post')",
+        "insert into posts (language, slug, title, state, published_at, excerpt)
+         values ('en', 'hello', 'Hello There', 'published', now(), 'A first post')",
     )
-    .bind(site.tenant.0)
     .execute(conn.conn())
     .await
     .expect("a post");
 
     sqlx::query(
-        "insert into posts (tenant_id, language, slug, title, state)
-         values ($1, 'en', 'later', 'Not Yet', 'draft')",
+        "insert into posts (language, slug, title, state)
+         values ('en', 'later', 'Not Yet', 'draft')",
     )
-    .bind(site.tenant.0)
     .execute(conn.conn())
     .await
     .expect("a draft");
@@ -420,23 +408,21 @@ async fn usage_of(site: &Site) -> serde_json::Value {
 #[tokio::test]
 async fn storage_and_rows_by_kind_are_read_back_as_what_was_written() {
     let site = a_site().await;
-    let mut conn = site.db.tenant(site.tenant).await.expect("begin");
+    let mut conn = site.db.begin().await.expect("begin");
 
     sqlx::query(
-        "insert into languages (tenant_id, code, name, is_default)
-         values ($1, 'en', 'English', true)",
+        "insert into languages (code, name, is_default)
+         values ('en', 'English', true)",
     )
-    .bind(site.tenant.0)
     .execute(conn.conn())
     .await
     .expect("a language");
 
     for slug in ["first-post", "second-post", "third-post"] {
         sqlx::query(
-            "insert into posts (tenant_id, language, slug, title, state)
-             values ($1, 'en', $2, $2, 'draft')",
+            "insert into posts (language, slug, title, state)
+             values ('en', $1, $1, 'draft')",
         )
-        .bind(site.tenant.0)
         .bind(slug)
         .execute(conn.conn())
         .await
@@ -444,11 +430,10 @@ async fn storage_and_rows_by_kind_are_read_back_as_what_was_written() {
     }
 
     sqlx::query(
-        "insert into media (tenant_id, location, original_name, mime, bytes, checksum)
-         values ($1, 'a/one.png', 'one.png', 'image/png', 1000, '\\x01'::bytea),
-                ($1, 'a/two.mp4', 'two.mp4', 'video/mp4', 4000, '\\x02'::bytea)",
+        "insert into media (location, original_name, mime, bytes, checksum)
+         values ('a/one.png', 'one.png', 'image/png', 1000, '\\x01'::bytea),
+                ('a/two.mp4', 'two.mp4', 'video/mp4', 4000, '\\x02'::bytea)",
     )
-    .bind(site.tenant.0)
     .execute(conn.conn())
     .await
     .expect("media");
@@ -482,50 +467,45 @@ async fn storage_and_rows_by_kind_are_read_back_as_what_was_written() {
 #[tokio::test]
 async fn mail_attempted_delivered_bounced_and_failed_are_read_back() {
     let site = a_site().await;
-    let mut conn = site.db.tenant(site.tenant).await.expect("begin");
+    let mut conn = site.db.begin().await.expect("begin");
 
     // Not attempted: still queued, nothing has tried it yet.
     sqlx::query(
-        "insert into email_log (tenant_id, to_email, subject, state)
-         values ($1, 'queued-reader@example.test', 'Hi', 'queued')",
+        "insert into email_log (to_email, subject, state)
+         values ('queued-reader@example.test', 'Hi', 'queued')",
     )
-    .bind(site.tenant.0)
     .execute(conn.conn())
     .await
     .expect("a queued message");
 
     let (sent_id,): (Uuid,) = sqlx::query_as(
-        "insert into email_log (tenant_id, to_email, subject, state)
-         values ($1, 'sent-reader@example.test', 'Hi', 'sent') returning id",
+        "insert into email_log (to_email, subject, state)
+         values ('sent-reader@example.test', 'Hi', 'sent') returning id",
     )
-    .bind(site.tenant.0)
     .fetch_one(conn.conn())
     .await
     .expect("a sent message");
 
     sqlx::query(
-        "insert into email_log (tenant_id, to_email, subject, state)
-         values ($1, 'bounced-reader@example.test', 'Hi', 'bounced')",
+        "insert into email_log (to_email, subject, state)
+         values ('bounced-reader@example.test', 'Hi', 'bounced')",
     )
-    .bind(site.tenant.0)
     .execute(conn.conn())
     .await
     .expect("a bounced message");
 
     sqlx::query(
-        "insert into email_log (tenant_id, to_email, subject, state)
-         values ($1, 'failed-reader@example.test', 'Hi', 'failed')",
+        "insert into email_log (to_email, subject, state)
+         values ('failed-reader@example.test', 'Hi', 'failed')",
     )
-    .bind(site.tenant.0)
     .execute(conn.conn())
     .await
     .expect("a failed message");
 
     sqlx::query(
-        "insert into mail_events (tenant_id, email_log_id, kind, provider_ref)
-         values ($1, $2, 'delivered', $3)",
+        "insert into mail_events (email_log_id, kind, provider_ref)
+         values ($1, 'delivered', $2)",
     )
-    .bind(site.tenant.0)
     .bind(sent_id)
     .bind(Uuid::now_v7().to_string())
     .execute(conn.conn())
@@ -545,31 +525,28 @@ async fn mail_attempted_delivered_bounced_and_failed_are_read_back() {
 #[tokio::test]
 async fn builds_and_the_queue_are_read_back() {
     let site = a_site().await;
-    let mut conn = site.db.tenant(site.tenant).await.expect("begin");
+    let mut conn = site.db.begin().await.expect("begin");
 
     sqlx::query(
-        "insert into publishes (tenant_id, branch, state, seconds, finished_at)
-         values ($1, 'live', 'live', 42, now())",
+        "insert into publishes (branch, state, seconds, finished_at)
+         values ('live', 'live', 42, now())",
     )
-    .bind(site.tenant.0)
     .execute(conn.conn())
     .await
     .expect("a build");
 
     sqlx::query(
-        "insert into jobs (tenant_id, kind, state, run_at)
-         values ($1, 'domains.check', 'ready', now() - interval '1 hour')",
+        "insert into jobs (kind, state, run_at)
+         values ('domains.check', 'ready', now() - interval '1 hour')",
     )
-    .bind(site.tenant.0)
     .execute(conn.conn())
     .await
     .expect("a waiting job");
 
     sqlx::query(
-        "insert into jobs (tenant_id, kind, state, run_at, claimed_until, claimed_by)
-         values ($1, 'domains.check', 'running', now(), now() + interval '5 minutes', 'a-worker')",
+        "insert into jobs (kind, state, run_at, claimed_until, claimed_by)
+         values ('domains.check', 'running', now(), now() + interval '5 minutes', 'a-worker')",
     )
-    .bind(site.tenant.0)
     .execute(conn.conn())
     .await
     .expect("a running job");

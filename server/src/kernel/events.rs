@@ -7,7 +7,7 @@
 use sqlx::Row;
 use uuid::Uuid;
 
-use super::db::TenantConn;
+use super::db::Tx;
 use super::error::Result;
 use super::queue;
 
@@ -28,20 +28,17 @@ pub trait EmitsEvents {
     fn payload(&self) -> serde_json::Value;
 }
 
-pub async fn emit<T: EmitsEvents>(tx: &mut TenantConn, event: &str, subject: &T) -> Result<Uuid> {
+pub async fn emit<T: EmitsEvents>(tx: &mut Tx, event: &str, subject: &T) -> Result<Uuid> {
     debug_assert!(
         T::EVENTS.contains(&event),
         "{event} is not one of the events this type declares"
     );
 
-    let tenant = tx.tenant();
-
     let row = sqlx::query(
-        "insert into outbox (tenant_id, event, subject_id, payload)
-         values ($1, $2, $3, $4)
+        "insert into outbox (event, subject_id, payload)
+         values ($1, $2, $3)
          returning id",
     )
-    .bind(tenant.0)
     .bind(event)
     .bind(subject.subject_id())
     .bind(subject.payload())
@@ -53,8 +50,8 @@ pub async fn emit<T: EmitsEvents>(tx: &mut TenantConn, event: &str, subject: &T)
     super::metrics::domain_emitted(super::domain::of_event(event), event);
 
     // Enqueued here rather than by a sweep over the table: the work belongs to
-    // the transaction that made the change, and a sweep would have to reach
-    // across tenants to find it.
+    // the transaction that made the change, and a row written and swept later
+    // is a row that is sent twice when the change rolls back.
     queue::enqueue(tx, &crate::webhooks::Dispatch { outbox_id }, None).await?;
 
     // And whatever the site arranged to happen when this occurs. Both queued

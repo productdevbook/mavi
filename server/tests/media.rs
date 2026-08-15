@@ -14,7 +14,7 @@ use uuid::Uuid;
 mod common;
 
 use common::harness;
-use mavi::testing::{a_role, a_tenant, a_user};
+use mavi::testing::{a_role, a_user};
 
 /// The smallest real PNG there is: one pixel, and a header that says so.
 const A_PNG: &[u8] = &[
@@ -31,16 +31,14 @@ struct Site {
     token: String,
     kept_in: std::path::PathBuf,
     db: Db,
-    tenant: mavi::kernel::tenant::TenantId,
 }
 
 async fn a_site() -> Site {
     let db: Db = harness().await;
     let host = format!("{}.example", Uuid::now_v7().simple());
-    let tenant = a_tenant(&db, &host).await;
-    let role = a_role(&db, tenant, "owner", &every_grant()).await;
+    let role = a_role(&db, "owner", &every_grant()).await;
     let password = "a long enough password";
-    let (_, email) = a_user(&db, tenant, role, password).await;
+    let (_, email) = a_user(&db, role, password).await;
 
     let kept_in = std::env::temp_dir().join(format!("mavi-uploads-{}", Uuid::now_v7().simple()));
 
@@ -81,7 +79,6 @@ async fn a_site() -> Site {
         token: body["token"].as_str().expect("a token").to_owned(),
         kept_in,
         db,
-        tenant,
     }
 }
 
@@ -196,21 +193,13 @@ async fn a_file_is_never_kept_under_the_name_somebody_chose() {
     let (_, body) = site.upload("../../escape.png", A_PNG).await;
     let id = body["id"].as_str().expect("an id");
 
-    let kept: Vec<_> = std::fs::read_dir(
-        site.kept_in.join(
-            // One folder per site, and the file inside it named after its id.
-            std::fs::read_dir(&site.kept_in)
-                .expect("the folder")
-                .next()
-                .expect("a site's folder")
-                .expect("a folder")
-                .file_name(),
-        ),
-    )
-    .expect("the site's folder")
-    .filter_map(std::result::Result::ok)
-    .map(|entry| entry.file_name().to_string_lossy().into_owned())
-    .collect();
+    // One folder, and the file inside it named after its id — there is one
+    // installation, so nothing nests a site's files under a site.
+    let kept: Vec<_> = std::fs::read_dir(&site.kept_in)
+        .expect("the folder")
+        .filter_map(std::result::Result::ok)
+        .map(|entry| entry.file_name().to_string_lossy().into_owned())
+        .collect();
 
     assert_eq!(kept.len(), 1);
     assert!(
@@ -255,23 +244,20 @@ async fn a_file_that_was_taken_away_is_not_served() {
 async fn a_site_cannot_fill_the_disk_one_legal_upload_at_a_time() {
     let site = a_site().await;
 
-    // What this site has room for, said by the operator: ten bytes, which the
-    // smallest real picture is already past.
-    let mut conn = site.db.operator().await.expect("begin");
-
-    // What an operator does, said out loud: `site_settings` belongs to the
-    // control plane and a site's own connection sees only its own row.
-    conn.across_sites().await.expect("across sites");
+    // The ceiling is one number in the application rather than a column
+    // somebody could raise, so the way to stand at it is to have already
+    // uploaded that much. A row claiming the whole of it does that without
+    // writing five gigabytes to anybody's disk.
+    let mut conn = site.db.begin().await.expect("begin");
 
     sqlx::query(
-        "insert into site_settings (tenant_id, name, storage_limit_bytes)
-         values ($1, 'A site', 10)
-         on conflict (tenant_id) do update set storage_limit_bytes = 10",
+        "insert into media (uploaded_by, location, original_name, mime, bytes, checksum)
+         values (null, 'already/there.png', 'there.png', 'image/png', $1, '\\x00')",
     )
-    .bind(site.tenant.0)
+    .bind(5_i64 * 1024 * 1024 * 1024)
     .execute(conn.conn())
     .await
-    .expect("a limit");
+    .expect("something already uploaded");
 
     conn.commit().await.expect("commit");
 

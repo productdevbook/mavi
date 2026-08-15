@@ -77,7 +77,6 @@ mod tests {
             "media.uploaded",
             "publish.finished",
             "user.invited",
-            "site.suspended",
             "something.nobody.named",
         ] {
             let named = of_event(event);

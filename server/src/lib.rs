@@ -27,6 +27,7 @@ pub mod people;
 pub mod plugins;
 pub mod portable;
 pub mod publishing;
+pub mod recover;
 pub mod reports;
 pub mod setup;
 pub mod shop;
@@ -127,8 +128,8 @@ pub fn openapi() -> utoipa::openapi::OpenApi {
 }
 
 /// The description of this API plus whatever `outside` hands in — what the
-/// panel's generated types are built from when the operator's own half is
-/// mounted, so its endpoints are not simply missing from them.
+/// panel's generated types are built from when something is mounted on this
+/// crate, so its endpoints are not simply missing from them.
 #[must_use]
 pub fn openapi_with(outside: &kernel::outside::Outside) -> utoipa::openapi::OpenApi {
     let mut all = endpoints();

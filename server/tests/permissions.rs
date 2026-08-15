@@ -5,63 +5,80 @@
 use std::collections::HashSet;
 use std::fmt::Write as _;
 
-use mavi::kernel::authz::{Access, Capability, Needs, Principal, Resource, check};
+use mavi::kernel::authz::{Access, Capability, Needs, Principal, check};
 use uuid::Uuid;
 
 const SNAPSHOT: &str = "tests/snapshots/permission-matrix.txt";
 
+/// The engine used to be asked which site a person was reaching, and which of
+/// four kinds of person they were. Both questions are gone: there is one site
+/// and one kind of person, and "holds the grant" is a `HashSet::contains` that
+/// writing down eighty-four times proves nothing about.
+///
+/// What the engine still decides that a `contains` cannot is the `:own`
+/// qualifier: a grant ending in `:own` reaches what this person made and
+/// nothing else, and whether it reaches anything at all depends on an owner
+/// the handler passes in. The three ways that goes — theirs, somebody else's,
+/// and none named — are what this matrix is for now. The last of those is the
+/// one worth having: with no owner passed, the policy compares the person's id
+/// against an empty string, and that it comes out `deny` is a fact about the
+/// default rather than something anybody chose.
 fn matrix() -> String {
-    let site = Uuid::from_u128(1);
-    let elsewhere = Uuid::from_u128(2);
     let person = Uuid::from_u128(3);
+    let somebody_else = Uuid::from_u128(4);
 
     let mut out = String::from(
-        "principal                 capability access  answer\n\
-         ------------------------- ---------- ------- ------\n",
+        "principal                          capability access  owner        answer\n\
+         ---------------------------------- ---------- ------- ------------ ------\n",
     );
 
     for capability in Capability::ALL {
         for access in [Access::View, Access::Write, Access::Delete] {
             let needs = Needs::new(capability, access);
-            let holding_it: HashSet<String> = [needs.grant()].into_iter().collect();
+            let holds_it: HashSet<String> = [needs.grant()].into_iter().collect();
+            let holds_own: HashSet<String> = [needs.own_grant()].into_iter().collect();
 
-            let cases: [(&str, Principal, Resource); 4] = [
+            let cases: [(&str, Principal, Option<Uuid>, &str); 4] = [
                 (
-                    "site user, holds it",
-                    Principal::SiteUser {
+                    "holds the grant",
+                    Principal {
                         id: person,
-                        site,
-                        grants: holding_it.clone(),
+                        grants: holds_it.clone(),
                     },
-                    Resource::Site { id: site },
+                    None,
+                    "none",
                 ),
                 (
-                    "site user, holds nothing",
-                    Principal::SiteUser {
+                    "holds only their own, theirs",
+                    Principal {
                         id: person,
-                        site,
-                        grants: HashSet::new(),
+                        grants: holds_own.clone(),
                     },
-                    Resource::Site { id: site },
+                    Some(person),
+                    "them",
                 ),
                 (
-                    "site user, another site",
-                    Principal::SiteUser {
+                    "holds only their own, another's",
+                    Principal {
                         id: person,
-                        site,
-                        grants: holding_it.clone(),
+                        grants: holds_own.clone(),
                     },
-                    Resource::Site { id: elsewhere },
+                    Some(somebody_else),
+                    "somebody",
                 ),
                 (
-                    "operator",
-                    Principal::Operator { id: person },
-                    Resource::Site { id: site },
+                    "holds only their own, none named",
+                    Principal {
+                        id: person,
+                        grants: holds_own.clone(),
+                    },
+                    None,
+                    "none",
                 ),
             ];
 
-            for (who, principal, resource) in cases {
-                let answer = if check(&principal, needs, resource, None).is_ok() {
+            for (who, principal, owner, said) in cases {
+                let answer = if check(&principal, needs, owner).is_ok() {
                     "allow"
                 } else {
                     "deny"
@@ -69,7 +86,7 @@ fn matrix() -> String {
 
                 let _ = writeln!(
                     out,
-                    "{who:<25} {:<10} {:<7} {answer}",
+                    "{who:<34} {:<10} {:<7} {said:<12} {answer}",
                     capability.as_str(),
                     access.as_str(),
                 );

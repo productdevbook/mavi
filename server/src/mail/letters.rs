@@ -11,11 +11,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::kernel::audit::{self, Actor, Audited};
 use crate::kernel::authz::{Access, Capability, Needs, Permit};
-use crate::kernel::db::TenantConn;
+use crate::kernel::db::Tx;
 use crate::kernel::error::{AppError, Result};
 use crate::kernel::http::{AppState, Audience, Caller, Endpoint, Guard, RatePolicy};
 use crate::kernel::say::{self, Say};
-use crate::kernel::tenant::TenantId;
 
 fn mail(access: Access) -> Needs {
     Needs::new(Capability::Mail, access)
@@ -150,10 +149,10 @@ pub struct Wording {
 
 async fn list(
     Injected(state): Injected<AppState>,
-    caller: Caller,
+    _caller: Caller,
     _permit: Permit,
 ) -> Result<Json<Vec<Letter>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let theirs: Vec<(String, String, String, String)> =
         sqlx::query_as("select kind, language, subject, body from letters order by kind, language")
@@ -211,15 +210,14 @@ async fn write(
         ));
     }
 
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     sqlx::query(
-        "insert into letters (tenant_id, kind, language, subject, body)
-         values ($1, $2, $3, $4, $5)
-         on conflict (tenant_id, kind, language)
+        "insert into letters (kind, language, subject, body)
+         values ($1, $2, $3, $4)
+         on conflict (kind, language)
            do update set subject = excluded.subject, body = excluded.body",
     )
-    .bind(caller.tenant().0)
     .bind(kind.name)
     .bind(&body.language)
     .bind(&body.subject)
@@ -255,7 +253,7 @@ async fn forget(
 ) -> Result<Audited<axum::http::StatusCode>> {
     let kind = kind(&name).ok_or(AppError::NotFound("letter"))?;
 
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let gone = sqlx::query("delete from letters where kind = $1")
         .bind(kind.name)
@@ -313,8 +311,7 @@ pub fn holes(subject: &str, body: &str, names: &[&str]) -> Vec<String> {
 /// What to send, in the site's words where it has any and this machine's
 /// otherwise, in the reader's language where the site wrote one.
 pub async fn press(
-    conn: &mut TenantConn,
-    tenant: TenantId,
+    conn: &mut Tx,
     name: &str,
     language: &str,
     values: &[(&str, String)],
@@ -335,8 +332,6 @@ pub async fn press(
     .bind(language)
     .fetch_optional(conn.conn())
     .await?;
-
-    let _ = tenant;
 
     let (subject, body) = theirs.unwrap_or_else(|| (kind.subject.to_owned(), kind.body.to_owned()));
 

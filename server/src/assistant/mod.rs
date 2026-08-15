@@ -16,12 +16,11 @@ use uuid::Uuid;
 
 use crate::kernel::audit::{self, Actor, Audited};
 use crate::kernel::authz::{Access, Capability, Needs};
-use crate::kernel::db::TenantConn;
+use crate::kernel::db::Tx;
 use crate::kernel::error::{AppError, Result};
 use crate::kernel::http::{AppState, Audience, Caller, Endpoint, Guard, RatePolicy};
 use crate::kernel::page::{Page, Query};
 use crate::kernel::secret::Shown;
-use crate::kernel::tenant::TenantId;
 use crate::kernel::token;
 
 /// How long a key lasts.
@@ -135,11 +134,11 @@ pub struct Handover {
 
 async fn list(
     State(state): State<AppState>,
-    caller: Caller,
+    _caller: Caller,
     axum::extract::Query(page): axum::extract::Query<Query>,
 ) -> Result<Json<Page<Key>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
-    let holder = account(&mut conn, caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
+    let holder = account(&mut conn).await?;
 
     let rows: Vec<KeyRow> = sqlx::query_as(
         "select token_hash, created_at, expires_at, revoked_at
@@ -180,18 +179,17 @@ async fn handover(
     State(state): State<AppState>,
     caller: Caller,
 ) -> Result<Audited<(StatusCode, Json<Handover>)>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
-    let holder = account(&mut conn, caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
+    let holder = account(&mut conn).await?;
 
     let secret = token::generate();
     let hash = token::hash(&secret);
     let expires_at = state.clock.now() + Duration::hours(KEY_HOURS);
 
     sqlx::query(
-        "insert into sessions (tenant_id, user_id, token_hash, expires_at, user_agent)
-         values ($1, $2, $3, $4, 'assistant')",
+        "insert into sessions (user_id, token_hash, expires_at, user_agent)
+         values ($1, $2, $3, 'assistant')",
     )
-    .bind(caller.tenant().0)
     .bind(holder)
     .bind(&hash[..])
     .bind(expires_at)
@@ -232,8 +230,8 @@ async fn take_back(
     caller: Caller,
     Path(id): Path<String>,
 ) -> Result<Audited<StatusCode>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
-    let holder = account(&mut conn, caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
+    let holder = account(&mut conn).await?;
 
     // Named by the fingerprint the listing gave, which is not the key. Only
     // this account's are looked through, so this cannot end a colleague's
@@ -287,7 +285,7 @@ fn fingerprint(hash: &[u8]) -> String {
 ///
 /// There is no password on it, and none is ever set: the only way to be this
 /// account is to hold a key somebody made.
-async fn account(conn: &mut TenantConn, tenant: TenantId) -> Result<Uuid> {
+async fn account(conn: &mut Tx) -> Result<Uuid> {
     let found: Option<(Uuid,)> = sqlx::query_as(
         "select u.id from users u join roles r on r.id = u.role_id
                          where r.key = $1 and u.deleted_at is null",
@@ -301,25 +299,23 @@ async fn account(conn: &mut TenantConn, tenant: TenantId) -> Result<Uuid> {
     }
 
     let (role,): (Uuid,) = sqlx::query_as(
-        "insert into roles (tenant_id, key, name, grants)
-         values ($1, $2, 'Assistant', $3)
-         on conflict (tenant_id, key) do update set grants = excluded.grants
+        "insert into roles (key, name, grants)
+         values ($1, 'Assistant', $2)
+         on conflict (key) do update set grants = excluded.grants
          returning id",
     )
-    .bind(tenant.0)
     .bind(ACCOUNT)
     .bind(grants())
     .fetch_one(conn.conn())
     .await?;
 
     let (id,): (Uuid,) = sqlx::query_as(
-        "insert into users (tenant_id, role_id, email, name, state)
-         values ($1, $2, $3, 'Assistant', 'active')
+        "insert into users (role_id, email, name, state)
+         values ($1, $2, 'Assistant', 'active')
          returning id",
     )
-    .bind(tenant.0)
     .bind(role)
-    .bind(format!("{ACCOUNT}@{}.invalid", tenant.0))
+    .bind(format!("{ACCOUNT}@assistant.invalid"))
     .fetch_one(conn.conn())
     .await?;
 

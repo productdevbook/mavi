@@ -1,0 +1,28 @@
+[package]
+name = "mavi-everything"
+version = "0.0.0"
+edition = "2024"
+publish = false
+description = "Everything this installation answers, and the questions no one domain can ask about itself."
+
+[dependencies]
+mavi-api = { path = "../mavi-api" }
+mavi-audit = { path = "../mavi-audit" }
+mavi-boards = { path = "../mavi-boards" }
+mavi-content = { path = "../mavi-content" }
+mavi-courses = { path = "../mavi-courses" }
+mavi-design = { path = "../mavi-design" }
+mavi-flows = { path = "../mavi-flows" }
+mavi-forms = { path = "../mavi-forms" }
+mavi-mail = { path = "../mavi-mail" }
+mavi-media = { path = "../mavi-media" }
+mavi-people = { path = "../mavi-people" }
+mavi-settings = { path = "../mavi-settings" }
+mavi-shop = { path = "../mavi-shop" }
+mavi-taxonomy = { path = "../mavi-taxonomy" }
+mavi-work = { path = "../mavi-work" }
+
+serde_json = { workspace = true }
+
+[lints]
+workspace = true

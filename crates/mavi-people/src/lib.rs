@@ -11,6 +11,7 @@ pub mod token;
 
 use mavi_api::{Answers, Endpoint, Is, Method, Parameter, Who};
 use mavi_core::error::Code;
+use mavi_core::grant::{Access, Needs};
 
 pub use ticket::{For, Ticket};
 
@@ -23,6 +24,21 @@ pub const CAPABILITIES: &[&str] = &[
     "content", "media", "taxonomy", "forms", "mail", "flows", "courses", "shop", "people",
     "settings", "publish", "design", "boards", "audit",
 ];
+
+/// What holding `people` is about: the accounts themselves, and what they may
+/// do. Named here beside the list rather than derived from it, so that
+/// something asking for it is asking for a name the compiler checked.
+pub const PEOPLE: &str = "people";
+
+#[must_use]
+pub const fn to_read() -> Needs {
+    Needs::new(PEOPLE, Access::View)
+}
+
+#[must_use]
+pub const fn to_write() -> Needs {
+    Needs::new(PEOPLE, Access::Write)
+}
 
 /// Whether this is a capability at all, asked where a grant is read rather
 /// than trusted because it was in the database.

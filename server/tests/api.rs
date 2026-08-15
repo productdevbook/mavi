@@ -124,7 +124,7 @@ fn nothing_named_as_a_page_answers_something_else() {
 /// that record, and what it did is read by reading the record.
 #[test]
 fn everything_that_can_be_written_can_be_read() {
-    const DOING_RATHER_THAN_KEEPING: [&str; 17] = [
+    const DOING_RATHER_THAN_KEEPING: [&str; 18] = [
         // Signing in and out, taking a payment, being told about one, leaving
         // a mailing list: each writes something, none of them keeps a
         // collection anybody would list.

@@ -42,9 +42,50 @@ jobs:
               paths:
                 - 'server/**'
                 - '.github/workflows/ci.yml'
+            crates:
+              paths:
+                - 'crates/**'
+                - '.github/workflows/ci.yml'
             frontend:
               paths_ignore:
                 - 'server/**'
+                - 'crates/**'
+
+  # What `server/` is being rewritten into, one crate at a time. It has no
+  # database yet, so this is seconds rather than minutes — and it stays that
+  # way for exactly as long as the foundation has nothing to store.
+  crates:
+    needs: what
+    if: needs.what.outputs.skip != 'true' && !fromJSON(needs.what.outputs.paths).crates.should_skip
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: crates
+    env:
+      CARGO_PROFILE_DEV_DEBUG: 0
+      CARGO_PROFILE_TEST_DEBUG: 0
+      CARGO_INCREMENTAL: 0
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: crates
+          cache-on-failure: true
+
+      - uses: taiki-e/install-action@nextest
+
+      - run: cargo fmt --check
+      - run: cargo clippy --all-targets --all-features -- -D warnings
+      - run: cargo nextest run --workspace
+      # A crate whose examples do not compile is a crate whose documentation
+      # is wrong, and this one is nothing but documentation and vocabulary.
+      - run: cargo test --workspace --doc
 
   frontend:
     needs: what

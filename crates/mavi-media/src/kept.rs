@@ -226,9 +226,11 @@ mod tests {
         let where_it_goes = kept_at(id, look(A_PNG).expect("a png"));
 
         let flat = id.to_string().replace('-', "");
-        assert!(where_it_goes.contains(&flat[..2]), "{where_it_goes}");
-        assert!(where_it_goes.ends_with(".png"), "{where_it_goes}");
-        assert!(!where_it_goes.contains(".."), "{where_it_goes}");
+        assert_eq!(
+            where_it_goes,
+            format!("{}/{}.png", &flat[..2], &flat[2..]),
+            "there is something in the path that did not come from the id"
+        );
     }
 
     #[test]

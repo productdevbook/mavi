@@ -18,7 +18,7 @@ use uuid::Uuid;
 
 use crate::kernel::audit::{self, Actor, Auditable, Audited};
 use crate::kernel::authz::{Access, Capability, Needs, Permit};
-use crate::kernel::db::TenantConn;
+use crate::kernel::db::Tx;
 use crate::kernel::error::{AppError, Result};
 use crate::kernel::http::{
     AppState, Audience, Caller, Endpoint, Guard, RatePolicy, STUDENT_COOKIE,
@@ -514,11 +514,11 @@ pub struct StudentCredentials {
 
 async fn list(
     Injected(state): Injected<AppState>,
-    caller: Caller,
+    _caller: Caller,
     _permit: Permit,
     HttpQuery(query): HttpQuery<Query>,
 ) -> Result<Json<Page<Course>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let rows: Vec<Course> = sqlx::query_as(
         "select id, slug, title, summary, state, created_at
@@ -545,7 +545,7 @@ fn cursor(after: Option<&str>) -> Option<DateTime<Utc>> {
 
 /// In the site's own words where it has written any, the same two questions
 /// [`crate::people`] and [`crate::shop`] ask before pressing a letter.
-async fn site_language(conn: &mut TenantConn) -> Result<String> {
+async fn site_language(conn: &mut Tx) -> Result<String> {
     let found: Option<(String,)> =
         sqlx::query_as("select code from languages where is_default limit 1")
             .fetch_optional(conn.conn())
@@ -554,12 +554,10 @@ async fn site_language(conn: &mut TenantConn) -> Result<String> {
     Ok(found.map_or_else(|| "en".to_owned(), |(code,)| code))
 }
 
-async fn site_name(conn: &mut TenantConn) -> Result<String> {
-    let found: Option<(String,)> =
-        sqlx::query_as("select name from site_settings where tenant_id = $1")
-            .bind(conn.tenant().0)
-            .fetch_optional(conn.conn())
-            .await?;
+async fn site_name(conn: &mut Tx) -> Result<String> {
+    let found: Option<(String,)> = sqlx::query_as("select name from site_settings")
+        .fetch_optional(conn.conn())
+        .await?;
 
     Ok(found.map_or_else(String::new, |(name,)| name))
 }
@@ -569,9 +567,9 @@ async fn site_name(conn: &mut TenantConn) -> Result<String> {
 /// in as them, not as the student — so this letter is a courtesy rather than
 /// the only way in.
 async fn told_the_student(
-    conn: &mut TenantConn,
+    conn: &mut Tx,
     state: &AppState,
-    caller: &Caller,
+    _caller: &Caller,
     email: &str,
     name: &str,
 ) -> Result<()> {
@@ -580,7 +578,6 @@ async fn told_the_student(
 
     let (subject, letter) = crate::mail::letters::press(
         conn,
-        caller.tenant(),
         "student.invited",
         &language,
         &[
@@ -593,7 +590,6 @@ async fn told_the_student(
 
     crate::mail::post(
         conn,
-        caller.tenant(),
         &crate::mail::Outgoing {
             to: email,
             subject: &subject,
@@ -615,13 +611,12 @@ async fn create(
     _permit: Permit,
     Json(body): Json<NewCourse>,
 ) -> Result<Audited<(StatusCode, Json<Course>)>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let course: Course = sqlx::query_as(
-        "insert into courses (tenant_id, slug, title, summary) values ($1, $2, $3, $4)
+        "insert into courses (slug, title, summary) values ($1, $2, $3)
          returning id, slug, title, summary, state, created_at",
     )
-    .bind(caller.tenant().0)
     .bind(body.slug.as_str())
     .bind(body.title.as_str())
     .bind(body.summary.as_deref())
@@ -661,11 +656,11 @@ async fn create(
 /// many courses they are on.
 async fn students(
     Injected(state): Injected<AppState>,
-    caller: Caller,
+    _caller: Caller,
     _permit: Permit,
     axum::extract::Query(page): axum::extract::Query<Query>,
 ) -> Result<Json<Page<Student>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let rows: Vec<Student> = sqlx::query_as(
         "select s.id, s.email, s.name, s.state, s.last_seen_at, s.created_at,
@@ -699,7 +694,7 @@ async fn change_student(
     Path(id): Path<Uuid>,
     Json(wanted): Json<StudentChanges>,
 ) -> Result<Audited<Json<Student>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let changed: Option<Student> = sqlx::query_as(
         "update students s
@@ -746,12 +741,12 @@ const ENROLMENT_COLUMNS: &str = "e.id, e.course_id, c.title as course, e.ends_at
 /// that person's enrolment go through".
 async fn enrolled(
     Injected(state): Injected<AppState>,
-    caller: Caller,
+    _caller: Caller,
     _permit: Permit,
     Path(course_id): Path<Uuid>,
     axum::extract::Query(page): axum::extract::Query<Query>,
 ) -> Result<Json<Page<OnCourse>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let rows: Vec<OnCourse> = sqlx::query_as(
         "select s.id as student_id, s.email, s.name, e.created_at as enrolled_at
@@ -781,17 +776,16 @@ async fn enrol(
     Path(course_id): Path<Uuid>,
     Json(body): Json<Enrolling>,
 ) -> Result<Audited<(StatusCode, Json<Enrolled>)>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let secret = token::generate();
 
     let student: (Uuid,) = sqlx::query_as(
-        "insert into students (tenant_id, email, name, state, password_hash)
-         values ($1, $2, $3, 'active', $4)
-         on conflict (tenant_id, email) do update set name = excluded.name
+        "insert into students (email, name, state, password_hash)
+         values ($1, $2, 'active', $3)
+         on conflict (email) do update set name = excluded.name
          returning id",
     )
-    .bind(caller.tenant().0)
     .bind(body.email.as_str())
     .bind(body.name.as_str())
     .bind(password::hash(&secret)?)
@@ -799,14 +793,13 @@ async fn enrol(
     .await?;
 
     sqlx::query(
-        "insert into enrolments (tenant_id, student_id, course_id, ends_at)
-         values ($1, $2, $3,
-                 case when $4::int is null then null
-                      else now() + make_interval(days => $4) end)
-         on conflict (tenant_id, student_id, course_id) do update
+        "insert into enrolments (student_id, course_id, ends_at)
+         values ($1, $2,
+                 case when $3::int is null then null
+                      else now() + make_interval(days => $3) end)
+         on conflict (student_id, course_id) do update
              set ends_at = excluded.ends_at",
     )
-    .bind(caller.tenant().0)
     .bind(student.0)
     .bind(course_id)
     .bind(body.days)
@@ -859,11 +852,11 @@ async fn enrol(
 /// not, and no student's progress in it.
 async fn whole_course(
     Injected(state): Injected<AppState>,
-    caller: Caller,
+    _caller: Caller,
     _permit: Permit,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Curriculum>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let course: Course = sqlx::query_as(
         "select id, slug, title, summary, state, created_at
@@ -936,7 +929,7 @@ async fn change_course(
         ));
     }
 
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let after: Option<Course> = sqlx::query_as(
         "update courses
@@ -978,16 +971,15 @@ async fn add_a_module(
     Path(course_id): Path<Uuid>,
     Json(body): Json<NewModule>,
 ) -> Result<Audited<(StatusCode, Json<Module>)>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let made: (Uuid, String, i32) = sqlx::query_as(
-        "insert into modules (tenant_id, course_id, title, position)
-         values ($1, $2, $3,
-                 coalesce($4, (select coalesce(max(position) + 1, 0) from modules
-                                where course_id = $2)))
+        "insert into modules (course_id, title, position)
+         values ($1, $2,
+                 coalesce($3, (select coalesce(max(position) + 1, 0) from modules
+                                where course_id = $1)))
          returning id, title, position",
     )
-    .bind(caller.tenant().0)
     .bind(course_id)
     .bind(body.title.as_str())
     .bind(body.position)
@@ -1028,7 +1020,7 @@ async fn change_module(
     Path(id): Path<Uuid>,
     Json(wanted): Json<ModuleChanges>,
 ) -> Result<Audited<Json<Module>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let after: Option<(Uuid, String, i32)> = sqlx::query_as(
         "update modules
@@ -1079,7 +1071,7 @@ async fn remove_module(
     _permit: Permit,
     Path(id): Path<Uuid>,
 ) -> Result<Audited<StatusCode>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let gone = sqlx::query("delete from modules where id = $1")
         .bind(id)
@@ -1113,17 +1105,16 @@ async fn add_a_lesson(
     Path(module_id): Path<Uuid>,
     Json(body): Json<NewLesson>,
 ) -> Result<Audited<(StatusCode, Json<Lesson>)>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let made: (Uuid, String, i32, Option<Uuid>) = sqlx::query_as(
-        "insert into lessons (tenant_id, module_id, title, body, position, video_id)
-         values ($1, $2, $3, coalesce($4, ''),
-                 coalesce($5, (select coalesce(max(position) + 1, 0) from lessons
-                                where module_id = $2)),
-                 $6)
+        "insert into lessons (module_id, title, body, position, video_id)
+         values ($1, $2, coalesce($3, ''),
+                 coalesce($4, (select coalesce(max(position) + 1, 0) from lessons
+                                where module_id = $1)),
+                 $5)
          returning id, title, position, video_id",
     )
-    .bind(caller.tenant().0)
     .bind(module_id)
     .bind(body.title.as_str())
     .bind(body.body.as_deref())
@@ -1167,7 +1158,7 @@ async fn change_lesson(
     Path(id): Path<Uuid>,
     Json(wanted): Json<LessonChanges>,
 ) -> Result<Audited<Json<Lesson>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let after: Option<(Uuid, String, i32, Option<Uuid>)> = sqlx::query_as(
         "update lessons
@@ -1219,7 +1210,7 @@ async fn remove_lesson(
     _permit: Permit,
     Path(id): Path<Uuid>,
 ) -> Result<Audited<StatusCode>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let gone = sqlx::query("delete from lessons where id = $1")
         .bind(id)
@@ -1268,11 +1259,11 @@ fn where_it_sits(error: sqlx::Error) -> AppError {
 /// What one person is on.
 async fn enrolments_of(
     Injected(state): Injected<AppState>,
-    caller: Caller,
+    _caller: Caller,
     _permit: Permit,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Vec<Enrolment>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let rows: Vec<Enrolment> = sqlx::query_as(&format!(
         "select {ENROLMENT_COLUMNS}
@@ -1301,7 +1292,7 @@ async fn change_enrolment(
         return Err(AppError::Invalid(say::THAT_IS_NOT_A_LENGTH_OF_TIME.into()));
     }
 
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let changed: Option<Enrolment> = sqlx::query_as(&format!(
         "with changed as (
@@ -1351,7 +1342,7 @@ async fn revoke(
     _permit: Permit,
     Path(id): Path<Uuid>,
 ) -> Result<Audited<StatusCode>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let gone = sqlx::query("delete from enrolments where id = $1")
         .bind(id)
@@ -1385,7 +1376,7 @@ async fn sign_in(
     caller: Caller,
     Json(credentials): Json<StudentCredentials>,
 ) -> Result<Audited<Response>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let found: Option<(Uuid, Option<String>)> = sqlx::query_as(
         "select id, password_hash from students
@@ -1423,10 +1414,9 @@ async fn sign_in(
         .await?;
 
     sqlx::query(
-        "insert into student_sessions (tenant_id, student_id, token_hash, expires_at)
-         values ($1, $2, $3, $4)",
+        "insert into student_sessions (student_id, token_hash, expires_at)
+         values ($1, $2, $3)",
     )
-    .bind(caller.tenant().0)
     .bind(id)
     .bind(&token::hash(&secret)[..])
     .bind(expires_at)
@@ -1468,7 +1458,7 @@ async fn mine(
     axum::extract::Query(page): axum::extract::Query<Query>,
 ) -> Result<Json<Page<Course>>> {
     let student = caller.require_student()?;
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let rows: Vec<Course> = sqlx::query_as(
         "select c.id, c.slug, c.title, c.summary, c.state, c.created_at
@@ -1502,7 +1492,7 @@ pub struct Learner {
 
 async fn student_me(Injected(state): Injected<AppState>, caller: Caller) -> Result<Json<Learner>> {
     let student = caller.require_student()?;
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let found: Option<Learner> =
         sqlx::query_as("select id, email, name from students where id = $1")
@@ -1541,7 +1531,7 @@ async fn sign_out(
     caller: Caller,
 ) -> Result<Audited<Response>> {
     let student = caller.require_student()?;
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     sqlx::query(
         "update student_sessions set revoked_at = now()
@@ -1588,7 +1578,7 @@ async fn watch(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Watching>> {
     let student = caller.require_student()?;
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let found: Option<(Uuid, String, String, Option<Uuid>, Uuid, String)> = sqlx::query_as(
         "select l.id, l.title, l.body, l.video_id, c.id as course_id, c.title as course
@@ -1663,7 +1653,7 @@ async fn play(
     Path(id): Path<Uuid>,
 ) -> Result<Response> {
     let student = caller.require_student()?;
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let found: Option<(String, String)> = sqlx::query_as(
         "select m.location, m.mime
@@ -1697,7 +1687,7 @@ async fn play(
         .filter(|allowed| allowed.mime.starts_with("video/"))
         .ok_or(AppError::NotFound("video"))?;
 
-    let bytes = state.store.get(caller.tenant(), &location).await?;
+    let bytes = state.store.get(&location).await?;
 
     let mut response = bytes.into_response();
     let headers = response.headers_mut();
@@ -1732,7 +1722,7 @@ async fn curriculum(
     Path(course_id): Path<Uuid>,
 ) -> Result<Json<Curriculum>> {
     let student = caller.require_student()?;
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let on_it: Option<(Uuid,)> = sqlx::query_as(
         "select id from enrolments
@@ -1812,7 +1802,7 @@ async fn mark_done(
     Path(lesson_id): Path<Uuid>,
 ) -> Result<Audited<StatusCode>> {
     let student = caller.require_student()?;
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let allowed: Option<(Uuid,)> = sqlx::query_as(
         "select l.id
@@ -1831,12 +1821,11 @@ async fn mark_done(
     }
 
     sqlx::query(
-        "insert into lesson_progress (student_id, lesson_id, tenant_id)
-         values ($1, $2, $3) on conflict do nothing",
+        "insert into lesson_progress (student_id, lesson_id)
+         values ($1, $2) on conflict do nothing",
     )
     .bind(student.student_id)
     .bind(lesson_id)
-    .bind(caller.tenant().0)
     .execute(conn.conn())
     .await?;
 
@@ -1858,17 +1847,15 @@ async fn mark_done(
 /// Used by the panel to build a course; kept here rather than in a handler of
 /// its own because a module without a course is not a thing.
 pub async fn add_module(
-    conn: &mut TenantConn,
-    tenant: crate::kernel::TenantId,
+    conn: &mut Tx,
     course_id: Uuid,
     title: &str,
     position: i32,
 ) -> Result<Uuid> {
     let row = sqlx::query(
-        "insert into modules (tenant_id, course_id, title, position)
-         values ($1, $2, $3, $4) returning id",
+        "insert into modules (course_id, title, position)
+         values ($1, $2, $3) returning id",
     )
-    .bind(tenant.0)
     .bind(course_id)
     .bind(title)
     .bind(position)
@@ -1879,17 +1866,15 @@ pub async fn add_module(
 }
 
 pub async fn add_lesson(
-    conn: &mut TenantConn,
-    tenant: crate::kernel::TenantId,
+    conn: &mut Tx,
     module_id: Uuid,
     title: &str,
     position: i32,
 ) -> Result<Uuid> {
     let row = sqlx::query(
-        "insert into lessons (tenant_id, module_id, title, position)
-         values ($1, $2, $3, $4) returning id",
+        "insert into lessons (module_id, title, position)
+         values ($1, $2, $3) returning id",
     )
-    .bind(tenant.0)
     .bind(module_id)
     .bind(title)
     .bind(position)

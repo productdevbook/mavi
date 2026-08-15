@@ -6,9 +6,8 @@ A site's own forms, and what people send through them.
 `forms:delete`. One endpoint is public — the one a visitor posts to — and it is
 the only thing in this domain reachable without an account.
 
-**Tables it owns.** `forms` and `form_submissions`. Both are tenant-scoped and
-both force row-level security. A form's name is unique within a site and not
-across the machine, so one site taking `contact` does not stop another.
+**Tables it owns.** `forms` and `form_submissions`. A form's slug is unique,
+so there is one `contact`.
 
 **States.** A form is active or it is not; an inactive form is not there as far
 as a visitor is concerned, which is a 404 rather than a refusal. Both tables
@@ -18,8 +17,8 @@ soft-delete, and a deleted form is not served, not listed, and takes nothing.
 what was written. A receiver is told that somebody filled a form in and where to
 read it; the answers stay on the site.
 
-**Jobs.** `forms.sweep` takes away submissions older than the site said to keep
-them, per site, because that number is the site's to choose.
+**Jobs.** `forms.sweep` takes away submissions older than the form said to keep
+them, because that number is the form's to choose.
 
 **Retention.** `retention_days` on the form, between one day and ten years,
 365 by default. Registered in `kernel::retention`, which a test reads: a table

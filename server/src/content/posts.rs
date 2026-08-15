@@ -17,7 +17,7 @@ use uuid::Uuid;
 use super::needs;
 use crate::kernel::audit::{self, Actor, Auditable, Audited};
 use crate::kernel::authz::{self, Access, Capability, Needs};
-use crate::kernel::db::TenantConn;
+use crate::kernel::db::Tx;
 use crate::kernel::error::{AppError, Result};
 use crate::kernel::events::{self, EmitsEvents};
 use crate::kernel::http::{AppState, Audience, Caller, Endpoint, Guard, RatePolicy};
@@ -283,11 +283,11 @@ pub(super) fn endpoints() -> Vec<Endpoint> {
 
 async fn list(
     Injected(state): Injected<AppState>,
-    caller: Caller,
+    _caller: Caller,
     _permit: authz::Permit,
     HttpQuery(filter): HttpQuery<Filter>,
 ) -> Result<Json<Page<Post>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
     let asking = asked_about(&mut conn, &filter).await?;
 
     let rows: Vec<Post> = sqlx::query_as(
@@ -344,7 +344,7 @@ async fn list(
 /// A name nothing declared is refused rather than quietly matching nothing: a
 /// filter that silently returns everything is a screen that shows the wrong
 /// posts and says nothing about it.
-async fn asked_about(conn: &mut TenantConn, filter: &Filter) -> Result<Option<String>> {
+async fn asked_about(conn: &mut Tx, filter: &Filter) -> Result<Option<String>> {
     let Some(field) = filter.field.as_deref() else {
         return Ok(None);
     };
@@ -377,7 +377,7 @@ async fn asked_about(conn: &mut TenantConn, filter: &Filter) -> Result<Option<St
 /// What is written into a post's own fields is what its kind of thing says it
 /// carries — checked against the kind it is becoming, where that is what is
 /// changing.
-async fn still_fits(conn: &mut TenantConn, before: &Post, changes: &PostChanges) -> Result<()> {
+async fn still_fits(conn: &mut Tx, before: &Post, changes: &PostChanges) -> Result<()> {
     if changes.fields.is_none() && changes.type_key.is_none() {
         return Ok(());
     }
@@ -415,7 +415,7 @@ pub(super) async fn write_through_a_tool(
         .map_err(|_| AppError::Invalid(say::NOT_SOMETHING_A_POST_IS_MADE_OF.into()))?;
 
     let author = caller.require_user()?;
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     known_language(&mut conn, &asked.language).await?;
 
@@ -433,20 +433,19 @@ pub(super) async fn write_through_a_tool(
 
     let post: Post = sqlx::query_as(
         "insert into posts
-             (tenant_id, author_id, language, kind, slug, title, excerpt, body, fields,
+             (author_id, language, kind, slug, title, excerpt, body, fields,
               type_key, cover_media_id, seo_title, seo_description, canonical,
               translation_of)
-         values ($1, $2, $3, coalesce($4, 'post'), $5, $6, $7, coalesce($8, ''),
-                 coalesce($9, '{}'::jsonb), $10, $11, $12, $13, $14,
+         values ($1, $2, coalesce($3, 'post'), $4, $5, $6, coalesce($7, ''),
+                 coalesce($8, '{}'::jsonb), $9, $10, $11, $12, $13,
                  -- Pointed at the original rather than at another translation,
                  -- so a group is one level deep however it was made.
                  (select coalesce(o.translation_of, o.id) from posts o
-                   where o.id = $15))
+                   where o.id = $14))
          returning id, kind, state, language, slug, title, excerpt, body, fields,
                    type_key, author_id, cover_media_id, seo_title, seo_description,
                    canonical, translation_of, published_at, created_at",
     )
-    .bind(caller.tenant().0)
     .bind(author.user_id)
     .bind(&asked.language)
     .bind(asked.kind)
@@ -465,7 +464,7 @@ pub(super) async fn write_through_a_tool(
     .await
     .map_err(taken)?;
 
-    crate::pages::look_at(&mut conn, caller.tenant(), post.id).await?;
+    crate::pages::look_at(&mut conn, post.id).await?;
 
     audit::record(&mut conn, Actor::of(caller), "wrote", None, Some(&post)).await?;
 
@@ -494,7 +493,7 @@ pub(super) async fn change_through_a_tool(
     let asked: Asked = serde_json::from_value(arguments.clone())
         .map_err(|_| AppError::Invalid(say::NOT_SOMETHING_A_POST_IS_MADE_OF.into()))?;
 
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let (before, after) = changed(state, caller, &mut conn, asked.id, &asked.changes).await?;
 
@@ -519,7 +518,7 @@ async fn create(
     Json(body): Json<NewPost>,
 ) -> Result<Audited<(StatusCode, Json<Post>)>> {
     let author = caller.require_user()?;
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     known_language(&mut conn, &body.language).await?;
 
@@ -545,20 +544,19 @@ async fn create(
 
     let post: Post = sqlx::query_as(
         "insert into posts
-             (tenant_id, author_id, language, kind, slug, title, excerpt, body, fields,
+             (author_id, language, kind, slug, title, excerpt, body, fields,
               type_key, cover_media_id, seo_title, seo_description, canonical,
               translation_of)
-         values ($1, $2, $3, coalesce($4, 'post'), $5, $6, $7, coalesce($8, ''),
-                 coalesce($9, '{}'::jsonb), $10, $11, $12, $13, $14,
+         values ($1, $2, coalesce($3, 'post'), $4, $5, $6, coalesce($7, ''),
+                 coalesce($8, '{}'::jsonb), $9, $10, $11, $12, $13,
                  -- Pointed at the original rather than at another translation,
                  -- so a group is one level deep however it was made.
                  (select coalesce(o.translation_of, o.id) from posts o
-                   where o.id = $15))
+                   where o.id = $14))
          returning id, kind, state, language, slug, title, excerpt, body, fields,
                    type_key, author_id, cover_media_id, seo_title, seo_description,
                    canonical, translation_of, published_at, created_at",
     )
-    .bind(caller.tenant().0)
     .bind(author.user_id)
     .bind(&body.language)
     .bind(body.kind)
@@ -577,7 +575,7 @@ async fn create(
     .await
     .map_err(taken)?;
 
-    crate::pages::look_at(&mut conn, caller.tenant(), post.id).await?;
+    crate::pages::look_at(&mut conn, post.id).await?;
 
     let receipt = audit::record(&mut conn, Actor::of(&caller), "wrote", None, Some(&post)).await?;
     conn.commit().await?;
@@ -599,7 +597,7 @@ fn taken(error: sqlx::Error) -> AppError {
     }
 }
 
-async fn known_language(conn: &mut TenantConn, code: &str) -> Result<()> {
+async fn known_language(conn: &mut Tx, code: &str) -> Result<()> {
     let known: Option<(Uuid,)> = sqlx::query_as("select id from languages where code = $1")
         .bind(code)
         .fetch_optional(conn.conn())
@@ -634,11 +632,11 @@ pub struct Translation {
 
 async fn read(
     Injected(state): Injected<AppState>,
-    caller: Caller,
+    _caller: Caller,
     _permit: authz::Permit,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Whole>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
     let post = one(&mut conn, id).await?;
 
     let term_ids: Vec<(Uuid,)> =
@@ -670,7 +668,7 @@ async fn read(
     }))
 }
 
-async fn one(conn: &mut TenantConn, id: Uuid) -> Result<Post> {
+async fn one(conn: &mut Tx, id: Uuid) -> Result<Post> {
     sqlx::query_as(
         "select id, kind, state, language, slug, title, excerpt, body, fields,
                 type_key, author_id, cover_media_id, seo_title, seo_description,
@@ -690,7 +688,7 @@ async fn update(
     Path(id): Path<Uuid>,
     Json(changes): Json<PostChanges>,
 ) -> Result<Audited<Json<Post>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let (before, after) = changed(&state, &caller, &mut conn, id, &changes).await?;
 
@@ -717,7 +715,7 @@ async fn update(
 async fn changed(
     state: &AppState,
     caller: &Caller,
-    conn: &mut TenantConn,
+    conn: &mut Tx,
     id: Uuid,
     changes: &PostChanges,
 ) -> Result<(Post, Post)> {
@@ -761,11 +759,10 @@ async fn changed(
         && slug.as_str() != before.slug
     {
         sqlx::query(
-            "insert into redirects (tenant_id, post_id, language, was, now_at)
-             values ($1, $2, $3, $4, $5)
-             on conflict (tenant_id, language, was) do update set now_at = excluded.now_at",
+            "insert into redirects (post_id, language, was, now_at)
+             values ($1, $2, $3, $4)
+             on conflict (language, was) do update set now_at = excluded.now_at",
         )
-        .bind(caller.tenant().0)
         .bind(id)
         .bind(&before.language)
         .bind(&before.slug)
@@ -829,7 +826,7 @@ async fn changed(
         };
     }
 
-    crate::pages::look_at(conn, caller.tenant(), after.id).await?;
+    crate::pages::look_at(conn, after.id).await?;
 
     Ok((before, after))
 }
@@ -850,11 +847,11 @@ pub struct Counts {
 
 async fn counts(
     Injected(state): Injected<AppState>,
-    caller: Caller,
+    _caller: Caller,
     _permit: authz::Permit,
     HttpQuery(filter): HttpQuery<Filter>,
 ) -> Result<Json<Counts>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let counted: (i64, i64, i64, i64) = sqlx::query_as(
         "select count(*) filter (where state = 'draft'),
@@ -934,7 +931,7 @@ async fn act_on_many(
         Access::Write
     };
 
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     // Whose they are decides which of them this may touch, so it is asked
     // before anything is written rather than one row at a time.
@@ -1020,7 +1017,7 @@ async fn remove(
     _permit: authz::Permit,
     Path(id): Path<Uuid>,
 ) -> Result<Audited<StatusCode>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
     let before = one(&mut conn, id).await?;
 
     caller.may(
@@ -1059,8 +1056,8 @@ impl crate::kernel::queue::Task for PublishDue {
 /// Written down as the moment it was scheduled for and the moment it actually
 /// went, because a post that went a day late because nothing was running is
 /// something somebody has to be able to see rather than guess at.
-pub async fn publish_due(state: &AppState, tenant: crate::kernel::TenantId) -> Result<u64> {
-    let mut conn = state.db.tenant(tenant).await?;
+pub async fn publish_due(state: &AppState) -> Result<u64> {
+    let mut conn = state.db.begin().await?;
 
     let due: Vec<Post> = sqlx::query_as(
         "update posts

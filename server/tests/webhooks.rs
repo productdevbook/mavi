@@ -16,7 +16,6 @@ use uuid::Uuid;
 mod common;
 
 use common::harness;
-use mavi::testing::a_tenant;
 
 struct Order(Uuid);
 
@@ -89,20 +88,18 @@ const SECRET: &str = "whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw";
 #[tokio::test]
 async fn an_event_reaches_a_receiver_signed_the_way_the_specification_says() {
     let db = harness().await;
-    let tenant = a_tenant(&db, &format!("{}.example", Uuid::now_v7().simple())).await;
 
     let (url, receiver) = a_receiver(StatusCode::OK).await;
 
     let mut state = AppState::new(db.clone());
     state.allow_private_destinations = true;
 
-    let mut conn = db.tenant(tenant).await.expect("begin");
+    let mut conn = db.begin().await.expect("begin");
 
     sqlx::query(
-        "insert into webhook_endpoints (tenant_id, url, secret, events)
-         values ($1, $2, $3, array['order.paid'])",
+        "insert into webhook_endpoints (url, secret, events)
+         values ($1, $2, array['order.paid'])",
     )
-    .bind(tenant.0)
     .bind(&url)
     .bind(SECRET)
     .execute(conn.conn())
@@ -119,9 +116,7 @@ async fn an_event_reaches_a_receiver_signed_the_way_the_specification_says() {
     // whatever the site arranged to happen next — so this works until there is
     // nothing left rather than counting ticks.
     for _ in 0..8 {
-        mavi::jobs::tick_within(&state, "test", Some(tenant))
-            .await
-            .expect("tick");
+        mavi::jobs::tick(&state, "test").await.expect("tick");
     }
 
     assert_eq!(receiver.seen.load(Ordering::SeqCst), 1);
@@ -141,7 +136,7 @@ async fn an_event_reaches_a_receiver_signed_the_way_the_specification_says() {
         "a receiver checking the signature would have refused this"
     );
 
-    let mut conn = db.tenant(tenant).await.expect("begin");
+    let mut conn = db.begin().await.expect("begin");
     let state_of: (String,) = sqlx::query_as("select state::text from outbox where id = $1")
         .bind(outbox_id)
         .fetch_one(conn.conn())
@@ -154,20 +149,18 @@ async fn an_event_reaches_a_receiver_signed_the_way_the_specification_says() {
 #[tokio::test]
 async fn a_receiver_that_keeps_failing_ends_in_the_dead_letter() {
     let db = harness().await;
-    let tenant = a_tenant(&db, &format!("{}.example", Uuid::now_v7().simple())).await;
 
     let (url, receiver) = a_receiver(StatusCode::INTERNAL_SERVER_ERROR).await;
 
     let mut state = AppState::new(db.clone());
     state.allow_private_destinations = true;
 
-    let mut conn = db.tenant(tenant).await.expect("begin");
+    let mut conn = db.begin().await.expect("begin");
 
     sqlx::query(
-        "insert into webhook_endpoints (tenant_id, url, secret, events)
-         values ($1, $2, $3, array['order.paid'])",
+        "insert into webhook_endpoints (url, secret, events)
+         values ($1, $2, array['order.paid'])",
     )
-    .bind(tenant.0)
     .bind(&url)
     .bind(SECRET)
     .execute(conn.conn())
@@ -180,12 +173,12 @@ async fn a_receiver_that_keeps_failing_ends_in_the_dead_letter() {
 
     conn.commit().await.expect("commit");
 
-    // The queue is one table for every tenant, so this drives ticks until this
+    // The queue is one table for every kind of work, so this drives ticks until this
     // job in particular has been given up on rather than counting them.
     let mut dead = false;
 
     for _ in 0..40 {
-        let mut conn = db.tenant(tenant).await.expect("begin");
+        let mut conn = db.begin().await.expect("begin");
 
         sqlx::query("update jobs set run_at = now() where kind = 'webhook.deliver'")
             .execute(conn.conn())
@@ -210,14 +203,12 @@ async fn a_receiver_that_keeps_failing_ends_in_the_dead_letter() {
             break;
         }
 
-        mavi::jobs::tick_within(&state, "test", Some(tenant))
-            .await
-            .expect("tick");
+        mavi::jobs::tick(&state, "test").await.expect("tick");
     }
 
     assert!(dead, "a receiver that never answers was retried forever");
 
-    let mut conn = db.tenant(tenant).await.expect("begin");
+    let mut conn = db.begin().await.expect("begin");
 
     let attempts: Vec<(i32, Option<i32>)> = sqlx::query_as(
         "select attempt, status_code from webhook_deliveries where outbox_id = $1 order by attempt",

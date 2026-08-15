@@ -11,10 +11,9 @@ use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::kernel::TenantId;
 use crate::kernel::audit::{self, Actor, Audited};
 use crate::kernel::authz::{Access, Capability, Needs, Permit};
-use crate::kernel::db::TenantConn;
+use crate::kernel::db::Tx;
 use crate::kernel::error::{AppError, Result};
 use crate::kernel::http::{AppState, Audience, Caller, Endpoint, Guard, RatePolicy};
 use crate::kernel::page::{Page, Query as Paging, older_than};
@@ -238,11 +237,11 @@ pub fn triggers() -> Vec<&'static str> {
 
 async fn list(
     Injected(state): Injected<AppState>,
-    caller: Caller,
+    _caller: Caller,
     _permit: Permit,
     axum::extract::Query(page): axum::extract::Query<Paging>,
 ) -> Result<Json<Page<Flow>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let rows: Vec<Flow> = sqlx::query_as(
         "select id, name, trigger, active, created_at from flows
@@ -275,13 +274,12 @@ async fn create(
         ));
     }
 
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let flow: Flow = sqlx::query_as(
-        "insert into flows (tenant_id, name, trigger, active) values ($1, $2, $3, true)
+        "insert into flows (name, trigger, active) values ($1, $2, true)
          returning id, name, trigger, active, created_at",
     )
-    .bind(caller.tenant().0)
     .bind(body.name.as_str())
     .bind(&body.trigger)
     .fetch_one(conn.conn())
@@ -289,10 +287,9 @@ async fn create(
 
     for (position, step) in body.steps.iter().enumerate() {
         sqlx::query(
-            "insert into flow_steps (tenant_id, flow_id, kind, config, position)
-             values ($1, $2, $3, $4, $5)",
+            "insert into flow_steps (flow_id, kind, config, position)
+             values ($1, $2, $3, $4)",
         )
-        .bind(caller.tenant().0)
         .bind(flow.id)
         .bind(step.kind)
         .bind(serde_json::Value::Object(step.config.clone()))
@@ -347,18 +344,18 @@ pub struct FlowChanges {
 
 async fn one(
     Injected(state): Injected<AppState>,
-    caller: Caller,
+    _caller: Caller,
     _permit: Permit,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Whole>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
     let whole = read(&mut conn, id).await?;
     conn.commit().await?;
 
     Ok(Json(whole))
 }
 
-async fn read(conn: &mut crate::kernel::db::TenantConn, id: Uuid) -> Result<Whole> {
+async fn read(conn: &mut crate::kernel::db::Tx, id: Uuid) -> Result<Whole> {
     let flow: Option<Flow> = sqlx::query_as(
         "select id, name, trigger, active, created_at
            from flows where id = $1 and deleted_at is null",
@@ -392,7 +389,7 @@ async fn change(
     Path(id): Path<Uuid>,
     Json(wanted): Json<FlowChanges>,
 ) -> Result<Audited<Json<Whole>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let changed = sqlx::query(
         "update flows set name = coalesce($2, name), active = coalesce($3, active)
@@ -417,10 +414,9 @@ async fn change(
 
         for (position, step) in steps.iter().enumerate() {
             sqlx::query(
-                "insert into flow_steps (tenant_id, flow_id, kind, config, position)
-                 values ($1, $2, $3, $4, $5)",
+                "insert into flow_steps (flow_id, kind, config, position)
+                 values ($1, $2, $3, $4)",
             )
-            .bind(caller.tenant().0)
             .bind(id)
             .bind(step.kind)
             .bind(serde_json::Value::Object(step.config.clone()))
@@ -455,7 +451,7 @@ async fn remove(
     _permit: Permit,
     Path(id): Path<Uuid>,
 ) -> Result<Audited<StatusCode>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let gone = sqlx::query(
         "update flows set deleted_at = now(), active = false
@@ -487,12 +483,12 @@ async fn remove(
 
 async fn runs(
     Injected(state): Injected<AppState>,
-    caller: Caller,
+    _caller: Caller,
     _permit: Permit,
     Path(id): Path<Uuid>,
     axum::extract::Query(page): axum::extract::Query<Paging>,
 ) -> Result<Json<Page<Run>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let rows: Vec<Run> = sqlx::query_as(
         "select id, state::text as state, at_step, failure, started_at
@@ -522,11 +518,11 @@ async fn runs(
 /// wrong and being able to fix it.
 async fn run(
     Injected(state): Injected<AppState>,
-    caller: Caller,
+    _caller: Caller,
     _permit: Permit,
     Path(id): Path<Uuid>,
 ) -> Result<Json<WholeRun>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let run: Run = sqlx::query_as(
         "select id, state::text as state, at_step, failure, started_at
@@ -558,10 +554,10 @@ async fn run(
 /// one, and both look the same when a flow fails.
 async fn credentials(
     Injected(state): Injected<AppState>,
-    caller: Caller,
+    _caller: Caller,
     _permit: Permit,
 ) -> Result<Json<Vec<Credential>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let rows: Vec<Credential> =
         sqlx::query_as("select name, updated_at from flow_credentials order by name")
@@ -582,7 +578,7 @@ async fn forget_credential(
     _permit: Permit,
     Path(name): Path<String>,
 ) -> Result<Audited<StatusCode>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let gone = sqlx::query("delete from flow_credentials where name = $1")
         .bind(&name)
@@ -616,13 +612,12 @@ async fn keep_credential(
     Json(body): Json<NewCredential>,
 ) -> Result<Audited<StatusCode>> {
     let sealed = crypto::seal(&state.keyring, body.secret.expose())?;
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     sqlx::query(
-        "insert into flow_credentials (tenant_id, name, sealed) values ($1, $2, $3)
-         on conflict (tenant_id, name) do update set sealed = excluded.sealed",
+        "insert into flow_credentials (name, sealed) values ($1, $2)
+         on conflict (name) do update set sealed = excluded.sealed",
     )
-    .bind(caller.tenant().0)
     .bind(body.name.as_str())
     .bind(&sealed)
     .execute(conn.conn())
@@ -644,11 +639,7 @@ async fn keep_credential(
     Ok(Audited::new(receipt, StatusCode::NO_CONTENT))
 }
 
-pub async fn credential(
-    state: &AppState,
-    conn: &mut TenantConn,
-    name: &str,
-) -> Result<Secret<String>> {
+pub async fn credential(state: &AppState, conn: &mut Tx, name: &str) -> Result<Secret<String>> {
     let found: Option<(String,)> =
         sqlx::query_as("select sealed from flow_credentials where name = $1")
             .bind(name)
@@ -684,8 +675,8 @@ pub fn kinds() -> Vec<String> {
 }
 
 /// An event arrived; whichever flows were waiting for it get a run each.
-pub async fn start(state: &AppState, tenant: TenantId, task: &Start) -> Result<u64> {
-    let mut conn = state.db.tenant(tenant).await?;
+pub async fn start(state: &AppState, task: &Start) -> Result<u64> {
+    let mut conn = state.db.begin().await?;
 
     let event: Option<(String, serde_json::Value)> =
         sqlx::query_as("select event, payload from outbox where id = $1")
@@ -705,10 +696,9 @@ pub async fn start(state: &AppState, tenant: TenantId, task: &Start) -> Result<u
 
     for (flow_id,) in &waiting {
         let run: (Uuid,) = sqlx::query_as(
-            "insert into flow_runs (tenant_id, flow_id, subject) values ($1, $2, $3)
+            "insert into flow_runs (flow_id, subject) values ($1, $2)
              returning id",
         )
-        .bind(tenant.0)
         .bind(flow_id)
         .bind(&payload)
         .fetch_one(conn.conn())
@@ -727,8 +717,8 @@ pub async fn start(state: &AppState, tenant: TenantId, task: &Start) -> Result<u
 /// A step at a time rather than a run at a time: a flow that waits an hour does
 /// not hold a worker for an hour, and a step that fails is retried on its own
 /// rather than repeating everything before it.
-pub async fn step(state: &AppState, tenant: TenantId, task: &Step) -> Result<()> {
-    let mut conn = state.db.tenant(tenant).await?;
+pub async fn step(state: &AppState, task: &Step) -> Result<()> {
+    let mut conn = state.db.begin().await?;
 
     let run: Option<(Uuid, i32, serde_json::Value, String)> = sqlx::query_as(
         "select flow_id, at_step, subject, state::text from flow_runs
@@ -765,13 +755,12 @@ pub async fn step(state: &AppState, tenant: TenantId, task: &Step) -> Result<()>
         return Ok(());
     };
 
-    let outcome = run_step(state, &mut conn, tenant, kind, &config, &subject).await;
+    let outcome = run_step(state, &mut conn, kind, &config, &subject).await;
 
     sqlx::query(
-        "insert into flow_run_steps (tenant_id, run_id, step_id, position, outcome, detail)
-         values ($1, $2, $3, $4, $5, $6)",
+        "insert into flow_run_steps (run_id, step_id, position, outcome, detail)
+         values ($1, $2, $3, $4, $5)",
     )
-    .bind(tenant.0)
     .bind(task.run_id)
     .bind(step_id)
     .bind(at_step)
@@ -834,8 +823,7 @@ enum Went {
 
 async fn run_step(
     state: &AppState,
-    conn: &mut TenantConn,
-    tenant: TenantId,
+    conn: &mut Tx,
     kind: StepKind,
     config: &serde_json::Value,
     subject: &serde_json::Value,
@@ -864,8 +852,7 @@ async fn run_step(
                 .and_then(serde_json::Value::as_str)
                 .unwrap_or("A message from the site");
 
-            sqlx::query("insert into email_log (tenant_id, to_email, subject) values ($1, $2, $3)")
-                .bind(tenant.0)
+            sqlx::query("insert into email_log (to_email, subject) values ($1, $2)")
                 .bind(to)
                 .bind(subject_line)
                 .execute(conn.conn())
@@ -887,23 +874,21 @@ async fn run_step(
                 .ok_or_else(|| AppError::Invalid(say::STEP_NOBODY_ADD.into()))?;
 
             let subscriber: (Uuid,) = sqlx::query_as(
-                "insert into subscribers (tenant_id, email, token_hash)
-                 values ($1, $2, sha256(gen_random_uuid()::text::bytea))
-                 on conflict (tenant_id, email) do update set updated_at = now()
+                "insert into subscribers (email, token_hash)
+                 values ($1, sha256(gen_random_uuid()::text::bytea))
+                 on conflict (email) do update set updated_at = now()
                  returning id",
             )
-            .bind(tenant.0)
             .bind(email)
             .fetch_one(conn.conn())
             .await?;
 
             sqlx::query(
-                "insert into subscriber_lists (subscriber_id, list_id, tenant_id)
-                 values ($1, $2, $3) on conflict do nothing",
+                "insert into subscriber_lists (subscriber_id, list_id)
+                 values ($1, $2) on conflict do nothing",
             )
             .bind(subscriber.0)
             .bind(list)
-            .bind(tenant.0)
             .execute(conn.conn())
             .await?;
 
@@ -919,8 +904,7 @@ async fn run_step(
                 .and_then(serde_json::Value::as_str)
                 .unwrap_or("flow.step");
 
-            sqlx::query("insert into outbox (tenant_id, event, payload) values ($1, $2, $3)")
-                .bind(tenant.0)
+            sqlx::query("insert into outbox (event, payload) values ($1, $2)")
                 .bind(event)
                 .bind(subject)
                 .execute(conn.conn())

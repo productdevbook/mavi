@@ -12,10 +12,9 @@ use serde::{Deserialize, Serialize};
 use sqlx::Row;
 use uuid::Uuid;
 
-use crate::kernel::TenantId;
 use crate::kernel::audit::{self, Actor, Auditable, Audited};
 use crate::kernel::authz::{Access, Capability, Needs, Permit};
-use crate::kernel::db::TenantConn;
+use crate::kernel::db::Tx;
 use crate::kernel::error::{AppError, Result};
 use crate::kernel::http::{AppState, Audience, Caller, Endpoint, Guard, RatePolicy};
 use crate::kernel::page::{Page, Query};
@@ -266,11 +265,11 @@ pub struct Leaving {
 
 async fn lists(
     Injected(state): Injected<AppState>,
-    caller: Caller,
+    _caller: Caller,
     _permit: Permit,
     HttpQuery(query): HttpQuery<Query>,
 ) -> Result<Json<Page<MailList>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let rows: Vec<MailList> = sqlx::query_as(
         "select id, name, created_at from mail_lists
@@ -299,13 +298,12 @@ async fn make_list(
     _permit: Permit,
     Json(body): Json<NewList>,
 ) -> Result<Audited<(StatusCode, Json<MailList>)>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let list: MailList = sqlx::query_as(
-        "insert into mail_lists (tenant_id, name) values ($1, $2)
+        "insert into mail_lists (name) values ($1)
          returning id, name, created_at",
     )
-    .bind(caller.tenant().0)
     .bind(body.name.as_str())
     .fetch_one(conn.conn())
     .await?;
@@ -341,12 +339,12 @@ fn subscriber_cursor(after: Option<&str>) -> Option<(DateTime<Utc>, Uuid)> {
 /// that address actually go on".
 async fn subscribers(
     Injected(state): Injected<AppState>,
-    caller: Caller,
+    _caller: Caller,
     _permit: Permit,
     Path(list_id): Path<Uuid>,
     HttpQuery(page): HttpQuery<Query>,
 ) -> Result<Json<Page<Subscriber>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let cursor = subscriber_cursor(page.after.as_deref());
 
@@ -383,17 +381,16 @@ async fn add_subscriber(
     Path(list_id): Path<Uuid>,
     Json(body): Json<NewSubscriber>,
 ) -> Result<Audited<(StatusCode, Json<Subscriber>)>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     // Somebody who already left stays left: adding them to a list again is not
     // a way to start sending to them.
     let subscriber: Subscriber = sqlx::query_as(
-        "insert into subscribers (tenant_id, email, name, token_hash)
-         values ($1, $2, $3, $4)
-         on conflict (tenant_id, email) do update set name = coalesce(excluded.name, subscribers.name)
+        "insert into subscribers (email, name, token_hash)
+         values ($1, $2, $3)
+         on conflict (email) do update set name = coalesce(excluded.name, subscribers.name)
          returning id, email, name, state, created_at",
     )
-    .bind(caller.tenant().0)
     .bind(body.email.as_str())
     .bind(body.name.as_deref())
     .bind(&token::hash(&token::generate())[..])
@@ -401,12 +398,11 @@ async fn add_subscriber(
     .await?;
 
     sqlx::query(
-        "insert into subscriber_lists (subscriber_id, list_id, tenant_id)
-         values ($1, $2, $3) on conflict do nothing",
+        "insert into subscriber_lists (subscriber_id, list_id)
+         values ($1, $2) on conflict do nothing",
     )
     .bind(subscriber.id)
     .bind(list_id)
-    .bind(caller.tenant().0)
     .execute(conn.conn())
     .await
     .map_err(|error| {
@@ -438,11 +434,11 @@ async fn add_subscriber(
 
 async fn campaigns(
     Injected(state): Injected<AppState>,
-    caller: Caller,
+    _caller: Caller,
     _permit: Permit,
     HttpQuery(query): HttpQuery<Query>,
 ) -> Result<Json<Page<Campaign>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let rows: Vec<Campaign> = sqlx::query_as(
         "select id, list_id, subject, state, sent_count, created_at
@@ -468,14 +464,13 @@ async fn make_campaign(
     _permit: Permit,
     Json(body): Json<NewCampaign>,
 ) -> Result<Audited<(StatusCode, Json<Campaign>)>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let campaign: Campaign = sqlx::query_as(
-        "insert into campaigns (tenant_id, list_id, subject, body)
-         values ($1, $2, $3, $4)
+        "insert into campaigns (list_id, subject, body)
+         values ($1, $2, $3)
          returning id, list_id, subject, state, sent_count, created_at",
     )
-    .bind(caller.tenant().0)
     .bind(body.list_id)
     .bind(body.subject.as_str())
     .bind(&body.body)
@@ -514,7 +509,7 @@ async fn start(
     _permit: Permit,
     Path(id): Path<Uuid>,
 ) -> Result<Audited<Json<Campaign>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let campaign: Option<Campaign> = sqlx::query_as(
         "update campaigns
@@ -557,14 +552,13 @@ async fn note_event(
 ) -> Result<Audited<StatusCode>> {
     let fresh = heard_back(
         &state,
-        caller.tenant(),
         &body.provider_ref,
         &body.kind,
         body.detail.as_deref(),
     )
     .await?;
 
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let receipt = audit::record_raw(
         &mut conn,
@@ -593,7 +587,7 @@ async fn unsubscribe(
     caller: Caller,
     Json(body): Json<Leaving>,
 ) -> Result<Audited<StatusCode>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let gone: Option<(Uuid,)> = sqlx::query_as(
         "update subscribers
@@ -646,14 +640,13 @@ pub fn kinds() -> Vec<String> {
 /// reset, a campaign's next hundred. What is written down is what is billed,
 /// and the handing over is a job so that a request never waits on somebody
 /// else's mail server.
-pub async fn post(conn: &mut TenantConn, tenant: TenantId, letter: &Outgoing<'_>) -> Result<Uuid> {
+pub async fn post(conn: &mut Tx, letter: &Outgoing<'_>) -> Result<Uuid> {
     let row = sqlx::query(
         "insert into email_log
-             (tenant_id, campaign_id, subscriber_id, to_email, subject, body, purpose)
-         values ($1, $2, $3, $4, $5, $6, $7::mail_purpose)
+             (campaign_id, subscriber_id, to_email, subject, body, purpose)
+         values ($1, $2, $3, $4, $5, $6::mail_purpose)
          returning id",
     )
-    .bind(tenant.0)
     .bind(letter.campaign_id)
     .bind(letter.subscriber_id)
     .bind(letter.to)
@@ -707,8 +700,8 @@ impl Task for Deliver {
 /// blocked this site — is a failure that is written down and not retried; one
 /// that cannot be reached is an error, which the queue backs off and tries
 /// again.
-pub async fn deliver(state: &AppState, tenant: TenantId, task: &Deliver) -> Result<()> {
-    let mut conn = state.db.tenant(tenant).await?;
+pub async fn deliver(state: &AppState, task: &Deliver) -> Result<()> {
+    let mut conn = state.db.begin().await?;
 
     let waiting: Option<(String, String, String, Option<Uuid>)> = sqlx::query_as(
         "update email_log set attempts = attempts + 1
@@ -742,7 +735,7 @@ pub async fn deliver(state: &AppState, tenant: TenantId, task: &Deliver) -> Resu
 
     // The site's own mail server where it has one: what a site sends should
     // come from the site rather than from whoever runs the machine.
-    let mailer = crate::plugins::mailer_for(state, tenant).await?;
+    let mailer = crate::plugins::mailer_for(state).await?;
 
     let letter = crate::kernel::mailer::Letter {
         to: to.clone(),
@@ -754,7 +747,7 @@ pub async fn deliver(state: &AppState, tenant: TenantId, task: &Deliver) -> Resu
 
     let handed = mailer.hand_over(&letter).await;
 
-    let mut conn = state.db.tenant(tenant).await?;
+    let mut conn = state.db.begin().await?;
 
     match handed {
         Ok(crate::kernel::mailer::Handed::Over(reference)) => {
@@ -800,7 +793,6 @@ pub async fn deliver(state: &AppState, tenant: TenantId, task: &Deliver) -> Resu
 /// provider sending the same event twice is one row.
 pub async fn heard_back(
     state: &AppState,
-    tenant: TenantId,
     provider_ref: &str,
     kind: &str,
     detail: Option<&str>,
@@ -809,7 +801,7 @@ pub async fn heard_back(
         return Err(AppError::Invalid(say::NOT_SOMETHING_HAPPENS.into()));
     }
 
-    let mut conn = state.db.tenant(tenant).await?;
+    let mut conn = state.db.begin().await?;
 
     let found: Option<(Uuid, Option<Uuid>)> =
         sqlx::query_as("select id, subscriber_id from email_log where provider_ref = $1")
@@ -823,11 +815,10 @@ pub async fn heard_back(
     };
 
     let noted = sqlx::query(
-        "insert into mail_events (tenant_id, email_log_id, kind, provider_ref, detail)
-         values ($1, $2, $3, $4, $5)
-         on conflict (tenant_id, provider_ref) do nothing",
+        "insert into mail_events (email_log_id, kind, provider_ref, detail)
+         values ($1, $2, $3, $4)
+         on conflict (provider_ref) do nothing",
     )
-    .bind(tenant.0)
     .bind(log_id)
     .bind(kind)
     .bind(provider_ref)
@@ -874,8 +865,8 @@ pub async fn heard_back(
 /// sent: reading everything already sent in order to find the next hundred is
 /// what made this quadratic before, and a list that got slower the further it
 /// got was the symptom.
-pub async fn send_batch(state: &AppState, tenant: TenantId, task: &SendBatch) -> Result<u64> {
-    let mut conn = state.db.tenant(tenant).await?;
+pub async fn send_batch(state: &AppState, task: &SendBatch) -> Result<u64> {
+    let mut conn = state.db.begin().await?;
 
     let campaign: Option<(Uuid, String, String, Option<Uuid>)> = sqlx::query_as(
         "select list_id, subject, body, sent_through from campaigns
@@ -928,7 +919,6 @@ pub async fn send_batch(state: &AppState, tenant: TenantId, task: &SendBatch) ->
         // is exactly what went uncounted before.
         post(
             &mut conn,
-            tenant,
             &Outgoing {
                 to: &email,
                 subject: &subject,
@@ -974,7 +964,7 @@ pub async fn send_batch(state: &AppState, tenant: TenantId, task: &SendBatch) ->
 
 /// What a site has sent this month, campaign or not. The answer a bill is
 /// written from, and one query rather than a walk through live state.
-pub async fn counted(conn: &mut TenantConn, since: DateTime<Utc>) -> Result<i64> {
+pub async fn counted(conn: &mut Tx, since: DateTime<Utc>) -> Result<i64> {
     let counted: (i64,) = sqlx::query_as("select count(*) from email_log where created_at >= $1")
         .bind(since)
         .fetch_one(conn.conn())
@@ -991,8 +981,8 @@ impl Task for SweepLog {
 }
 
 /// What was sent to whom, kept for two years and then not.
-pub async fn sweep_log(state: &AppState, tenant: TenantId) -> Result<u64> {
-    let mut conn = state.db.tenant(tenant).await?;
+pub async fn sweep_log(state: &AppState) -> Result<u64> {
+    let mut conn = state.db.begin().await?;
 
     let taken = sqlx::query("delete from email_log where created_at < now() - interval '730 days'")
         .execute(conn.conn())

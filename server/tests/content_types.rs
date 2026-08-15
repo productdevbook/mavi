@@ -6,14 +6,13 @@ use http_body_util::BodyExt;
 use mavi::kernel::authz::every_grant;
 use mavi::kernel::db::Db;
 use mavi::kernel::http::AppState;
-use mavi::kernel::tenant::TenantId;
 use tower::ServiceExt;
 use uuid::Uuid;
 
 mod common;
 
 use common::harness;
-use mavi::testing::{a_role, a_tenant, a_user};
+use mavi::testing::{a_role, a_user};
 
 const PASSWORD: &str = "a long enough password";
 
@@ -23,24 +22,20 @@ struct Site {
     token: String,
     #[expect(dead_code, reason = "kept so the site outlives the leased database")]
     db: Db,
-    #[expect(dead_code, reason = "the same")]
-    tenant: TenantId,
 }
 
 impl Site {
     async fn new() -> Self {
         let db = harness().await;
         let host = format!("{}.example", Uuid::now_v7().simple());
-        let tenant = a_tenant(&db, &host).await;
-        let role = a_role(&db, tenant, "owner", &every_grant()).await;
-        let (_, email) = a_user(&db, tenant, role, PASSWORD).await;
+        let role = a_role(&db, "owner", &every_grant()).await;
+        let (_, email) = a_user(&db, role, PASSWORD).await;
 
-        let mut conn = db.tenant(tenant).await.expect("begin");
+        let mut conn = db.begin().await.expect("begin");
         sqlx::query(
-            "insert into languages (tenant_id, code, name, is_default)
-             values ($1, 'en', 'English', true)",
+            "insert into languages (code, name, is_default)
+             values ('en', 'English', true)",
         )
-        .bind(tenant.0)
         .execute(conn.conn())
         .await
         .expect("a language");
@@ -51,7 +46,6 @@ impl Site {
             host,
             token: String::new(),
             db,
-            tenant,
         };
 
         let (status, body) = site

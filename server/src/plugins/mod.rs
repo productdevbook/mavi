@@ -11,14 +11,13 @@ use serde_json::Value;
 
 use crate::kernel::audit::{self, Actor, Audited};
 use crate::kernel::authz::{Access, Capability, Needs};
-use crate::kernel::db::TenantConn;
+use crate::kernel::db::Tx;
 use crate::kernel::error::{AppError, Result};
 use crate::kernel::http::{AppState, Audience, Caller, Endpoint, Guard, RatePolicy};
 use crate::kernel::mailer::Mailer;
 use crate::kernel::payments::Payments;
 use crate::kernel::say::{self, Say};
 use crate::kernel::secret::Secret;
-use crate::kernel::tenant::TenantId;
 use crate::kernel::{crypto, mailer, payments};
 
 /// One integration a site may configure, and what it is made of.
@@ -135,8 +134,8 @@ const fn yes() -> bool {
     true
 }
 
-async fn list(State(state): State<AppState>, caller: Caller) -> Result<Json<Vec<Plugged>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+async fn list(State(state): State<AppState>, _caller: Caller) -> Result<Json<Vec<Plugged>>> {
+    let mut conn = state.db.begin().await?;
     let stored = all(&mut conn).await?;
     conn.commit().await?;
 
@@ -168,7 +167,7 @@ async fn configure(
         return Err(AppError::Invalid(say::SETTINGS_NAMED_VALUES.into()));
     };
 
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     // What was there before, so that changing one field does not mean sending
     // every secret again.
@@ -208,9 +207,9 @@ async fn configure(
     let sealed = crypto::seal(&state.keyring, &secret.to_string())?;
 
     let row: Row = sqlx::query_as(
-        "insert into plugins (tenant_id, key, enabled, settings, sealed)
-         values ($1, $2, $3, $4, $5)
-         on conflict (tenant_id, key) do update set
+        "insert into plugins (key, enabled, settings, sealed)
+         values ($1, $2, $3, $4)
+         on conflict (key) do update set
             enabled = excluded.enabled,
             settings = excluded.settings,
             sealed = excluded.sealed,
@@ -219,7 +218,6 @@ async fn configure(
             checked_at = null
          returning key, enabled, settings, sealed, working, note",
     )
-    .bind(caller.tenant().0)
     .bind(&key)
     .bind(body.enabled)
     .bind(Value::Object(plain))
@@ -249,7 +247,7 @@ async fn unplug(
 ) -> Result<Audited<axum::http::StatusCode>> {
     known(&key).ok_or(AppError::NotFound("plugin"))?;
 
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let gone = sqlx::query("delete from plugins where key = $1")
         .bind(&key)
@@ -284,7 +282,7 @@ async fn check(
 ) -> Result<Audited<Json<Plugged>>> {
     let plugin = known(&key).ok_or(AppError::NotFound("plugin"))?;
 
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
     let row = one(&mut conn, &key)
         .await?
         .ok_or(AppError::NotFound("plugin"))?;
@@ -340,7 +338,7 @@ type Row = (
     Option<String>,
 );
 
-async fn all(conn: &mut TenantConn) -> Result<Vec<(String, Row)>> {
+async fn all(conn: &mut Tx) -> Result<Vec<(String, Row)>> {
     let rows: Vec<Row> =
         sqlx::query_as("select key, enabled, settings, sealed, working, note from plugins")
             .fetch_all(conn.conn())
@@ -349,7 +347,7 @@ async fn all(conn: &mut TenantConn) -> Result<Vec<(String, Row)>> {
     Ok(rows.into_iter().map(|row| (row.0.clone(), row)).collect())
 }
 
-async fn one(conn: &mut TenantConn, key: &str) -> Result<Option<Row>> {
+async fn one(conn: &mut Tx, key: &str) -> Result<Option<Row>> {
     Ok(sqlx::query_as(
         "select key, enabled, settings, sealed, working, note from plugins where key = $1",
     )
@@ -448,8 +446,8 @@ fn payments_from(open: &serde_json::Map<String, Value>) -> Result<Payments> {
 ///
 /// Its own server where it has one, and the machine's where it has not — a
 /// site that has configured nothing keeps working rather than quietly stopping.
-pub async fn mailer_for(state: &AppState, tenant: TenantId) -> Result<Mailer> {
-    let mut conn = state.db.tenant(tenant).await?;
+pub async fn mailer_for(state: &AppState) -> Result<Mailer> {
+    let mut conn = state.db.begin().await?;
     let found = enabled(&mut conn, "mail").await?;
     conn.commit().await?;
 
@@ -460,8 +458,8 @@ pub async fn mailer_for(state: &AppState, tenant: TenantId) -> Result<Mailer> {
 }
 
 /// Who takes this site's money. The same rule.
-pub async fn payments_for(state: &AppState, tenant: TenantId) -> Result<Payments> {
-    let mut conn = state.db.tenant(tenant).await?;
+pub async fn payments_for(state: &AppState) -> Result<Payments> {
+    let mut conn = state.db.begin().await?;
     let found = enabled(&mut conn, "payments").await?;
     conn.commit().await?;
 
@@ -471,7 +469,7 @@ pub async fn payments_for(state: &AppState, tenant: TenantId) -> Result<Payments
     }
 }
 
-async fn enabled(conn: &mut TenantConn, key: &str) -> Result<Option<Row>> {
+async fn enabled(conn: &mut Tx, key: &str) -> Result<Option<Row>> {
     Ok(sqlx::query_as(
         "select key, enabled, settings, sealed, working, note
            from plugins where key = $1 and enabled",

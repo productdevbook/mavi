@@ -11,7 +11,7 @@ use uuid::Uuid;
 mod common;
 
 use common::harness;
-use mavi::testing::{a_role, a_tenant, a_user};
+use mavi::testing::{a_role, a_user};
 
 const PASSWORD: &str = "a long enough password";
 
@@ -31,9 +31,8 @@ impl Site {
     async fn where_somebody_can(grants: &[String]) -> Self {
         let db = harness().await;
         let host = format!("{}.example", Uuid::now_v7().simple());
-        let tenant = a_tenant(&db, &host).await;
-        let role = a_role(&db, tenant, "somebody", grants).await;
-        let (_, email) = a_user(&db, tenant, role, PASSWORD).await;
+        let role = a_role(&db, "somebody", grants).await;
+        let (_, email) = a_user(&db, role, PASSWORD).await;
 
         let site = Self {
             router: mavi::router(AppState::new(db)),

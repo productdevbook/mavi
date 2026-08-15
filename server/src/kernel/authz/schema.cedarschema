@@ -1,42 +1,27 @@
-entity Platform;
-
+// One installation, one site, so one resource. Every question asked of this
+// engine is "may this person do this kind of thing here", and `here` has
+// stopped being a choice.
 entity Site;
 
-entity Agency;
-
-entity Charge {
-    site: Site,
-};
-
-entity Operator;
-
-entity AgencyUser in [Agency] {
-    grants: Set<String>,
-};
-
-entity Customer {
-    site: Site,
-};
-
-entity SiteUser in [Site] {
+entity SiteUser {
     grants: Set<String>,
     id: String,
 };
 
 action "view" appliesTo {
-    principal: [Operator, AgencyUser, Customer, SiteUser],
-    resource: [Site, Charge, Agency, Platform],
+    principal: [SiteUser],
+    resource: [Site],
     context: { needed: String, needed_own: String, owner: String },
 };
 
 action "write" appliesTo {
-    principal: [Operator, AgencyUser, Customer, SiteUser],
-    resource: [Site, Charge, Agency, Platform],
+    principal: [SiteUser],
+    resource: [Site],
     context: { needed: String, needed_own: String, owner: String },
 };
 
 action "delete" appliesTo {
-    principal: [Operator, AgencyUser, Customer, SiteUser],
-    resource: [Site, Charge, Agency, Platform],
+    principal: [SiteUser],
+    resource: [Site],
     context: { needed: String, needed_own: String, owner: String },
 };

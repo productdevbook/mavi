@@ -2,8 +2,8 @@
 
 Somebody saying a screen is broken, and the answer coming back.
 
-**Who says something.** Anybody signed in on a site, with no grant asked for.
-The machine's own screens see every site's and write the answers.
+**Who says something.** Anybody signed in, with no grant asked for. Reading
+them back is gated by `settings:view`.
 
 **Tables it owns.** `reports`.
 

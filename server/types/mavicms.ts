@@ -509,7 +509,6 @@ export interface Me {
   role: string;
   grants: string[];
   site: string;
-  site_state: string;
 }
 
 export interface Media {
@@ -959,7 +958,7 @@ export interface Session {
 export interface Settings {
   name: string;
   storage_used_bytes: number;
-  storage_limit_bytes?: number | null;
+  storage_limit_bytes: number;
 }
 
 export interface SettingsChanges {
@@ -1256,7 +1255,6 @@ export interface Calls {
   role: string;
   grants: string[];
   site: string;
-  site_state: string;
 } };
   "GET /api/auth/oauth": { takes: never; gives: ({
   key: string;
@@ -1321,7 +1319,6 @@ export interface Calls {
   "GET /api/design/publishes": { takes: never; gives: Page<Publish> };
   "GET /api/domains": { takes: never; gives: ({
   host: string;
-  is_primary: boolean;
   resolves?: boolean | null;
   answered?: boolean | null;
   note?: string | null;
@@ -1466,7 +1463,7 @@ export interface Calls {
   "GET /api/site": { takes: never; gives: {
   name: string;
   storage_used_bytes: number;
-  storage_limit_bytes?: number | null;
+  storage_limit_bytes: number;
 } };
   "GET /api/site/usage": { takes: never; gives: {
   storage: StorageUsage;
@@ -1692,7 +1689,7 @@ export interface Calls {
 }; gives: {
   name: string;
   storage_used_bytes: number;
-  storage_limit_bytes?: number | null;
+  storage_limit_bytes: number;
 } };
   "PATCH /api/students/{id}": { takes: {
   name?: null | Title;

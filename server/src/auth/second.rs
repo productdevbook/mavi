@@ -7,13 +7,12 @@ use sqlx::Row;
 use uuid::Uuid;
 
 use crate::kernel::audit::{self, Actor, Audited};
-use crate::kernel::db::TenantConn;
+use crate::kernel::db::Tx;
 use crate::kernel::error::{AppError, Result};
 use crate::kernel::http::{AppState, Audience, Caller, Endpoint, Guard, RatePolicy};
 use crate::kernel::ratelimit::Limit;
 use crate::kernel::say;
 use crate::kernel::secret::{Secret, Shown};
-use crate::kernel::tenant::TenantId;
 use crate::kernel::{crypto, password, token, totp};
 
 /// How many ways back in somebody is given. Ten is enough to lose a few and
@@ -106,7 +105,7 @@ pub struct Recovery {
 
 async fn state_of(State(state): State<AppState>, caller: Caller) -> Result<Json<Standing>> {
     let user = caller.user.as_ref().ok_or(AppError::Unauthenticated)?;
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let row: Option<(i64,)> = sqlx::query_as(
         "select count(c.id)
@@ -130,7 +129,7 @@ async fn state_of(State(state): State<AppState>, caller: Caller) -> Result<Json<
 
 async fn begin(State(state): State<AppState>, caller: Caller) -> Result<Audited<Json<Begun>>> {
     let user = caller.user.as_ref().ok_or(AppError::Unauthenticated)?;
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     if confirmed_secret(&mut conn, user.user_id).await?.is_some() {
         return Err(AppError::Conflict(
@@ -145,20 +144,18 @@ async fn begin(State(state): State<AppState>, caller: Caller) -> Result<Audited<
     // code and lost the phone before confirming starts over rather than being
     // stuck with a secret nothing holds.
     sqlx::query(
-        "insert into second_factors (tenant_id, user_id, sealed)
-         values ($1, $2, $3)
-         on conflict (tenant_id, user_id)
+        "insert into second_factors (user_id, sealed)
+         values ($1, $2)
+         on conflict (user_id)
            do update set sealed = excluded.sealed, confirmed_at = null, last_step = null",
     )
-    .bind(caller.tenant().0)
     .bind(user.user_id)
     .bind(&sealed)
     .execute(conn.conn())
     .await?;
 
     let (email, name): (String, Option<String>) = sqlx::query_as(
-        "select u.email, s.name from users u
-           left join site_settings s on s.tenant_id = u.tenant_id
+        "select u.email, (select name from site_settings) from users u
           where u.id = $1",
     )
     .bind(user.user_id)
@@ -199,7 +196,7 @@ async fn confirm(
     Json(body): Json<Digits>,
 ) -> Result<Audited<Json<Recovery>>> {
     let user = caller.user.as_ref().ok_or(AppError::Unauthenticated)?;
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let begun: Option<(Uuid, String)> = sqlx::query_as(
         "select id, sealed from second_factors
@@ -223,7 +220,7 @@ async fn confirm(
         .execute(conn.conn())
         .await?;
 
-    let codes = write_recovery_codes(&mut conn, caller.tenant(), user.user_id).await?;
+    let codes = write_recovery_codes(&mut conn, user.user_id).await?;
 
     let receipt = audit::record_raw(
         &mut conn,
@@ -246,7 +243,7 @@ async fn remove(
     Json(body): Json<Password>,
 ) -> Result<Audited<axum::http::StatusCode>> {
     let user = caller.user.as_ref().ok_or(AppError::Unauthenticated)?;
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     // The password again, because taking the second factor off is the one
     // change a borrowed session would want to make first.
@@ -296,7 +293,7 @@ async fn remove(
 /// account has one is not a question an unauthenticated caller gets answered.
 pub async fn demand(
     state: &AppState,
-    conn: &mut TenantConn,
+    conn: &mut Tx,
     user_id: Uuid,
     code: Option<&str>,
 ) -> Result<()> {
@@ -329,7 +326,7 @@ pub async fn demand(
 
 type Confirmed = (Uuid, String, Option<i64>);
 
-async fn confirmed_secret(conn: &mut TenantConn, user_id: Uuid) -> Result<Option<Confirmed>> {
+async fn confirmed_secret(conn: &mut Tx, user_id: Uuid) -> Result<Option<Confirmed>> {
     Ok(sqlx::query_as(
         "select id, sealed, last_step from second_factors
           where user_id = $1 and confirmed_at is not null",
@@ -342,7 +339,7 @@ async fn confirmed_secret(conn: &mut TenantConn, user_id: Uuid) -> Result<Option
 /// A recovery code works once. Marking it used in the same statement that
 /// finds it is what makes two sign-ins racing each other spend two codes
 /// rather than one code twice.
-async fn spend_recovery_code(conn: &mut TenantConn, user_id: Uuid, code: &str) -> Result<bool> {
+async fn spend_recovery_code(conn: &mut Tx, user_id: Uuid, code: &str) -> Result<bool> {
     let code = tidy(code);
 
     let spent = sqlx::query(
@@ -358,11 +355,7 @@ async fn spend_recovery_code(conn: &mut TenantConn, user_id: Uuid, code: &str) -
     Ok(spent > 0)
 }
 
-async fn write_recovery_codes(
-    conn: &mut TenantConn,
-    tenant: TenantId,
-    user_id: Uuid,
-) -> Result<Vec<String>> {
+async fn write_recovery_codes(conn: &mut Tx, user_id: Uuid) -> Result<Vec<String>> {
     sqlx::query("delete from recovery_codes where user_id = $1")
         .bind(user_id)
         .execute(conn.conn())
@@ -380,10 +373,9 @@ async fn write_recovery_codes(
     }
 
     sqlx::query(
-        "insert into recovery_codes (tenant_id, user_id, code_hash)
-         select $1, $2, unnest($3::bytea[])",
+        "insert into recovery_codes (user_id, code_hash)
+         select $1, unnest($2::bytea[])",
     )
-    .bind(tenant.0)
     .bind(user_id)
     .bind(&hashes)
     .execute(conn.conn())
@@ -394,7 +386,7 @@ async fn write_recovery_codes(
 
 /// Nothing here is time-stamped or ordered, so a row that came back is one
 /// that had not been used.
-pub async fn codes_left(conn: &mut TenantConn, user_id: Uuid) -> Result<i64> {
+pub async fn codes_left(conn: &mut Tx, user_id: Uuid) -> Result<i64> {
     let row = sqlx::query(
         "select count(*) as left from recovery_codes where user_id = $1 and used_at is null",
     )

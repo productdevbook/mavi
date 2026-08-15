@@ -8,7 +8,7 @@ How somebody working on a site gets in, and stays in.
 ## A session
 
 One door out, `open_session`: however somebody arrived — a password, an
-authenticator, another site's account — they leave with the same thing, made
+authenticator, an account somewhere else — they leave with the same thing, made
 the same way. Signing in revokes whatever that account was carrying before, so
 a session handed to somebody by a borrowed screen is not a session they keep.
 

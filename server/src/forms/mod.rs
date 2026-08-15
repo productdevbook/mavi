@@ -13,7 +13,7 @@ use uuid::Uuid;
 
 use crate::kernel::audit::{self, Actor, Auditable, Audited};
 use crate::kernel::authz::{Access, Capability, Needs, Permit};
-use crate::kernel::db::TenantConn;
+use crate::kernel::db::Tx;
 use crate::kernel::error::{AppError, Result};
 use crate::kernel::events::{self, EmitsEvents};
 use crate::kernel::http::{AppState, Audience, Caller, Endpoint, Guard, RatePolicy};
@@ -247,11 +247,11 @@ pub struct Answers {
 
 async fn list(
     State(state): State<AppState>,
-    caller: Caller,
+    _caller: Caller,
     permit: Permit,
     HttpQuery(query): HttpQuery<Query>,
 ) -> Result<Json<Page<Form>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
     let page = all(&mut conn, &permit, &query).await?;
     conn.commit().await?;
 
@@ -260,7 +260,7 @@ async fn list(
 
 /// Takes the permit rather than trusting its caller to have asked: a read that
 /// never went past the engine cannot call this.
-async fn all(conn: &mut TenantConn, _permit: &Permit, query: &Query) -> Result<Page<Form>> {
+async fn all(conn: &mut Tx, _permit: &Permit, query: &Query) -> Result<Page<Form>> {
     let rows: Vec<Form> = sqlx::query_as(
         "select f.id, f.slug, f.name, f.fields, f.active, f.retention_days,
                 (select count(*) from form_submissions s where s.form_id = f.id) as submissions,
@@ -293,7 +293,7 @@ async fn create(
     _permit: Permit,
     Json(body): Json<NewForm>,
 ) -> Result<Audited<(StatusCode, Json<Form>)>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let taken: Option<(Uuid,)> = sqlx::query_as("select id from forms where slug = $1")
         .bind(body.slug.as_str())
@@ -305,12 +305,11 @@ async fn create(
     }
 
     let form: Form = sqlx::query_as(
-        "insert into forms (tenant_id, slug, name, fields, retention_days)
-         values ($1, $2, $3, $4, coalesce($5, 365))
+        "insert into forms (slug, name, fields, retention_days)
+         values ($1, $2, $3, coalesce($4, 365))
          returning id, slug, name, fields, active, retention_days,
                    0::bigint as submissions, 0::bigint as unseen, created_at",
     )
-    .bind(caller.tenant().0)
     .bind(body.slug.as_str())
     .bind(body.name.as_str())
     .bind(serde_json::to_value(&body.fields).unwrap_or_else(|_| serde_json::json!([])))
@@ -327,11 +326,11 @@ async fn create(
 
 async fn read(
     State(state): State<AppState>,
-    caller: Caller,
+    _caller: Caller,
     _permit: Permit,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Form>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
     let form = one(&mut conn, id).await?;
     conn.commit().await?;
 
@@ -340,7 +339,7 @@ async fn read(
 
 /// A form belonging to somebody else is not there, rather than refused: which
 /// of those two answers comes back is how a caller finds out whether it exists.
-async fn one(conn: &mut TenantConn, id: Uuid) -> Result<Form> {
+async fn one(conn: &mut Tx, id: Uuid) -> Result<Form> {
     sqlx::query_as(
         "select f.id, f.slug, f.name, f.fields, f.active, f.retention_days,
                 (select count(*) from form_submissions s where s.form_id = f.id) as submissions,
@@ -362,7 +361,7 @@ async fn update(
     Path(id): Path<Uuid>,
     Json(changes): Json<FormChanges>,
 ) -> Result<Audited<Json<Form>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
     let before = one(&mut conn, id).await?;
 
     let after: Form = sqlx::query_as(
@@ -412,7 +411,7 @@ async fn remove(
     _permit: Permit,
     Path(id): Path<Uuid>,
 ) -> Result<Audited<StatusCode>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
     let before = one(&mut conn, id).await?;
 
     sqlx::query("update forms set deleted_at = now() where id = $1")
@@ -436,12 +435,12 @@ async fn remove(
 
 async fn submissions(
     State(state): State<AppState>,
-    caller: Caller,
+    _caller: Caller,
     _permit: Permit,
     Path(id): Path<Uuid>,
     HttpQuery(query): HttpQuery<Query>,
 ) -> Result<Json<Page<Submission>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
     one(&mut conn, id).await?;
 
     let rows: Vec<Submission> = sqlx::query_as(
@@ -486,7 +485,7 @@ async fn mark_seen(
     _permit: Permit,
     Path(id): Path<Uuid>,
 ) -> Result<Audited<Json<Seen>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let seen = sqlx::query(
         "update form_submissions set seen_at = now()
@@ -528,7 +527,7 @@ async fn forget(
     _permit: Permit,
     Path((id, submission_id)): Path<(Uuid, Uuid)>,
 ) -> Result<Audited<StatusCode>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let gone = sqlx::query("delete from form_submissions where id = $1 and form_id = $2")
         .bind(submission_id)
@@ -643,7 +642,7 @@ async fn submit(
         }
     }
 
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let form: Option<(Uuid, serde_json::Value)> = sqlx::query_as(
         "select id, fields from forms where slug = $1 and active and deleted_at is null",
@@ -661,11 +660,10 @@ async fn submit(
     fits(&declared, &body.answers)?;
 
     let submission: Submission = sqlx::query_as(
-        "insert into form_submissions (tenant_id, form_id, answers, from_ip, user_agent)
-         values ($1, $2, $3, $4::text::inet, $5)
+        "insert into form_submissions (form_id, answers, from_ip, user_agent)
+         values ($1, $2, $3::text::inet, $4)
          returning id, form_id, answers, seen_at, created_at",
     )
-    .bind(caller.tenant().0)
     .bind(form_id)
     .bind(serde_json::Value::Object(body.answers))
     .bind(caller.ip.as_deref())
@@ -742,8 +740,8 @@ impl crate::kernel::queue::Task for Sweep {
     const KIND: &'static str = "forms.sweep";
 }
 
-pub async fn sweep(state: &AppState, tenant: crate::kernel::TenantId) -> Result<u64> {
-    let mut conn = state.db.tenant(tenant).await?;
+pub async fn sweep(state: &AppState) -> Result<u64> {
+    let mut conn = state.db.begin().await?;
 
     let taken = sqlx::query(
         "delete from form_submissions s

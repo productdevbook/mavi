@@ -7,7 +7,7 @@ endpoint, `/mcp`, rate limited because a tool loop runs until it is told
 otherwise.
 
 **Tables it owns.** None. Every tool reads through the same domains the panel
-does, in the same tenant transaction, under the same policy.
+does, in the same transaction, under the same grants.
 
 **Every tool consumes a grant from the same matrix.** Not a copy of it, not a
 list beside it: the same `Needs` the panel's own endpoint asks for, answered by

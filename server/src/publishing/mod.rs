@@ -11,7 +11,6 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::kernel::TenantId;
 use crate::kernel::audit::{self, Actor, Audited};
 use crate::kernel::authz::{Access, Capability, Needs, Permit};
 use crate::kernel::error::{AppError, Result};
@@ -205,11 +204,11 @@ pub struct Which {
 
 async fn files(
     Injected(state): Injected<AppState>,
-    caller: Caller,
+    _caller: Caller,
     _permit: Permit,
     HttpQuery(which): HttpQuery<Which>,
 ) -> Result<Json<Vec<File>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let rows: Vec<File> = sqlx::query_as(
         "select path, branch, updated_at from theme_files
@@ -241,11 +240,11 @@ pub struct Written {
 /// one somebody gets wrong.
 async fn one_file(
     Injected(state): Injected<AppState>,
-    caller: Caller,
+    _caller: Caller,
     _permit: Permit,
     HttpQuery(which): HttpQuery<Reading>,
 ) -> Result<Json<Written>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let found: Option<Written> = sqlx::query_as(
         "select path, branch, body, updated_at from theme_files
@@ -297,15 +296,14 @@ async fn write_file(
         ));
     }
 
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let file: File = sqlx::query_as(
-        "insert into theme_files (tenant_id, branch, path, body) values ($1, $2, $3, $4)
-         on conflict (tenant_id, branch, path) where deleted_at is null do update
+        "insert into theme_files (branch, path, body) values ($1, $2, $3)
+         on conflict (branch, path) where deleted_at is null do update
              set body = excluded.body, deleted_at = null
          returning path, branch, updated_at",
     )
-    .bind(caller.tenant().0)
     .bind(branch)
     .bind(&body.path)
     .bind(&body.body)
@@ -345,11 +343,11 @@ pub mod tools {
     /// what is live is what a publish decided and not what a tool is working on.
     pub async fn files(
         state: &AppState,
-        caller: &Caller,
+        _caller: &Caller,
         arguments: &serde_json::Value,
     ) -> Result<serde_json::Value> {
         let branch = branch_in(arguments);
-        let mut conn = state.db.tenant(caller.tenant()).await?;
+        let mut conn = state.db.begin().await?;
 
         let rows: Vec<File> = sqlx::query_as(
             "select path, branch, updated_at from theme_files
@@ -366,7 +364,7 @@ pub mod tools {
 
     pub async fn read(
         state: &AppState,
-        caller: &Caller,
+        _caller: &Caller,
         arguments: &serde_json::Value,
     ) -> Result<serde_json::Value> {
         let branch = branch_in(arguments);
@@ -376,7 +374,7 @@ pub mod tools {
             .and_then(serde_json::Value::as_str)
             .ok_or(AppError::NotFound("theme file"))?;
 
-        let mut conn = state.db.tenant(caller.tenant()).await?;
+        let mut conn = state.db.begin().await?;
 
         let found: Option<(String,)> = sqlx::query_as(
             "select body from theme_files
@@ -422,15 +420,14 @@ pub mod tools {
             ));
         }
 
-        let mut conn = state.db.tenant(caller.tenant()).await?;
+        let mut conn = state.db.begin().await?;
 
         let file: File = sqlx::query_as(
-            "insert into theme_files (tenant_id, branch, path, body) values ($1, $2, $3, $4)
-             on conflict (tenant_id, branch, path) where deleted_at is null do update
+            "insert into theme_files (branch, path, body) values ($1, $2, $3)
+             on conflict (branch, path) where deleted_at is null do update
                  set body = excluded.body, deleted_at = null
              returning path, branch, updated_at",
         )
-        .bind(caller.tenant().0)
         .bind(&branch)
         .bind(&asked.path)
         .bind(&asked.body)
@@ -469,13 +466,12 @@ pub mod tools {
             ));
         }
 
-        let mut conn = state.db.tenant(caller.tenant()).await?;
+        let mut conn = state.db.begin().await?;
 
         let publish: Publish = sqlx::query_as(
-            "insert into publishes (tenant_id, branch, preview) values ($1, $2, true)
+            "insert into publishes (branch, preview) values ($1, true)
              returning id, branch, state, seconds, log, created_at",
         )
-        .bind(caller.tenant().0)
         .bind(&branch)
         .fetch_one(conn.conn())
         .await
@@ -541,8 +537,8 @@ async fn design_status(
 }
 
 /// What is waiting, whoever is asking — a panel screen or a tool.
-async fn design_now(state: &AppState, caller: &Caller, branch: &str) -> Result<Design> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+async fn design_now(state: &AppState, _caller: &Caller, branch: &str) -> Result<Design> {
+    let mut conn = state.db.begin().await?;
 
     // A full outer join rather than two queries: what is missing on either
     // side is as much a change as what differs, and one of them is the answer
@@ -618,13 +614,12 @@ async fn preview(
         ));
     }
 
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let publish: Publish = sqlx::query_as(
-        "insert into publishes (tenant_id, branch, preview) values ($1, $2, true)
+        "insert into publishes (branch, preview) values ($1, true)
          returning id, branch, state, seconds, log, created_at",
     )
-    .bind(caller.tenant().0)
     .bind(&branch)
     .fetch_one(conn.conn())
     .await
@@ -678,13 +673,12 @@ async fn publish(
     HttpQuery(which): HttpQuery<Which>,
 ) -> Result<Audited<(StatusCode, Json<Publish>)>> {
     let branch = which.branch.unwrap_or_else(|| "draft".to_owned());
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let publish: Publish = sqlx::query_as(
-        "insert into publishes (tenant_id, branch) values ($1, $2)
+        "insert into publishes (branch) values ($1)
          returning id, branch, state, seconds, log, created_at",
     )
-    .bind(caller.tenant().0)
     .bind(&branch)
     .fetch_one(conn.conn())
     .await
@@ -722,7 +716,7 @@ async fn cancel(
     _permit: Permit,
     axum::extract::Path(id): axum::extract::Path<Uuid>,
 ) -> Result<Audited<Json<Publish>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let cancelled: Option<Publish> = sqlx::query_as(
         "update publishes
@@ -756,11 +750,11 @@ async fn cancel(
 /// The builds made to look at, newest first.
 async fn previews(
     Injected(state): Injected<AppState>,
-    caller: Caller,
+    _caller: Caller,
     _permit: Permit,
     HttpQuery(page): HttpQuery<Paging>,
 ) -> Result<Json<Page<Publish>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let rows: Vec<Publish> = sqlx::query_as(
         "select id, branch, state, seconds, log, created_at
@@ -783,11 +777,11 @@ async fn previews(
 
 async fn history(
     Injected(state): Injected<AppState>,
-    caller: Caller,
+    _caller: Caller,
     _permit: Permit,
     axum::extract::Query(page): axum::extract::Query<Paging>,
 ) -> Result<Json<Page<Publish>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let rows: Vec<Publish> = sqlx::query_as(
         "select id, branch, state, seconds, log, created_at
@@ -834,18 +828,16 @@ pub fn kinds() -> Vec<String> {
 /// files are the site.
 async fn whoever_builds(
     state: &AppState,
-    tenant: TenantId,
     publish: Uuid,
     branch: &str,
 ) -> Result<crate::kernel::builder::Built> {
     match &*state.builder {
         crate::kernel::builder::Builder::Here(generator) => {
-            here(state, tenant, publish, branch, generator).await
+            here(state, publish, branch, generator).await
         }
         builder => {
             builder
                 .build(&crate::kernel::builder::Building {
-                    tenant: tenant.0,
                     branch: branch.to_owned(),
                     publish,
                 })
@@ -857,12 +849,11 @@ async fn whoever_builds(
 /// A build run by this process, in a workspace of its own.
 async fn here(
     state: &AppState,
-    tenant: TenantId,
     publish: Uuid,
     branch: &str,
     generator: &crate::building::Generator,
 ) -> Result<crate::kernel::builder::Built> {
-    let mut conn = state.db.tenant(tenant).await?;
+    let mut conn = state.db.begin().await?;
 
     let files: Vec<(String, String)> = sqlx::query_as(
         "select path, body from theme_files where branch = $1 and deleted_at is null",
@@ -873,7 +864,7 @@ async fn here(
 
     conn.commit().await?;
 
-    let made = crate::building::run(generator, tenant, publish, files).await?;
+    let made = crate::building::run(generator, publish, files).await?;
 
     // A build that produced nothing is a build that failed, whatever it said
     // on the way: putting an empty folder live is a site that has gone.
@@ -887,7 +878,7 @@ async fn here(
     for (path, bytes) in made.files {
         state
             .store
-            .put(tenant, &crate::edge::at(publish, &path), bytes)
+            .put(&crate::edge::at(publish, &path), bytes)
             .await?;
     }
 
@@ -901,8 +892,7 @@ async fn here(
 /// the store under this publish's own id, where the edge reads them.
 async fn put_the_files_where_they_are_served(
     state: &AppState,
-    tenant: TenantId,
-    conn: &mut crate::kernel::db::TenantConn,
+    conn: &mut crate::kernel::db::Tx,
     publish: Uuid,
     branch: &str,
 ) -> Result<()> {
@@ -923,16 +913,16 @@ async fn put_the_files_where_they_are_served(
 
         state
             .store
-            .put(tenant, &crate::edge::at(publish, served), body.into_bytes())
+            .put(&crate::edge::at(publish, served), body.into_bytes())
             .await?;
     }
 
     Ok(())
 }
 
-pub async fn build(state: &AppState, tenant: TenantId, task: &Build) -> Result<()> {
+pub async fn build(state: &AppState, task: &Build) -> Result<()> {
     let started = state.clock.now();
-    let mut conn = state.db.tenant(tenant).await?;
+    let mut conn = state.db.begin().await?;
 
     let publish: Option<(String, bool)> = sqlx::query_as(
         "update publishes set state = 'building', started_at = now()
@@ -951,9 +941,9 @@ pub async fn build(state: &AppState, tenant: TenantId, task: &Build) -> Result<(
     // see it is building and so that a cancel has something to cancel.
     conn.commit().await?;
 
-    let built = whoever_builds(state, tenant, task.publish_id, &branch).await?;
+    let built = whoever_builds(state, task.publish_id, &branch).await?;
 
-    let mut conn = state.db.tenant(tenant).await?;
+    let mut conn = state.db.begin().await?;
 
     // Cancelled while it was building: what came back is thrown away rather
     // than put live, because somebody said not to.
@@ -993,8 +983,7 @@ pub async fn build(state: &AppState, tenant: TenantId, task: &Build) -> Result<(
     // nothing to build with, the files are the site and this is what writes
     // them.
     if !state.builder.builds_elsewhere() {
-        put_the_files_where_they_are_served(state, tenant, &mut conn, task.publish_id, &branch)
-            .await?;
+        put_the_files_where_they_are_served(state, &mut conn, task.publish_id, &branch).await?;
     }
 
     // A preview is a build somebody looks at. What it made stays where the edge
@@ -1025,8 +1014,8 @@ pub async fn build(state: &AppState, tenant: TenantId, task: &Build) -> Result<(
         .await?;
 
     let files = sqlx::query(
-        "insert into theme_files (tenant_id, branch, path, body)
-         select tenant_id, 'live', path, body from theme_files
+        "insert into theme_files (branch, path, body)
+         select 'live', path, body from theme_files
           where branch = $1 and deleted_at is null",
     )
     .bind(&branch)

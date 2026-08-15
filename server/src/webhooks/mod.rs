@@ -4,11 +4,10 @@ use std::time::Duration;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::kernel::db::TenantConn;
+use crate::kernel::db::Tx;
 use crate::kernel::error::{AppError, Result};
 use crate::kernel::http::AppState;
 use crate::kernel::queue::{self, Task};
-use crate::kernel::tenant::TenantId;
 use crate::kernel::webhook;
 
 /// Long enough for a receiver that is thinking, short enough that a receiver
@@ -42,8 +41,8 @@ pub fn kinds() -> Vec<String> {
     vec![Dispatch::KIND.to_owned(), Deliver::KIND.to_owned()]
 }
 
-pub async fn dispatch(state: &AppState, tenant: TenantId, task: &Dispatch) -> Result<()> {
-    let mut conn = state.db.tenant(tenant).await?;
+pub async fn dispatch(state: &AppState, task: &Dispatch) -> Result<()> {
+    let mut conn = state.db.begin().await?;
 
     let event: (String,) = sqlx::query_as("select event from outbox where id = $1")
         .bind(task.outbox_id)
@@ -78,13 +77,8 @@ pub async fn dispatch(state: &AppState, tenant: TenantId, task: &Dispatch) -> Re
     Ok(())
 }
 
-pub async fn deliver(
-    state: &AppState,
-    tenant: TenantId,
-    task: &Deliver,
-    attempt: i32,
-) -> Result<()> {
-    let mut conn = state.db.tenant(tenant).await?;
+pub async fn deliver(state: &AppState, task: &Deliver, attempt: i32) -> Result<()> {
+    let mut conn = state.db.begin().await?;
 
     let event: (String, serde_json::Value, Option<String>) =
         sqlx::query_as("select event, payload, subject_id from outbox where id = $1")
@@ -120,7 +114,7 @@ pub async fn deliver(
     )
     .await;
 
-    record(&mut conn, tenant, task, attempt, &outcome).await?;
+    record(&mut conn, task, attempt, &outcome).await?;
 
     if let Sent::Answered { status, .. } = &outcome
         && (200..300).contains(status)
@@ -202,13 +196,7 @@ async fn try_send(
     })
 }
 
-async fn record(
-    conn: &mut TenantConn,
-    tenant: TenantId,
-    task: &Deliver,
-    attempt: i32,
-    outcome: &Sent,
-) -> Result<()> {
+async fn record(conn: &mut Tx, task: &Deliver, attempt: i32, outcome: &Sent) -> Result<()> {
     let (status, response, failure) = match outcome {
         Sent::Answered { status, body } => (Some(*status), Some(body.clone()), None),
         Sent::Failed(why) => (None, None, Some(why.clone())),
@@ -216,10 +204,9 @@ async fn record(
 
     sqlx::query(
         "insert into webhook_deliveries
-             (tenant_id, endpoint_id, outbox_id, attempt, status_code, response, failure)
-         values ($1, $2, $3, $4, $5, $6, $7)",
+             (endpoint_id, outbox_id, attempt, status_code, response, failure)
+         values ($1, $2, $3, $4, $5, $6)",
     )
-    .bind(tenant.0)
     .bind(task.endpoint_id)
     .bind(task.outbox_id)
     .bind(attempt)

@@ -6,7 +6,6 @@
 use std::path::{Path, PathBuf};
 
 use super::error::{AppError, Result};
-use super::tenant::TenantId;
 use crate::kernel::say;
 
 /// Where uploaded bytes live. A local folder now; an object store is another
@@ -39,21 +38,21 @@ impl Store {
         Store::Disk(LocalDisk::at(directory))
     }
 
-    pub async fn put(&self, tenant: TenantId, location: &str, bytes: Vec<u8>) -> Result<()> {
+    pub async fn put(&self, location: &str, bytes: Vec<u8>) -> Result<()> {
         match self {
-            Store::Disk(disk) => disk.put(tenant, location, bytes).await,
+            Store::Disk(disk) => disk.put(location, bytes).await,
         }
     }
 
-    pub async fn get(&self, tenant: TenantId, location: &str) -> Result<Vec<u8>> {
+    pub async fn get(&self, location: &str) -> Result<Vec<u8>> {
         match self {
-            Store::Disk(disk) => disk.get(tenant, location).await,
+            Store::Disk(disk) => disk.get(location).await,
         }
     }
 
-    pub async fn delete(&self, tenant: TenantId, location: &str) -> Result<()> {
+    pub async fn delete(&self, location: &str) -> Result<()> {
         match self {
-            Store::Disk(disk) => disk.delete(tenant, location).await,
+            Store::Disk(disk) => disk.delete(location).await,
         }
     }
 }
@@ -69,10 +68,11 @@ impl LocalDisk {
         Self { root: root.into() }
     }
 
-    /// A path built from the tenant and a name this process chose, never from
-    /// anything a caller sent. The check is here anyway, because the day
-    /// somebody passes one through is the day it matters.
-    fn path(&self, tenant: TenantId, location: &str) -> Result<PathBuf> {
+    /// A path built from a name this process chose, never from anything a
+    /// caller sent. The check is here anyway, because the day somebody passes
+    /// one through is the day it matters — and it is the reason this function
+    /// survived losing the site it used to sit under.
+    fn path(&self, location: &str) -> Result<PathBuf> {
         let safe = location
             .split('/')
             .all(|part| !part.is_empty() && part != "." && part != ".." && !part.contains('\\'));
@@ -81,11 +81,11 @@ impl LocalDisk {
             return Err(AppError::Invalid(say::NOT_PLACE.into()));
         }
 
-        Ok(self.root.join(tenant.0.to_string()).join(location))
+        Ok(self.root.join(location))
     }
 
-    async fn put(&self, tenant: TenantId, location: &str, bytes: Vec<u8>) -> Result<()> {
-        let path = self.path(tenant, location)?;
+    async fn put(&self, location: &str, bytes: Vec<u8>) -> Result<()> {
+        let path = self.path(location)?;
 
         if let Some(parent) = path.parent() {
             tokio::fs::create_dir_all(parent)
@@ -96,14 +96,14 @@ impl LocalDisk {
         write(&path, bytes).await
     }
 
-    async fn get(&self, tenant: TenantId, location: &str) -> Result<Vec<u8>> {
-        tokio::fs::read(self.path(tenant, location)?)
+    async fn get(&self, location: &str) -> Result<Vec<u8>> {
+        tokio::fs::read(self.path(location)?)
             .await
             .map_err(|_| AppError::NotFound("file"))
     }
 
-    async fn delete(&self, tenant: TenantId, location: &str) -> Result<()> {
-        match tokio::fs::remove_file(self.path(tenant, location)?).await {
+    async fn delete(&self, location: &str) -> Result<()> {
+        match tokio::fs::remove_file(self.path(location)?).await {
             Ok(()) => Ok(()),
             // Already gone is the state that was wanted.
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
@@ -230,10 +230,9 @@ mod tests {
     #[test]
     fn a_place_is_never_somewhere_else() {
         let disk = LocalDisk::at("/tmp/nowhere");
-        let tenant = TenantId(uuid::Uuid::now_v7());
 
-        assert!(disk.path(tenant, "../../etc/passwd").is_err());
-        assert!(disk.path(tenant, "a//b").is_err());
-        assert!(disk.path(tenant, "fine/enough.png").is_ok());
+        assert!(disk.path("../../etc/passwd").is_err());
+        assert!(disk.path("a//b").is_err());
+        assert!(disk.path("fine/enough.png").is_ok());
     }
 }

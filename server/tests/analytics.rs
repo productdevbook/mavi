@@ -6,20 +6,18 @@ use http_body_util::BodyExt;
 use mavi::kernel::authz::every_grant;
 use mavi::kernel::db::Db;
 use mavi::kernel::http::AppState;
-use mavi::kernel::tenant::TenantId;
 use tower::ServiceExt;
 use uuid::Uuid;
 
 mod common;
 
 use common::harness;
-use mavi::testing::{a_role, a_tenant, a_user};
+use mavi::testing::{a_role, a_user};
 
 struct Site {
     db: Db,
     router: axum::Router,
     host: String,
-    tenant: TenantId,
     token: String,
 }
 
@@ -34,10 +32,9 @@ fn a_peer(last: u8) -> std::net::SocketAddr {
 async fn a_site() -> Site {
     let db = harness().await;
     let host = format!("{}.example", Uuid::now_v7().simple());
-    let tenant = a_tenant(&db, &host).await;
-    let role = a_role(&db, tenant, "owner", &every_grant()).await;
+    let role = a_role(&db, "owner", &every_grant()).await;
     let password = "a long enough password";
-    let (_, email) = a_user(&db, tenant, role, password).await;
+    let (_, email) = a_user(&db, role, password).await;
 
     let router = mavi::router(AppState::new(db.clone()));
 
@@ -71,7 +68,6 @@ async fn a_site() -> Site {
         db,
         router,
         host,
-        tenant,
         token: body["token"].as_str().expect("a token").to_owned(),
     }
 }
@@ -145,7 +141,7 @@ async fn nothing_kept_says_who_anybody_was() {
     let site = a_site().await;
     site.read("/", a_peer(7)).await;
 
-    let mut conn = site.db.tenant(site.tenant).await.expect("begin");
+    let mut conn = site.db.begin().await.expect("begin");
 
     // The columns are the day, the path and a hash. There is nowhere for an
     // address to be, which is the point.
@@ -172,7 +168,7 @@ async fn what_a_browser_measured_is_kept_beside_the_count() {
     let site = a_site().await;
     site.read("/", a_peer(3)).await;
 
-    let mut conn = site.db.tenant(site.tenant).await.expect("begin");
+    let mut conn = site.db.begin().await.expect("begin");
 
     let measured: (i64, i32) =
         sqlx::query_as("select count(*), max(value) from vitals where kind = 'lcp'")
@@ -208,7 +204,7 @@ async fn a_measurement_that_is_not_one_is_left_out() {
 
     assert_eq!(status, StatusCode::NO_CONTENT);
 
-    let mut conn = site.db.tenant(site.tenant).await.expect("begin");
+    let mut conn = site.db.begin().await.expect("begin");
 
     let kept: (i64,) = sqlx::query_as("select count(*) from vitals")
         .fetch_one(conn.conn())
@@ -226,7 +222,7 @@ async fn yesterday_s_marks_go_and_the_counts_stay() {
     let site = a_site().await;
     site.read("/", a_peer(5)).await;
 
-    let mut conn = site.db.tenant(site.tenant).await.expect("begin");
+    let mut conn = site.db.begin().await.expect("begin");
     sqlx::query("update visitor_marks set on_day = current_date - 5")
         .execute(conn.conn())
         .await
@@ -234,9 +230,7 @@ async fn yesterday_s_marks_go_and_the_counts_stay() {
     conn.commit().await.expect("commit");
 
     let state = AppState::new(site.db.clone());
-    let taken = mavi::analytics::sweep_marks(&state, site.tenant)
-        .await
-        .expect("sweep");
+    let taken = mavi::analytics::sweep_marks(&state).await.expect("sweep");
 
     assert_eq!(taken, 1);
 

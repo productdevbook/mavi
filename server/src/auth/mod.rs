@@ -104,8 +104,6 @@ pub struct Me {
     pub grants: Vec<String>,
     /// What the site is called, for the tab and the header.
     pub site: String,
-    /// `active`, or `on_hold` for a site that may be read and not written.
-    pub site_state: String,
 }
 
 async fn sign_in(
@@ -114,7 +112,7 @@ async fn sign_in(
     headers: HeaderMap,
     Json(credentials): Json<Credentials>,
 ) -> Result<Audited<Response>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let found: Option<StoredUser> = sqlx::query_as(
         "select u.id, u.email, u.name, r.key, r.grants, u.password_hash
@@ -141,8 +139,7 @@ async fn sign_in(
 
     second::demand(&state, &mut conn, id, credentials.code.as_deref()).await?;
 
-    let (secret, expires_at) =
-        open_session(&state, &mut conn, caller.tenant(), id, &headers).await?;
+    let (secret, expires_at) = open_session(&state, &mut conn, id, &headers).await?;
 
     let receipt = audit::record_raw(
         &mut conn,
@@ -158,7 +155,7 @@ async fn sign_in(
     )
     .await?;
 
-    let (site_state, site_name) = site_of(&mut conn, caller.tenant()).await?;
+    let site_name = site_named(&mut conn).await?;
 
     conn.commit().await?;
 
@@ -172,7 +169,6 @@ async fn sign_in(
             role,
             grants,
             site: site_name,
-            site_state,
         },
     };
 
@@ -192,8 +188,7 @@ async fn sign_in(
 /// account — they leave with the same thing, made the same way.
 pub(crate) async fn open_session(
     state: &AppState,
-    conn: &mut crate::kernel::db::TenantConn,
-    tenant: crate::kernel::tenant::TenantId,
+    conn: &mut crate::kernel::db::Tx,
     user_id: Uuid,
     headers: &HeaderMap,
 ) -> Result<(String, DateTime<Utc>)> {
@@ -212,10 +207,9 @@ pub(crate) async fn open_session(
         .await?;
 
     sqlx::query(
-        "insert into sessions (tenant_id, user_id, token_hash, expires_at, user_agent)
-         values ($1, $2, $3, $4, $5)",
+        "insert into sessions (user_id, token_hash, expires_at, user_agent)
+         values ($1, $2, $3, $4)",
     )
-    .bind(tenant.0)
     .bind(user_id)
     .bind(&token::hash(&secret)[..])
     .bind(expires_at)
@@ -228,7 +222,7 @@ pub(crate) async fn open_session(
 
 async fn sign_out(State(state): State<AppState>, caller: Caller) -> Result<Audited<Response>> {
     let user = caller.user.as_ref().ok_or(AppError::Unauthenticated)?;
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     sqlx::query("update sessions set revoked_at = now() where id = $1 and revoked_at is null")
         .bind(user.session_id)
@@ -255,7 +249,7 @@ async fn sign_out(State(state): State<AppState>, caller: Caller) -> Result<Audit
 
 async fn me(State(state): State<AppState>, caller: Caller) -> Result<Json<Me>> {
     let user = caller.user.as_ref().ok_or(AppError::Unauthenticated)?;
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let row: (Uuid, String, String, String, Vec<String>) = sqlx::query_as(
         "select u.id, u.email, u.name, r.key, r.grants
@@ -266,9 +260,7 @@ async fn me(State(state): State<AppState>, caller: Caller) -> Result<Json<Me>> {
     .fetch_one(conn.conn())
     .await?;
 
-    // What state the site itself is in. A panel that does not know a site is
-    // on hold offers every button and is refused by all of them.
-    let (site_state, site) = site_of(&mut conn, caller.tenant()).await?;
+    let site = site_named(&mut conn).await?;
 
     conn.commit().await?;
 
@@ -279,25 +271,20 @@ async fn me(State(state): State<AppState>, caller: Caller) -> Result<Json<Me>> {
         role: row.3,
         grants: row.4,
         site,
-        site_state,
     }))
 }
 
-/// What state the site is in and what it is called, for whoever just arrived.
-pub(super) async fn site_of(
-    conn: &mut crate::kernel::db::TenantConn,
-    tenant: crate::kernel::TenantId,
-) -> Result<(String, String)> {
-    let row: (String, Option<String>) = sqlx::query_as(
-        "select t.state::text, s.name
-           from tenants t left join site_settings s on s.tenant_id = t.id
-          where t.id = $1",
-    )
-    .bind(tenant.0)
-    .fetch_one(conn.conn())
-    .await?;
+/// What the site is called, for whoever just arrived.
+///
+/// It answered what state the site was in as well, which was `live` or
+/// `suspended` — a lever whoever ran the machine held over whoever ran the
+/// site. There is one of those people now.
+pub(super) async fn site_named(conn: &mut crate::kernel::db::Tx) -> Result<String> {
+    let row: Option<(String,)> = sqlx::query_as("select name from site_settings")
+        .fetch_optional(conn.conn())
+        .await?;
 
-    Ok((row.0, row.1.unwrap_or_default()))
+    Ok(row.map(|row| row.0).unwrap_or_default())
 }
 
 pub(crate) fn with_cookie(mut response: Response, value: &str, max_age: i64) -> Result<Response> {

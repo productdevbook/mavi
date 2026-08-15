@@ -107,45 +107,35 @@ pub fn assert_schedules_are_runnable(outside: &Outside) {
 }
 
 pub async fn run(state: &AppState, job: &Job) -> Result<()> {
-    let tenant = job.tenant_id.ok_or(AppError::Bug(
-        "this work belongs to a tenant and arrived without one",
-    ))?;
-
     match job.kind.as_str() {
-        Dispatch::KIND => webhooks::dispatch(state, tenant, &job.task::<Dispatch>()?).await,
-        Deliver::KIND => {
-            webhooks::deliver(state, tenant, &job.task::<Deliver>()?, job.attempts).await
-        }
-        forms::Sweep::KIND => forms::sweep(state, tenant).await.map(|_| ()),
-        media::HandOver::KIND => media::hand_over(state, tenant, job).await,
-        health::CheckDomains::KIND => health::run(state, tenant, job).await,
-        SweepSessions::KIND => housekeeping::sweep_sessions(state, tenant)
+        Dispatch::KIND => webhooks::dispatch(state, &job.task::<Dispatch>()?).await,
+        Deliver::KIND => webhooks::deliver(state, &job.task::<Deliver>()?, job.attempts).await,
+        forms::Sweep::KIND => forms::sweep(state).await.map(|_| ()),
+        media::HandOver::KIND => media::hand_over(state, job).await,
+        health::CheckDomains::KIND => health::run(state, job).await,
+        SweepSessions::KIND => housekeeping::sweep_sessions(state).await.map(|_| ()),
+        SweepAudit::KIND => housekeeping::sweep_audit(state).await.map(|_| ()),
+        SweepDeliveries::KIND => housekeeping::sweep_deliveries(state).await.map(|_| ()),
+        SweepReports::KIND => housekeeping::sweep_reports(state).await.map(|_| ()),
+        shop::ReleaseHolds::KIND => shop::release_holds(state).await.map(|_| ()),
+        shop::DropStuck::KIND => shop::drop_stuck(state).await.map(|_| ()),
+        shop::WarnOnLowStock::KIND => shop::warn_on_low_stock(state).await.map(|_| ()),
+        shop::SweepOrders::KIND => shop::sweep_orders(state).await.map(|_| ()),
+        shop::Reconcile::KIND => shop::reconcile(state).await.map(|_| ()),
+        mail::SendBatch::KIND => mail::send_batch(state, &job.task::<mail::SendBatch>()?)
             .await
             .map(|_| ()),
-        SweepAudit::KIND => housekeeping::sweep_audit(state, tenant).await.map(|_| ()),
-        SweepDeliveries::KIND => housekeeping::sweep_deliveries(state, tenant)
+        mail::SweepLog::KIND => mail::sweep_log(state).await.map(|_| ()),
+        mail::Deliver::KIND => mail::deliver(state, &job.task::<mail::Deliver>()?).await,
+        flows::Start::KIND => flows::start(state, &job.task::<flows::Start>()?)
             .await
             .map(|_| ()),
-        SweepReports::KIND => housekeeping::sweep_reports(state, tenant).await.map(|_| ()),
-        shop::ReleaseHolds::KIND => shop::release_holds(state, tenant).await.map(|_| ()),
-        shop::DropStuck::KIND => shop::drop_stuck(state, tenant).await.map(|_| ()),
-        shop::WarnOnLowStock::KIND => shop::warn_on_low_stock(state, tenant).await.map(|_| ()),
-        shop::SweepOrders::KIND => shop::sweep_orders(state, tenant).await.map(|_| ()),
-        shop::Reconcile::KIND => shop::reconcile(state, tenant).await.map(|_| ()),
-        mail::SendBatch::KIND => mail::send_batch(state, tenant, &job.task::<mail::SendBatch>()?)
-            .await
-            .map(|_| ()),
-        mail::SweepLog::KIND => mail::sweep_log(state, tenant).await.map(|_| ()),
-        mail::Deliver::KIND => mail::deliver(state, tenant, &job.task::<mail::Deliver>()?).await,
-        flows::Start::KIND => flows::start(state, tenant, &job.task::<flows::Start>()?)
-            .await
-            .map(|_| ()),
-        flows::Step::KIND => flows::step(state, tenant, &job.task::<flows::Step>()?).await,
-        analytics::SweepMarks::KIND => analytics::sweep_marks(state, tenant).await.map(|_| ()),
-        content::PublishDue::KIND => content::publish_due(state, tenant).await.map(|_| ()),
-        trash::Empty::KIND => trash::empty(state, tenant).await.map(|_| ()),
+        flows::Step::KIND => flows::step(state, &job.task::<flows::Step>()?).await,
+        analytics::SweepMarks::KIND => analytics::sweep_marks(state).await.map(|_| ()),
+        content::PublishDue::KIND => content::publish_due(state).await.map(|_| ()),
+        trash::Empty::KIND => trash::empty(state).await.map(|_| ()),
         publishing::Build::KIND => {
-            publishing::build(state, tenant, &job.task::<publishing::Build>()?).await
+            publishing::build(state, &job.task::<publishing::Build>()?).await
         }
         kind => match state
             .outside
@@ -161,17 +151,7 @@ pub async fn run(state: &AppState, job: &Job) -> Result<()> {
 
 /// Takes one piece of work if there is any, and says whether it found one.
 pub async fn tick(state: &AppState, worker: &str) -> Result<bool> {
-    tick_within(state, worker, None).await
-}
-
-/// The same, for a worker that has been given one site to look after.
-pub async fn tick_within(
-    state: &AppState,
-    worker: &str,
-    tenant: Option<crate::kernel::TenantId>,
-) -> Result<bool> {
-    let Some(job) = queue::claim_within(&state.db, worker, &kinds(&state.outside), tenant).await?
-    else {
+    let Some(job) = queue::claim(&state.db, worker, &kinds(&state.outside)).await? else {
         return Ok(false);
     };
 
@@ -217,15 +197,14 @@ mod tests {
         for kind in super::kinds(&state.outside) {
             let job = Job {
                 id: uuid::Uuid::now_v7(),
-                tenant_id: Some(crate::kernel::TenantId(uuid::Uuid::nil())),
                 kind: kind.clone(),
                 payload: serde_json::json!({}),
                 attempts: 1,
                 max_attempts: 5,
             };
 
-            // What it does with a tenant that is not one is its own business;
-            // what is being asked is only whether anything claims it at all.
+            // What it does with an empty payload is its own business; what is
+            // being asked is only whether anything claims it at all.
             let outcome = super::run(&state, &job).await;
 
             assert!(

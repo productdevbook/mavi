@@ -26,11 +26,9 @@ use super::db::Db;
 use super::error::{AppError, Result};
 use super::outside::Outside;
 use super::ratelimit::{self, Limit};
-use super::tenant::{TenantId, the_site};
 
 pub const USER_COOKIE: &str = "mavi_user";
 pub const STUDENT_COOKIE: &str = "mavi_student";
-pub const OPERATOR_COOKIE: &str = "mavi_operator";
 pub const REQUEST_ID_HEADER: HeaderName = HeaderName::from_static("x-request-id");
 
 #[derive(Clone, Debug)]
@@ -139,34 +137,8 @@ impl AppState {
 pub struct RequestId(pub Uuid);
 
 /// Whoever runs the machine, on a request to its own screens.
-#[derive(Clone, Copy, Debug)]
-pub struct Console {
-    pub operator_id: Option<Uuid>,
-    pub request_id: RequestId,
-    pub ip: Option<std::net::IpAddr>,
-}
-
-impl Console {
-    pub fn require_operator(&self) -> Result<Uuid> {
-        self.operator_id.ok_or(AppError::Unauthenticated)
-    }
-}
-
-impl<S: Send + Sync> FromRequestParts<S> for Console {
-    type Rejection = AppError;
-
-    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self> {
-        parts
-            .extensions
-            .get::<Console>()
-            .copied()
-            .ok_or(AppError::Unauthenticated)
-    }
-}
-
 #[derive(Clone, Debug)]
 pub struct Caller {
-    pub site: TenantId,
     pub request_id: RequestId,
     pub ip: Option<String>,
     pub user: Option<SignedIn>,
@@ -191,11 +163,6 @@ pub struct SignedIn {
 }
 
 impl Caller {
-    #[must_use]
-    pub fn tenant(&self) -> TenantId {
-        self.site
-    }
-
     /// Who is asking, where a handler needs them to be somebody.
     pub fn require_user(&self) -> Result<&SignedIn> {
         self.user.as_ref().ok_or(AppError::Unauthenticated)
@@ -209,20 +176,14 @@ impl Caller {
     /// capability and nothing about whose the row is; only the handler that
     /// has read it does, which is why record-level questions are asked here.
     pub fn may(&self, needs: Needs, owner: Option<Uuid>) -> Result<Permit> {
-        authz::check(
-            &self.principal()?,
-            needs,
-            authz::Resource::Site { id: self.site.0 },
-            owner,
-        )
+        authz::check(&self.principal()?, needs, owner)
     }
 
     pub fn principal(&self) -> Result<Principal> {
         let user = self.user.as_ref().ok_or(AppError::Unauthenticated)?;
 
-        Ok(Principal::SiteUser {
+        Ok(Principal {
             id: user.user_id,
-            site: self.site.0,
             grants: user.grants.clone(),
         })
     }
@@ -260,10 +221,6 @@ pub enum Audience {
     User,
     Student,
     Public,
-    /// The machine's own screens. Whoever runs the machine is not somebody
-    /// on the site, so these are reached through a layer of their own, and a
-    /// site's grants never add up to one of them.
-    Operator,
 }
 
 /// Named rather than optional, so choosing no limit is a choice somebody made.
@@ -432,10 +389,7 @@ struct Declared {
     domain: &'static str,
 }
 
-/// One router. What told a site's endpoints from the console's was the address
-/// each was reached on, and no address decides anything now — so what is left
-/// is which of the two an endpoint declared itself to be, said once per
-/// endpoint rather than once per router.
+/// One router, one way in.
 pub fn mount(state: AppState, endpoints: Vec<Endpoint>) -> Router {
     let mut router = Router::new();
 
@@ -448,29 +402,16 @@ pub fn mount(state: AppState, endpoints: Vec<Endpoint>) -> Router {
         };
 
         // The identifying layer goes on second so it runs first: who is asking
-        // is decided before what they may do, and the console's caller is not
-        // a site's.
-        let guarded = if declared.guard.audience == Audience::Operator {
-            endpoint
-                .router
-                .route_layer(from_fn_with_state(
-                    state.clone(),
-                    move |state: State<AppState>, request: Request, next: Next| {
-                        admit_operator(state, declared, request, next)
-                    },
-                ))
-                .route_layer(from_fn_with_state(state.clone(), identify_operator))
-        } else {
-            endpoint
-                .router
-                .route_layer(from_fn_with_state(
-                    state.clone(),
-                    move |state: State<AppState>, request: Request, next: Next| {
-                        admit(state, declared, request, next)
-                    },
-                ))
-                .route_layer(from_fn_with_state(state.clone(), identify))
-        };
+        // is decided before what they may do.
+        let guarded = endpoint
+            .router
+            .route_layer(from_fn_with_state(
+                state.clone(),
+                move |state: State<AppState>, request: Request, next: Next| {
+                    admit(state, declared, request, next)
+                },
+            ))
+            .route_layer(from_fn_with_state(state.clone(), identify));
 
         router = router.route(endpoint.path, guarded);
     }
@@ -511,7 +452,7 @@ pub fn mount(state: AppState, endpoints: Vec<Endpoint>) -> Router {
 /// traffic to a pod that cannot serve it.
 async fn ready(State(state): State<AppState>) -> Response {
     let asked = tokio::time::timeout(std::time::Duration::from_secs(2), async {
-        let mut conn = state.db.operator().await?;
+        let mut conn = state.db.begin().await?;
         sqlx::query("select 1").execute(conn.conn()).await?;
         conn.commit().await
     })
@@ -537,12 +478,10 @@ async fn identify(
 ) -> Result<Response> {
     let request_id = RequestId(Uuid::now_v7());
 
-    let site = the_site(&state.db).await?;
     let ip = client_ip(&request, state.proxy_hops);
 
-    // Not which site this is — that is not a question any more — but which
-    // address the browser thinks it is on, which is the whole of the check
-    // below.
+    // Which address the browser thinks it is on, which is the whole of the
+    // check below. Nothing here asks which site that address is: there is one.
     let host = request
         .headers()
         .get(HOST)
@@ -559,19 +498,18 @@ async fn identify(
 
     let token = bearer(&request).or_else(|| cookie(&request, USER_COOKIE));
     let user = match token {
-        Some(token) => session_of(&state.db, site, &token).await?,
+        Some(token) => session_of(&state.db, &token).await?,
         None => None,
     };
 
     // A student's token is looked for separately and never in the same place:
     // one cookie is not the other, and a bearer token is a panel account's.
     let student = match cookie(&request, STUDENT_COOKIE) {
-        Some(token) => student_session(&state.db, site, &token).await?,
+        Some(token) => student_session(&state.db, &token).await?,
         None => None,
     };
 
     request.extensions_mut().insert(Caller {
-        site,
         request_id,
         ip,
         user,
@@ -642,19 +580,11 @@ async fn admitting(
             .map(|user| user.user_id.to_string())
             .or_else(|| caller.ip.clone())
     {
-        ratelimit::spend(
-            &state.db,
-            &format!("{}:{}:{who}", caller.tenant(), declared.path),
-            limit,
-        )
-        .await?;
+        ratelimit::spend(&state.db, &format!("{}:{who}", declared.path), limit).await?;
     }
 
     match declared.guard.audience {
         Audience::Public => {}
-        // Admitted through `admit_operator` instead; a route reaching here
-        // saying it is the console's is one mounted the wrong way round.
-        Audience::Operator => return Err(AppError::Forbidden),
         Audience::User => {
             if caller.user.is_none() {
                 return Err(AppError::Unauthenticated);
@@ -669,8 +599,6 @@ async fn admitting(
 
     if let Some(needs) = declared.guard.needs {
         let principal = caller.principal()?;
-        let resource = authz::Resource::Site { id: caller.site.0 };
-
         // The caller as the owner, because at this point there is no record to
         // ask about — a post being written does not exist yet, and somebody
         // holding only `content:write:own` is entitled to write one. What that
@@ -680,7 +608,7 @@ async fn admitting(
         // where an author is told no about somebody else's.
         let owner = caller.user.as_ref().map(|user| user.user_id);
 
-        match authz::check(&principal, needs, resource, owner) {
+        match authz::check(&principal, needs, owner) {
             Ok(permit) => {
                 request.extensions_mut().insert(permit);
             }
@@ -711,153 +639,17 @@ async fn admitting(
     Ok(response)
 }
 
-async fn identify_operator(
-    State(state): State<AppState>,
-    mut request: Request,
-    next: Next,
-) -> Result<Response> {
-    let request_id = RequestId(Uuid::now_v7());
-
-    if bearer(&request).is_none() && cookie(&request, OPERATOR_COOKIE).is_some() {
-        let host = request
-            .headers()
-            .get(HOST)
-            .and_then(|value| value.to_str().ok())
-            .unwrap_or_default()
-            .to_owned();
-
-        super::browser::asked_by_this_site(request.method(), request.headers(), &host)?;
-    }
-
-    let token = bearer(&request).or_else(|| cookie(&request, OPERATOR_COOKIE));
-
-    let operator_id = match token {
-        Some(token) => operator_session(&state.db, &token).await?,
-        None => None,
-    };
-
-    let ip = client_ip(&request, state.proxy_hops).and_then(|ip| ip.parse().ok());
-
-    request.extensions_mut().insert(Console {
-        operator_id,
-        request_id,
-        ip,
-    });
-
-    let mut response = next.run(request).await;
-
-    response.headers_mut().insert(
-        REQUEST_ID_HEADER,
-        request_id
-            .0
-            .to_string()
-            .parse()
-            .map_err(|_| AppError::Bug("a request id is always a header value"))?,
-    );
-
-    Ok(response)
-}
-
-async fn admit_operator(
-    state: State<AppState>,
-    declared: Declared,
-    request: Request,
-    next: Next,
-) -> Result<Response> {
-    use tracing::Instrument as _;
-
-    let span = tracing::info_span!(
-        "domain",
-        domain = declared.domain,
-        route = declared.path,
-        method = declared.method,
-    );
-
-    let answered = admitting_operator(state, declared, request, next)
-        .instrument(span)
-        .await;
-
-    super::metrics::domain_answered(declared.domain, answered.is_ok());
-
-    answered
-}
-
-async fn admitting_operator(
-    State(state): State<AppState>,
-    declared: Declared,
-    request: Request,
-    next: Next,
-) -> Result<Response> {
-    let console = request
-        .extensions()
-        .get::<Console>()
-        .copied()
-        .ok_or(AppError::Unauthenticated)?;
-
-    // Whoever is asking, not "the console": one bucket for every sign-in
-    // attempt on the machine is a way to lock the operator out by trying five
-    // times from anywhere. With nobody identifiable — a request on a socket
-    // nothing said the peer of, which in practice is a test — there is nobody
-    // to count, and the sign-in itself counts by the account being aimed at.
-    if let RatePolicy::Per(limit) = declared.guard.rate
-        && let Some(who) = console
-            .operator_id
-            .map(|id| id.to_string())
-            .or_else(|| console.ip.map(|ip| ip.to_string()))
-    {
-        ratelimit::spend(
-            &state.db,
-            &format!("console:{}:{who}", declared.path),
-            limit,
-        )
-        .await?;
-    }
-
-    // Everything but signing in wants somebody signed in. There is no grant to
-    // check: an operator is not a role on a site.
-    if console.operator_id.is_none() && declared.guard.needs.is_some() {
-        return Err(AppError::Unauthenticated);
-    }
-
-    Ok(next.run(request).await)
-}
-
-async fn operator_session(db: &Db, token: &str) -> Result<Option<Uuid>> {
-    let hash = super::token::hash(token);
-    let mut conn = db.operator().await?;
-
-    let row: Option<(Uuid,)> = sqlx::query_as(
-        "update operator_sessions s
-            set last_seen_at = now()
-           from operators o
-          where s.token_hash = $1
-            and s.operator_id = o.id
-            and s.revoked_at is null
-            and s.expires_at > now()
-            and o.active
-         returning o.id",
-    )
-    .bind(&hash[..])
-    .fetch_optional(conn.conn())
-    .await?;
-
-    conn.commit().await?;
-
-    Ok(row.map(|(id,)| id))
-}
-
 /// "Why could I not get in" is a question with an answer in the log.
 async fn refused(state: &AppState, caller: &Caller, path: &str, needs: Needs) {
-    let Ok(mut conn) = state.db.tenant(caller.tenant()).await else {
+    let Ok(mut conn) = state.db.begin().await else {
         return;
     };
 
     let written = sqlx::query(
         "insert into audit_log
-             (tenant_id, actor_id, actor_kind, action, subject, subject_id, after, request_id)
-         values ($1, $2, 'user', 'refused', 'permission', $3, $4, $5)",
+             (actor_id, actor_kind, action, subject, subject_id, after, request_id)
+         values ($1, 'user', 'refused', 'permission', $2, $3, $4)",
     )
-    .bind(caller.tenant().0)
     .bind(caller.user.as_ref().map(|user| user.user_id))
     .bind(needs.grant())
     .bind(serde_json::json!({ "path": path }))
@@ -870,9 +662,9 @@ async fn refused(state: &AppState, caller: &Caller, path: &str, needs: Needs) {
     }
 }
 
-async fn session_of(db: &Db, tenant: TenantId, token: &str) -> Result<Option<SignedIn>> {
+async fn session_of(db: &Db, token: &str) -> Result<Option<SignedIn>> {
     let hash = super::token::hash(token);
-    let mut conn = db.tenant(tenant).await?;
+    let mut conn = db.begin().await?;
 
     let row: Option<(Uuid, Uuid, String, Vec<String>)> = sqlx::query_as(
         "update sessions s
@@ -901,13 +693,9 @@ async fn session_of(db: &Db, tenant: TenantId, token: &str) -> Result<Option<Sig
     }))
 }
 
-async fn student_session(
-    db: &Db,
-    tenant: TenantId,
-    token: &str,
-) -> Result<Option<SignedInStudent>> {
+async fn student_session(db: &Db, token: &str) -> Result<Option<SignedInStudent>> {
     let hash = super::token::hash(token);
-    let mut conn = db.tenant(tenant).await?;
+    let mut conn = db.begin().await?;
 
     let row: Option<(Uuid, Uuid)> = sqlx::query_as(
         "update student_sessions s

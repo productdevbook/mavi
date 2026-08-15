@@ -7,30 +7,27 @@ use http_body_util::BodyExt;
 use mavi::kernel::authz::every_grant;
 use mavi::kernel::db::Db;
 use mavi::kernel::http::AppState;
-use mavi::kernel::tenant::TenantId;
 use tower::ServiceExt;
 use uuid::Uuid;
 
 mod common;
 
 use common::harness;
-use mavi::testing::{a_role, a_tenant, a_user};
+use mavi::testing::{a_role, a_user};
 
 struct Site {
     db: Db,
     router: axum::Router,
     host: String,
-    tenant: TenantId,
     token: String,
 }
 
 async fn a_site() -> Site {
     let db = harness().await;
     let host = format!("{}.example", Uuid::now_v7().simple());
-    let tenant = a_tenant(&db, &host).await;
-    let role = a_role(&db, tenant, "owner", &every_grant()).await;
+    let role = a_role(&db, "owner", &every_grant()).await;
     let password = "a long enough password";
-    let (_, email) = a_user(&db, tenant, role, password).await;
+    let (_, email) = a_user(&db, role, password).await;
 
     let router = mavi::router(AppState::new(db.clone()));
 
@@ -64,7 +61,6 @@ async fn a_site() -> Site {
         db,
         router,
         host,
-        tenant,
         token: body["token"].as_str().expect("a token").to_owned(),
     }
 }
@@ -139,9 +135,7 @@ async fn what_is_served_changes_when_a_publish_says_so() {
     assert_eq!(status, StatusCode::ACCEPTED, "{publish}");
 
     let state = AppState::new(site.db.clone());
-    mavi::jobs::tick_within(&state, "test", Some(site.tenant))
-        .await
-        .expect("tick");
+    mavi::jobs::tick(&state, "test").await.expect("tick");
 
     let (_, live) = site
         .send("GET", "/api/design/files?branch=live", None)
@@ -231,12 +225,10 @@ async fn a_publish_is_the_whole_of_a_site_rather_than_a_patch() {
     site.send("POST", "/api/design/publishes", None).await;
 
     let state = AppState::new(site.db.clone());
-    mavi::jobs::tick_within(&state, "test", Some(site.tenant))
-        .await
-        .expect("tick");
+    mavi::jobs::tick(&state, "test").await.expect("tick");
 
     // One goes away on the branch, and the next publish takes it off the site.
-    let mut conn = site.db.tenant(site.tenant).await.expect("begin");
+    let mut conn = site.db.begin().await.expect("begin");
     sqlx::query("delete from theme_files where branch = 'draft' and path = 'src/two.astro'")
         .execute(conn.conn())
         .await
@@ -244,9 +236,7 @@ async fn a_publish_is_the_whole_of_a_site_rather_than_a_patch() {
     conn.commit().await.expect("commit");
 
     site.send("POST", "/api/design/publishes", None).await;
-    mavi::jobs::tick_within(&state, "test", Some(site.tenant))
-        .await
-        .expect("tick");
+    mavi::jobs::tick(&state, "test").await.expect("tick");
 
     let (_, live) = site
         .send("GET", "/api/design/files?branch=live", None)
@@ -312,9 +302,7 @@ async fn a_build_that_fails_leaves_what_is_live_alone() {
     let mut state = AppState::new(site.db.clone());
     state.builder = std::sync::Arc::new(building_at(&builder::that(true).await));
 
-    mavi::jobs::tick_within(&state, "test", Some(site.tenant))
-        .await
-        .expect("tick");
+    mavi::jobs::tick(&state, "test").await.expect("tick");
 
     site.send(
         "PUT",
@@ -328,9 +316,7 @@ async fn a_build_that_fails_leaves_what_is_live_alone() {
     let mut state = AppState::new(site.db.clone());
     state.builder = std::sync::Arc::new(building_at(&builder::that(false).await));
 
-    mavi::jobs::tick_within(&state, "test", Some(site.tenant))
-        .await
-        .expect("tick");
+    mavi::jobs::tick(&state, "test").await.expect("tick");
 
     let (_, live) = site
         .send("GET", "/api/design/files?branch=live", None)
@@ -346,7 +332,7 @@ async fn a_build_that_fails_leaves_what_is_live_alone() {
 
     assert_eq!(history["items"][0]["state"], "failed");
 
-    let mut conn = site.db.tenant(site.tenant).await.expect("begin");
+    let mut conn = site.db.begin().await.expect("begin");
 
     let log: (Option<String>,) = sqlx::query_as("select log from publishes where state = 'failed'")
         .fetch_one(conn.conn())
@@ -383,9 +369,7 @@ async fn a_publish_can_be_told_not_to() {
     // The work is still in the queue; running it does nothing, because the
     // publish it was for is not wanted.
     let state = AppState::new(site.db.clone());
-    mavi::jobs::tick_within(&state, "test", Some(site.tenant))
-        .await
-        .expect("tick");
+    mavi::jobs::tick(&state, "test").await.expect("tick");
 
     let (_, live) = site
         .send("GET", "/api/design/files?branch=live", None)
@@ -417,9 +401,7 @@ async fn a_publish_that_finished_cannot_be_cancelled() {
     let id = publish["id"].as_str().expect("an id");
 
     let state = AppState::new(site.db.clone());
-    mavi::jobs::tick_within(&state, "test", Some(site.tenant))
-        .await
-        .expect("tick");
+    mavi::jobs::tick(&state, "test").await.expect("tick");
 
     let (status, _) = site
         .send("POST", &format!("/api/design/publishes/{id}/cancel"), None)
@@ -470,9 +452,7 @@ impl Site {
 
     async fn built(&self) {
         let state = AppState::new(self.db.clone());
-        mavi::jobs::tick_within(&state, "test", Some(self.tenant))
-            .await
-            .expect("tick");
+        mavi::jobs::tick(&state, "test").await.expect("tick");
     }
 }
 
@@ -631,9 +611,7 @@ async fn a_site_that_has_to_be_built_is_built_and_then_served() {
     assert_eq!(status, StatusCode::ACCEPTED, "{asked}");
 
     for _ in 0..4 {
-        mavi::jobs::tick_within(&state, "test", Some(site.tenant))
-            .await
-            .expect("tick");
+        mavi::jobs::tick(&state, "test").await.expect("tick");
     }
 
     let router = mavi::router(state);

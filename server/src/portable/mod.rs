@@ -3,7 +3,6 @@
 //! What a site holds, written out and read back in: languages, terms, posts.
 //! Enough to move a site or to keep a copy, and deliberately not everything —
 //! what is left out is written down rather than guessed at.
-use crate::kernel::TenantId;
 use axum::Json;
 use axum::extract::State as Injected;
 use axum::http::StatusCode;
@@ -14,7 +13,7 @@ use uuid::Uuid;
 
 use crate::kernel::audit::{self, Actor, Audited};
 use crate::kernel::authz::{Access, Capability, Needs, Permit};
-use crate::kernel::db::TenantConn;
+use crate::kernel::db::Tx;
 use crate::kernel::error::{AppError, Result};
 use crate::kernel::http::{AppState, Audience, Caller, Endpoint, Guard, RatePolicy};
 use crate::kernel::say::{self, Say};
@@ -123,10 +122,10 @@ pub struct Read {
 
 async fn export(
     Injected(state): Injected<AppState>,
-    caller: Caller,
+    _caller: Caller,
     _permit: Permit,
 ) -> Result<Json<Bundle>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
     let bundle = make(&mut conn).await?;
     conn.commit().await?;
 
@@ -135,7 +134,7 @@ async fn export(
 
 /// A site, as a bundle. Reachable from a transfer as well as from a request,
 /// which is why it takes a connection rather than a caller.
-pub async fn make(conn: &mut TenantConn) -> Result<Bundle> {
+pub async fn make(conn: &mut Tx) -> Result<Bundle> {
     let languages: Vec<Language> =
         sqlx::query("select code, name, is_default from languages order by code")
             .fetch_all(conn.conn())
@@ -217,10 +216,9 @@ async fn import(
     _permit: Permit,
     Json(bundle): Json<Bundle>,
 ) -> Result<Audited<(StatusCode, Json<Read>)>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
     let read = read_bundle(
         &mut conn,
-        caller.tenant(),
         caller.user.as_ref().map(|user| user.user_id),
         &bundle,
     )
@@ -245,12 +243,7 @@ async fn import(
 
 /// Reads a bundle into a site, and says what it did. The same work whether a
 /// person asked for it or a transfer is doing it.
-pub async fn read_bundle(
-    conn: &mut TenantConn,
-    tenant: TenantId,
-    author: Option<Uuid>,
-    bundle: &Bundle,
-) -> Result<Read> {
+pub async fn read_bundle(conn: &mut Tx, author: Option<Uuid>, bundle: &Bundle) -> Result<Read> {
     if bundle.version != VERSION {
         return Err(AppError::Invalid(
             Say::of(say::VERSION_READ_IS_NOT_VERSION_GIVEN)
@@ -263,11 +256,10 @@ pub async fn read_bundle(
 
     for language in &bundle.languages {
         read.languages += sqlx::query(
-            "insert into languages (tenant_id, code, name, is_default)
-             values ($1, $2, $3, false)
-             on conflict (tenant_id, code) do nothing",
+            "insert into languages (code, name, is_default)
+             values ($1, $2, false)
+             on conflict (code) do nothing",
         )
-        .bind(tenant.0)
         .bind(&language.code)
         .bind(&language.name)
         .execute(conn.conn())
@@ -279,23 +271,18 @@ pub async fn read_bundle(
     let mut became: HashMap<Uuid, Uuid> = HashMap::new();
 
     for term in &bundle.terms {
-        let id = read_term(conn, tenant, term, &mut read).await?;
+        let id = read_term(conn, term, &mut read).await?;
         became.insert(term.id, id);
     }
 
     for post in &bundle.posts {
-        read_post(conn, tenant, author, post, &became, &mut read).await?;
+        read_post(conn, author, post, &became, &mut read).await?;
     }
 
     Ok(read)
 }
 
-async fn read_term(
-    conn: &mut TenantConn,
-    tenant: TenantId,
-    term: &Term,
-    read: &mut Read,
-) -> Result<Uuid> {
+async fn read_term(conn: &mut Tx, term: &Term, read: &mut Read) -> Result<Uuid> {
     let existing: Option<(Uuid,)> = sqlx::query_as(
         "select id from terms where kind = $1::term_kind and language = $2 and slug = $3",
     )
@@ -311,11 +298,10 @@ async fn read_term(
     }
 
     let made: (Uuid,) = sqlx::query_as(
-        "insert into terms (tenant_id, kind, language, slug, name, description)
-         values ($1, $2::term_kind, $3, $4, $5, $6)
+        "insert into terms (kind, language, slug, name, description)
+         values ($1::term_kind, $2, $3, $4, $5)
          returning id",
     )
-    .bind(tenant.0)
     .bind(&term.kind)
     .bind(&term.language)
     .bind(&term.slug)
@@ -330,8 +316,7 @@ async fn read_term(
 }
 
 async fn read_post(
-    conn: &mut TenantConn,
-    tenant: TenantId,
+    conn: &mut Tx,
     author: Option<Uuid>,
     post: &Post,
     became: &HashMap<Uuid, Uuid>,
@@ -370,11 +355,10 @@ async fn read_post(
     // not publish forty pages the moment it lands.
     let made: (Uuid,) = sqlx::query_as(
         "insert into posts
-             (tenant_id, author_id, language, kind, slug, title, excerpt, body, fields)
-         values ($1, $2, $3, $4::post_kind, $5, $6, $7, $8, $9)
+             (author_id, language, kind, slug, title, excerpt, body, fields)
+         values ($1, $2, $3::post_kind, $4, $5, $6, $7, $8)
          returning id",
     )
-    .bind(tenant.0)
     .bind(author)
     .bind(&post.language)
     .bind(&post.kind)
@@ -404,12 +388,11 @@ async fn read_post(
         };
 
         sqlx::query(
-            "insert into post_terms (post_id, term_id, tenant_id) values ($1, $2, $3)
+            "insert into post_terms (post_id, term_id) values ($1, $2)
              on conflict do nothing",
         )
         .bind(made.0)
         .bind(here)
-        .bind(tenant.0)
         .execute(conn.conn())
         .await?;
     }

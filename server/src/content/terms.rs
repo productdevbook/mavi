@@ -13,7 +13,7 @@ use uuid::Uuid;
 use super::taxonomy;
 use crate::kernel::audit::{self, Actor, Auditable, Audited};
 use crate::kernel::authz::{self, Access};
-use crate::kernel::db::TenantConn;
+use crate::kernel::db::Tx;
 use crate::kernel::error::{AppError, Result};
 use crate::kernel::http::{AppState, Audience, Caller, Endpoint, Guard, RatePolicy};
 use crate::kernel::page::{Page, Query};
@@ -162,11 +162,11 @@ pub(super) fn endpoints() -> Vec<Endpoint> {
 
 async fn list(
     Injected(state): Injected<AppState>,
-    caller: Caller,
+    _caller: Caller,
     _permit: authz::Permit,
     HttpQuery(filter): HttpQuery<Filter>,
 ) -> Result<Json<Page<Term>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let rows: Vec<Term> = sqlx::query_as(
         "select id, kind, language, slug, name, description, parent_id, created_at
@@ -204,7 +204,7 @@ async fn create(
     _permit: authz::Permit,
     Json(body): Json<NewTerm>,
 ) -> Result<Audited<(StatusCode, Json<Term>)>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     if body.parent_id.is_some() && body.kind == TermKind::Tag {
         return Err(AppError::Invalid(say::TAG_NOT_SIT_UNDER_ANOTHER.into()));
@@ -217,11 +217,10 @@ async fn create(
     };
 
     let term: Term = sqlx::query_as(
-        "insert into terms (tenant_id, parent_id, kind, language, slug, name, description)
-         values ($1, $2, $3, $4, $5, $6, $7)
+        "insert into terms (parent_id, kind, language, slug, name, description)
+         values ($1, $2, $3, $4, $5, $6)
          returning id, kind, language, slug, name, description, parent_id, created_at",
     )
-    .bind(caller.tenant().0)
     .bind(body.parent_id)
     .bind(body.kind)
     .bind(&body.language)
@@ -258,7 +257,7 @@ async fn change(
     Path(id): Path<Uuid>,
     Json(wanted): Json<TermChanges>,
 ) -> Result<Audited<Json<Term>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
     let before = one(&mut conn, id).await?;
 
     if wanted.parent_id.is_some() && before.kind == TermKind::Tag {
@@ -320,7 +319,7 @@ async fn remove(
     _permit: authz::Permit,
     Path(id): Path<Uuid>,
 ) -> Result<Audited<StatusCode>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
     let before = one(&mut conn, id).await?;
 
     // Hard, not soft: what a term means is the posts under it, and a term
@@ -344,7 +343,7 @@ async fn remove(
     Ok(Audited::new(receipt, StatusCode::NO_CONTENT))
 }
 
-async fn one(conn: &mut TenantConn, id: Uuid) -> Result<Term> {
+async fn one(conn: &mut Tx, id: Uuid) -> Result<Term> {
     sqlx::query_as(
         "select id, kind, language, slug, name, description, parent_id, created_at
            from terms where id = $1",
@@ -365,7 +364,7 @@ async fn attach(
     Path(id): Path<Uuid>,
     Json(body): Json<Attachment>,
 ) -> Result<Audited<Json<Vec<Term>>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let post: Option<(Uuid, Option<Uuid>)> =
         sqlx::query_as("select id, author_id from posts where id = $1 and deleted_at is null")
@@ -390,11 +389,10 @@ async fn attach(
     // One statement rather than one per term: a post with forty tags is one
     // round trip either way.
     sqlx::query(
-        "insert into post_terms (post_id, term_id, tenant_id)
-         select $1, t.id, $2 from terms t where t.id = any($3)",
+        "insert into post_terms (post_id, term_id)
+         select $1, t.id from terms t where t.id = any($2)",
     )
     .bind(post_id)
-    .bind(caller.tenant().0)
     .bind(&body.term_ids)
     .execute(conn.conn())
     .await?;

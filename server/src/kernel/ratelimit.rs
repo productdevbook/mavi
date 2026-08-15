@@ -31,7 +31,7 @@ impl Limit {
 /// windows, and that is the trade this makes for a single row and no
 /// coordination.
 pub async fn spend(db: &Db, bucket: &str, limit: Limit) -> Result<()> {
-    let mut tx = db.operator().await?;
+    let mut tx = db.begin().await?;
 
     let allowed: bool = sqlx::query_scalar(
         "with window_start as (
@@ -61,7 +61,7 @@ pub async fn spend(db: &Db, bucket: &str, limit: Limit) -> Result<()> {
 /// Removes windows that have passed. Run from the scheduler; nothing reads a
 /// window once it is over, so this is only about the table's size.
 pub async fn sweep(db: &Db) -> Result<u64> {
-    let mut tx = db.operator().await?;
+    let mut tx = db.begin().await?;
 
     let removed =
         sqlx::query("delete from rate_limits where window_start < now() - interval '1 day'")

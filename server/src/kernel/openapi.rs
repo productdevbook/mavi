@@ -92,7 +92,6 @@ fn operation(endpoint: &Endpoint) -> Operation {
     // often.
     let who = match guard.audience {
         Audience::Public => "Anybody.".to_owned(),
-        Audience::Operator => "Whoever runs the machine, on its own screens.".to_owned(),
         Audience::Student => "A signed-in student.".to_owned(),
         Audience::User => match guard.needs {
             Some(needs) => format!("A panel account holding `{}`.", needs.grant()),

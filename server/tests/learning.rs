@@ -8,20 +8,18 @@ use mavi::kernel::authz::every_grant;
 use mavi::kernel::db::Db;
 use mavi::kernel::http::AppState;
 use mavi::kernel::mailer::{Mailer, Recorder};
-use mavi::kernel::tenant::TenantId;
 use tower::ServiceExt;
 use uuid::Uuid;
 
 mod common;
 
 use common::harness;
-use mavi::testing::{a_role, a_tenant, a_user};
+use mavi::testing::{a_role, a_user};
 
 struct Site {
     db: Db,
     router: axum::Router,
     host: String,
-    tenant: TenantId,
     token: String,
     post: Recorder,
 }
@@ -29,10 +27,9 @@ struct Site {
 async fn a_site() -> Site {
     let db = harness().await;
     let host = format!("{}.example", Uuid::now_v7().simple());
-    let tenant = a_tenant(&db, &host).await;
-    let role = a_role(&db, tenant, "owner", &every_grant()).await;
+    let role = a_role(&db, "owner", &every_grant()).await;
     let password = "a long enough password";
-    let (_, email) = a_user(&db, tenant, role, password).await;
+    let (_, email) = a_user(&db, role, password).await;
 
     let post = Recorder::default();
     let mut state = AppState::new(db.clone());
@@ -70,7 +67,6 @@ async fn a_site() -> Site {
         db,
         router,
         host,
-        tenant,
         token: body["token"].as_str().expect("a token").to_owned(),
         post,
     }
@@ -160,7 +156,7 @@ impl Site {
         let id: Uuid = body["id"].as_str().expect("an id").parse().expect("a uuid");
 
         // Open it, and give it something to learn.
-        let mut conn = self.db.tenant(self.tenant).await.expect("begin");
+        let mut conn = self.db.begin().await.expect("begin");
 
         sqlx::query("update courses set state = 'open' where id = $1")
             .bind(id)
@@ -168,11 +164,11 @@ impl Site {
             .await
             .expect("open");
 
-        let module = mavi::learning::add_module(&mut conn, self.tenant, id, "The First", 0)
+        let module = mavi::learning::add_module(&mut conn, id, "The First", 0)
             .await
             .expect("a module");
 
-        mavi::learning::add_lesson(&mut conn, self.tenant, module, "The First Lesson", 0)
+        mavi::learning::add_lesson(&mut conn, module, "The First Lesson", 0)
             .await
             .expect("a lesson");
 
@@ -223,9 +219,7 @@ impl Site {
         state.mailer = std::sync::Arc::new(Mailer::Recorded(self.post.clone()));
 
         for _ in 0..8 {
-            mavi::jobs::tick_within(&state, "test", Some(self.tenant))
-                .await
-                .expect("tick");
+            mavi::jobs::tick(&state, "test").await.expect("tick");
         }
 
         let letters = self.post.all();
@@ -369,7 +363,7 @@ async fn a_lesson_on_a_course_they_are_not_on_cannot_be_finished() {
     let somebody_elses = site.a_course().await;
     let cookie = site.signed_in_student(theirs).await;
 
-    let mut conn = site.db.tenant(site.tenant).await.expect("begin");
+    let mut conn = site.db.begin().await.expect("begin");
 
     let lesson: (Uuid,) = sqlx::query_as(
         "select l.id from lessons l join modules m on m.id = l.module_id
@@ -424,7 +418,7 @@ async fn a_curriculum_costs_the_same_however_many_lessons_there_are() {
         counter.count()
     };
 
-    let mut conn = site.db.tenant(site.tenant).await.expect("begin");
+    let mut conn = site.db.begin().await.expect("begin");
 
     let module: (Uuid,) = sqlx::query_as("select id from modules where course_id = $1")
         .bind(course)
@@ -433,7 +427,7 @@ async fn a_curriculum_costs_the_same_however_many_lessons_there_are() {
         .expect("a module");
 
     for position in 1..20 {
-        mavi::learning::add_lesson(&mut conn, site.tenant, module.0, "Another Lesson", position)
+        mavi::learning::add_lesson(&mut conn, module.0, "Another Lesson", position)
             .await
             .expect("a lesson");
     }
@@ -571,7 +565,7 @@ async fn access_that_was_sold_for_a_while_stops_when_it_is_over() {
     let enrolment = listed[0]["id"].as_str().expect("an id").to_owned();
 
     // The day it runs out, without waiting a month for it.
-    let mut conn = site.db.tenant(site.tenant).await.expect("begin");
+    let mut conn = site.db.begin().await.expect("begin");
 
     sqlx::query("update enrolments set ends_at = now() - interval '1 day' where id = $1")
         .bind(enrolment.parse::<Uuid>().expect("a uuid"))
@@ -915,31 +909,28 @@ async fn a_lesson_that_points_at_something_that_is_not_a_video_plays_nothing() {
 
     // A picture, uploaded the way anything is, and a video row pointed at it:
     // what a lesson plays has to be a video whatever a row says.
-    let mut conn = site.db.tenant(site.tenant).await.expect("begin");
+    let mut conn = site.db.begin().await.expect("begin");
 
     let media: (Uuid,) = sqlx::query_as(
-        "insert into media (tenant_id, location, mime, bytes, checksum, original_name)
-         values ($1, 'nowhere.png', 'image/png', 1, '\\x00'::bytea, 'a.png')
+        "insert into media (location, mime, bytes, checksum, original_name)
+         values ('nowhere.png', 'image/png', 1, '\\x00'::bytea, 'a.png')
          returning id",
     )
-    .bind(site.tenant.0)
     .fetch_one(conn.conn())
     .await
     .expect("a picture");
 
     let video: (Uuid,) = sqlx::query_as(
-        "insert into videos (tenant_id, media_id, title, state)
-         values ($1, $2, 'Not a video', 'ready') returning id",
+        "insert into videos (media_id, title, state)
+         values ($1, 'Not a video', 'ready') returning id",
     )
-    .bind(site.tenant.0)
     .bind(media.0)
     .fetch_one(conn.conn())
     .await
     .expect("a video row");
 
-    sqlx::query("update lessons set video_id = $1 where tenant_id = $2")
+    sqlx::query("update lessons set video_id = $1 ")
         .bind(video.0)
-        .bind(site.tenant.0)
         .execute(conn.conn())
         .await
         .expect("a lesson");

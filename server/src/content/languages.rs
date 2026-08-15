@@ -103,10 +103,10 @@ const COLUMNS: &str = "l.id, l.code, l.name, l.is_default,
 
 async fn list(
     Injected(state): Injected<AppState>,
-    caller: Caller,
+    _caller: Caller,
     _permit: Permit,
 ) -> Result<Json<Vec<Language>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let rows: Vec<Language> = sqlx::query_as(&format!(
         "select {COLUMNS} from languages l order by l.is_default desc, l.code"
@@ -125,7 +125,7 @@ async fn add(
     _permit: Permit,
     Json(body): Json<NewLanguage>,
 ) -> Result<Audited<(StatusCode, Json<Language>)>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let (already,): (i64,) = sqlx::query_as("select count(*) from languages")
         .fetch_one(conn.conn())
@@ -143,13 +143,12 @@ async fn add(
 
     let added: Language = sqlx::query_as(&format!(
         "with added as (
-             insert into languages (tenant_id, code, name, is_default)
-             values ($1, $2, $3, $4)
+             insert into languages (code, name, is_default)
+             values ($1, $2, $3)
              returning id, code, name, is_default
          )
          select {COLUMNS} from added l"
     ))
-    .bind(caller.tenant().0)
     .bind(&body.code)
     .bind(body.name.as_str())
     .bind(default)
@@ -179,7 +178,7 @@ async fn change(
     Path(code): Path<String>,
     Json(changes): Json<LanguageChanges>,
 ) -> Result<Audited<Json<Language>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     if changes.is_default == Some(true) {
         sqlx::query("update languages set is_default = false where is_default")
@@ -242,7 +241,7 @@ async fn remove(
     _permit: Permit,
     Path(code): Path<String>,
 ) -> Result<Audited<StatusCode>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let found: Option<(bool, i64)> = sqlx::query_as(
         "select l.is_default,

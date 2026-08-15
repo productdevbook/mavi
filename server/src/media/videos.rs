@@ -20,7 +20,6 @@ use crate::kernel::page::{Page, Query, older_than};
 use crate::kernel::queue::{self, Task};
 use crate::kernel::ratelimit::Limit;
 use crate::kernel::say;
-use crate::kernel::tenant::TenantId;
 use crate::kernel::transcoder::Handing;
 use crate::kernel::types::Title;
 
@@ -168,11 +167,11 @@ const COLUMNS: &str = "id, media_id, title, state, seconds, plays, note, created
 
 async fn list(
     Injected(state): Injected<AppState>,
-    caller: Caller,
+    _caller: Caller,
     _permit: Permit,
     HttpQuery(page): HttpQuery<Query>,
 ) -> Result<Json<Page<Video>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let rows: Vec<Video> = sqlx::query_as(&format!(
         "select {COLUMNS} from videos
@@ -195,11 +194,11 @@ async fn list(
 
 async fn read(
     Injected(state): Injected<AppState>,
-    caller: Caller,
+    _caller: Caller,
     _permit: Permit,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Video>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let found: Option<Video> = sqlx::query_as(&format!(
         "select {COLUMNS} from videos where id = $1 and deleted_at is null"
@@ -219,7 +218,7 @@ async fn add(
     _permit: Permit,
     Json(body): Json<NewVideo>,
 ) -> Result<Audited<(StatusCode, Json<Video>)>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let file: Option<(String,)> =
         sqlx::query_as("select mime from media where id = $1 and deleted_at is null")
@@ -234,11 +233,10 @@ async fn add(
     }
 
     let video: Video = sqlx::query_as(&format!(
-        "insert into videos (tenant_id, media_id, title)
-         values ($1, $2, $3)
+        "insert into videos (media_id, title)
+         values ($1, $2)
          returning {COLUMNS}"
     ))
-    .bind(caller.tenant().0)
     .bind(body.media_id)
     .bind(body.title.as_str())
     .fetch_one(conn.conn())
@@ -259,7 +257,7 @@ async fn remove(
     _permit: Permit,
     Path(id): Path<Uuid>,
 ) -> Result<Audited<StatusCode>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let gone: Option<Video> = sqlx::query_as(&format!(
         "update videos set deleted_at = now()
@@ -291,9 +289,9 @@ async fn remove(
 /// A machine with nothing to hand it to says the file that was uploaded is what
 /// plays, which is true for an MP4 a browser can already read — better than a
 /// video left saying "working" for ever on a machine that will never work on it.
-pub async fn hand_over(state: &AppState, tenant: TenantId, job: &queue::Job) -> Result<()> {
+pub async fn hand_over(state: &AppState, job: &queue::Job) -> Result<()> {
     let asked: HandOver = job.task()?;
-    let mut conn = state.db.tenant(tenant).await?;
+    let mut conn = state.db.begin().await?;
 
     let found: Option<(Option<Uuid>, String)> = sqlx::query_as(
         "select media_id, state::text from videos where id = $1 and deleted_at is null",
@@ -332,7 +330,6 @@ pub async fn hand_over(state: &AppState, tenant: TenantId, job: &queue::Job) -> 
         .ok_or(AppError::Bug("a video with nothing to transcode"))?;
 
     let handing = Handing {
-        tenant: tenant.0,
         video: asked.video,
         source,
     };
@@ -380,7 +377,7 @@ async fn answered(
     let said: Finished = serde_json::from_str(&body)
         .map_err(|_| AppError::Invalid(say::NOT_SOMETHING_A_TRANSCODER_SAYS.into()))?;
 
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let changed: Option<Video> = sqlx::query_as(&format!(
         "update videos

@@ -9,30 +9,27 @@ use http_body_util::BodyExt;
 use mavi::kernel::authz::every_grant;
 use mavi::kernel::db::Db;
 use mavi::kernel::http::AppState;
-use mavi::kernel::tenant::TenantId;
 use tower::ServiceExt;
 use uuid::Uuid;
 
 mod common;
 
 use common::{harness, percent_encoded};
-use mavi::testing::{a_role, a_tenant, a_user};
+use mavi::testing::{a_role, a_user};
 
 struct Site {
     db: Db,
     router: axum::Router,
     host: String,
-    tenant: TenantId,
     token: String,
 }
 
 async fn a_site() -> Site {
     let db = harness().await;
     let host = format!("{}.example", Uuid::now_v7().simple());
-    let tenant = a_tenant(&db, &host).await;
-    let role = a_role(&db, tenant, "owner", &every_grant()).await;
+    let role = a_role(&db, "owner", &every_grant()).await;
     let password = "a long enough password";
-    let (_, email) = a_user(&db, tenant, role, password).await;
+    let (_, email) = a_user(&db, role, password).await;
 
     let router = mavi::router(AppState::new(db.clone()));
 
@@ -66,7 +63,6 @@ async fn a_site() -> Site {
         db,
         router,
         host,
-        tenant,
         token: body["token"].as_str().expect("a token").to_owned(),
     }
 }
@@ -135,14 +131,13 @@ impl Site {
     /// Straight into the tables, because what is being tested is the sending
     /// rather than the adding.
     async fn subscribers(&self, list: Uuid, how_many: usize) {
-        let mut conn = self.db.tenant(self.tenant).await.expect("begin");
+        let mut conn = self.db.begin().await.expect("begin");
 
         for _ in 0..how_many {
             let id: (Uuid,) = sqlx::query_as(
-                "insert into subscribers (tenant_id, email, token_hash)
-                 values ($1, $2, sha256($3::bytea)) returning id",
+                "insert into subscribers (email, token_hash)
+                 values ($1, sha256($2::bytea)) returning id",
             )
-            .bind(self.tenant.0)
             .bind(format!("reader-{}@example.test", Uuid::now_v7().simple()))
             .bind(Uuid::now_v7().as_bytes().to_vec())
             .fetch_one(conn.conn())
@@ -150,12 +145,11 @@ impl Site {
             .expect("a subscriber");
 
             sqlx::query(
-                "insert into subscriber_lists (subscriber_id, list_id, tenant_id)
-                 values ($1, $2, $3)",
+                "insert into subscriber_lists (subscriber_id, list_id)
+                 values ($1, $2)",
             )
             .bind(id.0)
             .bind(list)
-            .bind(self.tenant.0)
             .execute(conn.conn())
             .await
             .expect("on the list");
@@ -202,12 +196,10 @@ async fn a_campaign_sends_to_a_list_and_says_when_it_is_done() {
     let state = AppState::new(site.db.clone());
 
     for _ in 0..12 {
-        mavi::jobs::tick_within(&state, "test", Some(site.tenant))
-            .await
-            .expect("tick");
+        mavi::jobs::tick(&state, "test").await.expect("tick");
     }
 
-    let mut conn = site.db.tenant(site.tenant).await.expect("begin");
+    let mut conn = site.db.begin().await.expect("begin");
 
     let done: (String, i32) =
         sqlx::query_as("select state::text, sent_count from campaigns where id = $1")
@@ -264,17 +256,13 @@ async fn the_last_batch_costs_what_the_first_one_did() {
 
     let first = {
         let (counter, _guard) = common::queries::counting();
-        mavi::jobs::tick_within(&state, "test", Some(site.tenant))
-            .await
-            .expect("tick");
+        mavi::jobs::tick(&state, "test").await.expect("tick");
         counter.count()
     };
 
     let second = {
         let (counter, _guard) = common::queries::counting();
-        mavi::jobs::tick_within(&state, "test", Some(site.tenant))
-            .await
-            .expect("tick");
+        mavi::jobs::tick(&state, "test").await.expect("tick");
         counter.count()
     };
 
@@ -355,7 +343,7 @@ async fn somebody_who_left_is_not_sent_to_again() {
     // taken from the row, because nothing sends the message yet.
     let secret = format!("a token this test invented {}", Uuid::now_v7());
 
-    let mut conn = site.db.tenant(site.tenant).await.expect("begin");
+    let mut conn = site.db.begin().await.expect("begin");
     sqlx::query("update subscribers set token_hash = sha256($2::bytea) where id = $1")
         .bind(
             subscriber["id"]
@@ -405,12 +393,10 @@ async fn somebody_who_left_is_not_sent_to_again() {
     let state = AppState::new(site.db.clone());
 
     for _ in 0..2 {
-        mavi::jobs::tick_within(&state, "test", Some(site.tenant))
-            .await
-            .expect("tick");
+        mavi::jobs::tick(&state, "test").await.expect("tick");
     }
 
-    let mut conn = site.db.tenant(site.tenant).await.expect("begin");
+    let mut conn = site.db.begin().await.expect("begin");
 
     let sent: (i64,) = sqlx::query_as("select count(*) from email_log")
         .fetch_one(conn.conn())
@@ -505,9 +491,7 @@ async fn a_campaign_is_handed_over_and_says_so() {
     state.mailer = std::sync::Arc::new(mavi::kernel::mailer::Mailer::Recorded(post.clone()));
 
     for _ in 0..12 {
-        mavi::jobs::tick_within(&state, "test", Some(site.tenant))
-            .await
-            .expect("tick");
+        mavi::jobs::tick(&state, "test").await.expect("tick");
     }
 
     let letters = post.all();
@@ -518,7 +502,7 @@ async fn a_campaign_is_handed_over_and_says_so() {
         "a campaign went out with no way to leave the list"
     );
 
-    let mut conn = site.db.tenant(site.tenant).await.expect("begin");
+    let mut conn = site.db.begin().await.expect("begin");
 
     let sent: (i64,) = sqlx::query_as("select count(*) from email_log where state = 'sent'")
         .fetch_one(conn.conn())
@@ -566,12 +550,10 @@ async fn a_bounce_stops_the_site_writing_to_them_again() {
     let state = AppState::new(site.db.clone());
 
     for _ in 0..8 {
-        mavi::jobs::tick_within(&state, "test", Some(site.tenant))
-            .await
-            .expect("tick");
+        mavi::jobs::tick(&state, "test").await.expect("tick");
     }
 
-    let mut conn = site.db.tenant(site.tenant).await.expect("begin");
+    let mut conn = site.db.begin().await.expect("begin");
 
     let reference: (String,) =
         sqlx::query_as("select provider_ref from email_log where state = 'sent'")
@@ -597,7 +579,7 @@ async fn a_bounce_stops_the_site_writing_to_them_again() {
         assert_eq!(status, expected, "the {nth} time: {body}");
     }
 
-    let mut conn = site.db.tenant(site.tenant).await.expect("begin");
+    let mut conn = site.db.begin().await.expect("begin");
 
     let state_of: (String,) = sqlx::query_as("select state::text from subscribers where id = $1")
         .bind(

@@ -4,7 +4,6 @@
 //! it does the minute's work, and the rest carry on with the queue. A machine
 //! running two workers does not run the sweep twice.
 use chrono::Utc;
-use sqlx::Row;
 
 use super::error::Result;
 use super::http::AppState;
@@ -40,7 +39,7 @@ impl Every {
     }
 }
 
-/// Puts a day's work in the queue, once, for every site that is live.
+/// Puts a day's work in the queue, once.
 pub async fn daily<T: Task + Default>(state: &AppState) -> Result<Option<usize>> {
     every::<T>(state, Every::Day).await
 }
@@ -48,17 +47,14 @@ pub async fn daily<T: Task + Default>(state: &AppState) -> Result<Option<usize>>
 /// The same, as often as something asks for. Returns how many were scheduled,
 /// or nothing if another process is doing it.
 pub async fn every<T: Task + Default>(state: &AppState, how_often: Every) -> Result<Option<usize>> {
-    let Some((conn, sites)) = due_sites(state).await? else {
+    let Some(conn) = the_tick_is_mine(state).await? else {
         return Ok(None);
     };
 
     let mut scheduled = 0;
-    for site in &sites {
-        let tenant = super::TenantId(site.get("id"));
-        let mut work = state.db.tenant(tenant).await?;
-        if already_scheduled(&mut work, T::KIND, how_often).await? {
-            continue;
-        }
+    let mut work = state.db.begin().await?;
+
+    if !already_scheduled(&mut work, T::KIND, how_often).await? {
         queue::enqueue(&mut work, &T::default(), None).await?;
         work.commit().await?;
         scheduled += 1;
@@ -77,17 +73,14 @@ pub async fn every_named(
     kind: &'static str,
     how_often: Every,
 ) -> Result<Option<usize>> {
-    let Some((conn, sites)) = due_sites(state).await? else {
+    let Some(conn) = the_tick_is_mine(state).await? else {
         return Ok(None);
     };
 
     let mut scheduled = 0;
-    for site in &sites {
-        let tenant = super::TenantId(site.get("id"));
-        let mut work = state.db.tenant(tenant).await?;
-        if already_scheduled(&mut work, kind, how_often).await? {
-            continue;
-        }
+    let mut work = state.db.begin().await?;
+
+    if !already_scheduled(&mut work, kind, how_often).await? {
         queue::enqueue_kind(&mut work, kind, None).await?;
         work.commit().await?;
         scheduled += 1;
@@ -98,12 +91,15 @@ pub async fn every_named(
     Ok(Some(scheduled))
 }
 
-/// Takes the scheduler lock and lists the sites live right now, or `None` if
-/// another process already holds the lock this tick.
-async fn due_sites(
-    state: &AppState,
-) -> Result<Option<(super::db::OperatorConn, Vec<sqlx::postgres::PgRow>)>> {
-    let mut conn = state.db.operator().await?;
+/// Whether this process is the one keeping time this tick, or `None` if
+/// another already holds the lock.
+///
+/// The lock is what this function was always for. It used to hand back the
+/// sites to schedule for as well, and with one installation that list is
+/// always the same one site — so what is left is the question the lock
+/// answers, and the transaction it is held in, which the caller commits.
+async fn the_tick_is_mine(state: &AppState) -> Result<Option<super::db::Tx>> {
+    let mut conn = state.db.begin().await?;
 
     let held: bool = sqlx::query_scalar("select pg_try_advisory_xact_lock($1)")
         .bind(SCHEDULER_LOCK)
@@ -114,21 +110,13 @@ async fn due_sites(
         return Ok(None);
     }
 
-    let sites = sqlx::query("select id from tenants where state = 'live'")
-        .fetch_all(conn.conn())
-        .await?;
-
-    Ok(Some((conn, sites)))
+    Ok(Some(conn))
 }
 
 /// Nothing already waiting, and nothing finished so recently that it is not
 /// due yet: a scheduler that looks every minute must not leave a day's work
 /// in the queue sixty times over.
-async fn already_scheduled(
-    work: &mut super::db::TenantConn,
-    kind: &str,
-    how_often: Every,
-) -> Result<bool> {
+async fn already_scheduled(work: &mut super::db::Tx, kind: &str, how_often: Every) -> Result<bool> {
     let already: Option<(i64,)> = sqlx::query_as(
         "select count(*) from jobs
           where kind = $1

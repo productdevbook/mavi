@@ -8,14 +8,12 @@ use axum::Json;
 use axum::extract::State as Injected;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use sqlx::Row;
 
 use crate::kernel::authz::{Access, Capability, Needs, Permit};
-use crate::kernel::db::TenantConn;
+use crate::kernel::db::Tx;
 use crate::kernel::error::Result;
 use crate::kernel::http::{AppState, Audience, Caller, Endpoint, Guard, RatePolicy};
 use crate::kernel::queue::{self, Task};
-use crate::kernel::tenant::TenantId;
 
 fn settings(access: Access) -> Needs {
     Needs::new(Capability::Settings, access)
@@ -67,7 +65,6 @@ pub struct Health {
 #[derive(Clone, Debug, Serialize, sqlx::FromRow, utoipa::ToSchema)]
 pub struct Domain {
     pub host: String,
-    pub is_primary: bool,
     /// Null where nothing has looked yet, which is not the same as "broken".
     pub resolves: Option<bool>,
     pub answered: Option<bool>,
@@ -75,7 +72,7 @@ pub struct Domain {
     pub checked_at: Option<DateTime<Utc>>,
 }
 
-/// Looking at every one of a site's addresses. On a schedule rather than on a
+/// Looking at the installation's own address. On a schedule rather than on a
 /// request: it is somebody else's DNS being asked, and a screen should not wait
 /// for that.
 #[derive(Debug, Default, Serialize, Deserialize)]
@@ -92,10 +89,10 @@ pub fn kinds() -> Vec<String> {
 
 async fn site(
     Injected(state): Injected<AppState>,
-    caller: Caller,
+    _caller: Caller,
     _permit: Permit,
 ) -> Result<Json<Health>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
     let checks = look_at(&mut conn).await?;
     conn.commit().await?;
 
@@ -109,7 +106,7 @@ async fn site(
 ///
 /// Not everything that could be measured: a health screen with forty rows on it
 /// is one nobody reads, and the ones here are the ones that have gone wrong.
-pub async fn look_at(conn: &mut TenantConn) -> Result<Vec<Check>> {
+pub async fn look_at(conn: &mut Tx) -> Result<Vec<Check>> {
     let mut checks = Vec::with_capacity(5);
 
     let published: (i64, Option<DateTime<Utc>>) = sqlx::query_as(
@@ -188,62 +185,60 @@ pub async fn look_at(conn: &mut TenantConn) -> Result<Vec<Check>> {
 
 async fn domains(
     Injected(state): Injected<AppState>,
-    caller: Caller,
+    _caller: Caller,
     _permit: Permit,
 ) -> Result<Json<Vec<Domain>>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
-    // The addresses themselves belong to the control plane, so they are read
-    // through the join rather than from a table of this site's own.
-    let rows: Vec<Domain> = sqlx::query_as(
-        "select d.host, d.is_primary, c.resolves, c.answered, c.note, c.checked_at
-           from tenant_domains d
-           left join domain_checks c
-             on c.host = d.host and c.tenant_id = d.tenant_id
-          where d.tenant_id = $1
-          order by d.is_primary desc, d.host",
+    // One address, and it is the one the process was started with rather than a
+    // row somebody added: an installation that cannot name its own address does
+    // not start at all, so there is nowhere else for this to come from and
+    // nothing that can drift out of step with it.
+    let host = state.address.host().to_owned();
+
+    let looked: Option<Domain> = sqlx::query_as(
+        "select host, resolves, answered, note, checked_at
+           from domain_checks where host = $1",
     )
-    .bind(caller.tenant().0)
-    .fetch_all(conn.conn())
+    .bind(&host)
+    .fetch_optional(conn.conn())
     .await?;
 
     conn.commit().await?;
 
-    Ok(Json(rows))
+    // Nothing has looked yet is its own answer, and not the same as broken.
+    Ok(Json(vec![looked.unwrap_or(Domain {
+        host,
+        resolves: None,
+        answered: None,
+        note: None,
+        checked_at: None,
+    })]))
 }
 
-/// Asks whether each of a site's addresses resolves, and whether this machine
-/// answered on it.
+/// Asks whether this installation's own address resolves, and whether this
+/// machine answered on it.
 ///
 /// What it cannot ask about is the certificate: the certificates are somebody
 /// else's on this machine — the ingress asks for them and holds them — and a
 /// second thing guessing at their expiry would be a second thing to be wrong.
-pub async fn check_domains(state: &AppState, tenant: TenantId) -> Result<u64> {
-    let mut conn = state.db.tenant(tenant).await?;
-
-    let hosts: Vec<String> = sqlx::query("select host from tenant_domains where tenant_id = $1")
-        .bind(tenant.0)
-        .fetch_all(conn.conn())
-        .await?
-        .iter()
-        .map(|row| row.get("host"))
-        .collect();
+pub async fn check_domains(state: &AppState) -> Result<u64> {
+    let mut conn = state.db.begin().await?;
 
     let mut looked = 0;
 
-    for host in hosts {
+    for host in [state.address.host().to_owned()] {
         let found = look_up(state, &host).await;
 
         sqlx::query(
-            "insert into domain_checks (tenant_id, host, resolves, answered, note, checked_at)
-             values ($1, $2, $3, $4, $5, now())
-             on conflict (tenant_id, host) do update set
+            "insert into domain_checks (host, resolves, answered, note, checked_at)
+             values ($1, $2, $3, $4, now())
+             on conflict (host) do update set
                 resolves = excluded.resolves,
                 answered = excluded.answered,
                 note = excluded.note,
                 checked_at = excluded.checked_at",
         )
-        .bind(tenant.0)
         .bind(&host)
         .bind(found.resolves)
         .bind(found.answered)
@@ -324,7 +319,7 @@ pub async fn schedule(state: &AppState) -> Result<Option<usize>> {
 
 /// Unused by anything but the queue, and named here so the job that runs it can
 /// be found from the kind.
-pub async fn run(state: &AppState, tenant: TenantId, job: &queue::Job) -> Result<()> {
+pub async fn run(state: &AppState, job: &queue::Job) -> Result<()> {
     let _ = job;
-    check_domains(state, tenant).await.map(|_| ())
+    check_domains(state).await.map(|_| ())
 }

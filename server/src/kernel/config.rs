@@ -102,6 +102,18 @@ impl Address {
         Self("https://example.invalid".to_owned())
     }
 
+    /// The host on its own, for the one thing that asks the network about it
+    /// rather than putting it in a link.
+    #[must_use]
+    pub fn host(&self) -> &str {
+        self.0
+            .split_once("://")
+            .map_or(self.0.as_str(), |(_, rest)| rest)
+            .split('/')
+            .next()
+            .unwrap_or_default()
+    }
+
     /// A whole URL for one path within this installation — the path the panel
     /// routes on, leading slash and all.
     #[must_use]

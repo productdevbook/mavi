@@ -5,15 +5,15 @@ services:
     image: postgres:18-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-mavicms}
+      POSTGRES_USER: ${POSTGRES_USER:-mavi}
       # Asked for rather than defaulted, for the reason given in
       # docker-compose.yml: `:-` makes a default the real password.
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env — see .env.example}
-      POSTGRES_DB: ${POSTGRES_DB:-mavicms}
+      POSTGRES_DB: ${POSTGRES_DB:-mavi}
     volumes:
       - postgres-data:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-mavicms}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-mavi}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -25,7 +25,7 @@ services:
     environment:
       # Point this at any PostgreSQL you like — the bundled "postgres"
       # service above is just the default.
-      DATABASE_URL: ${DATABASE_URL:-postgres://${POSTGRES_USER:-mavicms}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-mavicms}}
+      DATABASE_URL: ${DATABASE_URL:-postgres://${POSTGRES_USER:-mavi}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-mavi}}
       HOST: 0.0.0.0
       PORT: 8080
       RUST_LOG: ${RUST_LOG:-info}

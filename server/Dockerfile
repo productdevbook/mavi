@@ -46,18 +46,18 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/* \
-    && useradd --system --create-home --shell /usr/sbin/nologin mavicms \
-    && chown mavicms:mavicms /app
+    && useradd --system --create-home --shell /usr/sbin/nologin mavi \
+    && chown mavi:mavi /app
 
 COPY --from=builder /out/mavi /usr/local/bin/mavi
 
 # A fresh named volume inherits the ownership of the mount point in the image.
 # Without this directory Docker creates it as root and the unprivileged process
 # cannot write to what it uploads.
-RUN mkdir -p /data && chown mavicms:mavicms /data
+RUN mkdir -p /data && chown mavi:mavi /data
 VOLUME /data
 
-USER mavicms
+USER mavi
 EXPOSE 8080
 
 # What this process is: `api`, `worker`, or unset for both — which is what

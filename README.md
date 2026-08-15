@@ -174,16 +174,11 @@ does not serve is a type error rather than a 404 somebody finds later.
 
 ## Moving a site here
 
-A site running the build before this one is carried across by the mover:
-
-```bash
-mavicms carry --from postgres://old-host/mavicms --schema site_example --to <tenant-id>
-```
-
-It carries the languages, the categories and tags, the posts and what they are
-filed under, the media rows, the forms and what came in through them, the
-people and their roles. What it deliberately leaves behind is written down in
-its output rather than guessed at.
+Nothing here moves a site from another machine: that was the mover, and it
+belongs with the half that runs many machines rather than with the CMS. What
+this does have is [taking a copy](#a-copy-of-what-is-written) — the languages,
+what things are filed under, and everything written — from the panel's own
+settings, which is enough to carry a site somewhere else by hand.
 
 ## Development
 
@@ -215,9 +210,9 @@ The tests want a PostgreSQL, because a site is rows in one and a test of what a
 site holds should be asked of one:
 
 ```bash
-docker run -d --name mavicms-test-db -p 127.0.0.1:5433:5432 \
-  -e POSTGRES_PASSWORD=test -e POSTGRES_DB=mavicms_test postgres:18-alpine
-export TEST_DATABASE_URL=postgres://postgres:test@127.0.0.1:5433/mavicms_test
+docker run -d --name mavi-test-db -p 127.0.0.1:5433:5432 \
+  -e POSTGRES_PASSWORD=test -e POSTGRES_DB=mavi_test postgres:18-alpine
+export TEST_DATABASE_URL=postgres://postgres:test@127.0.0.1:5433/mavi_test
 ```
 
 Each shape is migrated once into a template and every test is handed a copy, so

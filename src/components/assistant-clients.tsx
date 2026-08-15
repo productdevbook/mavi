@@ -68,7 +68,7 @@ function useClients(): Client[] {
         t`Run this. It notices that the address asks for a sign-in and opens one.`,
         t`Afterwards, /mcp lists what it is connected to.`,
       ],
-      command: (url: string) => `codex mcp add mavicms --url ${url}`,
+      command: (url: string) => `codex mcp add mavi --url ${url}`,
       documentation: "https://developers.openai.com/codex/mcp",
     },
     {
@@ -76,7 +76,7 @@ function useClients(): Client[] {
       name: "Claude Code",
       steps: [t`Run this, then /mcp to sign in.`],
       command: (url: string) =>
-        `claude mcp add --transport http mavicms ${url}`,
+        `claude mcp add --transport http mavi ${url}`,
       documentation:
         "https://modelcontextprotocol.io/docs/develop/connect-remote-servers",
     },
@@ -87,7 +87,7 @@ function useClients(): Client[] {
         t`Settings, then Tools & MCP, then New MCP Server — which opens the file below.`,
       ],
       command: (url: string) =>
-        JSON.stringify({ mcpServers: { mavicms: { url } } }, null, 2),
+        JSON.stringify({ mcpServers: { mavi: { url } } }, null, 2),
       documentation: "https://docs.cursor.com/context/mcp",
     },
   ]

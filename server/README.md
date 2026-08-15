@@ -24,7 +24,7 @@ What it reads from the environment:
 | | |
 |---|---|
 | `DATABASE_URL` | required |
-| `MAVI_KEYS` | `1:<base64>`; required, because a machine that makes one up cannot read what the last one sealed. `MAVI_INVENT_KEYS=yes` is the way to say that nothing here is worth keeping |
+| `MAVI_KEYS` | `1:<base64>`; required, because a machine that makes one up cannot read what the last one sealed. Set and unreadable refuses to start rather than making one up. `MAVI_INVENT_KEYS=yes` is the way to say that nothing here is worth keeping |
 | `ROLE` | `api`, `worker`, or unset for both |
 | `WORKERS` | how many take work at once; four |
 | `PROXY_HOPS` | how many proxies rewrite the forwarded-for header; zero, and zero means the header is not believed at all |

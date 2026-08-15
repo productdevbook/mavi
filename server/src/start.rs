@@ -116,9 +116,24 @@ pub async fn start(mut outside: Outside) -> Result<(), Box<dyn std::error::Error
 /// unreadable the next time it restarts — which is not noticed until somebody
 /// asks for a credential that was fine yesterday. So it is refused here, where
 /// it costs one line to say instead of a day to work out.
+///
+/// A key that is given and cannot be read is the same failure wearing the
+/// clothes of a working machine, so it is read here rather than at the first
+/// credential somebody seals.
 fn keys_or_refuse() -> Result<(), Box<dyn std::error::Error>> {
-    if env::var("MAVI_KEYS").is_ok() {
-        return Ok(());
+    if env::var_os("MAVI_KEYS").is_some() {
+        return crate::kernel::crypto::Keyring::from_the_environment()
+            .map(|_| ())
+            .map_err(|why| {
+                format!(
+                    "MAVI_KEYS is set and cannot be read: {why}. It is \
+                     `1:<thirty-two bytes, base64>`, and a version and comma \
+                     for each older key. Nothing starts under a key nobody \
+                     gave: what this machine sealed with one it made up \
+                     instead would look, later, like the data being wrong."
+                )
+                .into()
+            });
     }
 
     // Left for whoever is trying this out on a laptop, where nothing sealed

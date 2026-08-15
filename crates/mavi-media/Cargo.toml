@@ -1,0 +1,18 @@
+[package]
+name = "mavi-media"
+version = "0.0.0"
+edition = "2024"
+publish = false
+description = "What somebody uploaded, kept under its id and recognised by its bytes."
+
+[dependencies]
+mavi-api = { path = "../mavi-api" }
+mavi-core = { path = "../mavi-core" }
+mavi-people = { path = "../mavi-people" }
+
+chrono = { workspace = true }
+serde = { workspace = true }
+uuid = { workspace = true }
+
+[lints]
+workspace = true

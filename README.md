@@ -89,7 +89,7 @@ The API reads these; everything else is set from the panel.
 | `DATABASE_URL` | — | PostgreSQL. Required. |
 | `MAVI_KEYS` | — | What seals a site's secrets. Required; the process refuses to start without it. |
 | `MAVI_ROLE` | `both` | `api`, `worker`, or `both`. One process can do both; two make the queue somebody else's problem when the API is busy. |
-| `MAVI_DATA_DIR` | `/data` | Uploaded media. **Must be a persistent volume.** |
+| `MAVI_DATA_DIR` | `uploads` beside the process, and `/data` in the image | Uploaded media. **Must be a persistent volume**, or everything anybody uploads goes with the container. |
 | `HOST` / `PORT` | `0.0.0.0` / `8080` | |
 | `RUST_LOG` | `info` | |
 

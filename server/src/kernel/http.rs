@@ -92,8 +92,15 @@ impl AppState {
             clock: Arc::new(SystemClock),
             proxy_hops: 0,
             allow_private_destinations: false,
+            // Where what anybody uploaded is kept. The image sets this to a
+            // volume; unset, it is a directory beside the process, which is
+            // right while somebody is looking at it on their own machine and
+            // is lost on the first restart anywhere else. `UPLOADS_DIR` is
+            // what this was called before the project had its own name.
             store: Arc::new(super::storage::Store::Disk(super::storage::LocalDisk::at(
-                std::env::var("UPLOADS_DIR").unwrap_or_else(|_| "uploads".to_owned()),
+                std::env::var("MAVI_DATA_DIR")
+                    .or_else(|_| std::env::var("UPLOADS_DIR"))
+                    .unwrap_or_else(|_| "uploads".to_owned()),
             ))),
             // Invented where none was given, which means a machine restarted
             // without its key cannot open what the last one sealed — and says

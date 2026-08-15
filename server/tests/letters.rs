@@ -245,6 +245,48 @@ async fn what_a_site_writes_is_what_goes_out() {
     assert!(body.starts_with("Merhaba Biri,"), "{body}");
 }
 
+/// Somebody whose address changed is told to prove the new one, not told they
+/// have been invited: asserted by which kind was pressed — the subject line a
+/// site never wrote its own words for is still the machine's default one for
+/// `email_proof`, not `invitation`'s — rather than by reading the body.
+#[tokio::test]
+async fn a_changed_address_is_told_to_prove_itself_not_invited_again() {
+    let site = Site::new().await;
+    let invited = format!("first-{}@example.test", Uuid::now_v7().simple());
+
+    let (status, made) = site
+        .send(
+            "POST",
+            "/api/people",
+            Some(serde_json::json!({
+                "email": invited,
+                "name": "Somebody",
+                "role_id": site.role,
+            })),
+        )
+        .await;
+
+    assert_eq!(status, StatusCode::CREATED, "{made}");
+    let id = made["id"].as_str().expect("an id");
+
+    let changed = format!("second-{}@example.test", Uuid::now_v7().simple());
+
+    let (status, _) = site
+        .send(
+            "PATCH",
+            &format!("/api/people/{id}"),
+            Some(serde_json::json!({ "email": changed })),
+        )
+        .await;
+
+    assert_eq!(status, StatusCode::OK);
+
+    let (subject, _) = site.letter_to(&changed).await;
+
+    assert_eq!(subject, "Confirm your new address");
+    assert_ne!(subject, "You have been invited");
+}
+
 #[tokio::test]
 async fn a_wording_that_asks_for_what_nothing_fills_in_is_refused() {
     let site = Site::new().await;
@@ -352,4 +394,75 @@ async fn every_letter_is_listed_with_what_it_can_name() {
             .any(|name| name == "total"),
         "a receipt cannot say what it came to: {order}"
     );
+}
+
+/// A kind a site can word and nothing sends is a letter that can be
+/// translated, previewed, and never once goes out. Read the same way
+/// `tests/messages.rs` reads the source for an English string written where a
+/// refusal belongs: every call this crate makes to `letters::press` names its
+/// kind as a literal, so the whole list of what is actually pressed can be
+/// read back out of `src` and held against `KINDS`.
+#[test]
+fn a_kind_a_site_can_word_is_a_kind_something_presses() {
+    use mavi::mail::letters::{KINDS, NEVER_PRESSED};
+
+    let pressed = kinds_pressed_in(std::path::Path::new("src"));
+
+    for kind in KINDS {
+        if let Some((_, reason)) = NEVER_PRESSED.iter().find(|(name, _)| *name == kind.name) {
+            assert!(
+                !reason.is_empty(),
+                "{} is exempt from being pressed with no reason given",
+                kind.name
+            );
+            continue;
+        }
+
+        assert!(
+            pressed.iter().any(|name| name == kind.name),
+            "{} can be written and worded and nothing presses it — either \
+             send it somewhere or list it in NEVER_PRESSED with why not",
+            kind.name
+        );
+    }
+
+    for (name, _) in NEVER_PRESSED {
+        assert!(
+            KINDS.iter().any(|kind| kind.name == *name),
+            "{name} is exempt from being pressed and is not a letter kind at all"
+        );
+    }
+}
+
+/// Every literal kind named at a `letters::press(` call anywhere under `at`.
+fn kinds_pressed_in(at: &std::path::Path) -> Vec<String> {
+    let mut found = Vec::new();
+
+    for entry in std::fs::read_dir(at).expect("a directory") {
+        let path = entry.expect("an entry").path();
+
+        if path.is_dir() {
+            found.extend(kinds_pressed_in(&path));
+            continue;
+        }
+
+        if path.extension().is_none_or(|extension| extension != "rs") {
+            continue;
+        }
+
+        let source = std::fs::read_to_string(&path).expect("a source file");
+        let mut left = source.as_str();
+
+        while let Some(found) = left.find("letters::press(") {
+            let after = &left[found + "letters::press(".len()..];
+
+            if let Some(kind) = after.split('"').nth(1) {
+                found.push(kind.to_owned());
+            }
+
+            left = after;
+        }
+    }
+
+    found
 }

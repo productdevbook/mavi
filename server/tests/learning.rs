@@ -7,6 +7,7 @@ use http_body_util::BodyExt;
 use mavi::kernel::authz::every_grant;
 use mavi::kernel::db::Db;
 use mavi::kernel::http::AppState;
+use mavi::kernel::mailer::{Mailer, Recorder};
 use mavi::kernel::tenant::TenantId;
 use tower::ServiceExt;
 use uuid::Uuid;
@@ -22,6 +23,7 @@ struct Site {
     host: String,
     tenant: TenantId,
     token: String,
+    post: Recorder,
 }
 
 async fn a_site() -> Site {
@@ -32,7 +34,11 @@ async fn a_site() -> Site {
     let password = "a long enough password";
     let (_, email) = a_user(&db, tenant, role, password).await;
 
-    let router = mavi::router(AppState::new(db.clone()));
+    let post = Recorder::default();
+    let mut state = AppState::new(db.clone());
+    state.mailer = std::sync::Arc::new(Mailer::Recorded(post.clone()));
+
+    let router = mavi::router(state);
 
     let response = router
         .clone()
@@ -66,6 +72,7 @@ async fn a_site() -> Site {
         host,
         tenant,
         token: body["token"].as_str().expect("a token").to_owned(),
+        post,
     }
 }
 
@@ -209,6 +216,40 @@ impl Site {
 
         cookie.expect("a cookie")
     }
+
+    /// What was written to somebody, once the queue has been run.
+    async fn letter_to(&self, address: &str) -> (String, String) {
+        let mut state = AppState::new(self.db.clone());
+        state.mailer = std::sync::Arc::new(Mailer::Recorded(self.post.clone()));
+
+        for _ in 0..8 {
+            mavi::jobs::tick_within(&state, "test", Some(self.tenant))
+                .await
+                .expect("tick");
+        }
+
+        let letters = self.post.all();
+
+        let letter = letters
+            .iter()
+            .rev()
+            .find(|letter| letter.to == address)
+            .unwrap_or_else(|| panic!("nothing was written to {address}"));
+
+        (letter.subject.clone(), letter.body.clone())
+    }
+}
+
+#[tokio::test]
+async fn enrolling_somebody_writes_to_them() {
+    let site = a_site().await;
+    let course = site.a_course().await;
+
+    let (email, _) = site.a_student(course).await;
+    let (subject, body) = site.letter_to(&email).await;
+
+    assert_eq!(subject, "Your course");
+    assert!(body.contains("A Learner"), "{body}");
 }
 
 #[tokio::test]

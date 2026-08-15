@@ -74,6 +74,14 @@ pub const KINDS: &[Kind] = &[
         names: &["name", "site", "link"],
     },
     Kind {
+        name: "email_proof",
+        subject: "Confirm your new address",
+        body: "Hello {name},\n\nConfirm this is your address for {site} by \
+               following the link below and choosing a password again, \
+               within three days:\n\n{link}\n",
+        names: &["name", "site", "link"],
+    },
+    Kind {
         name: "order.paid",
         subject: "Your order",
         body: "Hello {name},\n\nThank you — your order is paid for. You can see \
@@ -94,6 +102,13 @@ pub const KINDS: &[Kind] = &[
         names: &["name", "site", "link"],
     },
 ];
+
+/// A kind [`KINDS`] carries, together with why nothing presses it. A kind can
+/// be written and worded through `/api/mail/letters/{kind}` for no reason at
+/// all otherwise — `tests/letters.rs` reads this crate's own source for every
+/// call to [`press`] and holds it against `KINDS`, and a name here is what
+/// lets one through that check rather than failing it.
+pub const NEVER_PRESSED: &[(&str, &str)] = &[];
 
 /// One letter's kind: its name, what it says by default, and what it may name.
 #[derive(Clone, Copy, Debug)]

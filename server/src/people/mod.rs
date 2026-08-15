@@ -818,6 +818,41 @@ async fn change(
     Ok(Audited::new(receipt, Json(after)))
 }
 
+/// Refuses to take this account away when it is the last one holding the
+/// owner role: with it gone nobody could grant that role to anyone else, and
+/// there is no operator account this installation can be recovered through
+/// (#7 confirmed that door has never worked). `people::remove` and
+/// `site::erase` both take an account away by a different route, so both ask
+/// here rather than each keeping its own idea of what an owner is.
+pub(crate) async fn refuse_if_last_owner(conn: &mut TenantConn, id: Uuid) -> Result<()> {
+    let holds_owner: Option<(bool,)> = sqlx::query_as(
+        "select r.key = 'owner'
+           from users u join roles r on r.id = u.role_id
+          where u.id = $1 and u.deleted_at is null",
+    )
+    .bind(id)
+    .fetch_optional(conn.conn())
+    .await?;
+
+    if holds_owner.is_none_or(|(owner,)| !owner) {
+        return Ok(());
+    }
+
+    let (remaining,): (i64,) = sqlx::query_as(
+        "select count(*) from users u join roles r on r.id = u.role_id
+          where r.key = 'owner' and u.id != $1 and u.deleted_at is null",
+    )
+    .bind(id)
+    .fetch_one(conn.conn())
+    .await?;
+
+    if remaining == 0 {
+        return Err(AppError::Refused(say::THAT_IS_THE_LAST_OWNER.into()));
+    }
+
+    Ok(())
+}
+
 async fn remove(
     Injected(state): Injected<AppState>,
     caller: Caller,
@@ -832,6 +867,8 @@ async fn remove(
 
     let mut conn = state.db.tenant(caller.tenant()).await?;
     let before = one(&mut conn, id).await?;
+
+    refuse_if_last_owner(&mut conn, id).await?;
 
     sqlx::query("update users set deleted_at = now(), state = 'suspended' where id = $1")
         .bind(id)

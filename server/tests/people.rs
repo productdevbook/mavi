@@ -370,6 +370,46 @@ async fn nobody_changes_what_they_themselves_are() {
 }
 
 #[tokio::test]
+async fn the_last_owner_is_not_taken_away_by_somebody_else_either() {
+    let site = a_site().await;
+    let password = "a long enough password";
+    let admin_role = a_role(
+        &site.db,
+        site.tenant,
+        "admin",
+        &["people:delete".to_owned()],
+    )
+    .await;
+    let (_, admin_email) = a_user(&site.db, site.tenant, admin_role, password).await;
+
+    let (_, session) = site
+        .send(
+            "POST",
+            "/api/auth/session",
+            None,
+            Some(serde_json::json!({ "email": admin_email, "password": password })),
+        )
+        .await;
+
+    let theirs = session["token"].as_str().expect("a token").to_owned();
+
+    let (status, refused) = site
+        .send(
+            "DELETE",
+            &format!("/api/people/{}", site.me),
+            Some(&theirs),
+            None,
+        )
+        .await;
+
+    assert_eq!(
+        status,
+        StatusCode::FORBIDDEN,
+        "the site's only owner was taken away by somebody else: {refused}"
+    );
+}
+
+#[tokio::test]
 async fn suspending_somebody_takes_away_what_they_are_holding() {
     let site = a_site().await;
     let password = "a long enough password";

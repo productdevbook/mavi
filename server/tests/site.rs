@@ -22,6 +22,8 @@ struct Site {
     host: String,
     tenant: TenantId,
     token: String,
+    email: String,
+    owner_role: Uuid,
 }
 
 async fn a_site() -> Site {
@@ -66,6 +68,8 @@ async fn a_site() -> Site {
         host,
         tenant,
         token: body["token"].as_str().expect("a token").to_owned(),
+        email,
+        owner_role: role,
     }
 }
 
@@ -228,6 +232,77 @@ async fn erasing_takes_them_away_and_keeps_the_bill() {
 
     assert_eq!(orders.0, 1, "a bill disappeared with the person");
     assert_eq!(orders.1, 0, "the bill still says who they were");
+}
+
+#[tokio::test]
+async fn erasing_the_site_s_only_owner_is_refused() {
+    let site = a_site().await;
+
+    let (status, body) = site
+        .send(
+            "POST",
+            "/api/people/erase",
+            Some(&site.token),
+            Some(serde_json::json!({ "email": site.email })),
+        )
+        .await;
+
+    assert_eq!(status, StatusCode::FORBIDDEN, "{body}");
+
+    let mut conn = site.db.tenant(site.tenant).await.expect("begin");
+
+    let left: (i64,) =
+        sqlx::query_as("select count(*) from users where email = $1 and deleted_at is null")
+            .bind(&site.email)
+            .fetch_one(conn.conn())
+            .await
+            .expect("a count");
+
+    assert_eq!(left.0, 1, "the only owner was taken away anyway");
+}
+
+#[tokio::test]
+async fn erasing_an_owner_who_is_not_the_last_one_still_works() {
+    let site = a_site().await;
+
+    let mut conn = site.db.tenant(site.tenant).await.expect("begin");
+    let hash = mavi::kernel::password::hash("a long enough password").expect("hash");
+    let second = format!("second-owner-{}@example.test", Uuid::now_v7().simple());
+
+    sqlx::query(
+        "insert into users (tenant_id, role_id, email, name, password_hash, state)
+         values ($1, $2, $3, 'Another Owner', $4, 'active')",
+    )
+    .bind(site.tenant.0)
+    .bind(site.owner_role)
+    .bind(&second)
+    .bind(&hash)
+    .execute(conn.conn())
+    .await
+    .expect("a second owner");
+
+    conn.commit().await.expect("commit");
+
+    let (status, body) = site
+        .send(
+            "POST",
+            "/api/people/erase",
+            Some(&site.token),
+            Some(serde_json::json!({ "email": second })),
+        )
+        .await;
+
+    assert_eq!(status, StatusCode::OK, "{body}");
+
+    let mut conn = site.db.tenant(site.tenant).await.expect("begin");
+
+    let left: (i64,) = sqlx::query_as("select count(*) from users where email = $1")
+        .bind(&second)
+        .fetch_one(conn.conn())
+        .await
+        .expect("a count");
+
+    assert_eq!(left.0, 0, "an owner who was not the last one stayed");
 }
 
 #[tokio::test]

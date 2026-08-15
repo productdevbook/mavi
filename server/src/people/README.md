@@ -18,6 +18,11 @@ around every other check there is.
 **Nobody changes what they themselves are**, and nobody removes their own
 account. Both would leave a site with nobody able to put it back.
 
+**The last owner is never taken away**, by any route. `remove` asks before it
+suspends an account, and `site::erase` asks the same `refuse_if_last_owner`
+before it deletes one — one answer to "is this the last owner" rather than
+two modules guessing at it separately.
+
 **A ticket is good once.** An invitation, a reset and an address proof are the
 same row: hashed, dated, spent when it is used, and any earlier one for the
 same purpose spent when a new one is made. Spending it is what proves the

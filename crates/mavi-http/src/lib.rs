@@ -21,6 +21,11 @@ pub mod admit;
 
 use mavi_core::grant::Grants;
 
+/// The receipt lives with what writes it, so that "one cannot be made without
+/// writing the row" is a fact about the code rather than a sentence in a doc
+/// comment beside a public constructor.
+pub use mavi_audit::Receipt;
+
 pub use admit::{Admitted, admit};
 
 /// Who is asking.
@@ -60,26 +65,6 @@ impl Caller {
             Caller::AnAccount { grants, .. } => grants.clone(),
             _ => Grants::default(),
         }
-    }
-}
-
-/// Proof that a change was written down before it answered.
-///
-/// Held rather than checked: a handler that changes something returns one of
-/// these, and one cannot be made without writing the row. The alternative —
-/// a rule everybody remembers — is the version that had a hole in it for as
-/// long as there were two ways in.
-#[derive(Debug)]
-pub struct Receipt {
-    /// The audit row this change wrote.
-    pub wrote: uuid::Uuid,
-}
-
-impl Receipt {
-    /// Only callable by whatever writes the row, which is the point.
-    #[must_use]
-    pub const fn of(wrote: uuid::Uuid) -> Self {
-        Self { wrote }
     }
 }
 
@@ -137,7 +122,7 @@ mod tests {
     #[test]
     fn a_change_carries_its_receipt_in_its_type() {
         let read: Answered<u8> = Answered::Read(1);
-        let changed = Answered::Changed(1, Receipt::of(uuid::Uuid::now_v7()));
+        let changed = Answered::Changed(1, Receipt::pretend());
 
         assert!(read.wrote().is_none());
         assert!(changed.wrote().is_some());

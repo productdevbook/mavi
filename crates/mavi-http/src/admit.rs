@@ -177,7 +177,7 @@ mod tests {
         let reading = an_endpoint(Who::AnAccount, false);
 
         let quiet: Answered<()> = Answered::Read(());
-        let recorded = Answered::Changed((), Receipt::of(uuid::Uuid::now_v7()));
+        let recorded = Answered::Changed((), Receipt::pretend());
 
         assert!(wrote_it_down(&changing, &quiet).is_err());
         assert!(wrote_it_down(&changing, &recorded).is_ok());

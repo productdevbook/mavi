@@ -7,9 +7,14 @@ description = "What lets a request in, and what it has to leave behind."
 
 [dependencies]
 mavi-api = { path = "../mavi-api" }
+mavi-audit = { path = "../mavi-audit" }
 mavi-core = { path = "../mavi-core" }
 
 uuid = { workspace = true }
+
+[dev-dependencies]
+# The tests here need a receipt and have no database. Nothing that ships does.
+mavi-audit = { path = "../mavi-audit", features = ["pretend"] }
 
 [lints]
 workspace = true

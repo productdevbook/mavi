@@ -1,0 +1,248 @@
+//! What was done, and by whom.
+//!
+//! Every change a site makes leaves one row here, written **in the same
+//! transaction as the change itself**. Not beside it, not after it: a receipt
+//! written afterwards is one that a crash between the two loses, and what it
+//! loses is the record of the thing that did happen.
+//!
+//! That is why [`Receipt`] lives here rather than beside the guard that
+//! demands one. [`record`] is the only thing that makes one, so a handler
+//! holding a receipt has written a row — the guard's rule stops being a rule
+//! everybody remembers and starts being one the compiler asks about.
+//!
+//! Nothing here answers a question about the future. A receipt says what was
+//! done; whether it should have been is what the grant decided, one moment
+//! earlier and somewhere else.
+
+use chrono::{DateTime, Utc};
+use mavi_api::{Answers, Endpoint, Is, Method, Parameter, Who as Audience};
+use mavi_core::error::{Error, Result};
+use mavi_core::grant::{Access, Needs};
+use mavi_core::id;
+use mavi_core::page::{Key, Keyset, Kind};
+use mavi_db::Tx;
+use serde::Serialize;
+use sqlx::Row;
+use uuid::Uuid;
+
+id!(
+    /// One receipt.
+    ReceiptId
+);
+
+pub const AUDIT: &str = "audit";
+
+#[must_use]
+pub const fn to_read() -> Needs {
+    Needs::new(AUDIT, Access::View)
+}
+
+/// Proof that a change was written down before it answered.
+///
+/// Held rather than checked: a handler that changes something returns one of
+/// these, and **one cannot be made without writing the row** — there is no
+/// public way to build one, in this crate or any other. The alternative, a
+/// rule everybody remembers, is the version that had a hole in it for as long
+/// as there were two ways in.
+#[derive(Debug)]
+pub struct Receipt {
+    /// The row this change wrote.
+    pub wrote: Uuid,
+}
+
+impl Receipt {
+    const fn of(wrote: Uuid) -> Self {
+        Self { wrote }
+    }
+
+    /// A receipt for a change nothing made, for tests that need one and have
+    /// no database.
+    ///
+    /// Behind a feature that nothing shipping turns on, because a receipt that
+    /// can be conjured is not proof of anything.
+    #[cfg(feature = "pretend")]
+    #[must_use]
+    pub fn pretend() -> Self {
+        Self::of(Uuid::now_v7())
+    }
+}
+
+/// Who did it.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Who {
+    AnAccount,
+    AStudent,
+    /// The site itself: a scheduled publish, a sweep, a letter going out.
+    /// Written down like anything else, because "nobody did this" is an answer
+    /// somebody will need one day.
+    TheMachine,
+}
+
+impl Who {
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Who::AnAccount => "an_account",
+            Who::AStudent => "a_student",
+            Who::TheMachine => "the_machine",
+        }
+    }
+}
+
+/// Whoever the change is attributed to, and which request it arrived on.
+#[derive(Clone, Debug)]
+pub struct Actor {
+    pub who: Who,
+    /// Their id, where there is one. `None` for the machine.
+    pub id: Option<String>,
+    /// What ties one request's rows together, and ties them to whatever the
+    /// logs say about the same moment.
+    pub request: String,
+}
+
+impl Actor {
+    #[must_use]
+    pub fn the_machine(request: impl Into<String>) -> Self {
+        Self {
+            who: Who::TheMachine,
+            id: None,
+            request: request.into(),
+        }
+    }
+}
+
+/// One receipt, as a screen reads it.
+#[derive(Clone, Debug, Serialize)]
+pub struct Written {
+    pub id: ReceiptId,
+    pub who: Who,
+    pub who_id: Option<String>,
+    /// The endpoint's own name — `writings.publish` — rather than a verb
+    /// somebody chose at the call site. Two names for one action is two
+    /// answers to "what happened to this".
+    pub did: String,
+    pub about: String,
+    pub about_id: Option<String>,
+    pub what: serde_json::Value,
+    pub request: String,
+    pub created_at: DateTime<Utc>,
+}
+
+/// Writes the receipt, in the transaction the change is being made in.
+///
+/// `what` is whatever somebody reading this in a year needs in order to
+/// understand it without the row it describes — which may since have been
+/// deleted, and often has been.
+pub async fn record(
+    tx: &mut Tx,
+    actor: &Actor,
+    did: &str,
+    about: &str,
+    about_id: Option<&str>,
+    what: &impl Serialize,
+) -> Result<Receipt> {
+    let what = serde_json::to_value(what).map_err(Error::internal)?;
+
+    let row = sqlx::query(
+        "insert into receipts (id, who, who_id, did, about, about_id, what, request)
+         values ($1, $2, $3, $4, $5, $6, $7, $8)
+         returning id",
+    )
+    .bind(Uuid::now_v7())
+    .bind(actor.who.as_str())
+    .bind(actor.id.as_deref())
+    .bind(did)
+    .bind(about)
+    .bind(about_id)
+    .bind(what)
+    .bind(&actor.request)
+    .fetch_one(tx.conn())
+    .await
+    .map_err(Error::internal)?;
+
+    Ok(Receipt::of(row.get("id")))
+}
+
+pub const BY_RECENT: Keyset = Keyset(&[
+    Key::newest("created_at", Kind::Moment),
+    Key::newest("id", Kind::Id),
+]);
+
+/// What this domain answers — and what it does not.
+///
+/// There is no endpoint here that writes a receipt and none that removes one.
+/// A record somebody can add to is a record somebody can write into; a record
+/// somebody can delete from is not a record. Both are refused by the database
+/// as well, so the absence is not merely an absence.
+#[must_use]
+pub fn endpoints() -> Vec<Endpoint> {
+    vec![
+        Endpoint {
+            method: Method::Get,
+            path: "/api/audit",
+            named: "audit.list",
+            about: "What has been done here, newest first.",
+            who: Audience::AnAccount,
+            parameters: vec![
+                Parameter::query(
+                    "about",
+                    Is::Text,
+                    "Only what happened to this sort of thing.",
+                ),
+                Parameter::query("about_id", Is::Text, "Only what happened to this one."),
+                Parameter::query("who_id", Is::Text, "Only what this account did."),
+                Parameter::query("after", Is::Text, "The cursor the last page ended with."),
+                Parameter::query("limit", Is::Number, "How many, at most a hundred."),
+            ],
+            takes: None,
+            answers: Answers::With("ReceiptPage"),
+            refuses: &[],
+            changes: false,
+        },
+        Endpoint {
+            method: Method::Get,
+            path: "/api/audit/{id}",
+            named: "audit.read",
+            about: "One receipt, and everything it recorded.",
+            who: Audience::AnAccount,
+            parameters: vec![Parameter::path("id", Is::Id, "Which receipt.")],
+            takes: None,
+            answers: Answers::With("Receipt"),
+            refuses: &[mavi_core::error::Code::NotFound],
+            changes: false,
+        },
+    ]
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use mavi_api::Api;
+
+    #[test]
+    fn everything_this_domain_answers_is_described_completely() {
+        let holes = Api::of(endpoints()).holes();
+
+        assert!(holes.is_empty(), "{holes:#?}");
+    }
+
+    #[test]
+    fn nothing_here_changes_anything() {
+        // A record somebody can add to is a record somebody can write into,
+        // and one somebody can delete from is not a record. The database
+        // refuses both as well; this says the API never offers them.
+        for endpoint in endpoints() {
+            assert!(
+                !endpoint.changes,
+                "{} offers a way to write the record of what was done",
+                endpoint.named
+            );
+        }
+    }
+
+    #[test]
+    fn what_this_domain_asks_for_is_a_capability_the_site_has() {
+        assert!(mavi_people::is_a_capability(AUDIT));
+    }
+}

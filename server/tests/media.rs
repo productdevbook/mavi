@@ -13,7 +13,8 @@ use uuid::Uuid;
 
 mod common;
 
-use common::{a_role, a_tenant, a_user, harness};
+use common::harness;
+use mavi::testing::{a_role, a_tenant, a_user};
 
 /// The smallest real PNG there is: one pixel, and a header that says so.
 const A_PNG: &[u8] = &[

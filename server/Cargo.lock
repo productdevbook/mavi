@@ -1543,6 +1543,7 @@ dependencies = [
  "hmac",
  "http-body-util",
  "lettre",
+ "mavi",
  "metrics",
  "metrics-exporter-prometheus",
  "rand 0.9.5",

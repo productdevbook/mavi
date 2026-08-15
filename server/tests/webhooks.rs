@@ -15,7 +15,8 @@ use uuid::Uuid;
 
 mod common;
 
-use common::{a_tenant, harness};
+use common::harness;
+use mavi::testing::a_tenant;
 
 struct Order(Uuid);
 

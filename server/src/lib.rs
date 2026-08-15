@@ -32,6 +32,8 @@ pub mod setup;
 pub mod shop;
 pub mod site;
 pub mod start;
+#[cfg(feature = "testing")]
+pub mod testing;
 pub mod trash;
 pub mod webhooks;
 

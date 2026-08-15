@@ -18,7 +18,8 @@ use tower::ServiceExt;
 use uuid::Uuid;
 
 mod common;
-use common::{APP_ROLE, a_role, a_tenant, a_user, harness};
+use common::harness;
+use mavi::testing::{APP_ROLE, a_role, a_tenant, a_user};
 
 const PASSWORD: &str = "a long enough password";
 

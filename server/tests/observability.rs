@@ -10,7 +10,8 @@ use uuid::Uuid;
 
 mod common;
 
-use common::{a_tenant, harness};
+use common::harness;
+use mavi::testing::a_tenant;
 
 #[test]
 fn every_endpoint_belongs_to_a_domain() {

@@ -14,7 +14,8 @@ use uuid::Uuid;
 
 mod common;
 
-use common::{a_machine_of_its_own, a_tenant};
+use common::a_machine_of_its_own;
+use mavi::testing::a_tenant;
 
 #[tokio::test]
 async fn a_worker_takes_what_is_waiting_and_stops_when_it_is_asked_to() {

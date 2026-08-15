@@ -12,7 +12,8 @@ use tower::ServiceExt;
 
 mod common;
 
-use common::{a_tenant, a_user, an_owner_role, harness};
+use common::harness;
+use mavi::testing::{a_tenant, a_user, an_owner_role};
 
 struct Site {
     router: axum::Router,

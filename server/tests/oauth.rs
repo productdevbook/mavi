@@ -21,7 +21,8 @@ use uuid::Uuid;
 
 mod common;
 
-use common::{a_role, a_tenant, a_user, harness};
+use common::harness;
+use mavi::testing::{a_role, a_tenant, a_user};
 
 const PASSWORD: &str = "a long enough password";
 

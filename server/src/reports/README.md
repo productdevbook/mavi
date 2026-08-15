@@ -24,6 +24,11 @@ and an account goes, and the thing they said stays where they said it.
 open, because a report that is closed by being replied to is one nobody comes
 back to.
 
+**Kept a year, like the audit log.** `said_by` names who said it and
+`environment` gathers what their browser was doing, so a report is somebody's
+own data and not kept forever — `reports.sweep` takes rows older than 365
+days, on the same schedule as `audit.sweep`.
+
 ## What it deliberately does not do
 
 - No screenshots. A picture of a broken screen may hold somebody's inbox, their

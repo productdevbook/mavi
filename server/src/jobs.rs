@@ -8,7 +8,7 @@ use crate::content;
 use crate::flows;
 use crate::forms;
 use crate::health;
-use crate::housekeeping::{self, SweepAudit, SweepDeliveries, SweepSessions};
+use crate::housekeeping::{self, SweepAudit, SweepDeliveries, SweepReports, SweepSessions};
 use crate::kernel::error::{AppError, Result};
 use crate::kernel::http::AppState;
 use crate::kernel::outside::Outside;
@@ -75,6 +75,7 @@ pub async fn schedule_due(state: &AppState) -> Result<()> {
     every::<housekeeping::SweepSessions>(state, Every::Day).await?;
     every::<housekeeping::SweepAudit>(state, Every::Day).await?;
     every::<housekeeping::SweepDeliveries>(state, Every::Day).await?;
+    every::<housekeeping::SweepReports>(state, Every::Day).await?;
     every::<shop::SweepOrders>(state, Every::Day).await?;
     every::<shop::WarnOnLowStock>(state, Every::Day).await?;
     every::<mail::SweepLog>(state, Every::Day).await?;
@@ -125,6 +126,7 @@ pub async fn run(state: &AppState, job: &Job) -> Result<()> {
         SweepDeliveries::KIND => housekeeping::sweep_deliveries(state, tenant)
             .await
             .map(|_| ()),
+        SweepReports::KIND => housekeeping::sweep_reports(state, tenant).await.map(|_| ()),
         shop::ReleaseHolds::KIND => shop::release_holds(state, tenant).await.map(|_| ()),
         shop::DropStuck::KIND => shop::drop_stuck(state, tenant).await.map(|_| ()),
         shop::WarnOnLowStock::KIND => shop::warn_on_low_stock(state, tenant).await.map(|_| ()),

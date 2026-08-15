@@ -10,5 +10,8 @@ mavi-api = { path = "../mavi-api" }
 mavi-core = { path = "../mavi-core" }
 mavi-people = { path = "../mavi-people" }
 
+serde = { workspace = true }
+uuid = { workspace = true }
+
 [lints]
 workspace = true

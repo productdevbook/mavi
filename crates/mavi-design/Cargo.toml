@@ -1,0 +1,18 @@
+[package]
+name = "mavi-design"
+version = "0.0.0"
+edition = "2024"
+publish = false
+description = "How a site looks, and how it goes live."
+
+[dependencies]
+mavi-api = { path = "../mavi-api" }
+mavi-core = { path = "../mavi-core" }
+mavi-people = { path = "../mavi-people" }
+mavi-work = { path = "../mavi-work" }
+
+serde = { workspace = true }
+uuid = { workspace = true }
+
+[lints]
+workspace = true

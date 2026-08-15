@@ -142,6 +142,16 @@ pub fn endpoints() -> Vec<Endpoint> {
             set_password,
         )
         .takes::<Chosen>(),
+        Endpoint::post(
+            "/api/auth/email-proof",
+            Guard {
+                audience: Audience::Public,
+                needs: None,
+                rate: RatePolicy::Per(RESET_LIMIT),
+            },
+            prove_email,
+        )
+        .takes::<Proof>(),
         Endpoint::patch(
             "/api/auth/password",
             Guard {
@@ -273,6 +283,12 @@ pub struct Changing {
 pub struct Chosen {
     pub token: Secret<String>,
     pub password: Secret<String>,
+}
+
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
+#[serde(deny_unknown_fields)]
+pub struct Proof {
+    pub token: Secret<String>,
 }
 
 async fn list(
@@ -1129,8 +1145,17 @@ async fn ask_to_reset(
     Ok(Audited::new(receipt, StatusCode::ACCEPTED))
 }
 
-/// What an invitation and a reset both end at. Spending the ticket is what
-/// proves the address, so an invited account arrives proved.
+/// What an invitation and a reset both end at, and only those two: the
+/// `purpose` is in the query itself, so a ticket minted to prove an address
+/// is simply not found here rather than found and then turned away — the
+/// same ticket cannot be redeemed for a password by asking a different
+/// question of it.
+///
+/// Spending it is also what proves the address: an invitation is sent to a
+/// address nobody has vouched for yet, and a reset is only ever sent to one
+/// already proved (`ask_to_reset` requires it), so `coalesce` here is a
+/// no-op for a reset and the actual proof for an invitation — never a second
+/// answer to a question already settled.
 async fn set_password(
     Injected(state): Injected<AppState>,
     caller: Caller,
@@ -1146,7 +1171,8 @@ async fn set_password(
 
     let found: Option<(Uuid, Uuid)> = sqlx::query_as(
         "select id, user_id from tickets
-          where token_hash = $1 and spent_at is null and expires_at > now()",
+          where token_hash = $1 and purpose in ('invitation', 'password_reset')
+            and spent_at is null and expires_at > now()",
     )
     .bind(&token::hash(body.token.expose())[..])
     .fetch_optional(conn.conn())
@@ -1183,6 +1209,62 @@ async fn set_password(
         &mut conn,
         Actor::system(caller.request_id),
         "chose a password",
+        "person",
+        Some(&user_id.to_string()),
+        &serde_json::json!({}),
+    )
+    .await?;
+
+    conn.commit().await?;
+
+    Ok(Audited::new(receipt, StatusCode::NO_CONTENT))
+}
+
+/// What an `email_proof` ticket redeems to, and only that: the address is
+/// marked proved, and nothing else about the account moves. `purpose` is in
+/// the query for the same reason it is in `set_password` — a ticket minted
+/// for an invitation or a reset is not eligible here either, so the two
+/// endpoints cannot be swapped for one another by the caller.
+///
+/// Proving an address is not a credential change, so unlike `set_password`
+/// this does not touch `password_hash`, does not move a suspended or
+/// still-invited account to `active`, and does not revoke sessions — doing
+/// any of those would make editing an address a way to sign somebody out of
+/// their own account.
+async fn prove_email(
+    Injected(state): Injected<AppState>,
+    caller: Caller,
+    Json(body): Json<Proof>,
+) -> Result<Audited<StatusCode>> {
+    let mut conn = state.db.tenant(caller.tenant()).await?;
+
+    let found: Option<(Uuid, Uuid)> = sqlx::query_as(
+        "select id, user_id from tickets
+          where token_hash = $1 and purpose = 'email_proof'
+            and spent_at is null and expires_at > now()",
+    )
+    .bind(&token::hash(body.token.expose())[..])
+    .fetch_optional(conn.conn())
+    .await?;
+
+    let Some((ticket, user_id)) = found else {
+        return Err(AppError::Invalid(say::LINK_BEEN_USED_OR_RUN_OUT.into()));
+    };
+
+    sqlx::query("update tickets set spent_at = now() where id = $1")
+        .bind(ticket)
+        .execute(conn.conn())
+        .await?;
+
+    sqlx::query("update users set email_proved_at = now() where id = $1")
+        .bind(user_id)
+        .execute(conn.conn())
+        .await?;
+
+    let receipt = audit::record_raw(
+        &mut conn,
+        Actor::system(caller.request_id),
+        "proved an address",
         "person",
         Some(&user_id.to_string()),
         &serde_json::json!({}),

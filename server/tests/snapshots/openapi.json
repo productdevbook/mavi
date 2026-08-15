@@ -214,6 +214,35 @@
         }
       }
     },
+    "/api/auth/email-proof": {
+      "post": {
+        "description": "Anybody.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "token"
+                ],
+                "properties": {
+                  "token": {
+                    "$ref": "#/components/schemas/Secret_String"
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Done."
+          }
+        }
+      }
+    },
     "/api/auth/me": {
       "get": {
         "description": "Any signed-in panel account.",
@@ -11901,6 +11930,18 @@
               "boolean",
               "null"
             ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "Proof": {
+        "type": "object",
+        "required": [
+          "token"
+        ],
+        "properties": {
+          "token": {
+            "$ref": "#/components/schemas/Secret_String"
           }
         },
         "additionalProperties": false

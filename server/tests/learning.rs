@@ -462,6 +462,11 @@ async fn a_curriculum_costs_the_same_however_many_lessons_there_are() {
         counter.count()
     };
 
+    // Equal, not bounded: the request above warms the route, and
+    // `common::queries::counting` no longer counts a connection's one-time
+    // cost of learning what `course_state` is (see `SETTING_UP` in
+    // `common/queries.rs`) — that cost belongs to whichever connection pays
+    // it first, not to whichever read this test happens to measure.
     assert_eq!(
         small, large,
         "a course with twenty lessons cost more to read"

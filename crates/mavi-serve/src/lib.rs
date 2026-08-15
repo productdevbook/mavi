@@ -191,7 +191,7 @@ impl Site {
                     let carried = Arc::clone(&carried);
 
                     async move {
-                        through(&carried, &who, &params, query.as_deref(), &headers, &body).await
+                        through(&carried, &who, &params, query.as_deref(), headers, &body).await
                     }
                 };
 

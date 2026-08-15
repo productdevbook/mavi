@@ -1,0 +1,14 @@
+[package]
+name = "mavi-boards"
+version = "0.0.0"
+edition = "2024"
+publish = false
+description = "What is being worked on: boards, stages, cards, and where a card sits."
+
+[dependencies]
+mavi-api = { path = "../mavi-api" }
+mavi-core = { path = "../mavi-core" }
+mavi-people = { path = "../mavi-people" }
+
+[lints]
+workspace = true

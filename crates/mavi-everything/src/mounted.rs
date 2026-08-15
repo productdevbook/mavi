@@ -122,7 +122,7 @@ async fn made(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
     let receipt = wrote(
         &mut tx,
         asked,
-        "writings.make",
+        "writings.write",
         &writing.id,
         &serde_json::json!({
             "kind": writing.kind.as_str(),
@@ -173,7 +173,7 @@ async fn thrown(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
     let receipt = wrote(
         &mut tx,
         asked,
-        "writings.remove",
+        "writings.throw-away",
         &id,
         &serde_json::json!({}),
     )

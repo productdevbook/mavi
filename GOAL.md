@@ -61,16 +61,45 @@ The numbers above are `server/`, which is what runs today and will keep running
 until the new tree can serve. Beside it, `crates/` is the same software written
 again as a workspace — the owner's decision, and #10 carries it.
 
+Where that has got to, counted the same way:
+
+| | |
+|---|---|
+| The API | **100 operations** across 69 paths, every one declaring its parameters, its failures, the status it answers and how to authenticate |
+| The workspace | 19 crates — six of foundation, twelve domains, and one that holds the whole API and asks it what no domain can ask about itself |
+| The schema | 14 migrations, applied to a real Postgres by a test rather than believed |
+| Tests | 263, of which 26 need a database and get one of their own |
+| The panel | not started, on purpose: it is written last, against an API worth writing one against |
+
+What is written down there is the **shape**: types, rules, the schema, and the
+description every endpoint generates. What is not written yet is the wiring —
+nothing in `crates/` serves an HTTP request, and `server/` is still what runs.
+That order is deliberate and the remaining half is named rather than implied:
+the axum binding, the handlers that read and write rows, and the panel.
+
 What that is *for* is worth stating, because "a rewrite" on its own is a bad
 reason. Every crate down there exists to make one measured failure
 unrepeatable:
 
 | Crate | What it makes impossible |
 |---|---|
-| `mavi-core` | A refusal that can only be said in English. A listing whose cursor addresses less than its order — the failure that hit fourteen listings and skipped rows silently. Money compared across currencies. An id passed where another belongs. |
-| `mavi-db` | The `order by` and the cursor predicate disagreeing, because both are generated from one declaration. |
-| `mavi-api` | An endpoint that does not say its parameters, its failures, its real status, or how to authenticate — all four of which were missing from all 177 operations. |
+| `mavi-core` | A refusal that can only be said in English. A listing whose cursor addresses less than its order — the failure that hit fourteen listings and skipped rows silently. Money compared across currencies, or multiplied into a number that saturated. An id passed where another belongs. An address that is two accounts because one of them capitalised it. |
+| `mavi-db` | The `order by` and the cursor predicate disagreeing, because both are generated from one declaration. A migration nobody has ever run: every one of them is applied to a real Postgres in CI, and the constraints in them are asserted by the thing they refuse. |
+| `mavi-api` | An endpoint that does not say its parameters, its failures, its real status, or how to authenticate — all four of which were missing from all 177 operations. Two endpoints that are secretly one route. |
+| `mavi-http` | A change that answers without a record, decided by what the endpoint said rather than by the HTTP verb. Two admission paths, one of which had no audit gate. |
+| `mavi-work` | Two workers running one job. A worker whose lease lapsed marking done a job somebody else now holds — which put the row back to `ready` and ran the work a third time. Work queued for a kind nothing runs. |
+| `mavi-audit` | A receipt for a change that was never written: `record` is the only thing that makes one, in the change's own transaction. A record anybody can rewrite, refused by the database rather than by the code. |
 | `mavi-content` | An address in use being taken by a check-then-write race. Published and its date disagreeing. |
+| `mavi-taxonomy` | A tag with a parent; a category under a tag; a term under itself. |
+| `mavi-media` | A file kept under the name somebody chose. A script called `holiday.png` served back as an image. |
+| `mavi-forms` | A form that declares nothing accepting anything — which is what it did. A submission bounded per answer and unbounded in total. A public endpoint mixed in with the panel's. |
+| `mavi-mail` | Somebody who left the newsletter being unable to reset their own password. A campaign with no way out of it. A letter that went out with `{link}` still in it. |
+| `mavi-shop` | An order sent that was never paid for — which the old schema's own constraint permitted. Two checkouts deadlocking over the same two products. A discount that takes the total below zero, or comes off in the wrong currency. |
+| `mavi-courses` | A student opening a lesson in a course that was closed. A reorder that leaves a module at minus one. |
+| `mavi-flows` | A flow calling the database, the metadata service, or the machine next to it. A step that cannot run, written and only discovered once per order. |
+| `mavi-design` | Anything that decides how a site is built being written through the API. A layout going live without being built and looked at first. |
+| `mavi-boards` | Two cards in one place, after the fiftieth time somebody dropped one between the same two. |
+| `mavi-everything` | Two crates describing one route, or naming one endpoint twice. A capability nothing asks for, or one asked for that a site cannot grant. |
 
 The dependency graph made this cheap rather than heroic: **22 of the 27 domains
 already depend on nothing but the kernel**, and cutting the kernel's six

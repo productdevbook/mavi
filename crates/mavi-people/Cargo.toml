@@ -1,0 +1,18 @@
+[package]
+name = "mavi-people"
+version = "0.0.0"
+edition = "2024"
+publish = false
+description = "Who can sign in, what they may do, and the one list of what there is to be allowed."
+
+[dependencies]
+mavi-api = { path = "../mavi-api" }
+mavi-core = { path = "../mavi-core" }
+
+rand = { workspace = true }
+serde = { workspace = true }
+sha2 = { workspace = true }
+uuid = { workspace = true }
+
+[lints]
+workspace = true

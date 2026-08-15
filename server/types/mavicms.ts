@@ -862,6 +862,7 @@ export interface Request {
   method: string;
   params?: unknown;
   id?: unknown;
+  jsonrpc?: string | null;
 }
 
 export interface Returned {
@@ -2168,6 +2169,7 @@ export interface Calls {
   method: string;
   params?: unknown;
   id?: unknown;
+  jsonrpc?: string | null;
 }; gives: void };
   "PUT /api/auth/oauth/{key}": { takes: {
   label: string;

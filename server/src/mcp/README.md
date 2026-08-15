@@ -32,6 +32,11 @@ caller's mistake. A method that expects an answer and does not get one it
 recognises is told so as a JSON-RPC error object, code `-32601`, rather than
 with this API's own refusal shape — that is what a JSON-RPC client parses.
 
+**`jsonrpc` is named and not checked.** The description says a caller sends
+it, because a client generated from that description should — but its value
+is never read. Rejecting a value this build has not seen (a future `"2.1"`)
+would be breaking on the specification's own schedule, not a choice made here.
+
 **`initialize` is answered.** A client that cannot complete the handshake
 cannot reach `tools/list` at all, so the one capability declared is `tools`,
 and nothing this surface does not have — no `prompts`, no `resources`, no

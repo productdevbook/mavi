@@ -535,6 +535,14 @@ pub struct Request {
     pub params: serde_json::Value,
     #[serde(default)]
     pub id: Option<serde_json::Value>,
+    /// `"2.0"` — the JSON-RPC specification's own envelope version, which
+    /// every compliant client sends. Named here so a client generated from
+    /// this description writes it down and sends it too; not checked,
+    /// because refusing a value this build has not seen yet — a future
+    /// `"2.1"` — would be breaking on the specification's schedule rather
+    /// than a decision this build made.
+    #[serde(default)]
+    pub jsonrpc: Option<String>,
 }
 
 #[derive(Debug, Serialize, utoipa::ToSchema)]

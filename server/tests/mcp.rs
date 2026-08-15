@@ -177,6 +177,31 @@ async fn an_envelope_a_real_client_sends_is_answered_with_one() {
 }
 
 #[tokio::test]
+async fn a_jsonrpc_version_this_build_has_never_seen_is_still_served() {
+    let site = a_site().await;
+    let token = site.somebody("owner", &every_grant()).await;
+
+    // Named in the description so a generated client sends it, but never
+    // read: refusing a value this build has not seen would be breaking on
+    // the specification's own schedule, not a choice this build made.
+    let (status, answer) = site
+        .send(
+            "POST",
+            "/mcp",
+            Some(&token),
+            Some(serde_json::json!({
+                "jsonrpc": "2.1",
+                "id": 1,
+                "method": "tools/list",
+            })),
+        )
+        .await;
+
+    assert_eq!(status, StatusCode::OK, "{answer}");
+    assert!(answer["result"]["tools"].is_array(), "{answer}");
+}
+
+#[tokio::test]
 async fn a_notification_is_accepted_and_not_answered() {
     let site = a_site().await;
     let token = site.somebody("owner", &every_grant()).await;

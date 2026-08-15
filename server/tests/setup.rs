@@ -10,7 +10,7 @@ use uuid::Uuid;
 
 mod common;
 
-use common::a_machine_of_its_own;
+use common::harness;
 
 struct Machine {
     db: Db,
@@ -19,7 +19,7 @@ struct Machine {
 
 impl Machine {
     async fn new() -> Self {
-        let db = a_machine_of_its_own().await;
+        let db = harness().await;
 
         Self {
             router: mavi::router(AppState::new(db.clone())),

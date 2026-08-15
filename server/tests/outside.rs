@@ -209,11 +209,10 @@ async fn an_outside_endpoint_appears_in_the_description_the_server_serves() {
     );
 }
 
-/// A database of its own rather than the one every other test in this suite
-/// shares: `_sqlx_migrations` has no room in it for a migration that belongs
-/// to one test and not the rest of the run, and this crate's own `migrate` —
-/// called by `harness`, everywhere else — has no `Outside` to tell it that
-/// `900000001` is not its problem.
+/// A database made here rather than one of the leased ones: what a test
+/// leaves in a leased database is emptied out of it, and a migration is not a
+/// row anybody wrote — `900000001` would still be recorded as run when the
+/// next test was handed it.
 ///
 /// Migrates and grants exactly as [`start`](mavi::start::start) does: this
 /// crate's own migrations, unqualified — the same connection an outside
@@ -419,9 +418,7 @@ async fn an_outside_migration_numbered_like_one_of_ours_is_refused() {
 /// queue unless something schedules it, whoever it belongs to.
 #[tokio::test]
 async fn an_outside_schedule_puts_its_job_in_the_queue() {
-    // A machine of its own: `schedule_due` walks every site there is, and
-    // every other test's site is not this test's business.
-    let db = common::a_machine_of_its_own().await;
+    let db = harness().await;
     let tenant = a_tenant(&db, &format!("{}.example", Uuid::now_v7().simple())).await;
 
     let mut state = AppState::new(db.clone());
@@ -494,7 +491,7 @@ fn an_outside_retention_policy_is_held_to_the_same_gate() {
 /// working — every restart is that run.
 #[tokio::test]
 async fn this_crate_still_migrates_after_an_outside_crate_has() {
-    let db = common::a_machine_of_its_own().await;
+    let db = harness().await;
 
     db.migrate_with(sqlx::migrate!("./tests/fixtures/outside_migrations"))
         .await

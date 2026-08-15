@@ -14,15 +14,12 @@ use uuid::Uuid;
 
 mod common;
 
-use common::a_machine_of_its_own;
+use common::harness;
 use mavi::testing::a_tenant;
 
 #[tokio::test]
 async fn a_worker_takes_what_is_waiting_and_stops_when_it_is_asked_to() {
-    // A machine of its own: what is being tested is a loop that puts work in
-    // the queue for every site there is, and every other test's site is not
-    // this test's business.
-    let db = a_machine_of_its_own().await;
+    let db = harness().await;
     let tenant = a_tenant(&db, &format!("{}.example", Uuid::now_v7().simple())).await;
     let state = AppState::new(db.clone());
 
@@ -78,10 +75,7 @@ async fn a_worker_takes_what_is_waiting_and_stops_when_it_is_asked_to() {
 
 #[tokio::test]
 async fn keeping_time_puts_the_day_s_work_in_the_queue() {
-    // A machine of its own: what is being tested is a loop that puts work in
-    // the queue for every site there is, and every other test's site is not
-    // this test's business.
-    let db = a_machine_of_its_own().await;
+    let db = harness().await;
     let tenant = a_tenant(&db, &format!("{}.example", Uuid::now_v7().simple())).await;
     let state = AppState::new(db.clone());
 
@@ -109,10 +103,7 @@ async fn keeping_time_puts_the_day_s_work_in_the_queue() {
 
 #[tokio::test]
 async fn what_is_scheduled_is_scheduled_once() {
-    // A machine of its own: what is being tested is a loop that puts work in
-    // the queue for every site there is, and every other test's site is not
-    // this test's business.
-    let db = a_machine_of_its_own().await;
+    let db = harness().await;
     let tenant = a_tenant(&db, &format!("{}.example", Uuid::now_v7().simple())).await;
     let state = AppState::new(db.clone());
 

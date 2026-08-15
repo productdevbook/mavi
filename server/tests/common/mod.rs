@@ -2,6 +2,8 @@
 
 pub mod queries;
 
+use std::fmt::Write as _;
+
 use mavi::kernel::db::Db;
 use sqlx::Connection as _;
 use uuid::Uuid;
@@ -63,7 +65,9 @@ pub fn percent_encoded(value: &str) -> String {
             b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
                 out.push(byte as char);
             }
-            _ => out.push_str(&format!("%{byte:02X}")),
+            _ => {
+                let _ = write!(out, "%{byte:02X}");
+            }
         }
     }
 

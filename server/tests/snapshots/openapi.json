@@ -6549,48 +6549,51 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "id",
-                    "kind",
-                    "language",
-                    "slug",
-                    "name",
-                    "created_at"
-                  ],
-                  "properties": {
-                    "id": {
-                      "type": "string",
-                      "format": "uuid"
-                    },
-                    "kind": {
-                      "$ref": "#/components/schemas/TermKind"
-                    },
-                    "language": {
-                      "type": "string"
-                    },
-                    "slug": {
-                      "type": "string"
-                    },
-                    "name": {
-                      "type": "string"
-                    },
-                    "description": {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
-                    },
-                    "parent_id": {
-                      "type": [
-                        "string",
-                        "null"
-                      ],
-                      "format": "uuid"
-                    },
-                    "created_at": {
-                      "type": "string",
-                      "format": "date-time"
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "kind",
+                      "language",
+                      "slug",
+                      "name",
+                      "created_at"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "kind": {
+                        "$ref": "#/components/schemas/TermKind"
+                      },
+                      "language": {
+                        "type": "string"
+                      },
+                      "slug": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "description": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "parent_id": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "format": "uuid"
+                      },
+                      "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                      }
                     }
                   }
                 }

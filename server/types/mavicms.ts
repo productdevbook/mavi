@@ -2230,7 +2230,7 @@ export interface Calls {
 } };
   "PUT /api/posts/{id}/terms": { takes: {
   term_ids: string[];
-}; gives: {
+}; gives: ({
   id: string;
   kind: TermKind;
   language: string;
@@ -2239,5 +2239,5 @@ export interface Calls {
   description?: string | null;
   parent_id?: string | null;
   created_at: string;
-} };
+})[] };
 }

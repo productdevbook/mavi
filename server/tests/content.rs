@@ -371,7 +371,16 @@ async fn a_category_and_a_tag_are_one_thing_a_post_is_filed_under() {
         .await;
 
     assert_eq!(status, StatusCode::OK, "{body}");
-    assert_eq!(body.as_array().expect("a list").len(), 2);
+    let attached = body.as_array().expect("a list");
+    assert_eq!(attached.len(), 2);
+    let mut got: Vec<String> = attached
+        .iter()
+        .map(|term| term["id"].as_str().expect("an id").to_owned())
+        .collect();
+    got.sort();
+    let mut wanted = terms.clone();
+    wanted.sort();
+    assert_eq!(got, wanted, "every term filed under the post, and no other");
 
     // Filing it under one thing rather than two takes the other off, because
     // what a post is filed under is one decision.
@@ -385,7 +394,9 @@ async fn a_category_and_a_tag_are_one_thing_a_post_is_filed_under() {
         .await;
 
     assert_eq!(status, StatusCode::OK, "{body}");
-    assert_eq!(body.as_array().expect("a list").len(), 1);
+    let attached = body.as_array().expect("a list");
+    assert_eq!(attached.len(), 1);
+    assert_eq!(attached[0]["id"].as_str(), Some(terms[0].as_str()));
 
     let (status, body) = site
         .send(

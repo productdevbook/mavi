@@ -1206,7 +1206,7 @@ async fn prove_email(
     caller: Caller,
     Json(body): Json<Proof>,
 ) -> Result<Audited<StatusCode>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
 
     let found: Option<(Uuid, Uuid)> = sqlx::query_as(
         "select id, user_id from tickets

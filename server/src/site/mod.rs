@@ -292,17 +292,17 @@ pub struct QueueUsage {
 
 async fn usage(
     Injected(state): Injected<AppState>,
-    caller: Caller,
+    _caller: Caller,
     _permit: Permit,
 ) -> Result<Json<Usage>> {
-    let mut conn = state.db.tenant(caller.tenant()).await?;
+    let mut conn = state.db.begin().await?;
     let found = read_usage(&mut conn).await?;
     conn.commit().await?;
 
     Ok(Json(found))
 }
 
-async fn read_usage(conn: &mut TenantConn) -> Result<Usage> {
+async fn read_usage(conn: &mut Tx) -> Result<Usage> {
     let by_kind: Vec<StorageKind> = sqlx::query_as(
         "select split_part(mime, '/', 1) as kind,
                 sum(bytes)::bigint as bytes,
@@ -385,7 +385,7 @@ async fn read_usage(conn: &mut TenantConn) -> Result<Usage> {
 /// what lets `{kind}` go straight into the query below: `kind` is bound by
 /// this loop over a constant this crate wrote, the same rule `gather` and
 /// `erase` splice a table name under, and never a value a caller sent.
-async fn read_rows(conn: &mut TenantConn) -> Result<Vec<RowCount>> {
+async fn read_rows(conn: &mut Tx) -> Result<Vec<RowCount>> {
     let mut rows = Vec::with_capacity(ROW_KINDS.len());
 
     for &kind in ROW_KINDS {

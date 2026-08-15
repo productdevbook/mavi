@@ -44,7 +44,7 @@ import {
   Workflow,
 } from "lucide-react"
 
-import { applySurface, surfaceLabel, surfaceMark } from "@/lib/surface"
+import { applySurface, surfaceMark } from "@/lib/surface"
 import { useContentTypes } from "@/lib/use-content-types"
 import { useBoards } from "@/lib/use-boards"
 import { WideSurfaceProvider } from "@/components/wide-surface"
@@ -105,11 +105,10 @@ function Shell({ children }: { children: React.ReactNode }) {
     name: t`post`,
   }
 
-  const kind = "site"
   const name = site ?? undefined
   React.useEffect(() => {
-    applySurface({ kind, name })
-  }, [kind, name])
+    applySurface(name)
+  }, [name])
 
   // Everything the site added itself. Posts keep the first place and their own
   // address, which is where every link already goes. Lessons are left out:
@@ -117,16 +116,6 @@ function Shell({ children }: { children: React.ReactNode }) {
   // every lesson on the site is out of order and out of context.
   const own = types.filter((one) => one.key !== "post" && one.key !== "page")
 
-  // The server's own installation and a hosted site run the same panel, and
-  // for a long time they showed the same menu. They are not the same job.
-  // Nobody writes a post on the machine that hosts the sites — measured: zero
-  // posts, zero media, zero forms on it — so Categories, Students, the Bin and
-  // the rest were thirteen doors onto empty rooms, and Sites, the one thing
-  // somebody came for, was the last entry of the last group.
-  // What a site's own panel shows. The machine's own screens are a different
-  // surface with a different session, under /console: a site's panel is for
-  // whoever runs that site, and nobody writes a post on the machine that hosts
-  // them.
   const groups = [
         {
           label: t`Content`,
@@ -250,14 +239,11 @@ function Shell({ children }: { children: React.ReactNode }) {
         <SidebarHeader>
           <div className="flex items-center gap-2 px-2 py-1.5">
             <span className="surface-mark flex size-7 shrink-0 items-center justify-center rounded-lg text-sm font-bold text-white">
-              {surfaceMark(kind, name)}
+              {surfaceMark(name)}
             </span>
             <div className="min-w-0 group-data-[collapsible=icon]:hidden">
               <p className="truncate text-sm font-semibold">
                 {name ?? "Mavi CMS"}
-              </p>
-              <p className="truncate text-xs text-muted-foreground">
-                {surfaceLabel(kind)}
               </p>
             </div>
           </div>

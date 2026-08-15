@@ -105,11 +105,6 @@ impl Access {
             Access::Delete => "delete",
         }
     }
-
-    #[must_use]
-    pub fn changes(self) -> bool {
-        !matches!(self, Access::View)
-    }
 }
 
 impl std::fmt::Display for Access {
@@ -172,7 +167,7 @@ pub enum Principal {
 
 #[derive(Clone, Copy, Debug)]
 pub enum Resource {
-    Site { id: Uuid, frozen: bool },
+    Site { id: Uuid },
     Charge { id: Uuid, site: Uuid },
     Platform,
 }
@@ -240,10 +235,6 @@ pub fn check(
             RestrictedExpression::new_string(needs.own_grant()),
         ),
         (
-            "is_change".to_owned(),
-            RestrictedExpression::new_bool(needs.access.changes()),
-        ),
-        (
             "owner".to_owned(),
             RestrictedExpression::new_string(owner.map(|id| id.to_string()).unwrap_or_default()),
         ),
@@ -288,7 +279,7 @@ fn principal_uid(principal: &Principal) -> EntityUid {
 
 fn resource_uid(resource: Resource) -> EntityUid {
     match resource {
-        Resource::Site { id, .. } => uid("Site", &id.to_string()),
+        Resource::Site { id } => uid("Site", &id.to_string()),
         Resource::Charge { id, .. } => uid("Charge", &id.to_string()),
         Resource::Platform => uid("Platform", "platform"),
     }
@@ -298,12 +289,10 @@ fn action_uid(access: Access) -> EntityUid {
     uid("Action", access.as_str())
 }
 
-fn site_entity(id: Uuid, frozen: bool) -> Result<Entity> {
+fn site_entity(id: Uuid) -> Result<Entity> {
     Entity::new(
         uid("Site", &id.to_string()),
-        [("frozen".to_owned(), RestrictedExpression::new_bool(frozen))]
-            .into_iter()
-            .collect(),
+        [].into_iter().collect(),
         HashSet::new(),
     )
     .map_err(|_| AppError::Forbidden)
@@ -313,9 +302,9 @@ fn entities(principal: &Principal, resource: Resource) -> Result<Entities> {
     let mut all = Vec::new();
 
     match resource {
-        Resource::Site { id, frozen } => all.push(site_entity(id, frozen)?),
+        Resource::Site { id } => all.push(site_entity(id)?),
         Resource::Charge { id, site } => {
-            all.push(site_entity(site, false)?);
+            all.push(site_entity(site)?);
             all.push(
                 Entity::new(
                     uid("Charge", &id.to_string()),
@@ -368,8 +357,8 @@ fn entities(principal: &Principal, resource: Resource) -> Result<Entities> {
         Principal::SiteUser { id, site, grants } => {
             let own = uid("Site", &site.to_string());
 
-            if !matches!(resource, Resource::Site { id, .. } if id == *site) {
-                all.push(site_entity(*site, false)?);
+            if !matches!(resource, Resource::Site { id } if id == *site) {
+                all.push(site_entity(*site)?);
             }
 
             Entity::new(

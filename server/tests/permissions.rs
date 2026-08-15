@@ -16,8 +16,8 @@ fn matrix() -> String {
     let person = Uuid::from_u128(3);
 
     let mut out = String::from(
-        "principal                 capability access  site        answer\n\
-         ------------------------- ---------- ------- ----------- ------\n",
+        "principal                 capability access  answer\n\
+         ------------------------- ---------- ------- ------\n",
     );
 
     for capability in Capability::ALL {
@@ -25,7 +25,7 @@ fn matrix() -> String {
             let needs = Needs::new(capability, access);
             let holding_it: HashSet<String> = [needs.grant()].into_iter().collect();
 
-            let cases: [(&str, Principal, Resource); 5] = [
+            let cases: [(&str, Principal, Resource); 4] = [
                 (
                     "site user, holds it",
                     Principal::SiteUser {
@@ -33,10 +33,7 @@ fn matrix() -> String {
                         site,
                         grants: holding_it.clone(),
                     },
-                    Resource::Site {
-                        id: site,
-                        frozen: false,
-                    },
+                    Resource::Site { id: site },
                 ),
                 (
                     "site user, holds nothing",
@@ -45,10 +42,7 @@ fn matrix() -> String {
                         site,
                         grants: HashSet::new(),
                     },
-                    Resource::Site {
-                        id: site,
-                        frozen: false,
-                    },
+                    Resource::Site { id: site },
                 ),
                 (
                     "site user, another site",
@@ -57,30 +51,12 @@ fn matrix() -> String {
                         site,
                         grants: holding_it.clone(),
                     },
-                    Resource::Site {
-                        id: elsewhere,
-                        frozen: false,
-                    },
-                ),
-                (
-                    "site user, site on hold",
-                    Principal::SiteUser {
-                        id: person,
-                        site,
-                        grants: holding_it.clone(),
-                    },
-                    Resource::Site {
-                        id: site,
-                        frozen: true,
-                    },
+                    Resource::Site { id: elsewhere },
                 ),
                 (
                     "operator",
                     Principal::Operator { id: person },
-                    Resource::Site {
-                        id: site,
-                        frozen: false,
-                    },
+                    Resource::Site { id: site },
                 ),
             ];
 
@@ -91,14 +67,11 @@ fn matrix() -> String {
                     "deny"
                 };
 
-                let frozen = matches!(resource, Resource::Site { frozen: true, .. });
-
                 let _ = writeln!(
                     out,
-                    "{who:<25} {:<10} {:<7} {:<11} {answer}",
+                    "{who:<25} {:<10} {:<7} {answer}",
                     capability.as_str(),
                     access.as_str(),
-                    if frozen { "on hold" } else { "open" },
                 );
             }
         }

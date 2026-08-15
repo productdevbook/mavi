@@ -18,7 +18,7 @@ use crate::kernel::error::{AppError, Result};
 use crate::kernel::http::{AppState, Audience, Console, Endpoint, Guard, RatePolicy};
 use crate::kernel::ratelimit::Limit;
 use crate::kernel::secret::Secret;
-use crate::kernel::tenant::{TenantId, normalize_host};
+use crate::kernel::tenant::TenantId;
 use crate::kernel::types::{Email, Title};
 use crate::kernel::{password, say};
 
@@ -26,6 +26,18 @@ use crate::kernel::{password, say};
 /// its bare IP while somebody is trying it still gets a site, and still gets
 /// in.
 const FALLBACK_HOST: &str = "localhost";
+
+/// The form an address is written down in: no port, no trailing dot,
+/// lowercase. Nothing compares it to anything — no request is resolved to a
+/// site — so this is only so that what was recorded reads like an address
+/// rather than like a header.
+fn as_an_address(host: &str) -> String {
+    host.split(':')
+        .next()
+        .unwrap_or(host)
+        .trim_end_matches('.')
+        .to_ascii_lowercase()
+}
 
 /// Slowly. The window is small and this is behind no account at all, so what is
 /// counted here is somebody hammering an address that answers with a machine.
@@ -112,7 +124,7 @@ async fn begin(
     let host = headers
         .get(HOST)
         .and_then(|value| value.to_str().ok())
-        .map(normalize_host)
+        .map(as_an_address)
         .filter(|host| !host.is_empty())
         .unwrap_or_else(|| FALLBACK_HOST.to_owned());
 

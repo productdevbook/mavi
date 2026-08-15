@@ -5,7 +5,6 @@
 use chrono::Duration;
 use mavi::kernel::audit::{Actor, ActorKind};
 use mavi::kernel::http::RequestId;
-use mavi::kernel::tenant::resolve_host;
 use mavi::kernel::{audit, queue};
 use sqlx::Row;
 use uuid::Uuid;
@@ -74,27 +73,6 @@ async fn a_tenant_sees_only_its_own_rows() {
 
     assert_eq!(rows.len(), 1, "a tenant read another tenant's audit log");
     assert_eq!(rows[0].get::<Uuid, _>("tenant_id"), one.0);
-}
-
-#[tokio::test]
-async fn an_address_nothing_claims_is_refused() {
-    let db = harness().await;
-    let host = format!("{}.example", Uuid::now_v7().simple());
-    let tenant = a_tenant(&db, &host).await;
-
-    assert_eq!(
-        resolve_host(&db, &host).await.expect("resolve").tenant,
-        tenant
-    );
-    // A port and a trailing dot are both things a Host header really carries.
-    assert_eq!(
-        resolve_host(&db, &format!("{host}.:443"))
-            .await
-            .expect("resolve")
-            .tenant,
-        tenant
-    );
-    assert!(resolve_host(&db, "nobody.example").await.is_err());
 }
 
 #[tokio::test]

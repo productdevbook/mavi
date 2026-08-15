@@ -34,10 +34,7 @@ fn the_policies_validate_against_the_schema() {
 #[test]
 fn a_grant_that_is_held_is_allowed_and_one_that_is_not_is_refused() {
     let (principal, site) = site_user(&["content:write", "content:view"]);
-    let resource = Resource::Site {
-        id: site,
-        frozen: false,
-    };
+    let resource = Resource::Site { id: site };
 
     assert!(
         check(
@@ -61,44 +58,9 @@ fn a_grant_that_is_held_is_allowed_and_one_that_is_not_is_refused() {
 }
 
 #[test]
-fn a_hold_closes_everything_that_changes_and_leaves_reading_open() {
-    let (principal, site) = site_user(&["content:view", "content:write", "content:delete"]);
-    let frozen = Resource::Site {
-        id: site,
-        frozen: true,
-    };
-
-    assert!(
-        check(
-            &principal,
-            Needs::new(Capability::Content, Access::View),
-            frozen,
-            None
-        )
-        .is_ok()
-    );
-
-    for access in [Access::Write, Access::Delete] {
-        assert!(
-            check(
-                &principal,
-                Needs::new(Capability::Content, access),
-                frozen,
-                None
-            )
-            .is_err(),
-            "{access} went through on a site that is on hold"
-        );
-    }
-}
-
-#[test]
 fn a_site_user_cannot_reach_another_site() {
     let (principal, _) = site_user(&["content:write"]);
-    let somewhere_else = Resource::Site {
-        id: Uuid::now_v7(),
-        frozen: false,
-    };
+    let somewhere_else = Resource::Site { id: Uuid::now_v7() };
 
     assert!(
         check(
@@ -114,10 +76,7 @@ fn a_site_user_cannot_reach_another_site() {
 #[test]
 fn holding_nothing_reaches_nothing() {
     let (principal, site) = site_user(&[]);
-    let resource = Resource::Site {
-        id: site,
-        frozen: false,
-    };
+    let resource = Resource::Site { id: site };
 
     for capability in Capability::ALL {
         for access in [Access::View, Access::Write, Access::Delete] {
@@ -225,10 +184,7 @@ fn an_own_grant_reaches_what_the_person_made_and_nothing_else() {
             .collect(),
     };
 
-    let resource = Resource::Site {
-        id: site,
-        frozen: false,
-    };
+    let resource = Resource::Site { id: site };
 
     let needs = Needs::new(Capability::Content, Access::Write);
 

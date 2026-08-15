@@ -1,212 +1,170 @@
-principal                 capability access  site        answer
-------------------------- ---------- ------- ----------- ------
-site user, holds it       content    view    open        allow
-site user, holds nothing  content    view    open        deny
-site user, another site   content    view    open        deny
-site user, site on hold   content    view    on hold     allow
-operator                  content    view    open        allow
-site user, holds it       content    write   open        allow
-site user, holds nothing  content    write   open        deny
-site user, another site   content    write   open        deny
-site user, site on hold   content    write   on hold     deny
-operator                  content    write   open        allow
-site user, holds it       content    delete  open        allow
-site user, holds nothing  content    delete  open        deny
-site user, another site   content    delete  open        deny
-site user, site on hold   content    delete  on hold     deny
-operator                  content    delete  open        allow
-site user, holds it       media      view    open        allow
-site user, holds nothing  media      view    open        deny
-site user, another site   media      view    open        deny
-site user, site on hold   media      view    on hold     allow
-operator                  media      view    open        allow
-site user, holds it       media      write   open        allow
-site user, holds nothing  media      write   open        deny
-site user, another site   media      write   open        deny
-site user, site on hold   media      write   on hold     deny
-operator                  media      write   open        allow
-site user, holds it       media      delete  open        allow
-site user, holds nothing  media      delete  open        deny
-site user, another site   media      delete  open        deny
-site user, site on hold   media      delete  on hold     deny
-operator                  media      delete  open        allow
-site user, holds it       taxonomy   view    open        allow
-site user, holds nothing  taxonomy   view    open        deny
-site user, another site   taxonomy   view    open        deny
-site user, site on hold   taxonomy   view    on hold     allow
-operator                  taxonomy   view    open        allow
-site user, holds it       taxonomy   write   open        allow
-site user, holds nothing  taxonomy   write   open        deny
-site user, another site   taxonomy   write   open        deny
-site user, site on hold   taxonomy   write   on hold     deny
-operator                  taxonomy   write   open        allow
-site user, holds it       taxonomy   delete  open        allow
-site user, holds nothing  taxonomy   delete  open        deny
-site user, another site   taxonomy   delete  open        deny
-site user, site on hold   taxonomy   delete  on hold     deny
-operator                  taxonomy   delete  open        allow
-site user, holds it       forms      view    open        allow
-site user, holds nothing  forms      view    open        deny
-site user, another site   forms      view    open        deny
-site user, site on hold   forms      view    on hold     allow
-operator                  forms      view    open        allow
-site user, holds it       forms      write   open        allow
-site user, holds nothing  forms      write   open        deny
-site user, another site   forms      write   open        deny
-site user, site on hold   forms      write   on hold     deny
-operator                  forms      write   open        allow
-site user, holds it       forms      delete  open        allow
-site user, holds nothing  forms      delete  open        deny
-site user, another site   forms      delete  open        deny
-site user, site on hold   forms      delete  on hold     deny
-operator                  forms      delete  open        allow
-site user, holds it       mail       view    open        allow
-site user, holds nothing  mail       view    open        deny
-site user, another site   mail       view    open        deny
-site user, site on hold   mail       view    on hold     allow
-operator                  mail       view    open        allow
-site user, holds it       mail       write   open        allow
-site user, holds nothing  mail       write   open        deny
-site user, another site   mail       write   open        deny
-site user, site on hold   mail       write   on hold     deny
-operator                  mail       write   open        allow
-site user, holds it       mail       delete  open        allow
-site user, holds nothing  mail       delete  open        deny
-site user, another site   mail       delete  open        deny
-site user, site on hold   mail       delete  on hold     deny
-operator                  mail       delete  open        allow
-site user, holds it       flows      view    open        allow
-site user, holds nothing  flows      view    open        deny
-site user, another site   flows      view    open        deny
-site user, site on hold   flows      view    on hold     allow
-operator                  flows      view    open        allow
-site user, holds it       flows      write   open        allow
-site user, holds nothing  flows      write   open        deny
-site user, another site   flows      write   open        deny
-site user, site on hold   flows      write   on hold     deny
-operator                  flows      write   open        allow
-site user, holds it       flows      delete  open        allow
-site user, holds nothing  flows      delete  open        deny
-site user, another site   flows      delete  open        deny
-site user, site on hold   flows      delete  on hold     deny
-operator                  flows      delete  open        allow
-site user, holds it       courses    view    open        allow
-site user, holds nothing  courses    view    open        deny
-site user, another site   courses    view    open        deny
-site user, site on hold   courses    view    on hold     allow
-operator                  courses    view    open        allow
-site user, holds it       courses    write   open        allow
-site user, holds nothing  courses    write   open        deny
-site user, another site   courses    write   open        deny
-site user, site on hold   courses    write   on hold     deny
-operator                  courses    write   open        allow
-site user, holds it       courses    delete  open        allow
-site user, holds nothing  courses    delete  open        deny
-site user, another site   courses    delete  open        deny
-site user, site on hold   courses    delete  on hold     deny
-operator                  courses    delete  open        allow
-site user, holds it       shop       view    open        allow
-site user, holds nothing  shop       view    open        deny
-site user, another site   shop       view    open        deny
-site user, site on hold   shop       view    on hold     allow
-operator                  shop       view    open        allow
-site user, holds it       shop       write   open        allow
-site user, holds nothing  shop       write   open        deny
-site user, another site   shop       write   open        deny
-site user, site on hold   shop       write   on hold     deny
-operator                  shop       write   open        allow
-site user, holds it       shop       delete  open        allow
-site user, holds nothing  shop       delete  open        deny
-site user, another site   shop       delete  open        deny
-site user, site on hold   shop       delete  on hold     deny
-operator                  shop       delete  open        allow
-site user, holds it       people     view    open        allow
-site user, holds nothing  people     view    open        deny
-site user, another site   people     view    open        deny
-site user, site on hold   people     view    on hold     allow
-operator                  people     view    open        allow
-site user, holds it       people     write   open        allow
-site user, holds nothing  people     write   open        deny
-site user, another site   people     write   open        deny
-site user, site on hold   people     write   on hold     deny
-operator                  people     write   open        allow
-site user, holds it       people     delete  open        allow
-site user, holds nothing  people     delete  open        deny
-site user, another site   people     delete  open        deny
-site user, site on hold   people     delete  on hold     deny
-operator                  people     delete  open        allow
-site user, holds it       settings   view    open        allow
-site user, holds nothing  settings   view    open        deny
-site user, another site   settings   view    open        deny
-site user, site on hold   settings   view    on hold     allow
-operator                  settings   view    open        allow
-site user, holds it       settings   write   open        allow
-site user, holds nothing  settings   write   open        deny
-site user, another site   settings   write   open        deny
-site user, site on hold   settings   write   on hold     deny
-operator                  settings   write   open        allow
-site user, holds it       settings   delete  open        allow
-site user, holds nothing  settings   delete  open        deny
-site user, another site   settings   delete  open        deny
-site user, site on hold   settings   delete  on hold     deny
-operator                  settings   delete  open        allow
-site user, holds it       publish    view    open        allow
-site user, holds nothing  publish    view    open        deny
-site user, another site   publish    view    open        deny
-site user, site on hold   publish    view    on hold     allow
-operator                  publish    view    open        allow
-site user, holds it       publish    write   open        allow
-site user, holds nothing  publish    write   open        deny
-site user, another site   publish    write   open        deny
-site user, site on hold   publish    write   on hold     deny
-operator                  publish    write   open        allow
-site user, holds it       publish    delete  open        allow
-site user, holds nothing  publish    delete  open        deny
-site user, another site   publish    delete  open        deny
-site user, site on hold   publish    delete  on hold     deny
-operator                  publish    delete  open        allow
-site user, holds it       design     view    open        allow
-site user, holds nothing  design     view    open        deny
-site user, another site   design     view    open        deny
-site user, site on hold   design     view    on hold     allow
-operator                  design     view    open        allow
-site user, holds it       design     write   open        allow
-site user, holds nothing  design     write   open        deny
-site user, another site   design     write   open        deny
-site user, site on hold   design     write   on hold     deny
-operator                  design     write   open        allow
-site user, holds it       design     delete  open        allow
-site user, holds nothing  design     delete  open        deny
-site user, another site   design     delete  open        deny
-site user, site on hold   design     delete  on hold     deny
-operator                  design     delete  open        allow
-site user, holds it       boards     view    open        allow
-site user, holds nothing  boards     view    open        deny
-site user, another site   boards     view    open        deny
-site user, site on hold   boards     view    on hold     allow
-operator                  boards     view    open        allow
-site user, holds it       boards     write   open        allow
-site user, holds nothing  boards     write   open        deny
-site user, another site   boards     write   open        deny
-site user, site on hold   boards     write   on hold     deny
-operator                  boards     write   open        allow
-site user, holds it       boards     delete  open        allow
-site user, holds nothing  boards     delete  open        deny
-site user, another site   boards     delete  open        deny
-site user, site on hold   boards     delete  on hold     deny
-operator                  boards     delete  open        allow
-site user, holds it       audit      view    open        allow
-site user, holds nothing  audit      view    open        deny
-site user, another site   audit      view    open        deny
-site user, site on hold   audit      view    on hold     allow
-operator                  audit      view    open        allow
-site user, holds it       audit      write   open        allow
-site user, holds nothing  audit      write   open        deny
-site user, another site   audit      write   open        deny
-site user, site on hold   audit      write   on hold     deny
-operator                  audit      write   open        allow
-site user, holds it       audit      delete  open        allow
-site user, holds nothing  audit      delete  open        deny
-site user, another site   audit      delete  open        deny
-site user, site on hold   audit      delete  on hold     deny
-operator                  audit      delete  open        allow
+principal                 capability access  answer
+------------------------- ---------- ------- ------
+site user, holds it       content    view    allow
+site user, holds nothing  content    view    deny
+site user, another site   content    view    deny
+operator                  content    view    allow
+site user, holds it       content    write   allow
+site user, holds nothing  content    write   deny
+site user, another site   content    write   deny
+operator                  content    write   allow
+site user, holds it       content    delete  allow
+site user, holds nothing  content    delete  deny
+site user, another site   content    delete  deny
+operator                  content    delete  allow
+site user, holds it       media      view    allow
+site user, holds nothing  media      view    deny
+site user, another site   media      view    deny
+operator                  media      view    allow
+site user, holds it       media      write   allow
+site user, holds nothing  media      write   deny
+site user, another site   media      write   deny
+operator                  media      write   allow
+site user, holds it       media      delete  allow
+site user, holds nothing  media      delete  deny
+site user, another site   media      delete  deny
+operator                  media      delete  allow
+site user, holds it       taxonomy   view    allow
+site user, holds nothing  taxonomy   view    deny
+site user, another site   taxonomy   view    deny
+operator                  taxonomy   view    allow
+site user, holds it       taxonomy   write   allow
+site user, holds nothing  taxonomy   write   deny
+site user, another site   taxonomy   write   deny
+operator                  taxonomy   write   allow
+site user, holds it       taxonomy   delete  allow
+site user, holds nothing  taxonomy   delete  deny
+site user, another site   taxonomy   delete  deny
+operator                  taxonomy   delete  allow
+site user, holds it       forms      view    allow
+site user, holds nothing  forms      view    deny
+site user, another site   forms      view    deny
+operator                  forms      view    allow
+site user, holds it       forms      write   allow
+site user, holds nothing  forms      write   deny
+site user, another site   forms      write   deny
+operator                  forms      write   allow
+site user, holds it       forms      delete  allow
+site user, holds nothing  forms      delete  deny
+site user, another site   forms      delete  deny
+operator                  forms      delete  allow
+site user, holds it       mail       view    allow
+site user, holds nothing  mail       view    deny
+site user, another site   mail       view    deny
+operator                  mail       view    allow
+site user, holds it       mail       write   allow
+site user, holds nothing  mail       write   deny
+site user, another site   mail       write   deny
+operator                  mail       write   allow
+site user, holds it       mail       delete  allow
+site user, holds nothing  mail       delete  deny
+site user, another site   mail       delete  deny
+operator                  mail       delete  allow
+site user, holds it       flows      view    allow
+site user, holds nothing  flows      view    deny
+site user, another site   flows      view    deny
+operator                  flows      view    allow
+site user, holds it       flows      write   allow
+site user, holds nothing  flows      write   deny
+site user, another site   flows      write   deny
+operator                  flows      write   allow
+site user, holds it       flows      delete  allow
+site user, holds nothing  flows      delete  deny
+site user, another site   flows      delete  deny
+operator                  flows      delete  allow
+site user, holds it       courses    view    allow
+site user, holds nothing  courses    view    deny
+site user, another site   courses    view    deny
+operator                  courses    view    allow
+site user, holds it       courses    write   allow
+site user, holds nothing  courses    write   deny
+site user, another site   courses    write   deny
+operator                  courses    write   allow
+site user, holds it       courses    delete  allow
+site user, holds nothing  courses    delete  deny
+site user, another site   courses    delete  deny
+operator                  courses    delete  allow
+site user, holds it       shop       view    allow
+site user, holds nothing  shop       view    deny
+site user, another site   shop       view    deny
+operator                  shop       view    allow
+site user, holds it       shop       write   allow
+site user, holds nothing  shop       write   deny
+site user, another site   shop       write   deny
+operator                  shop       write   allow
+site user, holds it       shop       delete  allow
+site user, holds nothing  shop       delete  deny
+site user, another site   shop       delete  deny
+operator                  shop       delete  allow
+site user, holds it       people     view    allow
+site user, holds nothing  people     view    deny
+site user, another site   people     view    deny
+operator                  people     view    allow
+site user, holds it       people     write   allow
+site user, holds nothing  people     write   deny
+site user, another site   people     write   deny
+operator                  people     write   allow
+site user, holds it       people     delete  allow
+site user, holds nothing  people     delete  deny
+site user, another site   people     delete  deny
+operator                  people     delete  allow
+site user, holds it       settings   view    allow
+site user, holds nothing  settings   view    deny
+site user, another site   settings   view    deny
+operator                  settings   view    allow
+site user, holds it       settings   write   allow
+site user, holds nothing  settings   write   deny
+site user, another site   settings   write   deny
+operator                  settings   write   allow
+site user, holds it       settings   delete  allow
+site user, holds nothing  settings   delete  deny
+site user, another site   settings   delete  deny
+operator                  settings   delete  allow
+site user, holds it       publish    view    allow
+site user, holds nothing  publish    view    deny
+site user, another site   publish    view    deny
+operator                  publish    view    allow
+site user, holds it       publish    write   allow
+site user, holds nothing  publish    write   deny
+site user, another site   publish    write   deny
+operator                  publish    write   allow
+site user, holds it       publish    delete  allow
+site user, holds nothing  publish    delete  deny
+site user, another site   publish    delete  deny
+operator                  publish    delete  allow
+site user, holds it       design     view    allow
+site user, holds nothing  design     view    deny
+site user, another site   design     view    deny
+operator                  design     view    allow
+site user, holds it       design     write   allow
+site user, holds nothing  design     write   deny
+site user, another site   design     write   deny
+operator                  design     write   allow
+site user, holds it       design     delete  allow
+site user, holds nothing  design     delete  deny
+site user, another site   design     delete  deny
+operator                  design     delete  allow
+site user, holds it       boards     view    allow
+site user, holds nothing  boards     view    deny
+site user, another site   boards     view    deny
+operator                  boards     view    allow
+site user, holds it       boards     write   allow
+site user, holds nothing  boards     write   deny
+site user, another site   boards     write   deny
+operator                  boards     write   allow
+site user, holds it       boards     delete  allow
+site user, holds nothing  boards     delete  deny
+site user, another site   boards     delete  deny
+operator                  boards     delete  allow
+site user, holds it       audit      view    allow
+site user, holds nothing  audit      view    deny
+site user, another site   audit      view    deny
+operator                  audit      view    allow
+site user, holds it       audit      write   allow
+site user, holds nothing  audit      write   deny
+site user, another site   audit      write   deny
+operator                  audit      write   allow
+site user, holds it       audit      delete  allow
+site user, holds nothing  audit      delete  deny
+site user, another site   audit      delete  deny
+operator                  audit      delete  allow

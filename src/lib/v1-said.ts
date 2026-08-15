@@ -46,6 +46,8 @@ const WORDING: Record<string, (named: Record<string, string>) => string> = {
     t`This letter has nothing to put where it says {${named.name}}.`,
   this_machine_is_already_set_up: () =>
     t`This machine already has somebody running it.`,
+  this_machine_is_not_set_up_yet: () =>
+    t`This machine has nobody running it yet. Set it up first.`,
   that_site_already_answers_to_that_name: () =>
     t`A site already answers to that name.`,
   a_language_is_two_letters_and_a_place: () =>

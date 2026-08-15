@@ -233,31 +233,6 @@ async fn setting_up_gives_a_site_you_can_sign_into_and_write_in() {
 }
 
 #[tokio::test]
-async fn the_sites_address_is_whatever_the_request_arrived_on() {
-    let machine = Machine::new().await;
-
-    machine
-        .send("POST", "/api/setup", Some(Machine::somebody()))
-        .await;
-
-    let mut conn = machine.db.operator().await.expect("begin");
-    conn.across_sites().await.expect("across sites");
-
-    let (count,): (i64,) =
-        sqlx::query_as("select count(*) from tenant_domains where host = 'console.example'")
-            .fetch_one(conn.conn())
-            .await
-            .expect("a count");
-
-    conn.commit().await.expect("commit");
-
-    assert_eq!(
-        count, 1,
-        "the address the setup request arrived on was not made the site's own"
-    );
-}
-
-#[tokio::test]
 async fn a_password_nobody_could_call_one_is_refused() {
     let machine = Machine::new().await;
     let mut who = Machine::somebody();

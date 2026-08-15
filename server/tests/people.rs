@@ -1254,7 +1254,7 @@ async fn a_ticket_minted_for_one_purpose_is_not_redeemed_for_another() {
     // And the other way round: a ticket minted only to prove an address does
     // not open the door that chooses a password.
     let password = "a long enough password";
-    let (target, _) = a_user(&site.db, site.tenant, site.owner_role, password).await;
+    let (target, _) = a_user(&site.db, site.owner_role, password).await;
 
     let second = format!("proof-{}@example.test", Uuid::now_v7().simple());
 
@@ -1309,15 +1309,9 @@ async fn a_ticket_minted_for_one_purpose_is_not_redeemed_for_another() {
 async fn changing_somebody_s_address_does_not_hand_the_caller_their_password() {
     let site = a_site().await;
 
-    let editor_role = a_role(
-        &site.db,
-        site.tenant,
-        "editor",
-        &["people:write".to_owned()],
-    )
-    .await;
+    let editor_role = a_role(&site.db, "editor", &["people:write".to_owned()]).await;
     let editor_password = "a long enough password";
-    let (_, editor_email) = a_user(&site.db, site.tenant, editor_role, editor_password).await;
+    let (_, editor_email) = a_user(&site.db, editor_role, editor_password).await;
 
     let (_, session) = site
         .send(
@@ -1400,7 +1394,7 @@ async fn proving_an_address_touches_only_the_address() {
     let site = a_site().await;
 
     let password = "a long enough password";
-    let (them, _) = a_user(&site.db, site.tenant, site.owner_role, password).await;
+    let (them, _) = a_user(&site.db, site.owner_role, password).await;
 
     let second = format!("still-active-{}@example.test", Uuid::now_v7().simple());
 

@@ -27,7 +27,10 @@ every load of this screen is a page that gets slower exactly as the site gets
 bigger — the moment nobody wants to be waiting on it. `reltuples`, which
 Postgres already keeps for its own planner, stands in instead; it lags
 whatever autovacuum has not analyzed yet, close enough for "how big has this
-gotten" and offered as nothing more exact than that.
+gotten" and offered as nothing more exact than that. It is also a whole-table
+number rather than a tenant-scoped one, since nothing in Postgres's own
+catalog stats is filtered by row-level security — the same number as a real
+count for as long as `/api/setup` stays the only place a tenant is ever made.
 
 **Tables it owns.** None. It reads across the domains that hold somebody's
 data, from one list.

@@ -27,16 +27,23 @@ struct Site {
 }
 
 async fn a_site() -> Site {
-    a_site_where_somebody_can(&every_grant()).await
+    // `owner`, not a generic key: `people::refuse_if_last_owner` reads the
+    // role's own key literally, and a site made through this helper is the
+    // one every "the last owner is refused" test signs in as.
+    a_site_where_somebody_holding("owner", &every_grant()).await
 }
 
-/// A site whose account holds exactly these grants — for asking whether
-/// reaching something is gated on one of them.
+/// A site whose account holds exactly these grants under this role key — for
+/// asking whether reaching something is gated on one of them.
 async fn a_site_where_somebody_can(grants: &[String]) -> Site {
+    a_site_where_somebody_holding("somebody", grants).await
+}
+
+async fn a_site_where_somebody_holding(key: &str, grants: &[String]) -> Site {
     let db = harness().await;
     let host = format!("{}.example", Uuid::now_v7().simple());
     let tenant = a_tenant(&db, &host).await;
-    let role = a_role(&db, tenant, "somebody", grants).await;
+    let role = a_role(&db, tenant, key, grants).await;
     let password = "a long enough password";
     let (_, email) = a_user(&db, tenant, role, password).await;
 
@@ -478,7 +485,18 @@ async fn storage_and_rows_by_kind_are_read_back_as_what_was_written() {
         .find(|row| row["kind"] == "posts")
         .expect("a posts row");
 
-    assert_eq!(posts["approx_rows"], 3, "{read}");
+    // `reltuples` is a whole-table estimate, not a per-tenant one — nothing in
+    // Postgres's own catalog is scoped to a tenant, only what RLS filters on a
+    // real read. On a real install that is exactly the same number, because
+    // `/api/setup` is the only place a tenant is ever made and there is never
+    // a second one; in this test's shared database other tests are writing
+    // posts of their own into the same physical table at the same time, so
+    // this asserts "at least what was written" rather than "exactly".
+    let approx_rows = posts["approx_rows"].as_i64().expect("a number");
+    assert!(
+        approx_rows >= 3,
+        "wrote 3 posts, estimated {approx_rows}: {read}"
+    );
 }
 
 #[tokio::test]

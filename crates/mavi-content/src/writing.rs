@@ -4,6 +4,7 @@ use chrono::{DateTime, Utc};
 use mavi_core::error::{Error, Result};
 use mavi_core::id;
 use mavi_core::say::Say;
+pub use mavi_core::slug::{AN_ADDRESS_IS_LOWERCASE_AND_SHORT, Slug};
 use serde::{Deserialize, Serialize};
 
 id!(
@@ -12,7 +13,6 @@ id!(
 );
 
 pub const A_KIND_IS_LOWERCASE_AND_SHORT: &str = "a_kind_is_lowercase_and_short";
-pub const AN_ADDRESS_IS_LOWERCASE_AND_SHORT: &str = "an_address_is_lowercase_and_short";
 pub const SOMETHING_ELSE_ANSWERS_AT_THAT_ADDRESS: &str = "something_else_answers_at_that_address";
 pub const A_TITLE_IS_BETWEEN_ONE_AND_TWO_HUNDRED: &str = "a_title_is_between_one_and_two_hundred";
 pub const NOTHING_IS_WRITTEN_AT_THAT_ADDRESS: &str = "nothing_is_written_at_that_address";
@@ -38,34 +38,6 @@ impl Kind {
 
         if !right {
             return Err(Error::invalid(Say::of(A_KIND_IS_LOWERCASE_AND_SHORT)));
-        }
-
-        Ok(Self(text.to_owned()))
-    }
-
-    #[must_use]
-    pub fn as_str(&self) -> &str {
-        &self.0
-    }
-}
-
-/// Where it answers, within its language.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(transparent)]
-pub struct Slug(String);
-
-impl Slug {
-    pub fn parse(text: &str) -> Result<Self> {
-        let right = !text.is_empty()
-            && text.len() <= 128
-            && !text.starts_with('-')
-            && !text.ends_with('-')
-            && text
-                .chars()
-                .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-');
-
-        if !right {
-            return Err(Error::invalid(Say::of(AN_ADDRESS_IS_LOWERCASE_AND_SHORT)));
         }
 
         Ok(Self(text.to_owned()))
@@ -203,29 +175,6 @@ mod tests {
             assert!(
                 Kind::parse(wrong).is_err(),
                 "{wrong:?} was taken for a kind"
-            );
-        }
-    }
-
-    #[test]
-    fn an_address_is_something_that_can_go_in_a_url() {
-        for right in ["hello", "hello-there", "a", "2026-in-review"] {
-            assert!(Slug::parse(right).is_ok(), "{right} was refused");
-        }
-
-        // Leading and trailing dashes are the interesting ones: they read as
-        // fine and produce addresses nobody can type twice the same way.
-        for wrong in [
-            "",
-            "-hello",
-            "hello-",
-            "Hello",
-            "hello world",
-            "hello/there",
-        ] {
-            assert!(
-                Slug::parse(wrong).is_err(),
-                "{wrong:?} was taken for an address"
             );
         }
     }

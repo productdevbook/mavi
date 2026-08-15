@@ -15,6 +15,7 @@ pub mod money;
 pub mod page;
 pub mod ports;
 pub mod say;
+pub mod slug;
 
 pub mod error;
 

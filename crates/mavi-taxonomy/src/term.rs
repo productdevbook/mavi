@@ -3,6 +3,7 @@
 use chrono::{DateTime, Utc};
 use mavi_core::error::{Error, Result};
 use mavi_core::id;
+use mavi_core::slug::Slug;
 use mavi_core::say::Say;
 use serde::{Deserialize, Serialize};
 
@@ -47,7 +48,7 @@ pub struct Term {
     pub id: TermId,
     pub sort: Sort,
     pub language: String,
-    pub slug: String,
+    pub slug: Slug,
     pub name: String,
     pub parent: Option<TermId>,
     pub created_at: DateTime<Utc>,

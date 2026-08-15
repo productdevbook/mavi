@@ -91,7 +91,7 @@ The API reads these; everything else is set from the panel.
 | `MAVI_ROLE` | `both` | `api`, `worker`, or `both`. One process can do both; two make the queue somebody else's problem when the API is busy. |
 | `MAVI_DATA_DIR` | `uploads` beside the process, and `/data` in the image | Uploaded media. **Must be a persistent volume**, or everything anybody uploads goes with the container. |
 | `HOST` / `PORT` | `0.0.0.0` / `8080` | |
-| `GENERATOR` | `bun run build` in the image | What builds a site whose pages are built, run in a workspace of its own. Unset, what the theme wrote is served as it is. |
+| `GENERATOR` | — | A command run in a workspace holding that site's `src/` and `public/` and nothing else. It brings its own project: what decides how a site is built cannot be written through the API. Unset, what the theme put in `public/` is served as it is. |
 | `GENERATOR_OUTPUT` | `dist` | Which directory that leaves the built site in. |
 | `RUST_LOG` | `info` | |
 

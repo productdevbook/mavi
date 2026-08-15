@@ -588,3 +588,82 @@ async fn one_design_file_can_be_read_back() {
 
     assert_eq!(status, StatusCode::NOT_FOUND);
 }
+
+/// A site whose pages are built, published the way a machine with a generator
+/// publishes them — the whole chain, rather than each link on its own.
+///
+/// What was untested until this: a theme goes in, a command builds it in a
+/// workspace of its own, what it produced goes to the store under the id of
+/// the publish that made it, and a visitor on the site's own address is served
+/// that. Every part of that had a test; the line through them did not, and it
+/// is the line that a machine actually runs.
+#[tokio::test]
+async fn a_site_that_has_to_be_built_is_built_and_then_served() {
+    use mavi::building::Generator;
+    use mavi::kernel::builder::Builder;
+    use mavi::kernel::storage::{LocalDisk, Store};
+
+    let site = a_site().await;
+
+    // A theme is what a site wrote under `src/` and `public/` — and nothing
+    // else: what decides how a site is built is refused on the way in, so a
+    // generator brings the project and the workspace brings the content.
+    site.wrote("src/index.html", "<h1>Before it was built</h1>")
+        .await;
+
+    let kept_in = std::env::temp_dir().join(format!("mavi-built-{}", Uuid::now_v7().simple()));
+
+    let mut state = AppState::new(site.db.clone());
+    state.store = std::sync::Arc::new(Store::Disk(LocalDisk::at(&kept_in)));
+    state.builder = std::sync::Arc::new(Builder::Here(Generator {
+        // Named rather than a shell line, which is what the generator takes:
+        // a line would be somebody's file name executed one day.
+        program: "/bin/sh".to_owned(),
+        arguments: vec![
+            "-c".to_owned(),
+            "mkdir -p dist && printf '<h1>Built from the theme</h1>' > dist/index.html".to_owned(),
+        ],
+        output: "dist".to_owned(),
+        workspaces: std::env::temp_dir().join(format!("mavi-work-{}", Uuid::now_v7().simple())),
+        at_once: std::sync::Arc::new(tokio::sync::Semaphore::new(1)),
+    }));
+
+    let (status, asked) = site.send("POST", "/api/design/publishes", None).await;
+    assert_eq!(status, StatusCode::ACCEPTED, "{asked}");
+
+    for _ in 0..4 {
+        mavi::jobs::tick_within(&state, "test", Some(site.tenant))
+            .await
+            .expect("tick");
+    }
+
+    let router = mavi::router(state);
+    let served = router
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/")
+                .header(header::HOST, &site.host)
+                .body(Body::empty())
+                .expect("a request"),
+        )
+        .await
+        .expect("a response");
+
+    assert_eq!(served.status(), StatusCode::OK);
+
+    let bytes = served
+        .into_body()
+        .collect()
+        .await
+        .expect("a body")
+        .to_bytes();
+    let page = String::from_utf8_lossy(&bytes);
+
+    assert!(
+        page.contains("Built from the theme"),
+        "what the generator produced is what a visitor gets: {page}"
+    );
+
+    std::fs::remove_dir_all(&kept_in).ok();
+}

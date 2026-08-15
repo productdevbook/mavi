@@ -76,12 +76,14 @@ EXPOSE 8080
 
 # What this process is: `api`, `worker`, or unset for both — which is what
 # somebody trying this out runs, and it works without reading anything first.
-# `GENERATOR` is what builds a site whose pages are built, run in a workspace
-# of its own. Unset, what a theme wrote is served as it is — right for a site
-# of plain files, and wrong for every framework there is.
+# Unset, what a theme wrote under `public/` is what is served, which is a site
+# of plain files. `GENERATOR` is the other way: a command run in a workspace
+# holding that site's `src/` and `public/` and nothing else — no package.json,
+# because what decides how a site is built is refused on the way in. So a
+# generator is a script that brings its own project, and `bun run build` on
+# its own is not one. git and bun are here for it to use.
 ENV MAVI_ROLE= \
-    MAVI_DATA_DIR=/data \
-    GENERATOR="bun run build"
+    MAVI_DATA_DIR=/data
 
 # No HEALTHCHECK here: the honest one is an HTTP request to /readyz, this image
 # holds nothing that can make one, and a check that only proves the process

@@ -1,0 +1,15 @@
+[package]
+name = "mavi-http"
+version = "0.0.0"
+edition = "2024"
+publish = false
+description = "What lets a request in, and what it has to leave behind."
+
+[dependencies]
+mavi-api = { path = "../mavi-api" }
+mavi-core = { path = "../mavi-core" }
+
+uuid = { workspace = true }
+
+[lints]
+workspace = true

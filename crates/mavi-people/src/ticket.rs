@@ -16,7 +16,7 @@
 
 use std::fmt;
 
-use mavi_core::error::{Error, Result};
+use mavi_core::error::Error;
 use mavi_core::say::Say;
 
 pub const THAT_LINK_HAS_BEEN_USED_OR_RUN_OUT: &str = "that_link_has_been_used_or_run_out";

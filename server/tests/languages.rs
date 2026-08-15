@@ -280,20 +280,3 @@ async fn the_same_language_twice_is_a_conflict() {
 
     assert_eq!(status, StatusCode::CONFLICT);
 }
-
-#[tokio::test]
-async fn another_site_s_languages_are_not_this_one_s() {
-    let one = Site::new().await;
-
-    one.send(
-        "POST",
-        "/api/languages",
-        Some(serde_json::json!({ "code": "tr", "name": "Türkçe" })),
-    )
-    .await;
-
-    let other = Site::new().await;
-    let (_, listed) = other.send("GET", "/api/languages", None).await;
-
-    assert_eq!(listed.as_array().expect("a list").len(), 0);
-}

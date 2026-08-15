@@ -1,6 +1,7 @@
-# A process per test. Each one makes its own site inside the one database, so
-# they do not see each other's rows — and a test that leaks state fails on its
-# own rather than poisoning whatever ran beside it.
+# A process per test. Each one leases a database of its own for as long as the
+# process lives, so a test that leaks state fails on its own rather than
+# poisoning whatever ran beside it — and the lease ends when the process does,
+# whether it passed or panicked.
 
 [profile.ci]
 # Every failure in one run: a run that stopped at the first would report one

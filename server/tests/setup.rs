@@ -10,7 +10,7 @@ use uuid::Uuid;
 
 mod common;
 
-use common::a_machine_of_its_own;
+use common::harness;
 
 struct Machine {
     db: Db,
@@ -19,7 +19,7 @@ struct Machine {
 
 impl Machine {
     async fn new() -> Self {
-        let db = a_machine_of_its_own().await;
+        let db = harness().await;
 
         Self {
             router: mavi::router(AppState::new(db.clone())),
@@ -230,31 +230,6 @@ async fn setting_up_gives_a_site_you_can_sign_into_and_write_in() {
         serde_json::from_slice(&bytes).unwrap_or(serde_json::Value::Null);
 
     assert_eq!(status, StatusCode::CREATED, "{posted}");
-}
-
-#[tokio::test]
-async fn the_sites_address_is_whatever_the_request_arrived_on() {
-    let machine = Machine::new().await;
-
-    machine
-        .send("POST", "/api/setup", Some(Machine::somebody()))
-        .await;
-
-    let mut conn = machine.db.operator().await.expect("begin");
-    conn.across_sites().await.expect("across sites");
-
-    let (count,): (i64,) =
-        sqlx::query_as("select count(*) from tenant_domains where host = 'console.example'")
-            .fetch_one(conn.conn())
-            .await
-            .expect("a count");
-
-    conn.commit().await.expect("commit");
-
-    assert_eq!(
-        count, 1,
-        "the address the setup request arrived on was not made the site's own"
-    );
 }
 
 #[tokio::test]

@@ -1,7 +1,7 @@
 //! Driven through the router rather than by calling handlers, because what is
 //! being asked here is what a request gets — including the parts a handler
-//! never sees: which site the address resolved to, and whether the permission
-//! on the route let it through at all.
+//! never sees: whose session the token is, and whether the permission on the
+//! route let it through at all.
 
 use axum::body::Body;
 use axum::http::{Request, StatusCode, header};
@@ -139,37 +139,94 @@ async fn without_a_session_a_signed_in_route_is_refused() {
 }
 
 #[tokio::test]
-async fn an_address_no_site_claims_is_turned_away() {
-    let (site, _) = a_site("a long enough password").await;
+async fn a_probe_answers_on_a_machine_nobody_has_set_up() {
+    let router = mavi::router(AppState::new(harness().await));
+
+    let request = Request::builder()
+        .uri("/healthz")
+        .body(Body::empty())
+        .expect("a request");
+
+    let response = router.oneshot(request).await.expect("a response");
+    assert_eq!(response.status(), StatusCode::OK);
+}
+
+/// Before `/api/setup` has run there is no site for a request to be about, and
+/// there is no honest way to answer one: the endpoint exists, the caller is
+/// nobody in particular, and the machine is simply not a site yet. So it says
+/// that, as a key a panel can put in somebody's own language, rather than
+/// answering about an empty site or refusing as though the caller were at
+/// fault.
+#[tokio::test]
+async fn before_anybody_has_set_it_up_an_endpoint_says_so() {
+    let router = mavi::router(AppState::new(harness().await));
+
+    let request = Request::builder()
+        .method("POST")
+        .uri("/api/auth/session")
+        .header(header::CONTENT_TYPE, "application/json")
+        .body(Body::from(
+            serde_json::json!({ "email": "nobody@example.test", "password": "not it" }).to_string(),
+        ))
+        .expect("a request");
+
+    let response = router.oneshot(request).await.expect("a response");
+
+    assert_eq!(response.status(), StatusCode::CONFLICT);
+
+    let bytes = response
+        .into_body()
+        .collect()
+        .await
+        .expect("a body")
+        .to_bytes();
+    let refused: serde_json::Value = serde_json::from_slice(&bytes).expect("json");
+
+    assert_eq!(refused["error"]["key"], "this_machine_is_not_set_up_yet");
+}
+
+/// A database made by a build that served many sites still divides them: the
+/// `tenant_id` and the policies are all still there, and only the thing that
+/// chose between them has gone. Choosing one anyway would be one site's panel
+/// showing another site's posts with nothing anywhere saying so, so it refuses
+/// instead — which is also how somebody finds out their database has to be
+/// split before this version can serve it.
+#[tokio::test]
+async fn a_database_holding_more_than_one_site_is_refused_rather_than_guessed_at() {
+    let db = harness().await;
+
+    for _ in 0..2 {
+        a_tenant(&db, &format!("{}.example", uuid::Uuid::now_v7().simple())).await;
+    }
+
+    let router = mavi::router(AppState::new(db));
 
     let request = Request::builder()
         .method("GET")
         .uri("/api/auth/me")
-        .header(header::HOST, "nobody.example")
         .body(Body::empty())
         .expect("a request");
 
-    let (status, _) = site.send(request).await;
-    assert_eq!(status, StatusCode::NOT_FOUND);
-}
+    let response = router.oneshot(request).await.expect("a response");
 
-#[tokio::test]
-async fn a_probe_answers_without_a_site() {
-    let (site, _) = a_site("a long enough password").await;
+    assert_eq!(
+        response.status(),
+        StatusCode::CONFLICT,
+        "a request was answered about one of two sites"
+    );
 
-    let request = Request::builder()
-        .uri("/healthz")
-        .header(header::HOST, "nobody.example")
-        .body(Body::empty())
-        .expect("a request");
-
-    let response = site
-        .router
-        .clone()
-        .oneshot(request)
+    let bytes = response
+        .into_body()
+        .collect()
         .await
-        .expect("a response");
-    assert_eq!(response.status(), StatusCode::OK);
+        .expect("a body")
+        .to_bytes();
+    let refused: serde_json::Value = serde_json::from_slice(&bytes).expect("json");
+
+    assert_eq!(
+        refused["error"]["key"],
+        "this_database_holds_more_than_one_site"
+    );
 }
 
 /// What this build serves without an account, and what limits those carry.

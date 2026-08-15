@@ -211,6 +211,7 @@ mod tests {
         };
 
         let db = Db::connect(&url, 1).await.expect("connect");
+        db.migrate().await.expect("migrate");
         let state = AppState::new(db);
 
         for kind in super::kinds(&state.outside) {

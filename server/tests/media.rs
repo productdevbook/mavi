@@ -252,22 +252,6 @@ async fn a_file_that_was_taken_away_is_not_served() {
 }
 
 #[tokio::test]
-async fn another_site_s_file_is_not_served_here() {
-    let one = a_site().await;
-    let two = a_site().await;
-
-    let (_, body) = one.upload("holiday.png", A_PNG).await;
-    let id = body["id"].as_str().expect("an id");
-
-    let response = two.fetch(&format!("/uploads/{id}")).await;
-
-    assert_eq!(response.status(), StatusCode::NOT_FOUND);
-
-    let _ = std::fs::remove_dir_all(&one.kept_in);
-    let _ = std::fs::remove_dir_all(&two.kept_in);
-}
-
-#[tokio::test]
 async fn a_site_cannot_fill_the_disk_one_legal_upload_at_a_time() {
     let site = a_site().await;
 

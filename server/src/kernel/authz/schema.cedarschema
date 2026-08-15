@@ -1,8 +1,6 @@
 entity Platform;
 
-entity Site {
-    frozen: Bool,
-};
+entity Site;
 
 entity Agency;
 
@@ -28,17 +26,17 @@ entity SiteUser in [Site] {
 action "view" appliesTo {
     principal: [Operator, AgencyUser, Customer, SiteUser],
     resource: [Site, Charge, Agency, Platform],
-    context: { needed: String, needed_own: String, is_change: Bool, owner: String },
+    context: { needed: String, needed_own: String, owner: String },
 };
 
 action "write" appliesTo {
     principal: [Operator, AgencyUser, Customer, SiteUser],
     resource: [Site, Charge, Agency, Platform],
-    context: { needed: String, needed_own: String, is_change: Bool, owner: String },
+    context: { needed: String, needed_own: String, owner: String },
 };
 
 action "delete" appliesTo {
     principal: [Operator, AgencyUser, Customer, SiteUser],
     resource: [Site, Charge, Agency, Platform],
-    context: { needed: String, needed_own: String, is_change: Bool, owner: String },
+    context: { needed: String, needed_own: String, owner: String },
 };

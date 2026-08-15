@@ -230,17 +230,6 @@ async fn an_address_that_resolves_to_nothing_says_which_and_why() {
     assert_eq!(addresses["detail"]["not_answering"], 1);
 }
 
-#[tokio::test]
-async fn another_site_s_addresses_are_not_this_one_s() {
-    let one = Site::new().await;
-    let other = Site::new().await;
-
-    let (_, domains) = other.send("GET", "/api/domains", None).await;
-
-    assert_eq!(domains.as_array().expect("a list").len(), 1);
-    assert_ne!(domains[0]["host"], one.host);
-}
-
 /// The address being checked is one somebody attached, so it is somewhere they
 /// chose. Asking about it must not become a way to have this machine fetch
 /// from inside its own network.

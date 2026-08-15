@@ -77,8 +77,11 @@ Some tests want a Postgres, because a site is rows in one:
       -e POSTGRES_PASSWORD=test -e POSTGRES_DB=mavi_test postgres:18-alpine
     export TEST_DATABASE_URL=postgres://postgres:test@127.0.0.1:5433/mavi_test
 
-No test migrates its own database. Each shape is migrated once into a template
-by whichever test asks for it first, and every test after that is handed a copy.
+Every test gets a machine of its own. An installation is one site, so two
+tests cannot share a database and still be two installations — but migrating
+one per test would run every migration three hundred times. So a few databases
+are kept and leased: a test holds one for as long as its process lives and is
+handed it emptied of whatever the last holder left.
 
 The panel:
 

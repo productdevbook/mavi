@@ -232,6 +232,8 @@ pub const THAT_FILE_IS_NOT_A_VIDEO: &str = "that_file_is_not_a_video";
 pub const NOT_SOMETHING_A_TRANSCODER_SAYS: &str = "not_something_a_transcoder_says";
 
 pub const THIS_MACHINE_IS_ALREADY_SET_UP: &str = "this_machine_is_already_set_up";
+pub const THIS_MACHINE_IS_NOT_SET_UP_YET: &str = "this_machine_is_not_set_up_yet";
+pub const THIS_DATABASE_HOLDS_MORE_THAN_ONE_SITE: &str = "this_database_holds_more_than_one_site";
 
 pub const THAT_SITE_HAS_NO_ROOM_LEFT: &str = "that_site_has_no_room_left";
 
@@ -318,6 +320,14 @@ pub const ENGLISH: &[(&str, &str)] = &[
     (
         THIS_MACHINE_IS_ALREADY_SET_UP,
         "this machine already has somebody running it",
+    ),
+    (
+        THIS_MACHINE_IS_NOT_SET_UP_YET,
+        "this machine has nobody running it yet, and is not a site until it does",
+    ),
+    (
+        THIS_DATABASE_HOLDS_MORE_THAN_ONE_SITE,
+        "this database holds more than one site and this serves one; it has to be split first",
     ),
     (THAT_FILE_IS_NOT_A_VIDEO, "that file is not a video"),
     (

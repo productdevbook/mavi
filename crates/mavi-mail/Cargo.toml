@@ -1,0 +1,17 @@
+[package]
+name = "mavi-mail"
+version = "0.0.0"
+edition = "2024"
+publish = false
+description = "What a site writes to people: its own letters, its lists, and who may be written to."
+
+[dependencies]
+mavi-api = { path = "../mavi-api" }
+mavi-core = { path = "../mavi-core" }
+mavi-people = { path = "../mavi-people" }
+
+serde = { workspace = true }
+uuid = { workspace = true }
+
+[lints]
+workspace = true

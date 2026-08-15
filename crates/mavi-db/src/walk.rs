@@ -42,7 +42,7 @@ impl Walk {
     /// `None` when there is no cursor — the first page has nothing to be after.
     ///
     /// Where every column runs the same way this is a row comparison,
-    /// `(a, b, c) < ($1, $2, $3)`, which PostgreSQL can walk an index with.
+    /// `(a, b, c) < ($1, $2, $3)`, which `PostgreSQL` can walk an index with.
     /// Where they do not, it is the expanded form, which is longer and means
     /// exactly the same thing. Both are generated; neither is typed by anybody.
     #[must_use]

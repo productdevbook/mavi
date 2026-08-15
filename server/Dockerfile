@@ -43,10 +43,18 @@ WORKDIR /app
 
 # Certificates, because everything this reaches — a mail server, a payment
 # provider, somebody's webhook receiver — is reached over TLS.
+# Certificates because everything this reaches is reached over TLS; git and
+# bun because a site's design is a project of its own and publishing it means
+# fetching that project and running whatever builds it. Without them this can
+# still publish — plain files are the site — but a site whose pages are built
+# could not be published at all, which is most of them.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
+    git \
+    curl \
+    unzip \
     && rm -rf /var/lib/apt/lists/* \
-    && useradd --system --create-home --shell /usr/sbin/nologin mavi \
+    && useradd --system --create-home --shell /bin/bash mavi \
     && chown mavi:mavi /app
 
 COPY --from=builder /out/mavi /usr/local/bin/mavi
@@ -58,12 +66,22 @@ RUN mkdir -p /data && chown mavi:mavi /data
 VOLUME /data
 
 USER mavi
+
+# Installed as the user that runs it, so building a site never wants root.
+ENV BUN_INSTALL=/home/mavi/.bun
+RUN curl -fsSL https://bun.sh/install | bash
+ENV PATH="/home/mavi/.bun/bin:${PATH}"
+
 EXPOSE 8080
 
 # What this process is: `api`, `worker`, or unset for both — which is what
 # somebody trying this out runs, and it works without reading anything first.
-ENV ROLE= \
-    MAVI_DATA_DIR=/data
+# `GENERATOR` is what builds a site whose pages are built, run in a workspace
+# of its own. Unset, what a theme wrote is served as it is — right for a site
+# of plain files, and wrong for every framework there is.
+ENV MAVI_ROLE= \
+    MAVI_DATA_DIR=/data \
+    GENERATOR="bun run build"
 
 # No HEALTHCHECK here: the honest one is an HTTP request to /readyz, this image
 # holds nothing that can make one, and a check that only proves the process

@@ -453,8 +453,8 @@ fn kinds_pressed_in(at: &std::path::Path) -> Vec<String> {
         let source = std::fs::read_to_string(&path).expect("a source file");
         let mut left = source.as_str();
 
-        while let Some(found) = left.find("letters::press(") {
-            let after = &left[found + "letters::press(".len()..];
+        while let Some(at) = left.find("letters::press(") {
+            let after = &left[at + "letters::press(".len()..];
 
             if let Some(kind) = after.split('"').nth(1) {
                 found.push(kind.to_owned());

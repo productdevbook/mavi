@@ -55,13 +55,31 @@ Measured, not estimated:
 | Tests | 42 files against a real Postgres, each leasing a database of its own |
 | The panel | 42 routes, React and TanStack Router, English and Turkish with nothing missing |
 
-**One crate, not a workspace.** The dependency graph was measured: 22 of the 27
-domains depend on nothing but `kernel`, and cutting the kernel's six outbound
-edges leaves a graph with no cycles at all. So the boundary a workspace would
-enforce is one the code already keeps, and splitting would buy compile-time
-enforcement of a rule nothing is currently breaking, at the cost of 42 test
-binaries each linking every member. The measurement is in #10 and the issue
-says why it stays shut.
+### It is being rewritten, in `crates/`, one crate at a time
+
+The numbers above are `server/`, which is what runs today and will keep running
+until the new tree can serve. Beside it, `crates/` is the same software written
+again as a workspace — the owner's decision, and #10 carries it.
+
+What that is *for* is worth stating, because "a rewrite" on its own is a bad
+reason. Every crate down there exists to make one measured failure
+unrepeatable:
+
+| Crate | What it makes impossible |
+|---|---|
+| `mavi-core` | A refusal that can only be said in English. A listing whose cursor addresses less than its order — the failure that hit fourteen listings and skipped rows silently. Money compared across currencies. An id passed where another belongs. |
+| `mavi-db` | The `order by` and the cursor predicate disagreeing, because both are generated from one declaration. |
+| `mavi-api` | An endpoint that does not say its parameters, its failures, its real status, or how to authenticate — all four of which were missing from all 177 operations. |
+| `mavi-content` | An address in use being taken by a check-then-write race. Published and its date disagreeing. |
+
+The dependency graph made this cheap rather than heroic: **22 of the 27 domains
+already depend on nothing but the kernel**, and cutting the kernel's six
+outbound edges leaves no cycles at all. Those six are cut (#76). The lines were
+already where they needed to be; the workspace is what makes the compiler hold
+them.
+
+The order is the foundation first, then the domains, then the panel — rewritten
+last, from nothing, once there is an API worth writing one against.
 
 ### What is not finished, named rather than implied
 

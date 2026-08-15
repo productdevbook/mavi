@@ -365,6 +365,30 @@ alter table webhook_endpoints drop column tenant_id;
 
 -- The keys that were part tenant.
 alter table counters add primary key (kind);
+
+-- And the two functions that counted per site. Postgres does not check a
+-- PL/pgSQL body against the tables it names until something runs it, so
+-- dropping `counters.tenant_id` above left `number_an_order` reading a field
+-- that is not there and every order failing on insert — a break no compiler,
+-- and no preparing of this crate's own statements, can see.
+create function next_number(of_what text) returns bigint
+language sql as $$
+    insert into counters (kind, next) values (of_what, 2)
+    on conflict (kind) do update set next = counters.next + 1
+    returning case when counters.next is null then 1 else counters.next - 1 end;
+$$;
+
+create or replace function number_an_order() returns trigger language plpgsql as $$
+begin
+    if new.number is null then
+        new.number := next_number('order');
+    end if;
+
+    return new;
+end;
+$$;
+
+drop function next_number(uuid, text);
 alter table page_views add primary key (on_day, path);
 create unique index site_settings_is_one_row on site_settings ((true));
 alter table visitor_marks add primary key (on_day, mark);

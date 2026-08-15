@@ -158,7 +158,6 @@ impl Site {
     /// Everything nobody wrote a route for answers in the same shape as
     /// everything else, because a description that says every operation can
     /// refuse like this is only true if the parts nobody wrote do too.
-    #[must_use]
     pub fn into_router(self) -> Router {
         let asking = Asking(Arc::clone(&self.who_is_asking));
 
@@ -320,15 +319,14 @@ fn undone(text: &str) -> String {
             b'%' if at + 2 < bytes.len() => {
                 let pair = std::str::from_utf8(&bytes[at + 1..at + 3]).unwrap_or_default();
 
-                match u8::from_str_radix(pair, 16) {
-                    Ok(byte) => {
-                        out.push(byte);
-                        at += 3;
-                    }
-                    Err(_) => {
-                        out.push(bytes[at]);
-                        at += 1;
-                    }
+                if let Ok(byte) = u8::from_str_radix(pair, 16) {
+                    out.push(byte);
+                    at += 3;
+                } else {
+                    // Not two hex digits, so it is a per cent sign somebody
+                    // typed rather than something encoded.
+                    out.push(bytes[at]);
+                    at += 1;
                 }
             }
             byte => {

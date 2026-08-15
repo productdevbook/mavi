@@ -14,7 +14,7 @@ pub mod page;
 pub mod ports;
 pub mod say;
 
-mod error;
+pub mod error;
 
 pub use error::{Code, Error, Result};
 pub use say::Say;

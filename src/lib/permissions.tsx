@@ -60,9 +60,8 @@ export function PermissionProvider({
         setReady(true)
       })
       .catch(() => {
-        // The machine's own console and the setup screens have no grants of
-        // this kind; a failure means "nothing this surface knows about", so
-        // nothing is hidden by an error.
+        // The setup screens have no grants to read yet; a failure means
+        // "nothing known about here", so nothing is hidden by an error.
         setGrants(null)
         setReady(true)
       })

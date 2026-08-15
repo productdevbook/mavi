@@ -33,12 +33,20 @@ impl Task for SweepDeliveries {
     const KIND: &'static str = "webhooks.sweep";
 }
 
+#[derive(Debug, Default, Serialize, Deserialize)]
+pub struct SweepReports;
+
+impl Task for SweepReports {
+    const KIND: &'static str = "reports.sweep";
+}
+
 #[must_use]
 pub fn kinds() -> Vec<String> {
     vec![
         SweepSessions::KIND.to_owned(),
         SweepAudit::KIND.to_owned(),
         SweepDeliveries::KIND.to_owned(),
+        SweepReports::KIND.to_owned(),
     ]
 }
 
@@ -107,6 +115,23 @@ pub async fn sweep_audit(state: &AppState, tenant: TenantId) -> Result<u64> {
     let taken =
         sqlx::query("delete from audit_log where created_at < now() - make_interval(days => $1)")
             .bind(days("audit_log"))
+            .execute(conn.conn())
+            .await?
+            .rows_affected();
+
+    conn.commit().await?;
+
+    Ok(taken)
+}
+
+/// A report is kept the same length of time an audit row is: long enough to
+/// answer "was this looked at", not forever.
+pub async fn sweep_reports(state: &AppState, tenant: TenantId) -> Result<u64> {
+    let mut conn = state.db.tenant(tenant).await?;
+
+    let taken =
+        sqlx::query("delete from reports where created_at < now() - make_interval(days => $1)")
+            .bind(days("reports"))
             .execute(conn.conn())
             .await?
             .rows_affected();

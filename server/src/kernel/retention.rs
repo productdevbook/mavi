@@ -99,6 +99,14 @@ pub const POLICIES: &[Policy] = &[
         swept_by: "audit.sweep",
     },
     Policy {
+        // `said_by` names who said it, and `environment` gathers the browser
+        // and window rather than asking for them — the same shape of thing an
+        // audit row is, so it is kept the same length of time.
+        table: "reports",
+        keeps: Keeps::Days(365),
+        swept_by: "reports.sweep",
+    },
+    Policy {
         table: "webhook_deliveries",
         keeps: Keeps::Days(30),
         swept_by: "webhooks.sweep",

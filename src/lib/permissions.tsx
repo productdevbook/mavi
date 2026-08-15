@@ -24,8 +24,6 @@ type Access = "view" | "write" | "delete"
 interface PermissionState {
   ready: boolean
   role: string
-  /** A site on hold may be read and not written, whatever a role says. */
-  frozen: boolean
   can: (capability: Capability, access?: Access) => boolean
   reload: () => void
 }
@@ -52,7 +50,6 @@ export function PermissionProvider({
 }) {
   const [grants, setGrants] = React.useState<string[] | null>(null)
   const [role, setRole] = React.useState("")
-  const [frozen, setFrozen] = React.useState(false)
   const [ready, setReady] = React.useState(false)
 
   const reload = React.useCallback(() => {
@@ -60,7 +57,6 @@ export function PermissionProvider({
       .then((me) => {
         setGrants(me.grants)
         setRole(me.role)
-        setFrozen(me.site_state !== "active")
         setReady(true)
       })
       .catch(() => {
@@ -78,7 +74,6 @@ export function PermissionProvider({
     () => ({
       ready,
       role,
-      frozen,
       can: (capability, access = "view") => {
         if (!grants) return true
 
@@ -92,7 +87,7 @@ export function PermissionProvider({
       },
       reload,
     }),
-    [grants, role, frozen, ready, reload],
+    [grants, role, ready, reload],
   )
 
   return (
@@ -162,7 +157,6 @@ export function usePermissions(): PermissionState {
     return {
       ready: true,
       role: "",
-      frozen: false,
       can: () => true,
       reload: () => {},
     }

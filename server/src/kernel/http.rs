@@ -87,6 +87,12 @@ impl AppState {
 
     #[must_use]
     pub fn new(db: Db) -> Self {
+        // `start` says this in prose before anything reaches here; this is the
+        // same refusal for whatever builds a state without going through it. A
+        // key that was meant and mistyped is not a key to fall back from.
+        let keyring = super::crypto::Keyring::from_the_environment()
+            .unwrap_or_else(|why| panic!("MAVI_KEYS: {why}"));
+
         Self {
             db,
             clock: Arc::new(SystemClock),
@@ -102,19 +108,14 @@ impl AppState {
                     .or_else(|_| std::env::var("UPLOADS_DIR"))
                     .unwrap_or_else(|_| "uploads".to_owned()),
             ))),
-            // Invented where none was given, which means a machine restarted
-            // without its key cannot open what the last one sealed — and says
-            // so by failing rather than by pretending.
             mailer: Arc::new(super::mailer::Mailer::from_env()),
             payments: Arc::new(super::payments::Payments::from_env()),
             builder: Arc::new(super::builder::Builder::from_env()),
             transcoder: Arc::new(super::transcoder::Transcoder::from_env()),
-            keyring: Arc::new(
-                std::env::var("MAVI_KEYS")
-                    .ok()
-                    .and_then(|raw| super::crypto::Keyring::from_env(&raw).ok())
-                    .unwrap_or_else(super::crypto::Keyring::invented),
-            ),
+            // Invented where none was given, which means a machine restarted
+            // without its key cannot open what the last one sealed — and says
+            // so by failing rather than by pretending.
+            keyring: Arc::new(keyring),
             outside: Arc::new(Outside::default()),
         }
     }

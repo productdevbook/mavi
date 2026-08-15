@@ -83,13 +83,41 @@ impl Keyring {
         Self::new(keys)
     }
 
+    /// What was given, or an invented key where nothing was — the distinction
+    /// an `Option` keeps and a discarded error does not.
+    ///
+    /// Nothing given is a machine with nothing sealed on it yet, and inventing
+    /// one there costs nobody anything. Something given that cannot be read is
+    /// a refusal: sealing under an invented key instead is noticed weeks later
+    /// as old data failing to open, which reads as the key being wrong rather
+    /// than as the key having been ignored.
+    pub fn given(raw: Option<&str>) -> Result<Self> {
+        match raw {
+            Some(raw) => Self::from_env(raw),
+            None => Ok(Self::invented()),
+        }
+    }
+
+    /// [`Keyring::given`], reading `MAVI_KEYS` itself.
+    pub fn from_the_environment() -> Result<Self> {
+        match std::env::var("MAVI_KEYS") {
+            Ok(raw) => Self::given(Some(raw.as_str())),
+            // Set to something that is not text is still set, and falling back
+            // to an invented key here would be the silence this refuses.
+            Err(std::env::VarError::NotUnicode(_)) => Err(AppError::Bug("a key that is not text")),
+            Err(std::env::VarError::NotPresent) => Self::given(None),
+        }
+    }
+
     /// For a test, and for a machine that has not been given one yet — which
     /// is a machine that cannot read what the last one sealed, and says so by
     /// failing to open it rather than by pretending.
     #[must_use]
     pub fn invented() -> Self {
         let mut key = [0_u8; 32];
-        let _ = OsRng.try_fill_bytes(&mut key);
+        OsRng
+            .try_fill_bytes(&mut key)
+            .expect("the operating system has randomness");
 
         Self {
             keys: vec![(1, Secret::new(key))],

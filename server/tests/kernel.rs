@@ -216,3 +216,31 @@ fn a_page_says_whether_there_is_another() {
         100
     );
 }
+
+/// A key given and misread used to become an invented one at the same version
+/// a real first key has, so what a machine sealed after that was sealed under
+/// something nobody held.
+#[test]
+fn a_key_that_was_given_and_cannot_be_read_is_no_keyring_at_all() {
+    use mavi::kernel::crypto::Keyring;
+
+    for wrong in [
+        "",
+        "  ",
+        "BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc=",
+        "one:BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc=",
+        "1:BwcHBwcHBwcHBwc  HBwcHBwcHBwcHBwcHBwcHBwcHBwc=",
+        "1:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+        "1:BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc=,2:",
+    ] {
+        assert!(
+            Keyring::given(Some(wrong)).is_err(),
+            "a keyring was built out of a key that cannot be read: {wrong:?}"
+        );
+    }
+
+    // Nothing given is the other case, and stays as it was: a machine with
+    // nothing sealed on it yet.
+    assert!(Keyring::given(None).is_ok());
+    assert!(Keyring::given(Some("1:BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc=")).is_ok());
+}

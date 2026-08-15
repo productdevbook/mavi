@@ -40,7 +40,7 @@ curl -O https://raw.githubusercontent.com/productdevbook/mavi/main/docker-compos
 curl -O https://raw.githubusercontent.com/productdevbook/mavi/main/Caddyfile
 {
   echo "POSTGRES_PASSWORD=$(openssl rand -base64 24)"
-  echo "MAVI_KEYS=$(openssl rand -base64 32)"
+  echo "MAVI_KEYS=1:$(openssl rand -base64 32)"
 } > .env
 docker compose up -d
 ```
@@ -88,7 +88,7 @@ The API reads these; everything else is set from the panel.
 | Variable | Default | Notes |
 |---|---|---|
 | `DATABASE_URL` | — | PostgreSQL. Required. |
-| `MAVI_KEYS` | — | What seals a site's secrets. Required; the process refuses to start without it. |
+| `MAVI_KEYS` | — | What seals a site's secrets. `1:<thirty-two bytes, base64>`, and a version and comma for each older key. Required; the process refuses to start without it, and refuses to start on one it cannot read rather than making one up. |
 | `MAVI_ROLE` | `both` | `api`, `worker`, or `both`. One process can do both; two make the queue somebody else's problem when the API is busy. |
 | `MAVI_DATA_DIR` | `uploads` beside the process, and `/data` in the image | Uploaded media. **Must be a persistent volume**, or everything anybody uploads goes with the container. |
 | `HOST` / `PORT` | `0.0.0.0` / `8080` | |

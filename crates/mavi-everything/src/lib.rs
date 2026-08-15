@@ -15,7 +15,7 @@
 //! Nothing here mounts anything. It is the list, and the tests are what make
 //! the list worth having.
 
-use mavi_api::{Api, Endpoint, Who};
+use mavi_api::{Api, Endpoint};
 
 /// Every endpoint this installation has.
 ///
@@ -77,6 +77,7 @@ pub fn work() -> Vec<mavi_work::Kind> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use mavi_api::Who;
     use std::collections::{BTreeMap, BTreeSet};
 
     #[test]

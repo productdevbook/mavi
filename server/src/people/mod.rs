@@ -720,19 +720,7 @@ async fn change(
     }
 
     if let Some(role_id) = changes.role_id {
-        // A no-op reassignment to the role already held, or a promotion into
-        // it, cannot strand the site; only moving away from it can, and only
-        // `refuse_if_last_owner` knows whether anybody else is left to grant
-        // it back.
-        let (becomes_owner,): (bool,) =
-            sqlx::query_as("select key = 'owner' from roles where id = $1")
-                .bind(role_id)
-                .fetch_one(conn.conn())
-                .await?;
-
-        if !becomes_owner {
-            refuse_if_last_owner(&mut conn, id).await?;
-        }
+        refuse_if_moved_away_from_last_ownership(&mut conn, id, role_id).await?;
     }
 
     // Suspending is locking the door from outside: the account is still
@@ -839,6 +827,27 @@ async fn change(
     conn.commit().await?;
 
     Ok(Audited::new(receipt, Json(after)))
+}
+
+/// A no-op reassignment to the role already held, or a promotion into it,
+/// cannot strand the site; only moving away from it can, and only
+/// `refuse_if_last_owner` knows whether anybody else is left to grant it
+/// back.
+async fn refuse_if_moved_away_from_last_ownership(
+    conn: &mut TenantConn,
+    id: Uuid,
+    role_id: Uuid,
+) -> Result<()> {
+    let (becomes_owner,): (bool,) = sqlx::query_as("select key = 'owner' from roles where id = $1")
+        .bind(role_id)
+        .fetch_one(conn.conn())
+        .await?;
+
+    if becomes_owner {
+        return Ok(());
+    }
+
+    refuse_if_last_owner(conn, id).await
 }
 
 /// Refuses to take this account's ownership away — by deletion, by erasure,

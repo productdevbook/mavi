@@ -35,8 +35,7 @@ impl Site {
         let role = a_role(&db, tenant, "owner", &every_grant()).await;
         let (_, email) = a_user(&db, tenant, role, PASSWORD).await;
 
-        let kept_in =
-            std::env::temp_dir().join(format!("mavicms-pages-{}", Uuid::now_v7().simple()));
+        let kept_in = std::env::temp_dir().join(format!("mavi-pages-{}", Uuid::now_v7().simple()));
 
         let mut state = AppState::new(db.clone());
         state.store = std::sync::Arc::new(Store::Disk(LocalDisk::at(&kept_in)));

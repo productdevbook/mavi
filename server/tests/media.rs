@@ -42,7 +42,7 @@ async fn a_site() -> Site {
     let password = "a long enough password";
     let (_, email) = a_user(&db, tenant, role, password).await;
 
-    let kept_in = std::env::temp_dir().join(format!("mavicms-uploads-{}", Uuid::now_v7().simple()));
+    let kept_in = std::env::temp_dir().join(format!("mavi-uploads-{}", Uuid::now_v7().simple()));
 
     let mut state = AppState::new(db.clone());
     state.store = std::sync::Arc::new(Store::Disk(LocalDisk::at(&kept_in)));

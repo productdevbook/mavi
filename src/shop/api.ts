@@ -109,7 +109,7 @@ export function money(amount: Money): string {
 }
 
 /** What is in the basket, kept in this browser and nowhere else. */
-const BASKET = "mavicms.basket"
+const BASKET = "mavi.basket"
 
 export interface Held {
   product_id: string
@@ -128,7 +128,7 @@ export function basket(): Held[] {
 
 export function keep(items: Held[]) {
   localStorage.setItem(BASKET, JSON.stringify(items))
-  window.dispatchEvent(new Event("mavicms.basket"))
+  window.dispatchEvent(new Event("mavi.basket"))
 }
 
 export function add(productId: string, quantity = 1) {
@@ -155,7 +155,7 @@ export function empty() {
  * than a second one — the API decides, and this is what it decides on.
  */
 export function attempt(): string {
-  const held = sessionStorage.getItem("mavicms.attempt")
+  const held = sessionStorage.getItem("mavi.attempt")
 
   if (held) {
     return held
@@ -163,11 +163,11 @@ export function attempt(): string {
 
   const made = crypto.randomUUID()
 
-  sessionStorage.setItem("mavicms.attempt", made)
+  sessionStorage.setItem("mavi.attempt", made)
 
   return made
 }
 
 export function forgetAttempt() {
-  sessionStorage.removeItem("mavicms.attempt")
+  sessionStorage.removeItem("mavi.attempt")
 }

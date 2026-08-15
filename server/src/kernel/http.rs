@@ -27,9 +27,9 @@ use super::outside::Outside;
 use super::ratelimit::{self, Limit};
 use super::tenant::{Site, TenantId, resolve_host};
 
-pub const USER_COOKIE: &str = "mavicms_user";
-pub const STUDENT_COOKIE: &str = "mavicms_student";
-pub const OPERATOR_COOKIE: &str = "mavicms_operator";
+pub const USER_COOKIE: &str = "mavi_user";
+pub const STUDENT_COOKIE: &str = "mavi_student";
+pub const OPERATOR_COOKIE: &str = "mavi_operator";
 pub const REQUEST_ID_HEADER: HeaderName = HeaderName::from_static("x-request-id");
 
 #[derive(Clone, Debug)]

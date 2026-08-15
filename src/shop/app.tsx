@@ -83,9 +83,9 @@ function Basket() {
   React.useEffect(() => {
     const onChange = () => setHeld(shop.basket())
 
-    window.addEventListener("mavicms.basket", onChange)
+    window.addEventListener("mavi.basket", onChange)
 
-    return () => window.removeEventListener("mavicms.basket", onChange)
+    return () => window.removeEventListener("mavi.basket", onChange)
   }, [])
 
   React.useEffect(() => {

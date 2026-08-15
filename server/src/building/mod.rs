@@ -262,7 +262,7 @@ mod tests {
     use super::*;
 
     fn somewhere() -> PathBuf {
-        std::env::temp_dir().join(format!("mavicms-build-{}", uuid::Uuid::now_v7().simple()))
+        std::env::temp_dir().join(format!("mavi-build-{}", uuid::Uuid::now_v7().simple()))
     }
 
     fn a_generator(program: &str, arguments: &[&str], at: PathBuf) -> Generator {

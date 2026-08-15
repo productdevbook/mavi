@@ -470,7 +470,7 @@ function ExportDialog({ editor, open, onClose }: DialogPartProps) {
                 <Button
                   onClick={() =>
                     downloadFile(
-                      `mavicms-post.${format.ext}`,
+                      `mavi-post.${format.ext}`,
                       format.value,
                       format.mime
                     )

@@ -15,7 +15,7 @@ export type Locale = keyof typeof locales
 
 export const defaultLocale: Locale = "tr"
 
-export const STORAGE_KEY = "mavicms:locale"
+export const STORAGE_KEY = "mavi:locale"
 
 export function isLocale(value: string | null): value is Locale {
   return value === "tr" || value === "en"

@@ -19,7 +19,7 @@ use crate::kernel::tenant::TenantId;
 /// The role the application runs requests as day to day: not a superuser, so
 /// row-level security applies to it the same way it applies to a live
 /// deployment, and a test that cannot fail proves nothing.
-pub const APP_ROLE: &str = "mavicms_app";
+pub const APP_ROLE: &str = "mavi_app";
 
 /// Set up once under an advisory lock, because several test binaries reach the
 /// same database at the same time. The application's role is not a superuser:

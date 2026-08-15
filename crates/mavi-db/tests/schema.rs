@@ -105,6 +105,12 @@ async fn every_migration_applies_to_an_empty_database() {
         "holds",
         "coupons",
         "coupon_uses",
+        "courses",
+        "modules",
+        "lessons",
+        "students",
+        "enrolments",
+        "done",
     ] {
         let there: bool = sqlx::query_scalar("select to_regclass($1) is not null")
             .bind(table)

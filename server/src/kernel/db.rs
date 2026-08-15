@@ -13,7 +13,7 @@ use std::time::Duration;
 use sqlx::postgres::{PgPool, PgPoolOptions};
 use sqlx::{PgConnection, Postgres, Transaction};
 
-use super::error::Result;
+use super::error::{AppError, Result};
 use super::tenant::TenantId;
 
 #[derive(Clone, Debug)]
@@ -71,7 +71,25 @@ impl Db {
     /// an outside crate's must never collide, and this asks sqlx not to
     /// object that it sees versions in that table an outside `Migrator` never
     /// declared — this crate's own, applied first.
+    /// A version that collides is refused here rather than by sqlx three
+    /// steps later: what it says then is that a checksum does not match, which
+    /// reads as a corrupted migration rather than as two crates having both
+    /// called something `1`.
     pub async fn migrate_with(&self, mut migrator: sqlx::migrate::Migrator) -> Result<()> {
+        let ours = sqlx::migrate!("./migrations");
+        let highest = ours.iter().map(|one| one.version).max().unwrap_or(0);
+
+        if let Some(clash) = migrator.iter().find(|one| one.version <= highest) {
+            return Err(AppError::Bug(Box::leak(
+                format!(
+                    "an outside migration is numbered {} and this crate's own go up to {highest}: \
+                     number them above that — a timestamp is what most do",
+                    clash.version
+                )
+                .into_boxed_str(),
+            )));
+        }
+
         migrator.set_ignore_missing(true);
         migrator.run(&self.pool).await.map_err(sqlx::Error::from)?;
         Ok(())

@@ -390,3 +390,22 @@ async fn a_job_of_an_outside_kind_is_claimed_and_run_by_the_core_worker_loop() {
 
     assert_eq!(left, 0, "the outside job was claimed but never finished");
 }
+
+/// Both crates' migrations are tracked in one table, so a version they have
+/// both used is a checksum sqlx will one day disagree with — long after
+/// whoever numbered it has forgotten. It is refused at the first run instead,
+/// and told which number caused it.
+#[tokio::test]
+async fn an_outside_migration_numbered_like_one_of_ours_is_refused() {
+    let db = harness().await;
+
+    let refused = db
+        .migrate_with(sqlx::migrate!("./tests/fixtures/colliding_migrations"))
+        .await
+        .expect_err("a version this crate has already used");
+
+    assert!(
+        refused.to_string().contains("numbered 1"),
+        "the refusal has to name the number: {refused}"
+    );
+}

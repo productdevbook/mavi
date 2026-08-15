@@ -49,7 +49,18 @@ impl fmt::Display for Currency {
 }
 
 /// An amount of one currency.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+///
+/// Deliberately **not** ordered. Deriving `Ord` here was the first thing
+/// written and the compiler refused it, which turned out to be the right
+/// answer for a reason the derive would have hidden: an ordering makes
+/// `Money::of(100, TRY) < Money::of(200, EUR)` compile and answer, and answer
+/// something meaningless. It is the same mistake [`Money::plus`] refuses out
+/// loud, arrived at silently through a sort.
+///
+/// Two amounts are compared with [`Money::over`], which refuses across
+/// currencies the way addition does. Equality is derived and is safe: two
+/// amounts in different currencies are simply not equal.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Money {
     /// In the currency's smallest unit — kuruş, cents, pence. An integer, so
     /// nothing is ever half a kuruş.
@@ -81,6 +92,14 @@ impl Money {
             minor: self.minor.saturating_sub(other.minor),
             currency: self.currency,
         })
+    }
+
+    /// Whether this is more than that, or a refusal. The ordering an `Ord`
+    /// would have given for free, made to say what it cannot answer.
+    pub fn over(self, other: Self) -> Result<bool> {
+        self.same_as(other)?;
+
+        Ok(self.minor > other.minor)
     }
 
     fn same_as(self, other: Self) -> Result<()> {
@@ -159,6 +178,21 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn two_currencies_are_not_ordered_either() {
+        let lira = Money::of(100, try_());
+        let euro = Money::of(200, Currency::parse("EUR").expect("a currency"));
+
+        // The assertion that matters cannot be written, because it is that
+        // `lira < euro` does not compile. What can be written is that the
+        // comparison which replaced it refuses rather than answering.
+        assert!(lira.over(euro).is_err(), "lira and euros were ordered");
+        assert!(
+            lira.over(Money::of(50, try_())).expect("the same money"),
+            "a hundred was not more than fifty"
+        );
     }
 
     #[test]

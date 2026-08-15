@@ -267,6 +267,11 @@ msgstr "{0} geri geldi"
 #~ msgid "{0} is ready. You're signed in as <0>{1}</0>."
 #~ msgstr "{0} hazır! <0>{1}</0> olarak oturum açtınız."
 
+#. placeholder {0}: named.field
+#: src/lib/v1-said.ts:40
+msgid "{0} is wanted."
+msgstr "{0} isteniyor."
+
 #. placeholder {0}: row.unsubscribed
 #: src/routes/dashboard.mail.tsx:306
 #~ msgid "{0} left"
@@ -502,6 +507,11 @@ msgstr "{0} gönderildi"
 #: src/routes/dashboard.languages.tsx:150
 msgid "{0} things are written in it"
 msgstr "{0} şey bununla yazılmış"
+
+#. placeholder {0}: named.posts
+#: src/lib/v1-said.ts:57
+msgid "{0} things are written in that language."
+msgstr "O dilde yazılmış {0} şey var."
 
 #. placeholder {0}: chosen.size
 #: src/components/dashboard/content-list.tsx:187
@@ -824,6 +834,10 @@ msgstr "Sizin taşıdığınızı taşıyan, kendiliğinden süresi dolan ve ger
 #~ msgid "A key went with it, until {until}"
 #~ msgstr "Yanında bir anahtar gitti, {until} tarihine kadar geçerli"
 
+#: src/lib/v1-said.ts:52
+msgid "A language is two letters, and a place after them where there is one: en, or en-GB."
+msgstr "Bir dil iki harftir, ardından varsa bir yer gelir: en, ya da en-GB."
+
 #: src/routes/dashboard.courses.$courseId.tsx:258
 msgid "A lesson"
 msgstr "Bir ders"
@@ -931,6 +945,10 @@ msgstr "Eğitimin bir bölümü"
 msgid "A password for {0}"
 msgstr "{0} için bir parola"
 
+#: src/lib/v1-said.ts:33
+msgid "A password is at least twelve characters."
+msgstr "Bir parola en az on iki karakterdir."
+
 #: src/routes/dashboard.coupons.tsx:216
 msgid "A percentage"
 msgstr "Yüzde"
@@ -972,6 +990,10 @@ msgstr "İkinci bir adım"
 #~ msgid "a second, at most"
 #~ msgstr "saniyede en fazla"
 
+#: src/lib/v1-said.ts:50
+msgid "A site already answers to that name."
+msgstr "O isme zaten yanıt veren bir site var."
+
 #: src/routes/dashboard.themes.tsx:679
 #~ msgid "A site seeded from this demo will have those pictures missing."
 #~ msgstr "Bu demodan kurulan sitede o görseller eksik olacak."
@@ -979,6 +1001,10 @@ msgstr "İkinci bir adım"
 #: src/routes/dashboard.platform-mail.tsx:250
 #~ msgid "A site starts at 200 a day — a contact form and some notifications, not a mailing list. Nought stops it without taking anything away: the lists and the history stay, and raising the number starts it again."
 #~ msgstr "Bir site günde 200 ile başlar — iletişim formu ve birkaç bildirim, posta listesi değil. Sıfır, hiçbir şeyi almadan siteyi durdurur: listeler ve geçmiş yerinde kalır, sayıyı yükseltmek yeniden başlatır."
+
+#: src/lib/v1-said.ts:55
+msgid "A site writes in one language unless a post says otherwise, so there has to be one."
+msgstr "Bir yazı aksini söylemedikçe site tek bir dilde yazar, o yüzden bir tanesi olmalı."
 
 #: src/routes/dashboard.plugins.tsx:63
 msgid "A site's own mail server, so what it sends comes from it rather than from whoever runs the machine."
@@ -3691,6 +3717,10 @@ msgstr "Talepler"
 #~ msgid "Enter details"
 #~ msgstr "Bilgileri gir"
 
+#: src/lib/v1-said.ts:29
+msgid "Enter the six digits from your authenticator."
+msgstr "Kimlik doğrulayıcınızdaki altı basamağı girin."
+
 #: src/routes/dashboard.mail.tsx:822
 #~ msgid "Events arrive once the pipeline is wired up, under the mail plugin's settings. Until then a bounce is only discovered by the next campaign running into it."
 #~ msgstr "Olaylar, mektup eklentisinin ayarlarından bağlantı kurulduktan sonra gelmeye başlar. O zamana kadar bir iade ancak bir sonraki kampanya aynı adrese takıldığında fark edilir."
@@ -6110,6 +6140,11 @@ msgstr "Henüz bir şey yüklenmedi."
 #~ msgid "Nothing verified yet"
 #~ msgstr "Henüz doğrulanmış bir şey yok"
 
+#. placeholder {0}: named.field
+#: src/lib/v1-said.ts:44
+msgid "Nothing was declared called {0}, so nothing can be asked about it."
+msgstr "{0} adında bir şey tanımlanmadı, o yüzden ona dair bir şey sorulamaz."
+
 #: src/routes/dashboard.boards_.$boardId.tsx:400
 #~ msgid "Nothing was marked as a name or an address on the form this came from."
 #~ msgstr "Bunun geldiği formda ad ya da adres olarak işaretlenmiş bir alan yok."
@@ -8167,6 +8202,14 @@ msgstr "Bir şey bozuk"
 #~ msgid "Something is posted"
 #~ msgstr "Kargoyla gönderilir"
 
+#: src/lib/v1-said.ts:63
+msgid "Something went wrong."
+msgstr "Bir şeyler ters gitti."
+
+#: src/lib/v1-said.ts:69
+msgid "Something went wrong. It has been written down."
+msgstr "Bir şeyler ters gitti. Bu not edildi."
+
 #: src/routes/dashboard.boards_.$boardId.tsx:255
 msgid "Something worth remembering"
 msgstr "Hatırlanmaya değer bir şey"
@@ -8627,9 +8670,18 @@ msgstr "Bu bir site kopyası değil."
 msgid "That is not a picture"
 msgstr "Bu bir görsel değil"
 
+#: src/lib/v1-said.ts:28
+msgid "That is not a sign-in we know."
+msgstr "Bu, bildiğimiz bir oturum açma değil."
+
 #: src/routes/dashboard.plugins_.backup.tsx:246
 #~ msgid "That is not an archive"
 #~ msgstr "Bu bir arşiv değil"
+
+#. placeholder {0}: named.field
+#: src/lib/v1-said.ts:42
+msgid "That is not what {0} holds."
+msgstr "{0} bunu tutmaz."
 
 #: src/components/assistant-keys.tsx:37
 #~ msgid "That key stopped working"
@@ -8642,6 +8694,10 @@ msgstr "Bu görsel dört megabayttan büyük"
 #: src/routes/oauth.tsx:53
 #~ msgid "That request could not be read"
 #~ msgstr "Bu istek okunamadı"
+
+#: src/lib/v1-said.ts:35
+msgid "That request did not come from this site. Reload the page and try again."
+msgstr "Bu istek bu siteden gelmedi. Sayfayı yenileyip yeniden deneyin."
 
 #: src/routes/dashboard.flows.tsx:950
 #~ msgid "That run"
@@ -9164,6 +9220,11 @@ msgstr "Bu, makineyi yöneten hesaptır. Diğer herkes içeriden davet edilir ve
 #~ msgid "This is what you sign in with."
 #~ msgstr "Giriş yaparken bunu kullanırsınız."
 
+#. placeholder {0}: named.field
+#: src/lib/v1-said.ts:39
+msgid "This kind of thing has no field called {0}."
+msgstr "Bu tür şeyde {0} adında bir alan yok."
+
 #: src/learn/app.tsx:308
 #~ msgid "This lesson is not open yet."
 #~ msgstr "Bu ders henüz açılmadı."
@@ -9172,11 +9233,20 @@ msgstr "Bu, makineyi yöneten hesaptır. Diğer herkes içeriden davet edilir ve
 #~ msgid "This lesson opens on {when}."
 #~ msgstr "Bu ders {when} tarihinde açılıyor."
 
+#. placeholder {0}: named.name
+#: src/lib/v1-said.ts:46
+msgid "This letter has nothing to put where it says {{0}}."
+msgstr "Bu mektupta {{0}} yazan yere koyacak bir şey yok."
+
 #: src/components/console/console-shell.tsx:55
 #: src/components/console/console-shell.tsx:76
 #: src/routes/console.machine.tsx:63
 #~ msgid "This machine"
 #~ msgstr "Bu makine"
+
+#: src/lib/v1-said.ts:48
+msgid "This machine already has somebody running it."
+msgstr "Bu makineyi işleten birisi zaten var."
 
 #: src/routes/dashboard.billing.tsx:193
 #~ msgid "This month so far"
@@ -9229,6 +9299,10 @@ msgstr "Bu site"
 #~ msgid "This site already builds from a repository. Point it at the new theme instead? Its next publish will deploy the new theme."
 #~ msgstr "Bu site zaten bir depodan derleniyor. Bunun yerine yeni temaya yönlendirilsin mi? Bir sonraki yayında yeni tema yüklenecek."
 
+#: src/lib/v1-said.ts:53
+msgid "This site already writes in that."
+msgstr "Bu site zaten o dilde yazıyor."
+
 #: src/components/flows/flow-canvas.tsx:335
 #~ msgid "this site cannot send mail yet — Plugins, Amazon SES"
 #~ msgstr "bu site henüz posta gönderemiyor — Eklentiler, Amazon SES"
@@ -9248,6 +9322,12 @@ msgstr "Bu site"
 #: src/routes/dashboard.students.tsx:499
 #~ msgid "This site has no kind of content to sell yet. Make one under Content types — a course is a post of a kind you added."
 #~ msgstr "Bu sitede satılacak bir içerik türü henüz yok. İçerik türleri altından bir tane ekleyin — bir eğitim, sizin eklediğiniz türden bir yazıdır."
+
+#. placeholder {0}: bytes(named.used)
+#. placeholder {1}: bytes(named.limit)
+#: src/lib/v1-said.ts:37
+msgid "This site has no room left: it is using {0} of {1}."
+msgstr "Bu sitede yer kalmadı: {1} üzerinden {0} kullanılıyor."
 
 #: src/components/flows/flow-canvas.tsx:336
 #~ msgid "this site has no Telegram bot — Plugins, Telegram"
@@ -9272,6 +9352,10 @@ msgstr "Bu sitenin kendi türleri"
 #: src/learn/app.tsx:312
 #~ msgid "This video is still being prepared. Try again in a few minutes."
 #~ msgstr "Bu video hâlâ hazırlanıyor. Birkaç dakika sonra tekrar deneyin."
+
+#: src/lib/v1-said.ts:31
+msgid "Those are not the digits the app is showing."
+msgstr "Bunlar uygulamanın gösterdiği basamaklar değil."
 
 #: src/routes/dashboard.trash.tsx:182
 msgid "Throw it away now"

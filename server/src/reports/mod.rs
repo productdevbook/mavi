@@ -3,7 +3,9 @@
 //! The alternative is the phone, and what was said on the phone is not beside
 //! the site it was about. Anybody signed in can say something — including an
 //! assistant, because telling somebody a screen is broken is not one of the
-//! things a key is refused.
+//! things a key is refused. Reading the list back is a different question: it
+//! carries what `environment` gathered about whoever said it, so it asks for
+//! the same grant the audit log does.
 
 use axum::Json;
 use axum::extract::{Query as HttpQuery, State as Injected};
@@ -13,6 +15,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::kernel::audit::{self, Actor, Audited};
+use crate::kernel::authz::{Access, Capability, Needs, Permit};
 use crate::kernel::error::{AppError, Result};
 use crate::kernel::http::{AppState, Audience, Caller, Endpoint, Guard, RatePolicy};
 use crate::kernel::page::{Page, Query, older_than};
@@ -29,7 +32,7 @@ pub fn endpoints() -> Vec<Endpoint> {
             "/api/reports",
             Guard {
                 audience: Audience::User,
-                needs: None,
+                needs: Some(Needs::new(Capability::Audit, Access::View)),
                 rate: RatePolicy::None,
             },
             ours,
@@ -116,9 +119,13 @@ fn broken() -> String {
 const COLUMNS: &str = "id, kind, screen, body, state,
      environment, media_id, answer, answered_at, created_at";
 
+/// A record of what has been said, and reading it is gated the way the audit
+/// log is: not everybody with an account should see what somebody else
+/// reported, or what the `environment` blob gathered about them.
 async fn ours(
     Injected(state): Injected<AppState>,
     caller: Caller,
+    _permit: Permit,
     HttpQuery(page): HttpQuery<Query>,
 ) -> Result<Json<Page<Report>>> {
     caller.require_user()?;

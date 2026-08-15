@@ -17,7 +17,7 @@ use crate::kernel::error::Result;
 use crate::kernel::http::{AppState, Audience, Caller, Endpoint, Guard, RatePolicy};
 // Aliased: what is being checked here is also called a page, and the two are
 // not the same thing.
-use crate::kernel::page::{Page as Listing, Query, older_than};
+use crate::kernel::page::{Page as Listing, Query};
 
 /// What a title should be, in characters. Longer than this and a search engine
 /// stops showing the end of it.
@@ -218,6 +218,24 @@ pub async fn look_at(conn: &mut TenantConn, tenant: TenantId, post_id: Uuid) -> 
     Ok(found)
 }
 
+/// Where the last page of issues stopped: the worst kind still open, the
+/// moment among those, and which post and check within a tie on both — two
+/// issues on the same post share `written_at` exactly, and share `weight`
+/// whenever both are the same severity, so neither alone addresses a
+/// position inside that tie. `post_id` and `kind` together are what the table
+/// itself is unique on, which is what makes them enough to finish the order.
+fn issue_cursor(after: Option<&str>) -> Option<(String, DateTime<Utc>, Uuid, String)> {
+    let mut parts = after?.splitn(4, '|');
+    let weight = parts.next()?.to_owned();
+    let when = DateTime::parse_from_rfc3339(parts.next()?)
+        .ok()?
+        .with_timezone(&Utc);
+    let post_id = parts.next()?.parse().ok()?;
+    let kind = parts.next()?.to_owned();
+
+    Some((weight, when, post_id, kind))
+}
+
 async fn all(
     Injected(state): Injected<AppState>,
     caller: Caller,
@@ -226,16 +244,33 @@ async fn all(
 ) -> Result<Json<Listing<Issue>>> {
     let mut conn = state.db.tenant(caller.tenant()).await?;
 
+    let cursor = issue_cursor(page.after.as_deref());
+
     let rows = sqlx::query(
         "select i.post_id, p.title, i.kind, i.weight::text as weight, i.detail,
                 p.created_at as written_at
            from page_issues i join posts p on p.id = i.post_id
           where p.deleted_at is null
-            and ($1::timestamptz is null or p.created_at < $1)
-          order by i.weight desc, p.created_at desc
-          limit $2",
+            and (
+                 $1::issue_weight is null
+                 or i.weight < $1::issue_weight
+                 or (i.weight = $1::issue_weight and p.created_at < $2::timestamptz)
+                 or (
+                      i.weight = $1::issue_weight and p.created_at = $2::timestamptz
+                      and i.post_id > $3::uuid
+                 )
+                 or (
+                      i.weight = $1::issue_weight and p.created_at = $2::timestamptz
+                      and i.post_id = $3::uuid and i.kind > $4
+                 )
+            )
+          order by i.weight desc, p.created_at desc, i.post_id, i.kind
+          limit $5",
     )
-    .bind(older_than(page.after.as_deref()))
+    .bind(cursor.as_ref().map(|(weight, ..)| weight.as_str()))
+    .bind(cursor.as_ref().map(|(_, when, ..)| *when))
+    .bind(cursor.as_ref().map(|(_, _, post_id, _)| *post_id))
+    .bind(cursor.as_ref().map(|(.., kind)| kind.as_str()))
     .bind(page.fetch())
     .fetch_all(conn.conn())
     .await?;
@@ -245,7 +280,15 @@ async fn all(
     Ok(Json(Listing::build(
         &page,
         rows.iter().map(row_to_issue).collect(),
-        |issue| issue.written_at.to_rfc3339(),
+        |issue| {
+            format!(
+                "{}|{}|{}|{}",
+                issue.weight,
+                issue.written_at.to_rfc3339(),
+                issue.post_id,
+                issue.kind
+            )
+        },
     )))
 }
 

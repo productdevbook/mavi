@@ -1,6 +1,8 @@
 //! A campaign that gets slower the further it gets is the fault this domain
 //! was rewritten around, so what is measured here is what a batch costs.
 
+use std::collections::HashSet;
+
 use axum::body::Body;
 use axum::http::{Request, StatusCode, header};
 use http_body_util::BodyExt;
@@ -13,7 +15,7 @@ use uuid::Uuid;
 
 mod common;
 
-use common::harness;
+use common::{harness, percent_encoded};
 use mavi::testing::{a_role, a_tenant, a_user};
 
 struct Site {
@@ -280,6 +282,58 @@ async fn the_last_batch_costs_what_the_first_one_did() {
         second <= first + 2,
         "the second batch cost {second} where the first cost {first}, which is \
          how a campaign comes to take all night"
+    );
+}
+
+/// What #36 was: the cursor handed back was a subscriber's id, but the list
+/// was ordered and filtered by when they were added. A client that kept
+/// asking for `next` got the newest page again, for ever.
+#[tokio::test]
+async fn walking_every_page_of_subscribers_finds_each_one_once() {
+    let site = a_site().await;
+    let list = site.a_list().await;
+    site.subscribers(list, 47).await;
+
+    let mut seen = HashSet::new();
+    let mut after: Option<String> = None;
+    let mut pages = 0;
+
+    loop {
+        pages += 1;
+        assert!(
+            pages <= 10,
+            "following `next` did not stop after {pages} pages of 47 subscribers"
+        );
+
+        let path = after.as_ref().map_or_else(
+            || format!("/api/mail/lists/{list}/subscribers?limit=10"),
+            |cursor| {
+                format!(
+                    "/api/mail/lists/{list}/subscribers?limit=10&after={}",
+                    percent_encoded(cursor)
+                )
+            },
+        );
+
+        let (status, body) = site.send("GET", &path, Some(&site.token), None).await;
+        assert_eq!(status, StatusCode::OK, "{body}");
+
+        for item in body["items"].as_array().expect("a page") {
+            let id = item["id"].as_str().expect("an id").to_owned();
+            assert!(seen.insert(id.clone()), "subscriber {id} came back twice");
+        }
+
+        after = body["next"].as_str().map(str::to_owned);
+
+        if after.is_none() {
+            break;
+        }
+    }
+
+    assert_eq!(
+        seen.len(),
+        47,
+        "not every subscriber came back exactly once"
     );
 }
 

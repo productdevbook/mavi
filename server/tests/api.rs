@@ -407,3 +407,285 @@ fn a_handler_that_answers_a_page_says_so() {
         }
     }
 }
+
+/// A query that pages: found by the one thing every one of them does — bind
+/// the extra row `Query::fetch` asks for as its `limit`. What matters about
+/// it is the SQL itself and the closure that turns its last row into the
+/// cursor handed back.
+struct Paginated {
+    sql: String,
+    closure_field: Option<String>,
+}
+
+fn paginated_queries(source: &str) -> Vec<Paginated> {
+    let mut found = Vec::new();
+    let mut from = 0usize;
+
+    while let Some(at_rel) = source[from..].find("sqlx::query") {
+        let mut at = from + at_rel + "sqlx::query".len();
+
+        if source[at..].starts_with("_as") {
+            at += "_as".len();
+        }
+
+        if !source[at..].starts_with('(') {
+            from = at;
+            continue;
+        }
+
+        let body_start = at + 1;
+        from = body_start;
+
+        let window_end = (body_start + 4000).min(source.len());
+        let window = &source[body_start..window_end];
+
+        let Some(fetch_at) = [".fetch_all(", ".fetch_one(", ".fetch_optional("]
+            .iter()
+            .filter_map(|needle| window.find(needle))
+            .min()
+        else {
+            continue;
+        };
+
+        let chain = &window[..fetch_at];
+        let binds = bind_expressions(chain);
+
+        let is_paged = binds
+            .iter()
+            .any(|bind| bind.trim_end().ends_with(".fetch()"));
+
+        if !is_paged {
+            continue;
+        }
+
+        let Some(quote_at) = window.find('"') else {
+            continue;
+        };
+
+        if quote_at > 200 {
+            continue;
+        }
+
+        let Some(quote_end) = window[quote_at + 1..].find('"') else {
+            continue;
+        };
+
+        let sql = window[quote_at + 1..quote_at + 1 + quote_end].to_owned();
+
+        let after =
+            &source[body_start + fetch_at..(body_start + fetch_at + 3000).min(source.len())];
+        let closure_field = ["Page::build(", "Listing::build("]
+            .iter()
+            .find_map(|needle| after.find(needle).map(|at| at + needle.len()))
+            .and_then(|at| closure_field_of(&after[at..(at + 700).min(after.len())]));
+
+        found.push(Paginated { sql, closure_field });
+    }
+
+    found
+}
+
+/// Every `.bind(...)` in a chain, in order — so the Nth one is what `$N`
+/// binds to. Walked by hand rather than split on `)`, because what is bound
+/// is itself sometimes a call with its own parentheses.
+fn bind_expressions(chain: &str) -> Vec<&str> {
+    let mut binds = Vec::new();
+    let bytes = chain.as_bytes();
+    let mut from = 0usize;
+
+    while let Some(at_rel) = chain[from..].find(".bind(") {
+        let start = from + at_rel + ".bind(".len();
+        let mut depth = 1i32;
+        let mut at = start;
+
+        while at < bytes.len() && depth > 0 {
+            match bytes[at] {
+                b'(' => depth += 1,
+                b')' => depth -= 1,
+                _ => {}
+            }
+            at += 1;
+        }
+
+        binds.push(&chain[start..at.saturating_sub(1)]);
+        from = at.max(start + 1);
+    }
+
+    binds
+}
+
+/// What a closure like `|issue| issue.written_at.to_rfc3339()` hands back:
+/// the field read off its one argument, whatever is done to it afterwards.
+fn closure_field_of(tail: &str) -> Option<String> {
+    let bar_at = tail.find('|')?;
+    let rest = &tail[bar_at + 1..];
+    let end = rest.find('|')?;
+    let name = &rest[..end];
+
+    if name.is_empty() || !name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
+        return None;
+    }
+
+    let body = &rest[end + 1..(end + 1 + 400).min(rest.len())];
+    let needle = format!("{name}.");
+    let at = body.find(&needle)?;
+    let field: String = body[at + needle.len()..]
+        .chars()
+        .take_while(|c| c.is_ascii_alphanumeric() || *c == '_')
+        .collect();
+
+    (!field.is_empty()).then_some(field)
+}
+
+/// The column a listing is chiefly ordered by: the first name after
+/// `order by`, with whatever table it is qualified by dropped.
+fn order_by_primary(sql: &str) -> Option<String> {
+    let at = sql.find("order by")?;
+    let rest = sql[at + "order by".len()..].trim_start();
+    let column: String = rest
+        .chars()
+        .take_while(|c| c.is_ascii_alphanumeric() || *c == '_' || *c == '.')
+        .collect();
+
+    if column.is_empty() {
+        return None;
+    }
+
+    Some(column.rsplit('.').next().unwrap_or(&column).to_owned())
+}
+
+/// Whether a column is ever on the sharp end of a `<` or `>` — the shape
+/// every cursor filter in this codebase takes, whatever else surrounds it.
+fn compared_with_an_edge(sql: &str, column: &str) -> bool {
+    let bytes = sql.as_bytes();
+    let mut from = 0usize;
+
+    while let Some(at_rel) = sql[from..].find(column) {
+        let at = from + at_rel;
+        let before_ok =
+            at == 0 || !(bytes[at - 1].is_ascii_alphanumeric() || bytes[at - 1] == b'_');
+        let after_at = at + column.len();
+        let after_ok = after_at == bytes.len()
+            || !(bytes[after_at].is_ascii_alphanumeric() || bytes[after_at] == b'_');
+
+        if before_ok && after_ok {
+            let mut j = after_at;
+            while j < bytes.len() && bytes[j] == b' ' {
+                j += 1;
+            }
+            if j < bytes.len() && (bytes[j] == b'<' || bytes[j] == b'>') {
+                return true;
+            }
+
+            let mut i = at;
+            while i > 0 && bytes[i - 1] == b' ' {
+                i -= 1;
+            }
+            if i > 0 && (bytes[i - 1] == b'<' || bytes[i - 1] == b'>') {
+                return true;
+            }
+        }
+
+        from = at + column.len().max(1);
+    }
+
+    false
+}
+
+/// What the `select` list of a query calls each column, where it renames one
+/// with `as`: a cursor built from the renamed field is really built from
+/// whatever is on the other side of it.
+fn select_aliases(sql: &str) -> Vec<(String, String)> {
+    let Some(select_at) = sql.find("select") else {
+        return Vec::new();
+    };
+
+    let Some(from_at) = sql[select_at..].find(" from ") else {
+        return Vec::new();
+    };
+
+    let list = &sql[select_at + "select".len()..select_at + from_at];
+    let bytes = list.as_bytes();
+
+    let mut aliases = Vec::new();
+    let mut depth = 0i32;
+    let mut start = 0usize;
+
+    for (i, &b) in bytes.iter().enumerate() {
+        match b {
+            b'(' => depth += 1,
+            b')' => depth -= 1,
+            b',' if depth == 0 => {
+                if let Some(pair) = column_alias(&list[start..i]) {
+                    aliases.push(pair);
+                }
+                start = i + 1;
+            }
+            _ => {}
+        }
+    }
+
+    if let Some(pair) = column_alias(&list[start..]) {
+        aliases.push(pair);
+    }
+
+    aliases
+}
+
+fn column_alias(part: &str) -> Option<(String, String)> {
+    let part = part.trim();
+    let lower = part.to_ascii_lowercase();
+    let at = lower.rfind(" as ")?;
+
+    let alias = part[at + " as ".len()..].trim().to_owned();
+    let expr = part[..at].trim();
+    let base = expr.split("::").next().unwrap_or(expr);
+    let base = base.rsplit('.').next().unwrap_or(base).trim().to_owned();
+
+    Some((alias, base))
+}
+
+/// A page whose cursor does not match what it orders and filters by either
+/// repeats what a client already saw or never shows them the rest: `next`
+/// on the mail list's subscribers was the subscriber's id while the list was
+/// ordered and filtered by when they joined, and a client that kept asking
+/// for it got the newest page for ever. What is wrong with a page was
+/// ordered worst first and cursored on when it was written, so a page
+/// boundary that fell inside the warnings cut every note off from ever being
+/// reached. Measured across every paged listing in this crate, this is
+/// exactly those two — which is what makes it worth keeping as a rule rather
+/// than a pair of one-off fixes.
+#[test]
+fn a_paged_listing_cursors_on_what_it_orders_and_filters_by() {
+    for file in rust_files(std::path::Path::new("src")) {
+        let source = std::fs::read_to_string(&file).expect("a source file");
+
+        for query in paginated_queries(&source) {
+            let Some(primary) = order_by_primary(&query.sql) else {
+                continue;
+            };
+
+            let filtered = compared_with_an_edge(&query.sql, &primary);
+
+            let aliases = select_aliases(&query.sql);
+            let cursored_on = query.closure_field.as_ref().map(|field| {
+                aliases
+                    .iter()
+                    .find(|(alias, _)| alias == field)
+                    .map_or_else(|| field.clone(), |(_, base)| base.clone())
+            });
+
+            let matches = cursored_on.as_ref().is_none_or(|field| *field == primary);
+
+            assert!(
+                filtered && matches,
+                "{}: a listing ordered by {primary} is filtered by a column \
+                 that is not compared with `<` or `>` ({filtered}), or hands \
+                 back a cursor built from {cursored_on:?} instead — a client \
+                 following `next` either loops for ever or never sees some \
+                 rows",
+                file.display(),
+            );
+        }
+    }
+}

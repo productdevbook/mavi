@@ -14,7 +14,7 @@ use uuid::Uuid;
 
 mod common;
 
-use common::harness;
+use common::{harness, percent_encoded};
 use mavi::testing::{a_role, a_tenant, a_user};
 
 struct Site {
@@ -688,6 +688,182 @@ async fn what_is_wrong_across_a_site_is_one_question() {
         counter.count() <= 6,
         "asking what is wrong with a site cost {} queries",
         counter.count()
+    );
+}
+
+/// What #36 was: the list is ordered worst first but cursored on when a page
+/// was written, so a boundary that fell inside the `warning`s cut every
+/// `note` off from ever being reached — newer than the cursor, but outranked
+/// by nothing left to compare it to.
+#[tokio::test]
+async fn a_quieter_issue_still_comes_back_once_the_louder_ones_are_paged_past() {
+    let site = Site::new().await;
+    let who = site.everyone().await;
+
+    let excerpt = "A summary long enough to be worth showing and short enough \
+                    to be shown in a search result.";
+    let body = "x".repeat(320);
+
+    // Five posts short enough to warn about, made first so they are also the
+    // oldest.
+    for n in 0..5 {
+        let (status, post) = site
+            .send(
+                "POST",
+                "/api/posts",
+                Some(&who.token),
+                Some(serde_json::json!({
+                    "language": "en",
+                    "title": "Hi",
+                    "slug": format!("warning-{n}"),
+                    "excerpt": excerpt,
+                    "body": body,
+                })),
+            )
+            .await;
+
+        assert_eq!(status, StatusCode::CREATED, "{post}");
+    }
+
+    // Five posts with an ordinary title but a slug long enough to note, made
+    // afterwards so they are also the newest — and ranked below every
+    // warning above regardless.
+    for n in 0..5 {
+        let (status, post) = site
+            .send(
+                "POST",
+                "/api/posts",
+                Some(&who.token),
+                Some(serde_json::json!({
+                    "language": "en",
+                    "title": "A properly sized title to read",
+                    "slug": format!(
+                        "a-slug-that-is-long-enough-to-be-worth-a-note-because-it-goes-\
+                         past-sixty-characters-{n}"
+                    ),
+                    "excerpt": excerpt,
+                    "body": body,
+                })),
+            )
+            .await;
+
+        assert_eq!(status, StatusCode::CREATED, "{post}");
+    }
+
+    let mut seen = std::collections::HashSet::new();
+    let mut after: Option<String> = None;
+    let mut pages = 0;
+
+    loop {
+        pages += 1;
+        assert!(
+            pages <= 10,
+            "following `next` did not stop after {pages} pages of ten issues"
+        );
+
+        let path = after.as_ref().map_or_else(
+            || "/api/pages/issues?limit=3".to_owned(),
+            |cursor| {
+                format!(
+                    "/api/pages/issues?limit=3&after={}",
+                    percent_encoded(cursor)
+                )
+            },
+        );
+
+        let (status, page) = site.send("GET", &path, Some(&who.token), None).await;
+        assert_eq!(status, StatusCode::OK, "{page}");
+
+        for issue in page["items"].as_array().expect("a page") {
+            let key = format!(
+                "{}:{}",
+                issue["post_id"].as_str().expect("a post id"),
+                issue["kind"].as_str().expect("a kind"),
+            );
+
+            assert!(seen.insert(key.clone()), "{key} came back twice");
+        }
+
+        after = page["next"].as_str().map(str::to_owned);
+
+        if after.is_none() {
+            break;
+        }
+    }
+
+    assert_eq!(
+        seen.len(),
+        10,
+        "five warnings and five notes should each come back exactly once: {seen:?}"
+    );
+    assert!(
+        seen.iter().any(|key| key.ends_with(":slug.long")),
+        "the newer, quieter issues never came back: {seen:?}"
+    );
+}
+
+/// Two issues on the same post share `written_at` exactly, and share
+/// `weight` whenever both are the same severity — a title too short and no
+/// excerpt are both warnings, and both are true of the same post at the same
+/// moment. A cursor that only reaches as far as weight and the moment cannot
+/// tell them apart, so it either repeats one or skips the other.
+#[tokio::test]
+async fn two_issues_tied_on_weight_and_moment_both_come_back() {
+    let site = Site::new().await;
+    let who = site.everyone().await;
+
+    let (status, post) = site
+        .send(
+            "POST",
+            "/api/posts",
+            Some(&who.token),
+            Some(serde_json::json!({ "language": "en", "title": "Hi" })),
+        )
+        .await;
+
+    assert_eq!(status, StatusCode::CREATED, "{post}");
+
+    let mut seen = std::collections::HashSet::new();
+    let mut after: Option<String> = None;
+    let mut pages = 0;
+
+    loop {
+        pages += 1;
+        assert!(
+            pages <= 10,
+            "following `next` did not stop after {pages} pages"
+        );
+
+        let path = after.as_ref().map_or_else(
+            || "/api/pages/issues?limit=1".to_owned(),
+            |cursor| {
+                format!(
+                    "/api/pages/issues?limit=1&after={}",
+                    percent_encoded(cursor)
+                )
+            },
+        );
+
+        let (status, page) = site.send("GET", &path, Some(&who.token), None).await;
+        assert_eq!(status, StatusCode::OK, "{page}");
+
+        for issue in page["items"].as_array().expect("a page") {
+            let kind = issue["kind"].as_str().expect("a kind").to_owned();
+            assert!(seen.insert(kind.clone()), "{kind} came back twice");
+        }
+
+        after = page["next"].as_str().map(str::to_owned);
+
+        if after.is_none() {
+            break;
+        }
+    }
+
+    assert!(
+        seen.contains("title.short")
+            && seen.contains("excerpt.missing")
+            && seen.contains("body.thin"),
+        "a post tied on weight and moment should still show all three warnings: {seen:?}"
     );
 }
 

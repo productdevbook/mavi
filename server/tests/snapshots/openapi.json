@@ -4630,7 +4630,8 @@
                   "required": [
                     "id",
                     "email",
-                    "state"
+                    "state",
+                    "created_at"
                   ],
                   "properties": {
                     "id": {
@@ -4648,6 +4649,10 @@
                     },
                     "state": {
                       "$ref": "#/components/schemas/SubscriberState"
+                    },
+                    "created_at": {
+                      "type": "string",
+                      "format": "date-time"
                     }
                   }
                 }
@@ -12607,7 +12612,8 @@
         "required": [
           "id",
           "email",
-          "state"
+          "state",
+          "created_at"
         ],
         "properties": {
           "id": {
@@ -12625,6 +12631,10 @@
           },
           "state": {
             "$ref": "#/components/schemas/SubscriberState"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },

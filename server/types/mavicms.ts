@@ -999,6 +999,7 @@ export interface Subscriber {
   email: string;
   name?: string | null;
   state: SubscriberState;
+  created_at: string;
 }
 
 export type SubscriberState = "subscribed" | "unsubscribed" | "bounced" | "complained";
@@ -1920,6 +1921,7 @@ export interface Calls {
   email: string;
   name?: string | null;
   state: SubscriberState;
+  created_at: string;
 } };
   "POST /api/media": { takes: never; gives: {
   id: string;

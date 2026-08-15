@@ -2,6 +2,8 @@
 
 pub mod queries;
 
+use std::fmt::Write as _;
+
 use mavi::kernel::db::Db;
 
 /// A machine of this test's own, and its log on this test's own stderr.
@@ -22,4 +24,25 @@ pub async fn harness() -> Db {
         .try_init();
 
     mavi::testing::harness().await
+}
+
+/// A cursor handed back by a page carries `:` and the like, which a query
+/// string cannot: this is what a client following `next` does before asking
+/// for it.
+#[must_use]
+pub fn percent_encoded(value: &str) -> String {
+    let mut out = String::with_capacity(value.len());
+
+    for byte in value.bytes() {
+        match byte {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
+                out.push(byte as char);
+            }
+            _ => {
+                let _ = write!(out, "%{byte:02X}");
+            }
+        }
+    }
+
+    out
 }

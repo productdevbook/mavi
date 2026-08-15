@@ -18,7 +18,7 @@ use crate::kernel::authz::{Access, Capability, Needs, Permit};
 use crate::kernel::db::TenantConn;
 use crate::kernel::error::{AppError, Result};
 use crate::kernel::http::{AppState, Audience, Caller, Endpoint, Guard, RatePolicy};
-use crate::kernel::page::{Page, Query, older_than};
+use crate::kernel::page::{Page, Query};
 use crate::kernel::queue::{self, Task};
 use crate::kernel::ratelimit::Limit;
 use crate::kernel::say;
@@ -157,6 +157,7 @@ pub struct Subscriber {
     pub email: String,
     pub name: Option<String>,
     pub state: SubscriberState,
+    pub created_at: DateTime<Utc>,
 }
 
 impl Auditable for Subscriber {
@@ -324,6 +325,18 @@ async fn make_list(
     Ok(Audited::new(receipt, (StatusCode::CREATED, Json(list))))
 }
 
+/// Where the last page of subscribers stopped: the moment, and the id among
+/// those added at the same one. `created_at` alone is not enough to address a
+/// position inside a tie — and ties are not rare, because every row a single
+/// transaction writes shares Postgres's `now()`. `id` is a uuidv7, so it
+/// breaks every tie without needing a second table to generate one from.
+fn subscriber_cursor(after: Option<&str>) -> Option<(DateTime<Utc>, Uuid)> {
+    let (when, id) = after?.split_once('|')?;
+    let when = DateTime::parse_from_rfc3339(when).ok()?.with_timezone(&Utc);
+
+    Some((when, id.parse().ok()?))
+}
+
 /// Who is on a list. What a screen shows beside it, and the answer to "did
 /// that address actually go on".
 async fn subscribers(
@@ -335,26 +348,31 @@ async fn subscribers(
 ) -> Result<Json<Page<Subscriber>>> {
     let mut conn = state.db.tenant(caller.tenant()).await?;
 
+    let cursor = subscriber_cursor(page.after.as_deref());
+
     let rows: Vec<Subscriber> = sqlx::query_as(
-        "select s.id, s.email, s.name, s.state
+        "select s.id, s.email, s.name, s.state, s.created_at
            from subscriber_lists l join subscribers s on s.id = l.subscriber_id
           where l.list_id = $1
-            and ($2::timestamptz is null or s.created_at < $2)
-          order by s.created_at desc
-          limit $3",
+            and (
+                 $2::timestamptz is null
+                 or s.created_at < $2::timestamptz
+                 or (s.created_at = $2::timestamptz and s.id < $3::uuid)
+            )
+          order by s.created_at desc, s.id desc
+          limit $4",
     )
     .bind(list_id)
-    .bind(older_than(page.after.as_deref()))
+    .bind(cursor.map(|(when, _)| when))
+    .bind(cursor.map(|(_, id)| id))
     .bind(page.fetch())
     .fetch_all(conn.conn())
     .await?;
 
     conn.commit().await?;
 
-    // The cursor is the subscriber's id rather than a moment: two addresses
-    // added in the same second are otherwise one page for ever.
     Ok(Json(Page::build(&page, rows, |subscriber| {
-        subscriber.id.to_string()
+        format!("{}|{}", subscriber.created_at.to_rfc3339(), subscriber.id)
     })))
 }
 
@@ -373,7 +391,7 @@ async fn add_subscriber(
         "insert into subscribers (tenant_id, email, name, token_hash)
          values ($1, $2, $3, $4)
          on conflict (tenant_id, email) do update set name = coalesce(excluded.name, subscribers.name)
-         returning id, email, name, state",
+         returning id, email, name, state, created_at",
     )
     .bind(caller.tenant().0)
     .bind(body.email.as_str())

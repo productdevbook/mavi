@@ -249,7 +249,14 @@ pub fn tools() -> Vec<Tool> {
 
                 Box::pin(async move {
                     let mut conn = state.db.tenant(caller.tenant()).await?;
-                    let thrown = crate::trash::what_was_thrown(&mut conn).await?;
+                    // First page only: an assistant asking what is in the bin
+                    // wants an answer, not a walk of the whole thing.
+                    let thrown = crate::trash::what_was_thrown(
+                        &mut conn,
+                        None,
+                        i64::from(crate::kernel::page::MAX_LIMIT),
+                    )
+                    .await?;
                     conn.commit().await?;
 
                     Ok(json!(thrown))

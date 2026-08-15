@@ -46,10 +46,13 @@ One installation is one site: `/api/setup` makes the operator, the tenant, an
 owner role and the account able to sign into it, all in the one transaction —
 and answers once. Nothing else in this crate ever inserts a `tenants` row. The
 isolation machinery — `tenant_id` on every table, row-level security, a request
-resolved from `Host` — stays exactly as it is; what is gone is the *capability*
-to make a second site. Running many on one machine is a hosting product built
-on top of this, through `server/src/kernel/outside.rs`, not a mode this crate
-itself has.
+resolved from `Host` — is still here today, but it is coming out rather than
+staying: [#4](https://github.com/productdevbook/mavi/issues/4) is removing it,
+because machinery built for hosting many sites and used for one still has to
+be understood by everybody reading the code and kept correct by everybody
+changing it, in exchange for a capability this project does not offer. Running
+many on one machine is a hosting product built on top of this, through
+`server/src/kernel/outside.rs`, not a mode this crate itself has.
 
 `server/src/kernel/` is what every module is built out of: the guard on an
 endpoint, the audit receipt, the queue, cursor pages, and `Say` — a refusal is

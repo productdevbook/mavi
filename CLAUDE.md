@@ -42,17 +42,18 @@ The same goes for test data: names that are obviously invented.
     src/          the panel — React, TanStack Router, Lingui (English, Turkish)
     docs/         one document per thing that is not obvious from the code
 
-One installation is one site: `/api/setup` makes the operator, the tenant, an
-owner role and the account able to sign into it, all in the one transaction —
-and answers once. Nothing else in this crate ever inserts a `tenants` row. The
-isolation machinery — `tenant_id` on every table, row-level security, a request
-resolved from `Host` — is still here today, but it is coming out rather than
-staying: [#4](https://github.com/productdevbook/mavi/issues/4) is removing it,
-because machinery built for hosting many sites and used for one still has to
-be understood by everybody reading the code and kept correct by everybody
-changing it, in exchange for a capability this project does not offer. Running
-many on one machine is a hosting product built on top of this, through
-`server/src/kernel/outside.rs`, not a mode this crate itself has.
+One installation is one site: `/api/setup` makes an owner role and the account
+able to sign into it, in one transaction, and answers once.
+
+There is no tenancy. No `tenant_id`, no row-level security dividing sites, no
+`tenants` table, and nothing that resolves a request to a site — a request
+arrives at this installation because this installation is what it reached. A
+database holding more than one site is **refused** rather than served, on
+every request, because a query that picks one of several silently is worse
+than one that stops.
+
+Running many sites on one machine is a hosting product built on top of this,
+not a mode inside it.
 
 `server/src/kernel/` is what every module is built out of: the guard on an
 endpoint, the audit receipt, the queue, cursor pages, and `Say` — a refusal is

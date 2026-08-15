@@ -183,15 +183,13 @@ Written down rather than left to be discovered.
 - **Nothing builds a site.** Publishing does everything around a build — one at
   a time, recorded, counted — and the generator itself is a container this
   repository does not hold.
-- **This crate cannot make a second site.** `/api/setup` makes the one tenant,
-  its operator and its owner account, in one transaction, and answers once;
-  nothing else here ever inserts a `tenants` row. The isolation machinery under
-  that — `tenant_id`, row-level security, a request resolved from `Host` — is
-  still here today and is coming out rather than staying
-  ([#4](https://github.com/productdevbook/mavi/issues/4)), but running many
-  installations from one machine has never been a mode this crate has, before
-  or after that lands. That is a hosting product built on top of this, through
-  `kernel::outside`, not a mode of this crate.
+- **This crate cannot make a second site.** `/api/setup` makes an owner role
+  and the account able to sign into it, in one transaction, and answers once.
+  There is no tenancy under that any more — no `tenant_id`, no row-level
+  security, nothing resolving a request to a site — because there is one site
+  and no question to answer. A database holding more than one is refused
+  rather than served. Running many installations from one machine is a hosting
+  product built on top of this, not a mode of this crate.
 - **No billing, metering or plan of any kind.**
 - **No console over more than one installation.** The machine's own screens are
   this one site's, not a fleet's.

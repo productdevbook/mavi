@@ -193,21 +193,13 @@ async fn a_file_is_never_kept_under_the_name_somebody_chose() {
     let (_, body) = site.upload("../../escape.png", A_PNG).await;
     let id = body["id"].as_str().expect("an id");
 
-    let kept: Vec<_> = std::fs::read_dir(
-        site.kept_in.join(
-            // One folder per site, and the file inside it named after its id.
-            std::fs::read_dir(&site.kept_in)
-                .expect("the folder")
-                .next()
-                .expect("a site's folder")
-                .expect("a folder")
-                .file_name(),
-        ),
-    )
-    .expect("the site's folder")
-    .filter_map(std::result::Result::ok)
-    .map(|entry| entry.file_name().to_string_lossy().into_owned())
-    .collect();
+    // One folder, and the file inside it named after its id — there is one
+    // installation, so nothing nests a site's files under a site.
+    let kept: Vec<_> = std::fs::read_dir(&site.kept_in)
+        .expect("the folder")
+        .filter_map(std::result::Result::ok)
+        .map(|entry| entry.file_name().to_string_lossy().into_owned())
+        .collect();
 
     assert_eq!(kept.len(), 1);
     assert!(

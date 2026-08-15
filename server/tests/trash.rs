@@ -292,7 +292,7 @@ async fn a_trash_bigger_than_one_page_can_still_be_walked_to_the_end() {
     let mut conn = site.db.begin().await.expect("begin");
     let ids: Vec<Uuid> = sqlx::query_scalar(
         "insert into posts (language, slug, title, deleted_at)
-         select $1, 'en', 'cleared-out-' || gs, 'Cleared Out ' || gs,
+         select 'en', 'cleared-out-' || gs, 'Cleared Out ' || gs,
                 now() - make_interval(secs => gs)
            from generate_series(1, 130) as gs
          returning id",

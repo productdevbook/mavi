@@ -1,0 +1,30 @@
+[package]
+name = "mavi"
+version = "0.0.0"
+edition = "2024"
+publish = false
+description = "One installation, running: the API, and the worker beside it."
+
+[[bin]]
+name = "mavi"
+path = "src/main.rs"
+
+[dependencies]
+mavi-core = { path = "../mavi-core" }
+mavi-db = { path = "../mavi-db" }
+mavi-design = { path = "../mavi-design" }
+mavi-everything = { path = "../mavi-everything" }
+mavi-files = { path = "../mavi-files" }
+mavi-flows = { path = "../mavi-flows" }
+mavi-http = { path = "../mavi-http" }
+mavi-people = { path = "../mavi-people" }
+mavi-serve = { path = "../mavi-serve" }
+mavi-shop = { path = "../mavi-shop" }
+mavi-work = { path = "../mavi-work" }
+
+axum = { workspace = true }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "signal", "time"] }
+uuid = { workspace = true }
+
+[lints]
+workspace = true

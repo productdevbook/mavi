@@ -185,7 +185,22 @@ fn everything() -> Vec<String> {
 /// An address with no account and an address with the wrong password answer
 /// the same way, and take about the same time — the difference between them is
 /// a way to ask which addresses have accounts here.
-pub async fn sign_in(tx: &mut Tx, email: &str, said: &str) -> Result<(Person, String)> {
+/// What a right password got somebody.
+///
+/// Two answers rather than one, because an account with a second step is not
+/// signed in by a password alone — and a function that answered a session
+/// either way would be one where forgetting to ask the second question is a
+/// silent way past it.
+#[derive(Clone, Debug)]
+pub enum WayIn {
+    /// In. The token signs them in from now on.
+    Signed(Person, String),
+    /// Half way. What comes back is a moment to finish with, and it is not a
+    /// way in to anything.
+    NeedsTheSecondStep(String),
+}
+
+pub async fn sign_in(tx: &mut Tx, email: &str, said: &str) -> Result<WayIn> {
     let refuse = || Error::forbidden(Say::of(THAT_IS_NOT_AN_ADDRESS_AND_A_PASSWORD));
 
     let folded = Email::parse(email).map_err(|_| refuse())?;
@@ -219,9 +234,67 @@ pub async fn sign_in(tx: &mut Tx, email: &str, said: &str) -> Result<(Person, St
         return Err(Error::forbidden(Say::of(THAT_ACCOUNT_IS_STOPPED)));
     }
 
+    // Whether there is a second step, asked here rather than by whoever calls
+    // this. A caller that has to remember to ask is a caller that one day does
+    // not, and the thing they would have forgotten is the whole feature.
+    let has_a_second_step: bool = sqlx::query_scalar(
+        "select exists (
+            select 1 from second_factors
+             where person_id = $1 and confirmed_at is not null
+         )",
+    )
+    .bind(person.id)
+    .fetch_one(tx.conn())
+    .await
+    .map_err(Error::internal)?;
+
+    if has_a_second_step {
+        return Ok(WayIn::NeedsTheSecondStep(
+            mint_a_moment(tx, person.id).await?,
+        ));
+    }
+
     let minted = begin(tx, person.id).await?;
 
-    Ok((person, minted.token))
+    Ok(WayIn::Signed(person, minted.token))
+}
+
+/// How long somebody has to finish, in minutes.
+///
+/// Five: long enough to find a phone that has gone flat and is on a charger,
+/// short enough that a moment left on a shared machine is not a way in an hour
+/// later.
+pub const MINUTES_TO_FINISH: i64 = 5;
+
+/// A moment to finish signing in with.
+///
+/// Minted in the same table as every other link, so it is expired and used
+/// once by the same code — a second mechanism for a short-lived token is a
+/// second place for "has this been used" to be got wrong.
+async fn mint_a_moment(tx: &mut Tx, person: Uuid) -> Result<String> {
+    let minted = token::mint();
+
+    sqlx::query(
+        "insert into tickets (id, person_id, token, what_for, expires_at)
+         values ($1, $2, $3, $4, now() + make_interval(mins => $5))",
+    )
+    .bind(Uuid::now_v7())
+    .bind(person)
+    .bind(minted.hash.as_slice())
+    .bind(For::AMomentToFinish.as_str())
+    .bind(i32::try_from(MINUTES_TO_FINISH).unwrap_or(5))
+    .execute(tx.conn())
+    .await
+    .map_err(Error::internal)?;
+
+    Ok(minted.token)
+}
+
+/// The session, once the second step has been got past.
+pub async fn finish(tx: &mut Tx, person: Uuid) -> Result<(Person, String)> {
+    let minted = begin(tx, person).await?;
+
+    Ok((one(tx, person).await?, minted.token))
 }
 
 /// A session, written down.
@@ -416,7 +489,7 @@ pub async fn mint_a_ticket(
 /// simply not found by the query that sets a password — which is the whole of
 /// the fix, because a branch in Rust after the row is read closes the hole for
 /// today and leaves it open for whoever adds a fourth purpose.
-pub async fn redeem(tx: &mut Tx, token: &str, what_for: For, said: Option<&str>) -> Result<()> {
+pub async fn redeem(tx: &mut Tx, token: &str, what_for: For, said: Option<&str>) -> Result<Uuid> {
     let row = sqlx::query(
         "update tickets
             set used_at = now()
@@ -436,51 +509,62 @@ pub async fn redeem(tx: &mut Tx, token: &str, what_for: For, said: Option<&str>)
     let person: Uuid = row.try_get("person_id").map_err(Error::internal)?;
     let becomes: Option<String> = row.try_get("becomes").map_err(Error::internal)?;
 
-    if what_for.sets_a_password() {
-        let said =
-            said.ok_or_else(|| Error::invalid(Say::of(password::A_PASSWORD_IS_AT_LEAST_TWELVE)))?;
+    // An exhaustive match rather than a question with two answers. The `else`
+    // that used to be here was "prove an address", so a fourth purpose added
+    // to the enum would have quietly proved one — which is the exact shape of
+    // the hole this file's own documentation is about.
+    match what_for {
+        For::AnInvitation | For::AForgottenPassword => {
+            let said = said
+                .ok_or_else(|| Error::invalid(Say::of(password::A_PASSWORD_IS_AT_LEAST_TWELVE)))?;
 
-        let kept = password::kept(said)?;
+            let kept = password::kept(said)?;
 
-        sqlx::query(
-            "update people
+            sqlx::query(
+                "update people
                 set password = $2, standing = 'here', proved_at = coalesce(proved_at, now()),
                     updated_at = now()
               where id = $1",
-        )
-        .bind(person)
-        .bind(&kept)
-        .execute(tx.conn())
-        .await
-        .map_err(Error::internal)?;
+            )
+            .bind(person)
+            .bind(&kept)
+            .execute(tx.conn())
+            .await
+            .map_err(Error::internal)?;
 
-        // A password changing ends every session. Somebody who has just had to
-        // choose a new one is somebody who may have had their old one taken.
-        sqlx::query(
-            "update sessions set ended_at = now() where person_id = $1 and ended_at is null",
-        )
-        .bind(person)
-        .execute(tx.conn())
-        .await
-        .map_err(Error::internal)?;
-    } else {
-        // Proving an address proves the address. It does not set a password,
-        // does not change the account's standing, and does not end anybody's
-        // sessions — ending them for this is a way to sign somebody out of
-        // their own account by editing their address.
-        sqlx::query(
-            "update people
+            // A password changing ends every session. Somebody who has just had to
+            // choose a new one is somebody who may have had their old one taken.
+            sqlx::query(
+                "update sessions set ended_at = now() where person_id = $1 and ended_at is null",
+            )
+            .bind(person)
+            .execute(tx.conn())
+            .await
+            .map_err(Error::internal)?;
+        }
+        For::AnAddressToProve => {
+            // Proving an address proves the address. It does not set a password,
+            // does not change the account's standing, and does not end anybody's
+            // sessions — ending them for this is a way to sign somebody out of
+            // their own account by editing their address.
+            sqlx::query(
+                "update people
                 set email = coalesce($2, email), proved_at = now(), updated_at = now()
               where id = $1",
-        )
-        .bind(person)
-        .bind(becomes)
-        .execute(tx.conn())
-        .await
-        .map_err(Error::internal)?;
+            )
+            .bind(person)
+            .bind(becomes)
+            .execute(tx.conn())
+            .await
+            .map_err(Error::internal)?;
+        }
+        // Nothing. Whoever holds it has already given a right password; what
+        // redeeming it does is let the second step be asked for, and that is
+        // the caller's next move rather than a change to the account.
+        For::AMomentToFinish => {}
     }
 
-    Ok(())
+    Ok(person)
 }
 
 /// How many **other** people hold the owner's role and can actually sign in.

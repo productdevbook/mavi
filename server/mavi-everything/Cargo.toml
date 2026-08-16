@@ -24,6 +24,7 @@ mavi-mail = { path = "../mavi-mail" }
 mavi-media = { path = "../mavi-media" }
 mavi-people = { path = "../mavi-people" }
 mavi-portable = { path = "../mavi-portable" }
+mavi-second = { path = "../mavi-second" }
 mavi-settings = { path = "../mavi-settings" }
 mavi-shop = { path = "../mavi-shop" }
 mavi-taxonomy = { path = "../mavi-taxonomy" }
@@ -40,6 +41,7 @@ sqlx = { workspace = true }
 uuid = { workspace = true }
 
 [dev-dependencies]
+mavi-second = { path = "../mavi-second" }
 mavi-settings = { path = "../mavi-settings" }
 mavi-core = { path = "../mavi-core" }
 sqlx = { workspace = true }

@@ -58,6 +58,43 @@ fn the_accounts() -> Vec<Shape> {
             ],
         ),
         Shape::new(
+            "WayIn",
+            "What a right password got somebody. **Two answers in one shape**, \
+             and `finished` says which: an account with a second step is not \
+             signed in by a password alone, and a client that assumed a session \
+             would walk straight past the step.",
+            vec![
+                Field::new(
+                    "finished",
+                    Of::One(Is::Bool),
+                    "True where this is a session. False where a second step \
+                     has to be got past first.",
+                ),
+                Field::new("person", Of::Another("Person"), "Who, once finished.")
+                    .maybe()
+                    .or_null(),
+                Field::new("token", Of::One(Is::Text), A_TOKEN)
+                    .maybe()
+                    .or_null(),
+                Field::new(
+                    "moment",
+                    Of::One(Is::Text),
+                    "What to finish with, where it is not finished. Not a way \
+                     in: whoever holds it has given a right password and \
+                     nothing more, and it lasts minutes.",
+                )
+                .maybe()
+                .or_null(),
+                Field::new(
+                    "how_long",
+                    Of::One(Is::Number),
+                    "How many seconds the moment lasts.",
+                )
+                .maybe()
+                .or_null(),
+            ],
+        ),
+        Shape::new(
             "Session",
             "Signed in.",
             vec![

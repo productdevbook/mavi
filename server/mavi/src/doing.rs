@@ -41,7 +41,7 @@ pub async fn keep_working(
                 // The database is not there, or is refusing. Said, and then
                 // waited on: a loop that spins on an unreachable database is
                 // a loop that fills a disk with the same line.
-                eprintln!("could not take work: {wrong}");
+                tracing::error!(error = %wrong, "could not take work from queue");
 
                 tokio::time::sleep(Duration::from_secs(5)).await;
             }
@@ -68,7 +68,7 @@ async fn one(
     let ended = match went {
         Ok(()) => queue.done(db, job.id, &worker.named).await,
         Err(wrong) => {
-            eprintln!("{} failed: {wrong}", job.kind);
+            tracing::error!(kind = %job.kind, error = %wrong, "job failed");
 
             queue
                 .failed(db, job, &worker.named, &wrong.to_string())
@@ -80,9 +80,9 @@ async fn one(
     // the job now. Not an error to shout about — but never silence either,
     // because the work it just did has been done twice.
     if let Ok(Ended::SomebodyElses) = ended {
-        eprintln!(
-            "{} was taken by somebody else while this worker was doing it",
-            job.kind
+        tracing::warn!(
+            kind = %job.kind,
+            "job was taken by somebody else while this worker was doing it"
         );
     }
 }
@@ -173,10 +173,10 @@ pub async fn keep_time(db: Db, queue: Queue, worker: Worker) {
         match a_tick(&db, &queue, &all).await {
             Ok(queued) => {
                 for kind in queued {
-                    println!("{} is due, and queued by {}", kind, worker.named);
+                    tracing::info!(kind = %kind, worker = %worker.named, "task is due, queued by worker");
                 }
             }
-            Err(wrong) => eprintln!("could not ask what is due: {wrong}"),
+            Err(wrong) => tracing::error!(error = %wrong, "could not ask what is due"),
         }
 
         // Often enough that the shortest schedule is not late by much, rarely

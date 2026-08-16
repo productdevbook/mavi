@@ -29,12 +29,16 @@ use config::Config;
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info")),
+        )
+        .init();
+
     let told = Config::from_the_environment()?;
 
-    // Said out loud before anything else happens. A process that has read its
-    // configuration and is about to act on it is the last moment where a
-    // person can see what it thinks it was told.
-    println!("{}", told.as_said());
+    tracing::info!("{}", told.as_said());
 
     let db = Db::open(&told.database, told.at_most_connections).await?;
     db.migrate().await?;
@@ -57,7 +61,7 @@ async fn main() -> Result<()> {
         .map(|sealing| Arc::new(sealing) as Arc<dyn Seals>);
 
     if seals.is_none() {
-        println!("no sealing key, so no second step");
+        tracing::warn!("no sealing key configured, two-factor auth secrets will not be sealed");
     }
     let queue = Queue::of(&mavi_everything::work());
 
@@ -72,7 +76,7 @@ async fn main() -> Result<()> {
         .await
         .map_err(Error::internal)?;
 
-    println!("answering on {}", told.listen);
+    tracing::info!("answering on {}", told.listen);
 
     // The worker is a task beside the server rather than a second process, and
     // that is a decision rather than a convenience: a queue nobody runs is a
@@ -107,7 +111,7 @@ async fn main() -> Result<()> {
     working.abort();
     timing.abort();
 
-    println!("stopped");
+    tracing::info!("server stopped gracefully");
 
     Ok(())
 }

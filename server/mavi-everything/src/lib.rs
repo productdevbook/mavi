@@ -18,9 +18,14 @@
 pub mod about;
 pub mod assistant;
 pub mod building;
+pub mod installation;
 pub mod mounted;
+pub mod multisite;
 pub mod overview;
 pub mod showing;
+
+pub use installation::Installation;
+pub use multisite::MultiSite;
 
 use mavi_api::{Api, Endpoint};
 

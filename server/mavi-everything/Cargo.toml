@@ -41,10 +41,14 @@ sqlx = { workspace = true }
 uuid = { workspace = true }
 
 [dev-dependencies]
+mavi-content = { path = "../mavi-content" }
+mavi-core = { path = "../mavi-core" }
+mavi-media = { path = "../mavi-media" }
+mavi-sealed = { path = "../mavi-sealed" }
 mavi-second = { path = "../mavi-second" }
 mavi-settings = { path = "../mavi-settings" }
-mavi-core = { path = "../mavi-core" }
 sqlx = { workspace = true }
+tempfile = { workspace = true }
 tokio = { workspace = true, features = ["fs", "macros", "rt", "rt-multi-thread"] }
 tower = { workspace = true }
 

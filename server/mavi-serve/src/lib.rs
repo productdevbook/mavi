@@ -19,7 +19,10 @@
 //! 4. [`mavi_http::admit::wrote_it_down`], which refuses to answer a change
 //!    that left no receipt.
 
+pub mod dispatcher;
 pub mod refusal;
+
+pub use dispatcher::HostDispatcher;
 
 use std::collections::BTreeMap;
 use std::future::Future;

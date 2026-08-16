@@ -14,6 +14,8 @@ mavi-http = { path = "../mavi-http" }
 axum = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+tower = { workspace = true }
+tracing = { workspace = true }
 
 [dev-dependencies]
 mavi-core = { path = "../mavi-core" }

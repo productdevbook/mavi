@@ -6,6 +6,7 @@
 //! because the alternative is a foundation edited every time a site learns to
 //! do something new.
 
+pub mod described;
 pub mod owner;
 pub mod password;
 pub mod store;

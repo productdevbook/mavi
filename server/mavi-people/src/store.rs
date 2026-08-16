@@ -73,7 +73,10 @@ fn a_person(row: &PgRow) -> Result<Person> {
 }
 
 /// What setting a site up asks for.
-#[derive(Clone, Debug, Deserialize)]
+///
+/// Serialised as well as read, so the test beside the description can hold
+/// what it says it takes against what it takes.
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Setup {
     pub site: String,
     pub name: String,
@@ -333,7 +336,7 @@ pub async fn list(tx: &mut Tx, query: &Query) -> Result<Page<Person>> {
 }
 
 /// What inviting somebody asks for.
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Invitation {
     pub email: String,
     pub name: String,

@@ -5,7 +5,7 @@
 //! the bytes come from and what a browser is told.
 
 use axum::body::Body;
-use axum::extract::{Request, State};
+use axum::extract::Request;
 use axum::http::{HeaderValue, StatusCode, header};
 use axum::response::{IntoResponse, Response};
 use mavi_core::ports::Files;
@@ -28,7 +28,12 @@ impl std::fmt::Debug for Site {
 }
 
 /// Anything that is not the API.
-pub async fn serve(State(site): State<Site>, request: Request<Body>) -> Response {
+///
+/// Handed what it needs rather than reaching for it through an extractor: the
+/// API's half of the router carries a state of its own, and a second one
+/// underneath it would be a shape the router has to be talked into rather than
+/// one function of two values.
+pub async fn serve(site: Site, request: Request<Body>) -> Response {
     let path = request.uri().path().to_owned();
 
     // Under `/api`, the API's own shape holds all the way down: a client that

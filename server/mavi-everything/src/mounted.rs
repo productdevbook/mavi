@@ -39,12 +39,17 @@ pub const THAT_IS_NOT_AN_ID: &str = "that_is_not_an_id";
 /// somebody puts a container in front of it.
 #[must_use]
 pub fn everything(db: &Db, files: &Arc<dyn Files>, who_is_asking: WhoIsAsking) -> axum::Router {
+    let showing = crate::showing::Site {
+        db: db.clone(),
+        files: Arc::clone(files),
+    };
+
     site(db, files, who_is_asking)
         .into_router()
-        .fallback(axum::routing::any(crate::showing::serve))
-        .with_state(crate::showing::Site {
-            db: db.clone(),
-            files: Arc::clone(files),
+        .fallback(move |request: axum::extract::Request| {
+            let showing = showing.clone();
+
+            async move { crate::showing::serve(showing, request).await }
         })
 }
 

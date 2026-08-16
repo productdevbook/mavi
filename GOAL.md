@@ -66,22 +66,20 @@ Where that has got to, counted the same way:
 | | |
 |---|---|
 | The API | **101 operations** across 70 paths, every one declaring its parameters, its failures, the status it answers and how to authenticate |
-| Reachable | **26 of them answer**, through the guard and the audit rule, against a real Postgres |
-| The workspace | 20 crates — seven of foundation, twelve domains, and one that holds the whole API and asks it what no domain can ask about itself |
-| The schema | 15 migrations, applied to a real Postgres by a test rather than believed |
-| Tests | 304, of which 40 need a database and get one of their own |
+| Reachable | **all 101 answer**, through the guard and the audit rule, against a real Postgres |
+| The workspace | 22 crates — eight of foundation, twelve domains, one that holds the whole API and asks it what no domain can ask about itself, and one that puts files somewhere |
+| The schema | 16 migrations, applied to a real Postgres by a test rather than believed |
+| Tests | over 330, of which about 60 need a database and get one of their own |
 | The panel | not started, on purpose: it is written last, against an API worth writing one against |
 
-The second row is the honest one. Setting a site up, signing in and out,
-inviting somebody and their choosing a password, what the site is and what it
-writes in, what it files things under, what it wrote, and reading what was done
-— all of those go in at the front of a router and come out having written a row.
-The rest is described and not yet mounted, and `Site::not_reachable` is what
-counts them: written and tested is not reachable, and a function with no route
-is a feature that does not exist.
+That second row is a rule rather than a count: `Site::not_reachable` must be
+empty, so an endpoint described and mounted nowhere fails the build. A
+description with no route is a feature that does not exist.
 
-`server/` is still what runs. The order from here is the remaining handlers,
-then the panel.
+`server/` is still what runs, and moving to the new tree is its own decision
+with its own migration of data behind it. What is left before that is worth
+naming: the worker loop that takes the queue's work, the scheduler that queues
+anything on a timer, and the panel.
 
 What that is *for* is worth stating, because "a rewrite" on its own is a bad
 reason. Every crate down there exists to make one measured failure

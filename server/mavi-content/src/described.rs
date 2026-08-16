@@ -158,11 +158,11 @@ mod tests {
 
     fn fields_of(named: &str) -> BTreeSet<&'static str> {
         shapes()
-            .into_iter()
+            .iter()
             .find(|shape| shape.named == named)
             .expect("a shape")
-            .fields
-            .into_iter()
+            .fields()
+            .iter()
             .map(|field| field.name)
             .collect()
     }

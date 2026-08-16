@@ -9,7 +9,7 @@ use mavi_core::page::{Page, Query};
 use mavi_core::say::Say;
 use mavi_core::slug::Slug;
 use mavi_db::{Tx, Walk};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use sqlx::Row;
 use sqlx::postgres::PgRow;
 use uuid::Uuid;
@@ -104,7 +104,10 @@ pub async fn list(
 }
 
 /// What making one asks for.
-#[derive(Clone, Debug, Deserialize)]
+///
+/// Serialised as well as read, so the test beside the description can hold
+/// what it says it takes against what it takes.
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct NewTerm {
     pub sort: String,
     pub language: String,
@@ -207,7 +210,7 @@ async fn under(tx: &mut Tx, sort: Sort, id: TermId, parent: Option<Uuid>) -> Res
 }
 
 /// What changing one asks for.
-#[derive(Clone, Debug, Default, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct TermChanges {
     pub name: Option<String>,
     /// `Some(None)` moves it out from under anything.

@@ -7,7 +7,7 @@
 use mavi_core::error::{Error, Result};
 use mavi_core::say::Say;
 use mavi_db::Tx;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use sqlx::Row;
 
 use crate::language::{
@@ -34,7 +34,10 @@ pub async fn read(tx: &mut Tx) -> Result<Settings> {
 }
 
 /// What may be changed.
-#[derive(Clone, Debug, Default, Deserialize)]
+///
+/// Serialised as well as read, so the test beside the description can hold
+/// what it says it takes against what it takes.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct SettingsChanges {
     pub name: Option<String>,
     pub about: Option<String>,

@@ -6,10 +6,14 @@
 
 use std::fmt;
 
+use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
 use chrono::{DateTime, Utc};
 use mavi_audit::{AuditEntry, AuditService};
 use mavi_contract::{Api, Endpoint, Method, Permission};
-use mavi_core::{Action, Capability, ContentId, MaviError, Result, SiteContext, SiteId};
+use mavi_core::{
+    Action, Capability, ContentId, Cursor, MaviError, Page, PageRequest, Result, SiteContext,
+    SiteId,
+};
 use mavi_storage::SiteTx;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -32,9 +36,22 @@ pub const CONTENT_STATE_INVALID: &str = "content_state_invalid";
 
 /// Canonical content routes. Generated clients and documentation consume this
 /// declaration; handlers are not allowed to invent a parallel route shape.
+#[allow(clippy::too_many_lines)]
 #[must_use]
 pub fn api() -> Api {
     Api::new([
+        Endpoint::new(
+            Method::Get,
+            "/api/v1/content",
+            "content.list",
+            "List site content",
+        )
+        .requires(Permission {
+            capability: Capability::Content,
+            action: Action::View,
+        })
+        .takes("ContentListQuery")
+        .returns(200, "Page<Content>"),
         Endpoint::new(
             Method::Get,
             "/api/v1/content/{id}",
@@ -56,6 +73,7 @@ pub fn api() -> Api {
             capability: Capability::Content,
             action: Action::Write,
         })
+        .takes("CreateContent")
         .returns(201, "Content")
         .changes(false),
         Endpoint::new(
@@ -68,8 +86,70 @@ pub fn api() -> Api {
             capability: Capability::Content,
             action: Action::Write,
         })
+        .takes("UpdateContent")
         .returns(200, "Content")
         .changes(true),
+        Endpoint::new(
+            Method::Post,
+            "/api/v1/content/{id}/publish",
+            "content.publish",
+            "Publish site content",
+        )
+        .requires(Permission {
+            capability: Capability::Publish,
+            action: Action::Write,
+        })
+        .returns(200, "Content")
+        .changes(false),
+        Endpoint::new(
+            Method::Post,
+            "/api/v1/content/{id}/schedule",
+            "content.schedule",
+            "Schedule site content",
+        )
+        .requires(Permission {
+            capability: Capability::Publish,
+            action: Action::Write,
+        })
+        .takes("ScheduleContent")
+        .returns(200, "Content")
+        .changes(false),
+        Endpoint::new(
+            Method::Post,
+            "/api/v1/content/{id}/archive",
+            "content.archive",
+            "Archive site content",
+        )
+        .requires(Permission {
+            capability: Capability::Publish,
+            action: Action::Write,
+        })
+        .returns(200, "Content")
+        .changes(false),
+        Endpoint::new(
+            Method::Delete,
+            "/api/v1/content/{id}",
+            "content.trash",
+            "Move site content to trash",
+        )
+        .requires(Permission {
+            capability: Capability::Trash,
+            action: Action::Delete,
+        })
+        .returns(204, "Empty")
+        .changes(false),
+        Endpoint::new(
+            Method::Post,
+            "/api/v1/content/{id}/restore",
+            "content.restore",
+            "Restore site content from trash",
+        )
+        .requires(Permission {
+            capability: Capability::Trash,
+            action: Action::Write,
+        })
+        .returns(200, "Content")
+        .changes(false),
         Endpoint::new(
             Method::Get,
             "/public/v1/content/{slug}",
@@ -230,6 +310,41 @@ pub enum PublicationInput {
     Draft,
     Schedule(DateTime<Utc>),
     Publish,
+    Archive,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PublicationStatus {
+    Draft,
+    Scheduled,
+    Published,
+    Archived,
+}
+
+impl PublicationStatus {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Draft => "draft",
+            Self::Scheduled => "scheduled",
+            Self::Published => "published",
+            Self::Archived => "archived",
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+pub struct ContentListFilter {
+    pub kind: Option<String>,
+    pub language: Option<String>,
+    pub status: Option<PublicationStatus>,
+    #[serde(flatten)]
+    pub page: PageRequest,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct ScheduleContent {
+    pub at: DateTime<Utc>,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq)]
@@ -277,7 +392,27 @@ fn publication_input(input: &PublicationInput, now: DateTime<Utc>) -> Result<Pub
         PublicationInput::Schedule(at) if *at > now => Ok(Publication::Scheduled { at: *at }),
         PublicationInput::Schedule(_) => Err(MaviError::validation(CONTENT_STATE_INVALID)),
         PublicationInput::Publish => Ok(Publication::Published { at: now }),
+        PublicationInput::Archive => Ok(Publication::Archived),
     }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+struct ContentCursor {
+    created_at: DateTime<Utc>,
+    id: Uuid,
+}
+
+fn encode_cursor(created_at: DateTime<Utc>, id: Uuid) -> Result<Cursor> {
+    let bytes =
+        serde_json::to_vec(&ContentCursor { created_at, id }).map_err(|_| MaviError::Internal)?;
+    Cursor::parse(URL_SAFE_NO_PAD.encode(bytes))
+}
+
+fn decode_cursor(cursor: &Cursor) -> Result<ContentCursor> {
+    let bytes = URL_SAFE_NO_PAD
+        .decode(cursor.as_str())
+        .map_err(|_| MaviError::validation("invalid_cursor"))?;
+    serde_json::from_slice(&bytes).map_err(|_| MaviError::validation("invalid_cursor"))
 }
 
 fn checked_new(input: &CreateContent, now: DateTime<Utc>) -> Result<NewContent> {
@@ -449,6 +584,81 @@ impl ContentService {
         Ok(created)
     }
 
+    pub async fn list(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        filter: &ContentListFilter,
+    ) -> Result<Page<Content>> {
+        let kind = filter.kind.as_deref().map(ContentKind::parse).transpose()?;
+        let language = filter
+            .language
+            .as_deref()
+            .map(LanguageTag::parse)
+            .transpose()?;
+        let after = filter.page.after.as_ref().map(decode_cursor).transpose()?;
+        let limit = i64::from(filter.page.effective_limit());
+
+        let mut query = sqlx::QueryBuilder::<sqlx::Postgres>::new(
+            "select id, site_id, kind, language, slug, title, excerpt, body, fields, status, scheduled_at, published_at, revision, created_at, updated_at
+               from content_entries where site_id = ",
+        );
+        query
+            .push_bind(context.site_id.into_uuid())
+            .push(" and deleted_at is null");
+
+        if let Some(kind) = kind {
+            query.push(" and kind = ").push_bind(kind.as_str());
+        }
+        if let Some(language) = language {
+            query.push(" and language = ").push_bind(language.as_str());
+        }
+        if let Some(status) = filter.status {
+            query.push(" and status = ").push_bind(status.as_str());
+        }
+        if let Some(after) = after {
+            query
+                .push(" and (created_at, id) < (")
+                .push_bind(after.created_at)
+                .push(", ")
+                .push_bind(after.id)
+                .push(")");
+        }
+
+        let rows = query
+            .push(" order by created_at desc, id desc limit ")
+            .push_bind(limit + 1)
+            .build()
+            .fetch_all(tx.conn())
+            .await
+            .map_err(|_| MaviError::Internal)?;
+
+        let has_next = rows.len() > usize::try_from(limit).map_err(|_| MaviError::Internal)?;
+        let next_cursor = if has_next {
+            let row = rows
+                .get(
+                    usize::try_from(limit)
+                        .map_err(|_| MaviError::Internal)?
+                        .saturating_sub(1),
+                )
+                .ok_or(MaviError::Internal)?;
+            Some(encode_cursor(
+                row.try_get("created_at").map_err(|_| MaviError::Internal)?,
+                row.try_get("id").map_err(|_| MaviError::Internal)?,
+            )?)
+        } else {
+            None
+        };
+
+        let items = rows
+            .into_iter()
+            .take(usize::try_from(limit).map_err(|_| MaviError::Internal)?)
+            .map(|row| from_row(&row))
+            .collect::<Result<Vec<_>>>()?;
+
+        Ok(Page::new(items, next_cursor))
+    }
+
     pub async fn get(
         &self,
         tx: &mut SiteTx,
@@ -506,6 +716,19 @@ impl ContentService {
         id: ContentId,
         input: &UpdateContent,
         now: DateTime<Utc>,
+    ) -> Result<Content> {
+        self.update_internal(tx, context, id, input, now, "content.updated")
+            .await
+    }
+
+    async fn update_internal(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        id: ContentId,
+        input: &UpdateContent,
+        now: DateTime<Utc>,
+        audit_action: &str,
     ) -> Result<Content> {
         let current = self.get(tx, context, id).await?;
         let slug = match &input.slug {
@@ -583,7 +806,7 @@ impl ContentService {
                 tx,
                 context,
                 &AuditEntry {
-                    action: "content.updated".to_owned(),
+                    action: audit_action.to_owned(),
                     resource_type: "Content".to_owned(),
                     resource_id: Some(updated.id.into_uuid()),
                     payload: serde_json::json!({"revision": updated.revision}),
@@ -592,6 +815,145 @@ impl ContentService {
             .await?;
 
         Ok(updated)
+    }
+
+    pub async fn publish(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        id: ContentId,
+        now: DateTime<Utc>,
+    ) -> Result<Content> {
+        self.update_internal(
+            tx,
+            context,
+            id,
+            &UpdateContent {
+                publication: Some(PublicationInput::Publish),
+                ..UpdateContent::default()
+            },
+            now,
+            "content.published",
+        )
+        .await
+    }
+
+    pub async fn schedule(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        id: ContentId,
+        at: DateTime<Utc>,
+        now: DateTime<Utc>,
+    ) -> Result<Content> {
+        self.update_internal(
+            tx,
+            context,
+            id,
+            &UpdateContent {
+                publication: Some(PublicationInput::Schedule(at)),
+                ..UpdateContent::default()
+            },
+            now,
+            "content.scheduled",
+        )
+        .await
+    }
+
+    pub async fn archive(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        id: ContentId,
+        now: DateTime<Utc>,
+    ) -> Result<Content> {
+        self.update_internal(
+            tx,
+            context,
+            id,
+            &UpdateContent {
+                publication: Some(PublicationInput::Archive),
+                ..UpdateContent::default()
+            },
+            now,
+            "content.archived",
+        )
+        .await
+    }
+
+    pub async fn trash(&self, tx: &mut SiteTx, context: &SiteContext, id: ContentId) -> Result<()> {
+        sqlx::query(
+            "update content_entries set deleted_at = now(), updated_at = now()
+               where site_id = $1 and id = $2 and deleted_at is null",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(id.into_uuid())
+        .execute(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)
+        .and_then(|result| {
+            if result.rows_affected() == 0 {
+                Err(MaviError::NotFound {
+                    resource: CONTENT_NOT_FOUND,
+                })
+            } else {
+                Ok(())
+            }
+        })?;
+
+        AuditService
+            .record(
+                tx,
+                context,
+                &AuditEntry {
+                    action: "content.trashed".to_owned(),
+                    resource_type: "Content".to_owned(),
+                    resource_id: Some(id.into_uuid()),
+                    payload: Value::Object(serde_json::Map::new()),
+                },
+            )
+            .await
+    }
+
+    pub async fn restore(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        id: ContentId,
+    ) -> Result<Content> {
+        sqlx::query(
+            "update content_entries set deleted_at = null, updated_at = now()
+               where site_id = $1 and id = $2 and deleted_at is not null",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(id.into_uuid())
+        .execute(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)
+        .and_then(|result| {
+            if result.rows_affected() == 0 {
+                Err(MaviError::NotFound {
+                    resource: CONTENT_NOT_FOUND,
+                })
+            } else {
+                Ok(())
+            }
+        })?;
+
+        let restored = self.get(tx, context, id).await?;
+        AuditService
+            .record(
+                tx,
+                context,
+                &AuditEntry {
+                    action: "content.restored".to_owned(),
+                    resource_type: "Content".to_owned(),
+                    resource_id: Some(id.into_uuid()),
+                    payload: Value::Object(serde_json::Map::new()),
+                },
+            )
+            .await?;
+        Ok(restored)
     }
 }
 
@@ -665,6 +1027,26 @@ mod tests {
         let mut input = create();
         input.fields = Value::Array(Vec::new());
         assert!(checked_new(&input, Utc::now()).is_err());
+    }
+
+    #[test]
+    fn content_cursor_round_trips_and_rejects_corruption() {
+        let id = Uuid::now_v7();
+        let created_at = Utc::now();
+        let cursor = encode_cursor(created_at, id).expect("cursor");
+        let decoded = decode_cursor(&cursor).expect("decoded cursor");
+
+        assert_eq!(decoded.id, id);
+        assert_eq!(decoded.created_at, created_at);
+        assert!(decode_cursor(&Cursor::parse("not-a-content-cursor").expect("cursor")).is_err());
+    }
+
+    #[test]
+    fn archive_is_an_explicit_publication_state() {
+        assert_eq!(
+            publication_input(&PublicationInput::Archive, Utc::now()).expect("archive"),
+            Publication::Archived
+        );
     }
 
     #[test]

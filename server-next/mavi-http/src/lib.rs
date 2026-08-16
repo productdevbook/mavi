@@ -14,9 +14,13 @@ use axum::{
 };
 use chrono::Utc;
 use mavi_authz::CedarAuthorizer;
-use mavi_content::{Content, ContentService, CreateContent, UpdateContent};
+use mavi_content::{
+    Content, ContentListFilter, ContentService, CreateContent, PublicationInput, ScheduleContent,
+    UpdateContent,
+};
 use mavi_core::{
-    Action, Caller, Capability, ContentId, ErrorCode, Grant, MaviError, RequestId, SiteContext,
+    Action, Caller, Capability, ContentId, ErrorCode, Grant, MaviError, Page, RequestId,
+    SiteContext,
 };
 use mavi_identity::{IdentityService, LoginInput, Person, SessionCreated, SetupInput, SetupStatus};
 use mavi_runtime::{Runtime, SiteResolver};
@@ -93,9 +97,18 @@ where
         .route("/api/v1/auth/sessions/current", delete(revoke_session::<R>))
         .route(
             "/api/v1/content/{id}",
-            get(read_content::<R>).patch(update_content::<R>),
+            get(read_content::<R>)
+                .patch(update_content::<R>)
+                .delete(trash_content::<R>),
         )
-        .route("/api/v1/content", post(create_content::<R>))
+        .route(
+            "/api/v1/content",
+            get(list_content::<R>).post(create_content::<R>),
+        )
+        .route("/api/v1/content/{id}/publish", post(publish_content::<R>))
+        .route("/api/v1/content/{id}/schedule", post(schedule_content::<R>))
+        .route("/api/v1/content/{id}/archive", post(archive_content::<R>))
+        .route("/api/v1/content/{id}/restore", post(restore_content::<R>))
         .route("/public/v1/content/{slug}", get(public_content::<R>))
         .layer(middleware::from_fn_with_state(
             runtime.clone(),
@@ -311,6 +324,34 @@ where
     Ok(Json(entry))
 }
 
+async fn list_content<R>(
+    State(state): State<HttpState<R>>,
+    Extension(site_context): Extension<SiteContext>,
+    Query(filter): Query<ContentListFilter>,
+) -> Result<Json<Page<Content>>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant(
+        &state,
+        &site_context,
+        Grant::new(Capability::Content, Action::View),
+        "content_collection",
+    )?;
+    let mut transaction = state
+        .runtime
+        .begin(&site_context)
+        .await
+        .map_err(HttpError)?;
+    let page = state
+        .content
+        .list(&mut transaction, &site_context, &filter)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(page))
+}
+
 async fn create_content<R>(
     State(state): State<HttpState<R>>,
     Extension(site_context): Extension<SiteContext>,
@@ -325,6 +366,14 @@ where
         Grant::new(Capability::Content, Action::Write),
         "content_collection",
     )?;
+    if !matches!(&input.publication, PublicationInput::Draft) {
+        require_grant(
+            &state,
+            &site_context,
+            Grant::new(Capability::Publish, Action::Write),
+            "content_collection",
+        )?;
+    }
     let mut transaction = state
         .runtime
         .begin(&site_context)
@@ -354,6 +403,16 @@ where
         Grant::new(Capability::Content, Action::Write),
         id.to_string(),
     )?;
+    if let Some(publication) = input.publication.as_ref()
+        && !matches!(publication, PublicationInput::Draft)
+    {
+        require_grant(
+            &state,
+            &site_context,
+            Grant::new(Capability::Publish, Action::Write),
+            id.to_string(),
+        )?;
+    }
     let mut transaction = state
         .runtime
         .begin(&site_context)
@@ -362,6 +421,147 @@ where
     let entry = state
         .content
         .update(&mut transaction, &site_context, id, &input, Utc::now())
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(entry))
+}
+
+async fn publish_content<R>(
+    State(state): State<HttpState<R>>,
+    Extension(site_context): Extension<SiteContext>,
+    Path(id): Path<ContentId>,
+) -> Result<Json<Content>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant(
+        &state,
+        &site_context,
+        Grant::new(Capability::Publish, Action::Write),
+        id.to_string(),
+    )?;
+    let mut transaction = state
+        .runtime
+        .begin(&site_context)
+        .await
+        .map_err(HttpError)?;
+    let entry = state
+        .content
+        .publish(&mut transaction, &site_context, id, Utc::now())
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(entry))
+}
+
+async fn schedule_content<R>(
+    State(state): State<HttpState<R>>,
+    Extension(site_context): Extension<SiteContext>,
+    Path(id): Path<ContentId>,
+    Json(input): Json<ScheduleContent>,
+) -> Result<Json<Content>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant(
+        &state,
+        &site_context,
+        Grant::new(Capability::Publish, Action::Write),
+        id.to_string(),
+    )?;
+    let mut transaction = state
+        .runtime
+        .begin(&site_context)
+        .await
+        .map_err(HttpError)?;
+    let entry = state
+        .content
+        .schedule(&mut transaction, &site_context, id, input.at, Utc::now())
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(entry))
+}
+
+async fn archive_content<R>(
+    State(state): State<HttpState<R>>,
+    Extension(site_context): Extension<SiteContext>,
+    Path(id): Path<ContentId>,
+) -> Result<Json<Content>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant(
+        &state,
+        &site_context,
+        Grant::new(Capability::Publish, Action::Write),
+        id.to_string(),
+    )?;
+    let mut transaction = state
+        .runtime
+        .begin(&site_context)
+        .await
+        .map_err(HttpError)?;
+    let entry = state
+        .content
+        .archive(&mut transaction, &site_context, id, Utc::now())
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(entry))
+}
+
+async fn trash_content<R>(
+    State(state): State<HttpState<R>>,
+    Extension(site_context): Extension<SiteContext>,
+    Path(id): Path<ContentId>,
+) -> Result<StatusCode, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant(
+        &state,
+        &site_context,
+        Grant::new(Capability::Trash, Action::Delete),
+        id.to_string(),
+    )?;
+    let mut transaction = state
+        .runtime
+        .begin(&site_context)
+        .await
+        .map_err(HttpError)?;
+    state
+        .content
+        .trash(&mut transaction, &site_context, id)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+async fn restore_content<R>(
+    State(state): State<HttpState<R>>,
+    Extension(site_context): Extension<SiteContext>,
+    Path(id): Path<ContentId>,
+) -> Result<Json<Content>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant(
+        &state,
+        &site_context,
+        Grant::new(Capability::Trash, Action::Write),
+        id.to_string(),
+    )?;
+    let mut transaction = state
+        .runtime
+        .begin(&site_context)
+        .await
+        .map_err(HttpError)?;
+    let entry = state
+        .content
+        .restore(&mut transaction, &site_context, id)
         .await
         .map_err(HttpError)?;
     transaction.commit().await.map_err(HttpError)?;

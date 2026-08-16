@@ -7,6 +7,7 @@ publish = false
 description = "Content domain, application commands and site-scoped repository."
 
 [dependencies]
+base64.workspace = true
 chrono.workspace = true
 mavi-audit = { path = "../mavi-audit" }
 mavi-core = { path = "../mavi-core" }

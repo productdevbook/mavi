@@ -7,6 +7,7 @@ description = "Everything this installation answers, and the questions no one do
 
 [dependencies]
 mavi-api = { path = "../mavi-api" }
+mavi-assistant = { path = "../mavi-assistant" }
 mavi-audit = { path = "../mavi-audit" }
 mavi-boards = { path = "../mavi-boards" }
 mavi-content = { path = "../mavi-content" }

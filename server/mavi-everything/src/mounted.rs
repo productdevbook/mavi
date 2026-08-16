@@ -76,7 +76,12 @@ pub fn site(db: &Db, files: &Arc<dyn Files>, who_is_asking: WhoIsAsking) -> Site
     let site = how_it_looks(site, db);
     let site = what_somebody_uploaded(site, db, files);
 
-    what_has_been_done(site, db)
+    let site = what_has_been_done(site, db);
+
+    // Last, and that is the arrangement rather than the order things were
+    // written in: what an assistant can reach is what was mounted before this
+    // line, so its own door is not among them.
+    crate::assistant::mounted(site)
 }
 
 /// The forms, and what people sent them — the one domain here whose writing

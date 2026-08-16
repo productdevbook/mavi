@@ -91,11 +91,25 @@ pub type WhoIsAsking =
     Arc<dyn Fn(HeaderMap) -> Pin<Box<dyn Future<Output = Caller> + Send>> + Send + Sync>;
 
 /// One endpoint, its rule, and what answers it.
+///
+/// Public because a request is not the only way in. Something that answers by
+/// **name** rather than by address — an assistant asking to use a tool — has
+/// to reach the same handler behind the same rule, and the way to make that
+/// certain is for there to be nothing else to reach.
 #[derive(Clone)]
-struct Mounted {
-    endpoint: Endpoint,
-    needs: Option<Needs>,
-    handler: Handler,
+pub struct Door {
+    pub endpoint: Endpoint,
+    pub needs: Option<Needs>,
+    pub handler: Handler,
+}
+
+impl std::fmt::Debug for Door {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Door")
+            .field("endpoint", &self.endpoint.named)
+            .field("needs", &self.needs)
+            .finish_non_exhaustive()
+    }
 }
 
 /// Who is asking, as the router carries it.
@@ -110,7 +124,7 @@ struct Asking(WhoIsAsking);
 #[derive(Clone)]
 pub struct Site {
     who_is_asking: WhoIsAsking,
-    mounted: Vec<Mounted>,
+    mounted: Vec<Door>,
 }
 
 impl std::fmt::Debug for Site {
@@ -136,7 +150,7 @@ impl Site {
     /// described is not something anybody can write here.
     #[must_use]
     pub fn mount(mut self, endpoint: Endpoint, needs: Option<Needs>, handler: Handler) -> Self {
-        self.mounted.push(Mounted {
+        self.mounted.push(Door {
             endpoint,
             needs,
             handler,
@@ -165,6 +179,22 @@ impl Site {
             .collect()
     }
 
+    /// What is mounted here, by name — the description, the rule and the
+    /// handler together.
+    ///
+    /// What this is for is the one thing that must not grow a second copy of
+    /// itself: a door that answers by name reaches these and nothing else, so
+    /// "forbidden in the panel, allowed over there" is impossible rather than
+    /// unlikely. Whatever is mounted **after** this is asked for is not in it,
+    /// which is what keeps such a door from being able to call itself.
+    #[must_use]
+    pub fn by_name(&self) -> BTreeMap<&'static str, Door> {
+        self.mounted
+            .iter()
+            .map(|door| (door.endpoint.named, door.clone()))
+            .collect()
+    }
+
     /// What is mounted here, by name.
     #[must_use]
     pub fn reachable(&self) -> Vec<&'static str> {
@@ -182,7 +212,7 @@ impl Site {
     pub fn into_router(self) -> Router {
         let asking = Asking(Arc::clone(&self.who_is_asking));
 
-        let mut by_path: BTreeMap<&'static str, Vec<Mounted>> = BTreeMap::new();
+        let mut by_path: BTreeMap<&'static str, Vec<Door>> = BTreeMap::new();
 
         for one in self.mounted {
             by_path.entry(one.endpoint.path).or_default().push(one);
@@ -233,7 +263,7 @@ impl Site {
 
 /// Everything between a request arriving and an answer leaving.
 async fn through(
-    mounted: &Mounted,
+    mounted: &Door,
     who_is_asking: &WhoIsAsking,
     params: &RawPathParams,
     query: Option<&str>,
@@ -255,47 +285,75 @@ async fn through(
     }
 }
 
+impl Door {
+    /// One call, all the way through.
+    ///
+    /// The gate, the handler, and the rule that a change leaves a record —
+    /// in that order, which is the order that matters: somebody who may not
+    /// do this is told so before their body is read, so a caller who is both
+    /// unauthorised and malformed hears the first thing rather than the
+    /// second.
+    ///
+    /// What arrives is the pieces rather than an [`Asked`], because building
+    /// one means knowing whether this endpoint takes JSON or takes the bytes
+    /// — and something that could be handed an `Asked` it built itself would
+    /// be a second answer to that question.
+    pub async fn call(
+        &self,
+        caller: Caller,
+        path: BTreeMap<String, String>,
+        query: Option<&str>,
+        body: &[u8],
+    ) -> Result<Value> {
+        // One gate. Not one per way in, which is how the crate this replaces
+        // came to have a console whose writes answered before leaving a
+        // record.
+        admit::admit(&caller, &self.endpoint, self.needs, None)?;
+
+        // Read as JSON where the endpoint says it takes something and that
+        // something is not the bytes themselves. An upload is a body too, and
+        // asking `serde_json` to read a picture is a refusal nobody can act
+        // on.
+        let read_as_json = self
+            .endpoint
+            .takes
+            .is_some_and(|takes| takes != TheBytes::NAMED);
+
+        let asked = Asked {
+            caller,
+            path,
+            query: unpicked(query),
+            body: if read_as_json {
+                read(body)?
+            } else {
+                Value::Null
+            },
+            raw: body.to_vec(),
+        };
+
+        let answered = (self.handler)(asked).await?;
+
+        // A change that left no record does not answer. Held against what the
+        // endpoint said about itself, never against the verb it arrived by.
+        admit::wrote_it_down(&self.endpoint, &answered)?;
+
+        Ok(answered.into_inner())
+    }
+}
+
 async fn answered(
-    mounted: &Mounted,
+    mounted: &Door,
     caller: Caller,
     path: BTreeMap<String, String>,
     query: Option<&str>,
     body: &[u8],
 ) -> Result<Response> {
-    // One gate. Not one per way in, which is how the crate this replaces came
-    // to have a console whose writes answered before leaving a record.
-    admit::admit(&caller, &mounted.endpoint, mounted.needs, None)?;
-
-    // Read as JSON where the endpoint says it takes something and that
-    // something is not the bytes themselves. An upload is a body too, and
-    // asking `serde_json` to read a picture is a refusal nobody can act on.
-    let read_as_json = mounted
-        .endpoint
-        .takes
-        .is_some_and(|takes| takes != TheBytes::NAMED);
-
-    let asked = Asked {
-        caller,
-        path,
-        query: unpicked(query),
-        body: if read_as_json {
-            read(body)?
-        } else {
-            Value::Null
-        },
-        raw: body.to_vec(),
-    };
-
-    let answered = (mounted.handler)(asked).await?;
-
-    // A change that left no record does not answer. Held against what the
-    // endpoint said about itself, never against the verb it arrived by.
-    admit::wrote_it_down(&mounted.endpoint, &answered)?;
+    let what = mounted.call(caller, path, query, body).await?;
 
     let status = StatusCode::from_u16(mounted.endpoint.answers.status())
         .unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
 
-    Ok(match answered.into_inner() {
+    Ok(match what {
         Value::Null => status.into_response(),
         what => (status, axum::Json(what)).into_response(),
     })

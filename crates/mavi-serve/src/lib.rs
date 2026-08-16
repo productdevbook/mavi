@@ -45,6 +45,7 @@ pub use refusal::Refusal;
 ///
 /// One name, in one place, because the router has to know which endpoints do
 /// not carry JSON and the endpoint already has to say what it takes.
+#[derive(Debug)]
 pub struct TheBytes;
 
 impl TheBytes {

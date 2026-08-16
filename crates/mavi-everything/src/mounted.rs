@@ -36,8 +36,19 @@ pub const THAT_IS_NOT_AN_ID: &str = "that_is_not_an_id";
 /// implied — see the test beside this, which prints what is still to do.
 #[must_use]
 pub fn site(db: &Db, who_is_asking: WhoIsAsking) -> Site {
-    let mut site = Site::new(who_is_asking);
+    let site = Site::new(who_is_asking);
 
+    // One function per domain, in the order somebody meets them: getting in,
+    // what the site is, what it files things under, and what it wrote.
+    let site = the_way_in(site, db);
+    let site = what_this_site_is(site, db);
+    let site = what_it_files_things_under(site, db);
+
+    what_it_wrote(site, db)
+}
+
+/// Setting up, signing in, and who has an account.
+fn the_way_in(mut site: Site, db: &Db) -> Site {
     for endpoint in mavi_people::endpoints() {
         let db = db.clone();
 
@@ -67,6 +78,11 @@ pub fn site(db: &Db, who_is_asking: WhoIsAsking) -> Site {
         }
     }
 
+    site
+}
+
+/// The site's own name, and what it writes in.
+fn what_this_site_is(mut site: Site, db: &Db) -> Site {
     for endpoint in mavi_settings::endpoints() {
         let db = db.clone();
 
@@ -108,6 +124,11 @@ pub fn site(db: &Db, who_is_asking: WhoIsAsking) -> Site {
         }
     }
 
+    site
+}
+
+/// Categories and tags, and what is filed under them.
+fn what_it_files_things_under(mut site: Site, db: &Db) -> Site {
     for endpoint in mavi_taxonomy::endpoints() {
         let db = db.clone();
 
@@ -141,6 +162,11 @@ pub fn site(db: &Db, who_is_asking: WhoIsAsking) -> Site {
         }
     }
 
+    site
+}
+
+/// Posts, pages, and whatever else a site decides a thing is.
+fn what_it_wrote(mut site: Site, db: &Db) -> Site {
     for endpoint in mavi_content::endpoints() {
         let db = db.clone();
 

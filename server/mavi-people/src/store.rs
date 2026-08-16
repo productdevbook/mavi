@@ -18,6 +18,7 @@ use uuid::Uuid;
 
 use crate::owner::{self, Doing};
 use crate::password;
+use crate::role::{self, NewRole, Role, RoleChanges};
 use crate::ticket::For;
 use crate::token::{self, Minted};
 
@@ -541,4 +542,198 @@ pub async fn remove(tx: &mut Tx, id: Uuid) -> Result<()> {
 #[must_use]
 pub fn a_link_lasts() -> Duration {
     Duration::days(A_LINK_LASTS_DAYS)
+}
+
+/// Every role. A handful, so no paging: what this is for is a screen that has
+/// to show them all at once anyway, and a role picker with a cursor in it is a
+/// role picker somebody has to page through to find "Editor".
+pub async fn roles(tx: &mut Tx) -> Result<Vec<Role>> {
+    let rows = sqlx::query(
+        "select id, name, grants, is_the_owner, created_at from roles
+          order by is_the_owner desc, name",
+    )
+    .fetch_all(tx.conn())
+    .await
+    .map_err(Error::internal)?;
+
+    rows.iter().map(a_role).collect()
+}
+
+fn a_role(row: &sqlx::postgres::PgRow) -> Result<Role> {
+    Ok(Role {
+        id: row.try_get("id").map_err(Error::internal)?,
+        name: row.try_get("name").map_err(Error::internal)?,
+        grants: row.try_get("grants").map_err(Error::internal)?,
+        is_the_owner: row.try_get("is_the_owner").map_err(Error::internal)?,
+        created_at: row.try_get("created_at").map_err(Error::internal)?,
+    })
+}
+
+/// One role, or the refusal that says there is none.
+pub async fn a_role_called(tx: &mut Tx, id: Uuid) -> Result<Role> {
+    let row =
+        sqlx::query("select id, name, grants, is_the_owner, created_at from roles where id = $1")
+            .bind(id)
+            .fetch_optional(tx.conn())
+            .await
+            .map_err(Error::internal)?;
+
+    row.as_ref()
+        .map(a_role)
+        .transpose()?
+        .ok_or_else(|| Error::not_found(Say::of(role::THERE_IS_NO_ROLE_LIKE_THAT)))
+}
+
+/// Makes one.
+///
+/// Never the owner's. That one is made when the site is, exactly once, and a
+/// second thing that can do everything is a second thing to have taken.
+pub async fn make_a_role(tx: &mut Tx, new: &NewRole) -> Result<Role> {
+    let name = role::a_name(&new.name)?;
+    let grants = role::grants(&new.grants)?;
+
+    let row = sqlx::query(
+        "insert into roles (id, name, grants) values ($1, $2, $3)
+         returning id, name, grants, is_the_owner, created_at",
+    )
+    .bind(Uuid::now_v7())
+    .bind(&name)
+    .bind(&grants)
+    .fetch_one(tx.conn())
+    .await
+    .map_err(|cause| match &cause {
+        sqlx::Error::Database(db) if db.constraint() == Some("roles_name") => {
+            Error::conflict(Say::of("something_else_is_called_that"))
+        }
+        _ => Error::internal(cause),
+    })?;
+
+    a_role(&row)
+}
+
+/// Changes one.
+///
+/// The owner's may be renamed and its grants may not be touched: it holds
+/// everything by being what it is, and a set of grants written onto it would
+/// be a second answer to what it can do — one that could be made smaller.
+pub async fn change_a_role(tx: &mut Tx, id: Uuid, changes: &RoleChanges) -> Result<Role> {
+    let now = a_role_called(tx, id).await?;
+
+    if now.is_the_owner && changes.grants.is_some() {
+        return Err(Error::conflict(Say::of(
+            role::THE_OWNERS_ROLE_HOLDS_EVERYTHING,
+        )));
+    }
+
+    let name = match &changes.name {
+        Some(said) => role::a_name(said)?,
+        None => now.name.clone(),
+    };
+
+    let grants = match &changes.grants {
+        Some(asked) => role::grants(asked)?,
+        None => now.grants.clone(),
+    };
+
+    let row = sqlx::query(
+        "update roles set name = $2, grants = $3, updated_at = now() where id = $1
+         returning id, name, grants, is_the_owner, created_at",
+    )
+    .bind(id)
+    .bind(&name)
+    .bind(&grants)
+    .fetch_one(tx.conn())
+    .await
+    .map_err(Error::internal)?;
+
+    a_role(&row)
+}
+
+/// Takes one away, unless somebody holds it.
+///
+/// Refused rather than cascaded. An account whose role has gone is an account
+/// that either can do nothing or can do everything depending on how the join
+/// is written, and neither is something to discover afterwards.
+pub async fn remove_a_role(tx: &mut Tx, id: Uuid) -> Result<()> {
+    let role = a_role_called(tx, id).await?;
+
+    if role.is_the_owner {
+        return Err(Error::conflict(
+            Say::of(owner::SOMEBODY_HAS_TO_BE_ABLE_TO_GET_IN)
+                .with("doing", &owner::Doing::TakingTheRole.as_str()),
+        ));
+    }
+
+    let holding: i64 =
+        sqlx::query_scalar("select count(*) from people where role_id = $1 and deleted_at is null")
+            .bind(id)
+            .fetch_one(tx.conn())
+            .await
+            .map_err(Error::internal)?;
+
+    if holding > 0 {
+        return Err(Error::conflict(
+            Say::of(role::SOMEBODY_STILL_HOLDS_THAT_ROLE).with("how_many", &holding),
+        ));
+    }
+
+    sqlx::query("delete from roles where id = $1")
+        .bind(id)
+        .execute(tx.conn())
+        .await
+        .map_err(Error::internal)?;
+
+    Ok(())
+}
+
+/// Moves somebody to another role.
+///
+/// The last owner who can get in cannot be moved off it, for the same reason
+/// they cannot be removed: a site nobody can sign into is not a site anybody
+/// can fix from the outside.
+pub async fn move_them(tx: &mut Tx, id: Uuid, to: Uuid) -> Result<Person> {
+    let moving_the_owner: bool = sqlx::query_scalar(
+        "select r.is_the_owner from people p join roles r on r.id = p.role_id
+          where p.id = $1 and p.deleted_at is null",
+    )
+    .bind(id)
+    .fetch_optional(tx.conn())
+    .await
+    .map_err(Error::internal)?
+    .ok_or_else(|| Error::not_found(Say::of(NOBODY_HERE_HAS_THAT_ADDRESS)))?;
+
+    let to_the_owners = a_role_called(tx, to).await?.is_the_owner;
+
+    if moving_the_owner && !to_the_owners {
+        owner::may(
+            owner::Doing::MovingThem,
+            other_owners_who_can_get_in(tx, id).await?,
+        )?;
+    }
+
+    sqlx::query("update people set role_id = $2, updated_at = now() where id = $1")
+        .bind(id)
+        .bind(to)
+        .execute(tx.conn())
+        .await
+        .map_err(Error::internal)?;
+
+    one(tx, id).await
+}
+
+/// One person, or the refusal that says nobody is there.
+pub async fn one(tx: &mut Tx, id: Uuid) -> Result<Person> {
+    let row = sqlx::query(&format!(
+        "select {COLUMNS} from people p join roles r on r.id = p.role_id
+          where p.id = $1 and p.deleted_at is null"
+    ))
+    .bind(id)
+    .fetch_optional(tx.conn())
+    .await
+    .map_err(Error::internal)?;
+
+    row.as_ref()
+        .map(a_person)
+        .transpose()?
+        .ok_or_else(|| Error::not_found(Say::of(NOBODY_HERE_HAS_THAT_ADDRESS)))
 }

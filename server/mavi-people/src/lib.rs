@@ -9,6 +9,7 @@
 pub mod described;
 pub mod owner;
 pub mod password;
+pub mod role;
 pub mod store;
 pub mod ticket;
 pub mod token;
@@ -122,6 +123,81 @@ pub fn endpoints() -> Vec<Endpoint> {
             takes: Some("Invitation"),
             answers: Answers::Made("Person"),
             refuses: &[Code::Conflict],
+            changes: true,
+        },
+        Endpoint {
+            method: Method::Patch,
+            path: "/api/people/{id}",
+            named: "people.move",
+            about: "Moves somebody to another role.",
+            who: Who::AnAccount,
+            parameters: vec![Parameter::path("id", Is::Id, "Which one.")],
+            takes: Some("WhichRole"),
+            answers: Answers::With("Person"),
+            // The last owner who can get in cannot be moved off it, for the
+            // same reason they cannot be removed.
+            refuses: &[Code::NotFound, Code::Conflict],
+            changes: true,
+        },
+        Endpoint {
+            method: Method::Delete,
+            path: "/api/people/{id}",
+            named: "people.remove",
+            about: "Takes somebody's account away. Their sessions go with it.",
+            who: Who::AnAccount,
+            parameters: vec![Parameter::path("id", Is::Id, "Which one.")],
+            takes: None,
+            answers: Answers::Nothing,
+            refuses: &[Code::NotFound, Code::Conflict],
+            changes: true,
+        },
+        Endpoint {
+            method: Method::Get,
+            path: "/api/roles",
+            named: "roles.list",
+            about: "Every role, and what each one holds.",
+            who: Who::AnAccount,
+            parameters: Vec::new(),
+            takes: None,
+            answers: Answers::With("RoleList"),
+            refuses: &[],
+            changes: false,
+        },
+        Endpoint {
+            method: Method::Post,
+            path: "/api/roles",
+            named: "roles.make",
+            about: "Makes one. Never the owner's — that is made when the site \
+                    is, exactly once.",
+            who: Who::AnAccount,
+            parameters: Vec::new(),
+            takes: Some("NewRole"),
+            answers: Answers::Made("Role"),
+            refuses: &[Code::Conflict],
+            changes: true,
+        },
+        Endpoint {
+            method: Method::Patch,
+            path: "/api/roles/{id}",
+            named: "roles.change",
+            about: "Renames one, or changes what it holds.",
+            who: Who::AnAccount,
+            parameters: vec![Parameter::path("id", Is::Id, "Which one.")],
+            takes: Some("RoleChanges"),
+            answers: Answers::With("Role"),
+            refuses: &[Code::NotFound, Code::Conflict],
+            changes: true,
+        },
+        Endpoint {
+            method: Method::Delete,
+            path: "/api/roles/{id}",
+            named: "roles.remove",
+            about: "Takes one away, unless somebody holds it.",
+            who: Who::AnAccount,
+            parameters: vec![Parameter::path("id", Is::Id, "Which one.")],
+            takes: None,
+            answers: Answers::Nothing,
+            refuses: &[Code::NotFound, Code::Conflict],
             changes: true,
         },
         Endpoint {

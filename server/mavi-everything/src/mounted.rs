@@ -807,6 +807,24 @@ fn the_way_in(mut site: Site, db: &Db) -> Site {
             "people.invite" => Some(handling(db, |db, asked| {
                 Box::pin(async move { invited(&db, &asked).await })
             })),
+            "people.move" => Some(handling(db, |db, asked| {
+                Box::pin(async move { moved_them(&db, &asked).await })
+            })),
+            "people.remove" => Some(handling(db, |db, asked| {
+                Box::pin(async move { took_an_account_away(&db, &asked).await })
+            })),
+            "roles.list" => Some(handling(db, |db, _| {
+                Box::pin(async move { roles(&db).await })
+            })),
+            "roles.make" => Some(handling(db, |db, asked| {
+                Box::pin(async move { made_a_role(&db, &asked).await })
+            })),
+            "roles.change" => Some(handling(db, |db, asked| {
+                Box::pin(async move { changed_a_role(&db, &asked).await })
+            })),
+            "roles.remove" => Some(handling(db, |db, asked| {
+                Box::pin(async move { took_a_role_away(&db, &asked).await })
+            })),
             "passwords.choose" => Some(handling(db, |db, asked| {
                 Box::pin(async move { chose_a_password(&db, &asked).await })
             })),
@@ -824,8 +842,13 @@ fn the_way_in(mut site: Site, db: &Db) -> Site {
             // is holding nothing yet. Everything else here is about accounts,
             // which is what `people` is.
             let needs = match endpoint.named {
-                "people.list" => Some(mavi_people::to_read()),
-                "people.invite" => Some(mavi_people::to_write()),
+                "people.list" | "roles.list" => Some(mavi_people::to_read()),
+                // What a role holds is what an account may do, so changing one
+                // is the same grant as changing who has an account. There is
+                // no lesser thing it could ask for: somebody who can edit a
+                // role can give themselves anything.
+                "people.invite" | "people.move" | "people.remove" | "roles.make"
+                | "roles.change" | "roles.remove" => Some(mavi_people::to_write()),
                 _ => None,
             };
 
@@ -1539,6 +1562,142 @@ async fn invited(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
         serde_json::json!({ "person": person, "link": token }),
         receipt,
     ))
+}
+
+async fn roles(db: &Db) -> Result<Answered<Value>> {
+    let mut tx = db.begin().await?;
+    let roles = mavi_people::store::roles(&mut tx).await?;
+
+    Ok(Answered::Read(
+        serde_json::to_value(roles).map_err(Error::internal)?,
+    ))
+}
+
+async fn made_a_role(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
+    let new: mavi_people::role::NewRole = serde_json::from_value(asked.body.clone())
+        .map_err(|_| Error::invalid(Say::of("that_is_not_a_role")))?;
+
+    let mut tx = db.begin().await?;
+    let role = mavi_people::store::make_a_role(&mut tx, &new).await?;
+
+    let receipt = wrote_about(
+        &mut tx,
+        asked,
+        "roles.make",
+        "role",
+        Some(&role.id.to_string()),
+        &serde_json::json!({ "name": role.name, "grants": role.grants }),
+    )
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(Answered::Changed(
+        serde_json::to_value(role).map_err(Error::internal)?,
+        receipt,
+    ))
+}
+
+async fn changed_a_role(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
+    let id = a_uuid(asked)?;
+    let changes: mavi_people::role::RoleChanges = serde_json::from_value(asked.body.clone())
+        .map_err(|_| Error::invalid(Say::of("that_is_not_a_role")))?;
+
+    let mut tx = db.begin().await?;
+    let role = mavi_people::store::change_a_role(&mut tx, id, &changes).await?;
+
+    // What it holds now, in the receipt. What somebody needs a year later is
+    // what the role could do, not that it was edited.
+    let receipt = wrote_about(
+        &mut tx,
+        asked,
+        "roles.change",
+        "role",
+        Some(&id.to_string()),
+        &serde_json::json!({ "name": role.name, "grants": role.grants }),
+    )
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(Answered::Changed(
+        serde_json::to_value(role).map_err(Error::internal)?,
+        receipt,
+    ))
+}
+
+async fn took_a_role_away(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
+    let id = a_uuid(asked)?;
+
+    let mut tx = db.begin().await?;
+    let role = mavi_people::store::a_role_called(&mut tx, id).await?;
+
+    mavi_people::store::remove_a_role(&mut tx, id).await?;
+
+    let receipt = wrote_about(
+        &mut tx,
+        asked,
+        "roles.remove",
+        "role",
+        Some(&id.to_string()),
+        &serde_json::json!({ "name": role.name, "grants": role.grants }),
+    )
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(Answered::Changed(Value::Null, receipt))
+}
+
+async fn moved_them(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
+    let id = a_uuid(asked)?;
+
+    let to = asked.body["role"]
+        .as_str()
+        .and_then(|role| Uuid::parse_str(role).ok())
+        .ok_or_else(|| Error::invalid(Say::of(THAT_IS_NOT_AN_ID)))?;
+
+    let mut tx = db.begin().await?;
+    let person = mavi_people::store::move_them(&mut tx, id, to).await?;
+
+    let receipt = wrote_about(
+        &mut tx,
+        asked,
+        "people.move",
+        "person",
+        Some(&id.to_string()),
+        &serde_json::json!({ "to": to }),
+    )
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(Answered::Changed(
+        serde_json::to_value(person).map_err(Error::internal)?,
+        receipt,
+    ))
+}
+
+async fn took_an_account_away(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
+    let id = a_uuid(asked)?;
+
+    let mut tx = db.begin().await?;
+
+    mavi_people::store::remove(&mut tx, id).await?;
+
+    let receipt = wrote_about(
+        &mut tx,
+        asked,
+        "people.remove",
+        "person",
+        Some(&id.to_string()),
+        &serde_json::json!({}),
+    )
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(Answered::Changed(Value::Null, receipt))
 }
 
 async fn chose_a_password(db: &Db, asked: &Asked) -> Result<Answered<Value>> {

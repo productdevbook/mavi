@@ -1,0 +1,19 @@
+[package]
+name = "mavi-storage"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+description = "Scoped PostgreSQL storage for Mavi."
+
+[dependencies]
+mavi-core = { path = "../mavi-core" }
+sqlx.workspace = true
+thiserror.workspace = true
+uuid.workspace = true
+
+[dev-dependencies]
+tokio.workspace = true
+
+[lints]
+workspace = true

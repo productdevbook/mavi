@@ -1,0 +1,25 @@
+[package]
+name = "mavi"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+description = "Mavi Open Source, rebuilt from a clean composition root."
+
+[[bin]]
+name = "mavi"
+path = "src/main.rs"
+
+[dependencies]
+axum.workspace = true
+mavi-core = { path = "../mavi-core" }
+mavi-http = { path = "../mavi-http" }
+mavi-runtime = { path = "../mavi-runtime" }
+mavi-storage = { path = "../mavi-storage" }
+tokio.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+uuid.workspace = true
+
+[lints]
+workspace = true

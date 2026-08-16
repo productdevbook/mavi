@@ -1,0 +1,619 @@
+//! Content domain and its application-facing commands.
+//!
+//! The HTTP layer does not construct SQL and does not decide publication
+//! semantics. It hands a validated command to this crate; the repository is
+//! the only place that knows the content tables.
+
+use std::fmt;
+
+use chrono::{DateTime, Utc};
+use mavi_contract::{Api, Endpoint, Method, Permission};
+use mavi_core::{Action, Capability, ContentId, MaviError, Result, SiteContext, SiteId};
+use mavi_storage::SiteTx;
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use sqlx::Row;
+use uuid::Uuid;
+
+const KIND_MAX: usize = 31;
+const LANGUAGE_MAX: usize = 35;
+const SLUG_MAX: usize = 160;
+const TITLE_MAX: usize = 200;
+
+pub const CONTENT_NOT_FOUND: &str = "content_not_found";
+pub const CONTENT_SLUG_TAKEN: &str = "content_slug_taken";
+pub const CONTENT_KIND_INVALID: &str = "content_kind_invalid";
+pub const CONTENT_LANGUAGE_INVALID: &str = "content_language_invalid";
+pub const CONTENT_SLUG_INVALID: &str = "content_slug_invalid";
+pub const CONTENT_TITLE_INVALID: &str = "content_title_invalid";
+pub const CONTENT_FIELDS_INVALID: &str = "content_fields_invalid";
+pub const CONTENT_STATE_INVALID: &str = "content_state_invalid";
+
+/// Canonical content routes. Generated clients and documentation consume this
+/// declaration; handlers are not allowed to invent a parallel route shape.
+#[must_use]
+pub fn api() -> Api {
+    Api::new([
+        Endpoint::new(
+            Method::Get,
+            "/api/v1/content/{id}",
+            "content.read",
+            "Read site content",
+        )
+        .requires(Permission {
+            capability: Capability::Content,
+            action: Action::View,
+        })
+        .returns(200, "Content"),
+        Endpoint::new(
+            Method::Post,
+            "/api/v1/content",
+            "content.create",
+            "Create site content",
+        )
+        .requires(Permission {
+            capability: Capability::Content,
+            action: Action::Write,
+        })
+        .returns(201, "Content")
+        .changes(false),
+        Endpoint::new(
+            Method::Patch,
+            "/api/v1/content/{id}",
+            "content.update",
+            "Update site content",
+        )
+        .requires(Permission {
+            capability: Capability::Content,
+            action: Action::Write,
+        })
+        .returns(200, "Content")
+        .changes(true),
+        Endpoint::new(
+            Method::Get,
+            "/public/v1/content/{slug}",
+            "content.public_read",
+            "Read published content",
+        )
+        .public()
+        .returns(200, "Content"),
+    ])
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(transparent)]
+pub struct ContentKind(String);
+
+impl ContentKind {
+    pub fn parse(value: &str) -> Result<Self> {
+        if value.is_empty()
+            || value.len() > KIND_MAX
+            || !value.starts_with(|character: char| character.is_ascii_lowercase())
+            || !value.chars().all(|character| {
+                character.is_ascii_lowercase() || character.is_ascii_digit() || character == '_'
+            })
+        {
+            return Err(MaviError::validation(CONTENT_KIND_INVALID));
+        }
+
+        Ok(Self(value.to_owned()))
+    }
+
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(transparent)]
+pub struct LanguageTag(String);
+
+impl LanguageTag {
+    pub fn parse(value: &str) -> Result<Self> {
+        let valid = !value.is_empty()
+            && value.len() <= LANGUAGE_MAX
+            && value.split('-').enumerate().all(|(index, part)| {
+                let length = part.len();
+                let size_ok = if index == 0 {
+                    (2..=8).contains(&length)
+                } else {
+                    (1..=8).contains(&length)
+                };
+                size_ok
+                    && part
+                        .chars()
+                        .all(|character| character.is_ascii_alphanumeric())
+            });
+
+        if !valid {
+            return Err(MaviError::validation(CONTENT_LANGUAGE_INVALID));
+        }
+
+        Ok(Self(value.to_owned()))
+    }
+
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(transparent)]
+pub struct Slug(String);
+
+impl Slug {
+    pub fn parse(value: &str) -> Result<Self> {
+        let valid = !value.is_empty()
+            && value.len() <= SLUG_MAX
+            && value.chars().all(|character| {
+                character.is_ascii_lowercase() || character.is_ascii_digit() || character == '-'
+            })
+            && !value.starts_with('-')
+            && !value.ends_with('-')
+            && !value.contains("--");
+
+        if !valid {
+            return Err(MaviError::validation(CONTENT_SLUG_INVALID));
+        }
+
+        Ok(Self(value.to_owned()))
+    }
+
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Title(String);
+
+impl Title {
+    pub fn parse(value: &str) -> Result<Self> {
+        let trimmed = value.trim();
+        if trimmed.is_empty() || trimmed.chars().count() > TITLE_MAX {
+            return Err(MaviError::validation(CONTENT_TITLE_INVALID));
+        }
+
+        Ok(Self(trimmed.to_owned()))
+    }
+
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Publication {
+    Draft,
+    Scheduled { at: DateTime<Utc> },
+    Published { at: DateTime<Utc> },
+    Archived,
+}
+
+impl Publication {
+    fn columns(&self) -> (&'static str, Option<DateTime<Utc>>, Option<DateTime<Utc>>) {
+        match self {
+            Self::Draft => ("draft", None, None),
+            Self::Scheduled { at } => ("scheduled", Some(*at), None),
+            Self::Published { at } => ("published", None, Some(*at)),
+            Self::Archived => ("archived", None, None),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+pub struct CreateContent {
+    pub kind: String,
+    pub language: String,
+    pub slug: String,
+    pub title: String,
+    #[serde(default)]
+    pub excerpt: Option<String>,
+    #[serde(default)]
+    pub body: String,
+    #[serde(default = "empty_fields")]
+    pub fields: Value,
+    #[serde(default)]
+    pub publication: PublicationInput,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum PublicationInput {
+    #[default]
+    Draft,
+    Schedule(DateTime<Utc>),
+    Publish,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq)]
+pub struct UpdateContent {
+    pub slug: Option<String>,
+    pub title: Option<String>,
+    pub excerpt: Option<Option<String>>,
+    pub body: Option<String>,
+    pub fields: Option<Value>,
+    pub publication: Option<PublicationInput>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct Content {
+    pub id: ContentId,
+    pub site_id: SiteId,
+    pub kind: ContentKind,
+    pub language: LanguageTag,
+    pub slug: Slug,
+    pub title: String,
+    pub excerpt: Option<String>,
+    pub body: String,
+    pub fields: Value,
+    pub publication: Publication,
+    pub revision: u32,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+fn empty_fields() -> Value {
+    Value::Object(serde_json::Map::new())
+}
+
+fn validate_fields(fields: &Value) -> Result<()> {
+    if fields.is_object() {
+        Ok(())
+    } else {
+        Err(MaviError::validation(CONTENT_FIELDS_INVALID))
+    }
+}
+
+fn publication_input(input: &PublicationInput, now: DateTime<Utc>) -> Result<Publication> {
+    match input {
+        PublicationInput::Draft => Ok(Publication::Draft),
+        PublicationInput::Schedule(at) if *at > now => Ok(Publication::Scheduled { at: *at }),
+        PublicationInput::Schedule(_) => Err(MaviError::validation(CONTENT_STATE_INVALID)),
+        PublicationInput::Publish => Ok(Publication::Published { at: now }),
+    }
+}
+
+fn checked_new(input: &CreateContent, now: DateTime<Utc>) -> Result<NewContent> {
+    let kind = ContentKind::parse(&input.kind)?;
+    let language = LanguageTag::parse(&input.language)?;
+    let slug = Slug::parse(&input.slug)?;
+    let title = Title::parse(&input.title)?;
+    validate_fields(&input.fields)?;
+
+    if input.body.chars().count() > 1_000_000 {
+        return Err(MaviError::validation("content_body_too_large"));
+    }
+
+    Ok(NewContent {
+        kind,
+        language,
+        slug,
+        title,
+        excerpt: input.excerpt.clone(),
+        body: input.body.clone(),
+        fields: input.fields.clone(),
+        publication: publication_input(&input.publication, now)?,
+    })
+}
+
+struct NewContent {
+    kind: ContentKind,
+    language: LanguageTag,
+    slug: Slug,
+    title: Title,
+    excerpt: Option<String>,
+    body: String,
+    fields: Value,
+    publication: Publication,
+}
+
+fn status(
+    value: &str,
+    scheduled_at: Option<DateTime<Utc>>,
+    published_at: Option<DateTime<Utc>>,
+) -> Result<Publication> {
+    match value {
+        "draft" if scheduled_at.is_none() && published_at.is_none() => Ok(Publication::Draft),
+        "scheduled" if scheduled_at.is_some() && published_at.is_none() => {
+            Ok(Publication::Scheduled {
+                at: scheduled_at.expect("checked above"),
+            })
+        }
+        "published" if scheduled_at.is_none() && published_at.is_some() => {
+            Ok(Publication::Published {
+                at: published_at.expect("checked above"),
+            })
+        }
+        "archived" if scheduled_at.is_none() && published_at.is_none() => Ok(Publication::Archived),
+        _ => Err(MaviError::Internal),
+    }
+}
+
+fn from_row(row: &sqlx::postgres::PgRow) -> Result<Content> {
+    let status_value: String = row.try_get("status").map_err(|_| MaviError::Internal)?;
+    let scheduled_at = row
+        .try_get("scheduled_at")
+        .map_err(|_| MaviError::Internal)?;
+    let published_at = row
+        .try_get("published_at")
+        .map_err(|_| MaviError::Internal)?;
+    let revision: i32 = row.try_get("revision").map_err(|_| MaviError::Internal)?;
+
+    Ok(Content {
+        id: ContentId::from_uuid(row.try_get("id").map_err(|_| MaviError::Internal)?),
+        site_id: SiteId::from_uuid(row.try_get("site_id").map_err(|_| MaviError::Internal)?),
+        kind: ContentKind::parse(
+            &row.try_get::<String, _>("kind")
+                .map_err(|_| MaviError::Internal)?,
+        )?,
+        language: LanguageTag::parse(
+            &row.try_get::<String, _>("language")
+                .map_err(|_| MaviError::Internal)?,
+        )?,
+        slug: Slug::parse(
+            &row.try_get::<String, _>("slug")
+                .map_err(|_| MaviError::Internal)?,
+        )?,
+        title: row.try_get("title").map_err(|_| MaviError::Internal)?,
+        excerpt: row.try_get("excerpt").map_err(|_| MaviError::Internal)?,
+        body: row.try_get("body").map_err(|_| MaviError::Internal)?,
+        fields: row.try_get("fields").map_err(|_| MaviError::Internal)?,
+        publication: status(&status_value, scheduled_at, published_at)?,
+        revision: u32::try_from(revision).map_err(|_| MaviError::Internal)?,
+        created_at: row.try_get("created_at").map_err(|_| MaviError::Internal)?,
+        updated_at: row.try_get("updated_at").map_err(|_| MaviError::Internal)?,
+    })
+}
+
+/// Application service for content commands. The caller must provide a
+/// transaction opened from the request's [`SiteContext`].
+#[derive(Clone, Copy, Debug, Default)]
+pub struct ContentService;
+
+impl ContentService {
+    pub async fn create(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        input: &CreateContent,
+        now: DateTime<Utc>,
+    ) -> Result<Content> {
+        let new = checked_new(input, now)?;
+        let (status, scheduled_at, published_at) = new.publication.columns();
+
+        let row = sqlx::query(
+            "insert into content_entries (site_id, id, kind, language, slug, title, excerpt, body, fields, status, scheduled_at, published_at)
+             values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+             returning id, site_id, kind, language, slug, title, excerpt, body, fields, status, scheduled_at, published_at, revision, created_at, updated_at",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(Uuid::now_v7())
+        .bind(new.kind.as_str())
+        .bind(new.language.as_str())
+        .bind(new.slug.as_str())
+        .bind(new.title.as_str())
+        .bind(new.excerpt)
+        .bind(new.body)
+        .bind(new.fields)
+        .bind(status)
+        .bind(scheduled_at)
+        .bind(published_at)
+        .fetch_one(tx.conn())
+        .await
+        .map_err(|error| map_write_error(&error))?;
+
+        let created = from_row(&row)?;
+        let (revision_status, revision_scheduled_at, revision_published_at) =
+            created.publication.columns();
+        sqlx::query(
+            "insert into content_revisions (site_id, content_id, revision, kind, language, slug, title, excerpt, body, fields, status, scheduled_at, published_at)
+             values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(created.id.into_uuid())
+        .bind(1_i32)
+        .bind(created.kind.as_str())
+        .bind(created.language.as_str())
+        .bind(created.slug.as_str())
+        .bind(&created.title)
+        .bind(&created.excerpt)
+        .bind(&created.body)
+        .bind(&created.fields)
+        .bind(revision_status)
+        .bind(revision_scheduled_at)
+        .bind(revision_published_at)
+        .execute(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?;
+
+        Ok(created)
+    }
+
+    pub async fn get(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        id: ContentId,
+    ) -> Result<Content> {
+        let row = sqlx::query(
+            "select id, site_id, kind, language, slug, title, excerpt, body, fields, status, scheduled_at, published_at, revision, created_at, updated_at
+               from content_entries where site_id = $1 and id = $2 and deleted_at is null",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(id.into_uuid())
+        .fetch_optional(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?
+        .ok_or(MaviError::NotFound {
+            resource: CONTENT_NOT_FOUND,
+        })?;
+
+        from_row(&row)
+    }
+
+    pub async fn update(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        id: ContentId,
+        input: &UpdateContent,
+        now: DateTime<Utc>,
+    ) -> Result<Content> {
+        let current = self.get(tx, context, id).await?;
+        let slug = match &input.slug {
+            Some(value) => Slug::parse(value)?,
+            None => current.slug,
+        };
+        let title = match &input.title {
+            Some(value) => Title::parse(value)?,
+            None => Title::parse(&current.title)?,
+        };
+        let fields = input.fields.clone().unwrap_or(current.fields);
+        validate_fields(&fields)?;
+        let publication = match &input.publication {
+            Some(value) => publication_input(value, now)?,
+            None => current.publication,
+        };
+        let (status, scheduled_at, published_at) = publication.columns();
+        let excerpt = input.excerpt.clone().unwrap_or(current.excerpt);
+        let body = input.body.clone().unwrap_or(current.body);
+        if body.chars().count() > 1_000_000 {
+            return Err(MaviError::validation("content_body_too_large"));
+        }
+        let next_revision = current.revision.checked_add(1).ok_or(MaviError::Internal)?;
+
+        let row = sqlx::query(
+            "update content_entries
+                set slug = $3, title = $4, excerpt = $5, body = $6, fields = $7,
+                    status = $8, scheduled_at = $9, published_at = $10,
+                    revision = $11, updated_at = now()
+              where site_id = $1 and id = $2 and deleted_at is null
+             returning id, site_id, kind, language, slug, title, excerpt, body, fields, status, scheduled_at, published_at, revision, created_at, updated_at",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(id.into_uuid())
+        .bind(slug.as_str())
+        .bind(title.as_str())
+        .bind(excerpt)
+        .bind(body)
+        .bind(fields)
+        .bind(status)
+        .bind(scheduled_at)
+        .bind(published_at)
+        .bind(i32::try_from(next_revision).map_err(|_| MaviError::Internal)?)
+        .fetch_optional(tx.conn())
+        .await
+        .map_err(|error| map_write_error(&error))?
+        .ok_or(MaviError::NotFound {
+            resource: CONTENT_NOT_FOUND,
+        })?;
+
+        let updated = from_row(&row)?;
+        sqlx::query(
+            "insert into content_revisions (site_id, content_id, revision, kind, language, slug, title, excerpt, body, fields, status, scheduled_at, published_at)
+             values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(updated.id.into_uuid())
+        .bind(i32::try_from(updated.revision).map_err(|_| MaviError::Internal)?)
+        .bind(updated.kind.as_str())
+        .bind(updated.language.as_str())
+        .bind(updated.slug.as_str())
+        .bind(&updated.title)
+        .bind(&updated.excerpt)
+        .bind(&updated.body)
+        .bind(&updated.fields)
+        .bind(status)
+        .bind(scheduled_at)
+        .bind(published_at)
+        .execute(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?;
+
+        Ok(updated)
+    }
+}
+
+fn map_write_error(error: &sqlx::Error) -> MaviError {
+    if let sqlx::Error::Database(database) = error
+        && database.constraint() == Some("content_entries_site_language_slug")
+    {
+        return MaviError::conflict(CONTENT_SLUG_TAKEN);
+    }
+
+    MaviError::Internal
+}
+
+impl fmt::Display for ContentKind {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(self.as_str())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn create() -> CreateContent {
+        CreateContent {
+            kind: "post".to_owned(),
+            language: "en".to_owned(),
+            slug: "hello-world".to_owned(),
+            title: " Hello world ".to_owned(),
+            excerpt: None,
+            body: "body".to_owned(),
+            fields: empty_fields(),
+            publication: PublicationInput::Draft,
+        }
+    }
+
+    #[test]
+    fn validates_cms_identifiers_without_http_or_sql() {
+        assert!(ContentKind::parse("post").is_ok());
+        assert!(ContentKind::parse("Post").is_err());
+        assert!(LanguageTag::parse("en-US").is_ok());
+        assert!(LanguageTag::parse("e").is_err());
+        assert!(Slug::parse("hello-world").is_ok());
+        assert!(Slug::parse("hello--world").is_err());
+    }
+
+    #[test]
+    fn create_is_draft_by_default_and_trims_title() {
+        let input = create();
+        let checked = checked_new(&input, Utc::now()).expect("valid content");
+
+        assert_eq!(checked.title.as_str(), "Hello world");
+        assert_eq!(checked.publication, Publication::Draft);
+    }
+
+    #[test]
+    fn publish_and_schedule_are_explicit_states() {
+        let now = Utc::now();
+        assert_eq!(
+            publication_input(&PublicationInput::Publish, now).expect("publish"),
+            Publication::Published { at: now }
+        );
+        assert!(matches!(
+            publication_input(&PublicationInput::Schedule(now), now),
+            Err(MaviError::Validation { code, field: None }) if code == CONTENT_STATE_INVALID
+        ));
+    }
+
+    #[test]
+    fn fields_must_be_an_object() {
+        let mut input = create();
+        input.fields = Value::Array(Vec::new());
+        assert!(checked_new(&input, Utc::now()).is_err());
+    }
+
+    #[test]
+    fn canonical_content_api_is_self_consistent() {
+        api().validate().expect("content API contract is valid");
+    }
+}

@@ -1,0 +1,16 @@
+[package]
+name = "mavi-http"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+description = "HTTP admission, site context propagation and canonical errors."
+
+[dependencies]
+axum.workspace = true
+mavi-core = { path = "../mavi-core" }
+mavi-runtime = { path = "../mavi-runtime" }
+serde.workspace = true
+
+[lints]
+workspace = true

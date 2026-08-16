@@ -26,6 +26,7 @@ mavi-http = { path = "../mavi-http" }
 mavi-serve = { path = "../mavi-serve" }
 mavi-work = { path = "../mavi-work" }
 
+chrono = { workspace = true }
 serde_json = { workspace = true }
 uuid = { workspace = true }
 

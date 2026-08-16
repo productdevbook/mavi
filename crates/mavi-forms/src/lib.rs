@@ -13,6 +13,7 @@
 
 pub mod field;
 pub mod filled;
+pub mod store;
 
 use mavi_api::{Answers, Endpoint, Is, Method, Parameter, Who};
 use mavi_core::error::Code;

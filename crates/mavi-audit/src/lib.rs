@@ -246,3 +246,122 @@ mod tests {
         assert!(mavi_people::is_a_capability(AUDIT));
     }
 }
+
+/// Reading what was done.
+///
+/// A record nothing can read is a record in name only, so this is the other
+/// half of the crate: the listing the panel opens, and one receipt in full.
+pub mod reading {
+    use mavi_core::error::{Error, Result};
+    use mavi_core::page::{Page, Query};
+    use mavi_core::say::Say;
+    use mavi_db::{Tx, Walk};
+    use sqlx::Row;
+    use sqlx::postgres::PgRow;
+    use uuid::Uuid;
+
+    use super::{BY_RECENT, ReceiptId, Who, Written};
+
+    pub const NOTHING_WAS_DONE_UNDER_THAT: &str = "nothing_was_done_under_that";
+
+    const COLUMNS: &str = "id, who, who_id, did, about, about_id, what, request, created_at";
+
+    fn a_receipt(row: &PgRow) -> Result<Written> {
+        let who: String = row.try_get("who").map_err(Error::internal)?;
+
+        Ok(Written {
+            id: ReceiptId(row.try_get("id").map_err(Error::internal)?),
+            who: match who.as_str() {
+                "an_account" => Who::AnAccount,
+                "a_student" => Who::AStudent,
+                _ => Who::TheMachine,
+            },
+            who_id: row.try_get("who_id").map_err(Error::internal)?,
+            did: row.try_get("did").map_err(Error::internal)?,
+            about: row.try_get("about").map_err(Error::internal)?,
+            about_id: row.try_get("about_id").map_err(Error::internal)?,
+            what: row.try_get("what").map_err(Error::internal)?,
+            request: row.try_get("request").map_err(Error::internal)?,
+            created_at: row.try_get("created_at").map_err(Error::internal)?,
+        })
+    }
+
+    /// What has been done here, newest first.
+    ///
+    /// Narrowed by what it was about rather than by anything free-text: the
+    /// question somebody actually asks is "what happened to this", and there
+    /// is an index for exactly that.
+    pub async fn list(
+        tx: &mut Tx,
+        about: Option<&str>,
+        about_id: Option<&str>,
+        who_id: Option<&str>,
+        query: &Query,
+    ) -> Result<Page<Written>> {
+        let walk = Walk::new(BY_RECENT, query.after(BY_RECENT)?);
+        let mut wheres: Vec<String> = Vec::new();
+        let mut binds: Vec<String> = Vec::new();
+
+        for (column, value) in [("about", about), ("about_id", about_id), ("who_id", who_id)] {
+            if let Some(value) = value {
+                binds.push(value.to_owned());
+                wheres.push(format!("{column} = ${}", binds.len()));
+            }
+        }
+
+        let cursor = walk.after(binds.len() + 1);
+        if let Some((sql, _)) = &cursor {
+            wheres.push(sql.clone());
+        }
+
+        let narrowed = if wheres.is_empty() {
+            String::new()
+        } else {
+            format!("where {}", wheres.join(" and "))
+        };
+
+        let sql = format!(
+            "select {COLUMNS} from receipts {narrowed} order by {} limit {}",
+            walk.order(),
+            query.fetch(),
+        );
+
+        let mut asking = sqlx::query(&sql);
+
+        for bind in binds {
+            asking = asking.bind(bind);
+        }
+
+        if let Some((_, values)) = cursor {
+            for value in values {
+                asking = asking.bind(value);
+            }
+        }
+
+        let rows = asking
+            .fetch_all(tx.conn())
+            .await
+            .map_err(Error::internal)?
+            .iter()
+            .map(a_receipt)
+            .collect::<Result<Vec<_>>>()?;
+
+        Page::build(query, BY_RECENT, rows, |written| {
+            vec![written.created_at.to_rfc3339(), written.id.to_string()]
+        })
+    }
+
+    /// One receipt, and everything it recorded.
+    pub async fn read(tx: &mut Tx, id: Uuid) -> Result<Written> {
+        let row = sqlx::query(&format!("select {COLUMNS} from receipts where id = $1"))
+            .bind(id)
+            .fetch_optional(tx.conn())
+            .await
+            .map_err(Error::internal)?;
+
+        row.as_ref()
+            .map(a_receipt)
+            .transpose()?
+            .ok_or_else(|| Error::not_found(Say::of(NOTHING_WAS_DONE_UNDER_THAT)))
+    }
+}

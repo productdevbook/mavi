@@ -226,7 +226,7 @@ impl Shape {
     }
 }
 
-/// A type that declares its own OpenAPI / Mavi API shape.
+/// A type that declares its own `OpenAPI` / Mavi API shape.
 pub trait MaviSchema {
     fn shape() -> Shape;
 }

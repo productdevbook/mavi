@@ -11,7 +11,6 @@ use std::sync::Arc;
 
 use axum::body::{Body, to_bytes};
 use axum::http::{Request, StatusCode};
-use mavi_core::grant::Grants;
 use mavi_core::ports::{Builds, Files, Seals};
 use mavi_db::Db;
 use mavi_everything::{Installation, MultiSite};
@@ -57,36 +56,37 @@ async fn fresh(named: &str) -> Db {
     db
 }
 
-fn an_admin() -> mavi_serve::WhoIsAsking {
-    Arc::new(|headers| {
+fn whoever_holds(db: Db) -> mavi_serve::WhoIsAsking {
+    Arc::new(move |headers| {
+        let db = db.clone();
         Box::pin(async move {
-            if headers.contains_key("authorization") {
-                Caller::AnAccount {
-                    id: "01930000-0000-7000-8000-000000000001".to_owned(),
-                    grants: Grants::of(
-                        [
-                            "content:view",
-                            "content:write",
-                            "taxonomy:view",
-                            "taxonomy:write",
-                            "settings:view",
-                            "settings:write",
-                            "media:view",
-                            "media:write",
-                        ]
-                        .map(ToOwned::to_owned),
-                    ),
-                    session: None,
-                }
-            } else {
-                Caller::Nobody
+            let Some(token) = headers
+                .get("authorization")
+                .and_then(|said| said.to_str().ok())
+                .and_then(|said| said.strip_prefix("Bearer "))
+                .map(ToOwned::to_owned)
+            else {
+                return Caller::Nobody;
+            };
+
+            let Ok(mut tx) = db.begin().await else {
+                return Caller::Nobody;
+            };
+
+            match mavi_people::store::whoever_holds(&mut tx, &token).await {
+                Ok(Some((person, session))) => Caller::AnAccount {
+                    id: person.id.to_string(),
+                    grants: mavi_core::grant::Grants::of(person.grants),
+                    session: Some(session.to_string()),
+                },
+                _ => Caller::Nobody,
             }
         })
     })
 }
 
 #[tokio::test]
-#[allow(clippy::too_many_lines)]
+#[allow(clippy::too_many_lines, clippy::similar_names)]
 async fn two_sites_in_one_process_share_nothing() {
     if postgres().is_none() {
         return;
@@ -100,7 +100,13 @@ async fn two_sites_in_one_process_share_nothing() {
     let seals_a: Option<Arc<dyn Seals>> = Some(Arc::new(WithAKey::read(key_a).unwrap()));
     let builds_a: Arc<dyn Builds> = Arc::new(mavi_everything::building::WhatIsInPublic);
 
-    let site_a = Installation::new(db_a.clone(), files_a, seals_a, builds_a, an_admin());
+    let site_a = Installation::new(
+        db_a.clone(),
+        files_a,
+        seals_a,
+        builds_a,
+        whoever_holds(db_a.clone()),
+    );
 
     // 2. Construct Site B: own DB, own files, own sealing key
     let db_b = fresh("site_b").await;
@@ -110,7 +116,13 @@ async fn two_sites_in_one_process_share_nothing() {
     let seals_b: Option<Arc<dyn Seals>> = Some(Arc::new(WithAKey::read(key_b).unwrap()));
     let builds_b: Arc<dyn Builds> = Arc::new(mavi_everything::building::WhatIsInPublic);
 
-    let site_b = Installation::new(db_b.clone(), files_b, seals_b, builds_b, an_admin());
+    let site_b = Installation::new(
+        db_b.clone(),
+        files_b,
+        seals_b,
+        builds_b,
+        whoever_holds(db_b.clone()),
+    );
 
     // 3. Mount both in MultiSite dispatcher
     let router = MultiSite::new()
@@ -118,17 +130,149 @@ async fn two_sites_in_one_process_share_nothing() {
         .with_site("siteb.example.com", site_b)
         .into_router();
 
-    // 4. Create content on Site A
+    // 4. Set up Site A
+    let setup_a = Request::builder()
+        .method("POST")
+        .uri("/api/setup")
+        .header("Host", "sitea.example.com")
+        .header("Content-Type", "application/json")
+        .body(Body::from(
+            json!({
+                "site": "Site Alpha",
+                "name": "Admin Alpha",
+                "email": "alpha@example.test",
+                "password": "a long enough password 123",
+            })
+            .to_string(),
+        ))
+        .unwrap();
+
+    let res_setup_a = router.clone().oneshot(setup_a).await.unwrap();
+    assert_eq!(res_setup_a.status(), StatusCode::CREATED);
+    let body_setup_a: Value =
+        serde_json::from_slice(&to_bytes(res_setup_a.into_body(), usize::MAX).await.unwrap())
+            .unwrap();
+    let token_a = body_setup_a["token"].as_str().unwrap().to_owned();
+
+    // 5. Set up Site B
+    let setup_b = Request::builder()
+        .method("POST")
+        .uri("/api/setup")
+        .header("Host", "siteb.example.com")
+        .header("Content-Type", "application/json")
+        .body(Body::from(
+            json!({
+                "site": "Site Beta",
+                "name": "Admin Beta",
+                "email": "beta@example.test",
+                "password": "a long enough password 123",
+            })
+            .to_string(),
+        ))
+        .unwrap();
+
+    let res_setup_b = router.clone().oneshot(setup_b).await.unwrap();
+    assert_eq!(res_setup_b.status(), StatusCode::CREATED);
+    let body_setup_b: Value =
+        serde_json::from_slice(&to_bytes(res_setup_b.into_body(), usize::MAX).await.unwrap())
+            .unwrap();
+    let token_b = body_setup_b["token"].as_str().unwrap().to_owned();
+
+    // 6. Assert initial settings on both sites
+    let get_settings_a = Request::builder()
+        .method("GET")
+        .uri("/api/settings")
+        .header("Host", "sitea.example.com")
+        .header("Authorization", format!("Bearer {token_a}"))
+        .body(Body::empty())
+        .unwrap();
+    let res_settings_a = router.clone().oneshot(get_settings_a).await.unwrap();
+    assert_eq!(res_settings_a.status(), StatusCode::OK);
+    let body_settings_a: Value = serde_json::from_slice(
+        &to_bytes(res_settings_a.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(body_settings_a["name"], "Site Alpha");
+
+    let get_settings_b = Request::builder()
+        .method("GET")
+        .uri("/api/settings")
+        .header("Host", "siteb.example.com")
+        .header("Authorization", format!("Bearer {token_b}"))
+        .body(Body::empty())
+        .unwrap();
+    let res_settings_b = router.clone().oneshot(get_settings_b).await.unwrap();
+    assert_eq!(res_settings_b.status(), StatusCode::OK);
+    let body_settings_b: Value = serde_json::from_slice(
+        &to_bytes(res_settings_b.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(body_settings_b["name"], "Site Beta");
+
+    // 7. Update settings on Site A, assert Site B unchanged
+    let patch_settings_a = Request::builder()
+        .method("PATCH")
+        .uri("/api/settings")
+        .header("Host", "sitea.example.com")
+        .header("Authorization", format!("Bearer {token_a}"))
+        .header("Content-Type", "application/json")
+        .body(Body::from(
+            json!({ "name": "Site Alpha Renamed" }).to_string(),
+        ))
+        .unwrap();
+
+    let res_patch_a = router.clone().oneshot(patch_settings_a).await.unwrap();
+    assert_eq!(res_patch_a.status(), StatusCode::OK);
+
+    // Verify Site A has updated name
+    let get_settings_a2 = Request::builder()
+        .method("GET")
+        .uri("/api/settings")
+        .header("Host", "sitea.example.com")
+        .header("Authorization", format!("Bearer {token_a}"))
+        .body(Body::empty())
+        .unwrap();
+    let res_settings_a2 = router.clone().oneshot(get_settings_a2).await.unwrap();
+    let body_settings_a2: Value = serde_json::from_slice(
+        &to_bytes(res_settings_a2.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(body_settings_a2["name"], "Site Alpha Renamed");
+
+    // Verify Site B settings are still "Site Beta"
+    let get_settings_b2 = Request::builder()
+        .method("GET")
+        .uri("/api/settings")
+        .header("Host", "siteb.example.com")
+        .header("Authorization", format!("Bearer {token_b}"))
+        .body(Body::empty())
+        .unwrap();
+    let res_settings_b2 = router.clone().oneshot(get_settings_b2).await.unwrap();
+    let body_settings_b2: Value = serde_json::from_slice(
+        &to_bytes(res_settings_b2.into_body(), usize::MAX)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(body_settings_b2["name"], "Site Beta");
+
+    // 8. Create post on Site A
     let create_post_a = Request::builder()
         .method("POST")
         .uri("/api/writings")
         .header("Host", "sitea.example.com")
-        .header("Authorization", "Bearer token-a")
+        .header("Authorization", format!("Bearer {token_a}"))
         .header("Content-Type", "application/json")
         .body(Body::from(
             json!({
-                "title": "Welcome to Site A",
-                "slug": "welcome-a",
+                "title": "Welcome to Alpha",
+                "slug": "welcome-alpha",
                 "language": "en",
                 "kind": "post",
                 "body": "This belongs only to site A"
@@ -147,76 +291,25 @@ async fn two_sites_in_one_process_share_nothing() {
     .unwrap();
     let post_a_id = body_create_a["id"].as_str().unwrap().to_owned();
 
-    // 5. Assert Site A has the post
+    // 9. Assert Site A has the post
     let get_post_on_a = Request::builder()
         .method("GET")
         .uri(format!("/api/writings/{post_a_id}"))
         .header("Host", "sitea.example.com")
-        .header("Authorization", "Bearer token-a")
+        .header("Authorization", format!("Bearer {token_a}"))
         .body(Body::empty())
         .unwrap();
-
     let res_get_a = router.clone().oneshot(get_post_on_a).await.unwrap();
     assert_eq!(res_get_a.status(), StatusCode::OK);
 
-    // 6. Assert Site B DOES NOT have the post (Returns 404)
+    // 10. Assert Site B DOES NOT have the post (Returns 404)
     let get_post_on_b = Request::builder()
         .method("GET")
         .uri(format!("/api/writings/{post_a_id}"))
         .header("Host", "siteb.example.com")
-        .header("Authorization", "Bearer token-b")
+        .header("Authorization", format!("Bearer {token_b}"))
         .body(Body::empty())
         .unwrap();
-
     let res_get_b = router.clone().oneshot(get_post_on_b).await.unwrap();
     assert_eq!(res_get_b.status(), StatusCode::NOT_FOUND);
-
-    // 7. Update settings on Site A, assert Site B unchanged
-    let patch_settings_a = Request::builder()
-        .method("PATCH")
-        .uri("/api/settings")
-        .header("Host", "sitea.example.com")
-        .header("Authorization", "Bearer token-a")
-        .header("Content-Type", "application/json")
-        .body(Body::from(
-            json!({ "title": "Site A Custom Title" }).to_string(),
-        ))
-        .unwrap();
-
-    let res_patch_a = router.clone().oneshot(patch_settings_a).await.unwrap();
-    assert_eq!(res_patch_a.status(), StatusCode::OK);
-
-    // Verify Site A has updated title
-    let get_settings_a = Request::builder()
-        .method("GET")
-        .uri("/api/settings")
-        .header("Host", "sitea.example.com")
-        .header("Authorization", "Bearer token-a")
-        .body(Body::empty())
-        .unwrap();
-    let res_settings_a = router.clone().oneshot(get_settings_a).await.unwrap();
-    let body_settings_a: Value = serde_json::from_slice(
-        &to_bytes(res_settings_a.into_body(), usize::MAX)
-            .await
-            .unwrap(),
-    )
-    .unwrap();
-    assert_eq!(body_settings_a["title"], "Site A Custom Title");
-
-    // Verify Site B settings are untouched
-    let get_settings_b = Request::builder()
-        .method("GET")
-        .uri("/api/settings")
-        .header("Host", "siteb.example.com")
-        .header("Authorization", "Bearer token-b")
-        .body(Body::empty())
-        .unwrap();
-    let res_settings_b = router.clone().oneshot(get_settings_b).await.unwrap();
-    let body_settings_b: Value = serde_json::from_slice(
-        &to_bytes(res_settings_b.into_body(), usize::MAX)
-            .await
-            .unwrap(),
-    )
-    .unwrap();
-    assert_ne!(body_settings_b["title"], "Site A Custom Title");
 }

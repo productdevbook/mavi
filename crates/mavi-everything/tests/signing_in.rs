@@ -11,6 +11,7 @@ use axum::body::Body;
 use axum::http::{Request, StatusCode};
 use mavi_db::Db;
 use mavi_everything::mounted::site;
+use mavi_files::InADirectory;
 use mavi_http::Caller;
 use serde_json::{Value, json};
 use sqlx::{Connection, PgConnection, Row};
@@ -87,8 +88,15 @@ fn whoever_holds(db: Db) -> mavi_serve::WhoIsAsking {
     })
 }
 
+/// Somewhere for files to go, of this test's own.
+fn somewhere_for_files() -> Arc<dyn mavi_core::ports::Files> {
+    Arc::new(InADirectory::at(
+        std::env::temp_dir().join(format!("mavi-{}", Uuid::now_v7())),
+    ))
+}
+
 async fn asked(db: &Db, request: Request<Body>) -> (StatusCode, Value) {
-    let answer = site(db, whoever_holds(db.clone()))
+    let answer = site(db, &somewhere_for_files(), whoever_holds(db.clone()))
         .into_router()
         .oneshot(request)
         .await

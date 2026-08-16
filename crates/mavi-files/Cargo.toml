@@ -1,0 +1,18 @@
+[package]
+name = "mavi-files"
+version = "0.0.0"
+edition = "2024"
+publish = false
+description = "Where files go on a host that has a directory."
+
+[dependencies]
+mavi-core = { path = "../mavi-core" }
+
+tokio = { workspace = true, features = ["fs"] }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["fs", "macros", "rt", "rt-multi-thread"] }
+uuid = { workspace = true }
+
+[lints]
+workspace = true

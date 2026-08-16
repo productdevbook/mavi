@@ -41,6 +41,17 @@ use serde_json::Value;
 
 pub use refusal::Refusal;
 
+/// The name an endpoint uses when what it takes is the bytes themselves.
+///
+/// One name, in one place, because the router has to know which endpoints do
+/// not carry JSON and the endpoint already has to say what it takes.
+#[derive(Debug)]
+pub struct TheBytes;
+
+impl TheBytes {
+    pub const NAMED: &'static str = "TheBytes";
+}
+
 /// What a handler is given.
 ///
 /// One shape rather than axum's extractors, so that a handler is a plain
@@ -52,9 +63,12 @@ pub struct Asked {
     /// The `{holes}` in the path, by the names the endpoint declared.
     pub path: BTreeMap<String, String>,
     pub query: BTreeMap<String, String>,
-    /// The body, where the endpoint said it takes one. `Value::Null` where it
-    /// did not.
+    /// The body, where the endpoint said it takes one **and it is JSON**.
+    /// `Value::Null` otherwise.
     pub body: Value,
+    /// The body as it arrived. What an upload is: bytes, whose kind is decided
+    /// by reading them rather than by what they were called.
+    pub raw: Vec<u8>,
 }
 
 type Answer = Pin<Box<dyn Future<Output = Result<Answered<Value>>> + Send>>;
@@ -252,17 +266,24 @@ async fn answered(
     // to have a console whose writes answered before leaving a record.
     admit::admit(&caller, &mounted.endpoint, mounted.needs, None)?;
 
-    let body = if mounted.endpoint.takes.is_some() {
-        read(body)?
-    } else {
-        Value::Null
-    };
+    // Read as JSON where the endpoint says it takes something and that
+    // something is not the bytes themselves. An upload is a body too, and
+    // asking `serde_json` to read a picture is a refusal nobody can act on.
+    let read_as_json = mounted
+        .endpoint
+        .takes
+        .is_some_and(|takes| takes != TheBytes::NAMED);
 
     let asked = Asked {
         caller,
         path,
         query: unpicked(query),
-        body,
+        body: if read_as_json {
+            read(body)?
+        } else {
+            Value::Null
+        },
+        raw: body.to_vec(),
     };
 
     let answered = (mounted.handler)(asked).await?;

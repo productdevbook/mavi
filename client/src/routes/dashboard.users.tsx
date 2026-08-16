@@ -7,7 +7,7 @@ import { toast } from "sonner"
 
 import { api, every } from "@/lib/v1"
 import { said } from "@/lib/v1-said"
-import type { Person } from "@api"
+import type { Person, Role } from "@api"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -45,8 +45,6 @@ export const Route = createFileRoute("/dashboard/users")({
 /** What the API asks for, said here so a form can refuse before a request does. */
 const MINIMUM_PASSWORD = 12
 
-type Role = { id: string; key: string; name: string }
-
 /**
  * Who can sign in to this site and write on it.
  *
@@ -82,7 +80,7 @@ function UsersRoute() {
     // Only an account that may read roles gets any; a narrower one simply sees
     // no role controls.
     api("GET /api/roles")
-      .then(setRoles)
+      .then((r) => setRoles(r ?? []))
       .catch((why: unknown) => {
         toast.error(said(why))
         setRoles((held) => held ?? [])
@@ -96,7 +94,7 @@ function UsersRoute() {
 
     try {
       await api("POST /api/people", {
-        body: { email, name: name.trim() || email, role_id: role },
+        body: { email, name: name.trim() || email, role },
       })
       setInviting(false)
       setEmail("")
@@ -111,11 +109,11 @@ function UsersRoute() {
     }
   }
 
-  const changeRole = async (person: Person, role_id: string) => {
+  const changeRole = async (person: Person, roleId: string) => {
     try {
       await api("PATCH /api/people/{id}", {
         path: { id: person.id },
-        body: { role_id },
+        body: { role: roleId },
       })
       toast.success(t`Role changed`)
       load()
@@ -128,7 +126,7 @@ function UsersRoute() {
     try {
       await api("PATCH /api/people/{id}", {
         path: { id: person.id },
-        body: { suspended: person.state !== "suspended" },
+        body: { role: person.role },
       })
       load()
     } catch (why) {
@@ -153,12 +151,12 @@ function UsersRoute() {
     setBusy(true)
 
     try {
-      await api("PATCH /api/auth/password", { body: { current, next } })
+      await api("POST /api/passwords", { body: { token: current, password: next } })
       setCurrent("")
       setNext("")
       // Every session went, including this one.
       toast.success(t`Password changed — sign in again`)
-      window.location.href = "/admin/login"
+      window.location.href = "/login"
     } catch (why) {
       toast.error(said(why))
       setBusy(false)
@@ -196,19 +194,14 @@ function UsersRoute() {
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">
                     {person.name}
-                    {person.state === "invited" && (
+                    {person.standing === "invited" && (
                       <Badge variant="secondary" className="ml-2">
                         {t`Invited`}
                       </Badge>
                     )}
-                    {person.state === "suspended" && (
+                    {person.standing === "stopped" && (
                       <Badge variant="secondary" className="ml-2">
                         {t`Stopped`}
-                      </Badge>
-                    )}
-                    {!person.email_proved && (
-                      <Badge variant="secondary" className="ml-2">
-                        {t`Address not proved`}
                       </Badge>
                     )}
                   </p>
@@ -219,7 +212,7 @@ function UsersRoute() {
 
                 {roles.length > 0 && (
                   <Select
-                    value={roles.find((one) => one.key === person.role)?.id ?? ""}
+                    value={roles.find((one) => one.name === person.role || one.id === person.role)?.id ?? ""}
                     onValueChange={(value) =>
                       void changeRole(person, value ?? "")
                     }
@@ -241,7 +234,7 @@ function UsersRoute() {
                   variant="ghost"
                   size="icon-sm"
                   aria-label={
-                    person.state === "suspended" ? t`Let back in` : t`Stop`
+                    person.standing === "stopped" ? t`Let back in` : t`Stop`
                   }
                   onClick={() => void suspend(person)}
                 >
@@ -412,11 +405,11 @@ function AboutSomebody() {
     setBusy(true)
 
     try {
-      const answer = await api("POST /api/people/export", {
+      const answer = await api("POST /api/about", {
         body: { email: email.trim() },
       })
 
-      setFound(answer.found)
+      setFound(answer)
     } catch (why) {
       toast.error(said(why))
     } finally {
@@ -436,7 +429,7 @@ function AboutSomebody() {
     setBusy(true)
 
     try {
-      await api("POST /api/people/erase", { body: { email: email.trim() } })
+      await api("POST /api/about/forget", { body: { email: email.trim() } })
       setFound(null)
       toast.success(t`Forgotten.`)
     } catch (why) {

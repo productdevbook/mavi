@@ -8,9 +8,8 @@ export const Route = createFileRoute("/")({
     // A machine nobody has set up yet has no accounts to sign in with, so the
     // first thing it can offer is setting itself up. Anything else — including
     // not being able to ask — means somebody signs in.
-    const setup = await api("GET /api/setup").catch(() => ({ needed: false }))
-
-    throw redirect({ to: setup.needed ? "/setup" : "/dashboard" })
+    const site = await api("GET /api/open/site").catch(() => null)
+    throw redirect({ to: site ? "/dashboard" : "/setup" })
   },
   pendingComponent: () => (
     <div className="flex min-h-svh items-center justify-center">

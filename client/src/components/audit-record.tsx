@@ -12,7 +12,7 @@ export function AuditTable({ entries }: { entries: Entry[] }) {
       <table className="w-full text-sm">
         <tbody>
           {entries.map((entry) => {
-            const { icon: Icon, grave } = drawing(entry.action)
+            const { icon: Icon, grave } = drawing(entry.did)
 
             return (
               <tr
@@ -29,17 +29,17 @@ export function AuditTable({ entries }: { entries: Entry[] }) {
                   />
                 </td>
                 <td className="py-2 align-top">
-                  <p className="font-medium">{entry.action}</p>
+                  <p className="font-medium">{entry.did}</p>
                   <p className="text-muted-foreground">
-                    {entry.subject}
-                    {entry.subject_id ? ` \u00b7 ${entry.subject_id}` : ""}
+                    {entry.about}
+                    {entry.about_id ? ` · ${entry.about_id}` : ""}
                   </p>
                 </td>
                 <td className="py-2 align-top">
-                  {entry.actor_name ?? entry.actor_kind}
+                  {entry.who_id ?? entry.who}
                 </td>
                 <td className="py-2 pr-3 text-right align-top whitespace-nowrap text-muted-foreground">
-                  {new Date(entry.created_at).toLocaleString()}
+                  {entry.id}
                 </td>
               </tr>
             )

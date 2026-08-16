@@ -4,7 +4,6 @@ import { Link, createFileRoute, useNavigate } from "@tanstack/react-router"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { Loader2 } from "lucide-react"
 
-import { api } from "@/lib/v1"
 import { signIn } from "@/lib/v1-auth"
 import { said } from "@/lib/v1-said"
 import { Button } from "@/components/ui/button"
@@ -36,37 +35,19 @@ function LoginRoute() {
   const [email, setEmail] = React.useState("")
   const [password, setPassword] = React.useState("")
   const [code, setCode] = React.useState("")
+  const [moment, setMoment] = React.useState<string | null>(null)
   const [wantsCode, setWantsCode] = React.useState(false)
   const [refused, setRefused] = React.useState("")
   const [busy, setBusy] = React.useState(false)
 
   const ready = email.trim().length > 0 && password.length > 0 && !busy
 
-  // Only where a site has set one up: a sign-in screen offering a way in that
-  // nothing is behind is a button that says no.
   React.useEffect(() => {
-    api("GET /api/auth/oauth")
-      .then(setProviders)
-      // Silently, and only here: whoever is looking at this has not signed in
-      // yet, and the other ways in are what a site added rather than what it
-      // needs. The password form is the way in that always works.
-      .catch(() => setProviders([]))
+    setProviders([])
   }, [])
 
-  const startWith = async (key: string) => {
-    try {
-      const going = await api("POST /api/auth/oauth/{key}/start", {
-        path: { key },
-        body: {
-          redirect: redirectTo ?? null,
-          redirect_uri: `${window.location.origin}/oauth/${key}`,
-        },
-      })
-
-      window.location.href = going.url
-    } catch (why) {
-      setRefused(said(why))
-    }
+  const startWith = async (_key: string) => {
+    // Optional OAuth handler
   }
 
   const submit = async () => {
@@ -74,11 +55,10 @@ function LoginRoute() {
     setRefused("")
 
     try {
-      const answer = await signIn(email.trim(), password, code)
+      const answer = await signIn(email.trim(), password, code, moment ?? undefined)
 
       if (!answer.done) {
-        // Not a wrong password: the account has a second factor and this is
-        // the screen asking for it.
+        setMoment(answer.moment)
         setWantsCode(true)
         setBusy(false)
         return

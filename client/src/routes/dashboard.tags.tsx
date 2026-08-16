@@ -55,8 +55,8 @@ function TagsRoute() {
   const load = React.useCallback(() => {
     if (!language) return
 
-    every("GET /api/terms", { query: { kind: "tag", language } })
-      .then(setTags)
+    every("GET /api/terms", { query: { sort: "tag", language } })
+      .then((terms) => setTags(terms.filter((t) => t.sort === "tag")))
       .catch((why: unknown) => {
         toast.error(said(why))
         setTags((held) => held ?? [])
@@ -72,7 +72,12 @@ function TagsRoute() {
 
     try {
       await api("POST /api/terms", {
-        body: { kind: "tag", language, name: wanted },
+        body: {
+          sort: "tag",
+          language,
+          slug: wanted.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+          name: wanted,
+        },
       })
       setName("")
       load()
@@ -123,7 +128,7 @@ function TagsRoute() {
             </SelectTrigger>
             <SelectContent>
               {languages.map((one) => (
-                <SelectItem key={one.code} value={one.code}>
+                <SelectItem key={one.tag} value={one.tag}>
                   {one.name}
                 </SelectItem>
               ))}

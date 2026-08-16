@@ -55,7 +55,7 @@ function LanguagesRoute() {
 
     try {
       await api("POST /api/languages", {
-        body: { code: code.trim(), name: name.trim() || code.trim() },
+        body: { tag: code.trim(), name: name.trim() || code.trim() },
       })
       setCode("")
       setName("")
@@ -67,9 +67,8 @@ function LanguagesRoute() {
 
   const makeDefault = async (language: Language) => {
     try {
-      await api("PATCH /api/languages/{code}", {
-        path: { code: language.code },
-        body: { is_default: true },
+      await api("PUT /api/languages/{tag}/own", {
+        path: { tag: language.tag },
       })
       load()
     } catch (why) {
@@ -81,7 +80,7 @@ function LanguagesRoute() {
     if (!going) return
 
     try {
-      await api("DELETE /api/languages/{code}", { path: { code: going.code } })
+      await api("DELETE /api/languages/{tag}", { path: { tag: going.tag } })
       load()
     } catch (why) {
       toast.error(said(why))
@@ -131,31 +130,26 @@ function LanguagesRoute() {
         <div className="flex flex-col divide-y divide-border rounded-xl border border-border">
           {languages.map((language) => (
             <div
-              key={language.code}
+              key={language.tag}
               className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3"
             >
               <div className="min-w-0 basis-full sm:flex-1 sm:basis-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="truncate text-sm font-medium">{language.name}</p>
-                  <Badge variant="secondary">{language.code}</Badge>
-                  {language.is_default && (
+                  <Badge variant="secondary">{language.tag}</Badge>
+                  {language.is_the_sites_own && (
                     <Badge>
                       <Star className="size-3" /> {t`Default`}
                     </Badge>
                   )}
                 </div>
-                <p className="truncate text-xs text-muted-foreground">
-                  {language.posts === 1
-                    ? t`One thing is written in it`
-                    : t`${language.posts} things are written in it`}
-                </p>
               </div>
 
               <Button
                 variant="ghost"
                 size="sm"
                 className="ml-auto shrink-0"
-                disabled={language.is_default}
+                disabled={language.is_the_sites_own}
                 onClick={() => void makeDefault(language)}
               >
                 {t`Make default`}
@@ -164,7 +158,7 @@ function LanguagesRoute() {
                 variant="ghost"
                 size="icon-sm"
                 aria-label={t`Delete`}
-                disabled={language.is_default}
+                disabled={language.is_the_sites_own}
                 onClick={() => setGoing(language)}
               >
                 <Trash2 />

@@ -27,6 +27,7 @@ import { toast } from "sonner"
 
 import { api } from "@/lib/v1"
 import { said } from "@/lib/v1-said"
+import type { Role } from "@api"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -67,19 +68,6 @@ export const Route = createFileRoute("/dashboard/roles")({
 })
 
 type Access = "view" | "write" | "delete"
-
-/**
- * A role, as the API keeps it: what it may reach is a list of `area:access`
- * rather than a shape per area, so this screen is the only place that turns
- * those strings into ticks and back.
- */
-type Role = {
-  id: string
-  key: string
-  name: string
-  grants: string[]
-  built_in: boolean
-}
 
 type Capability =
   | "content"
@@ -213,7 +201,7 @@ function RolesRoute() {
 
     const grants = [...wanted]
 
-    setPending(`${role.key}:${capability}:${access}`)
+    setPending(`${role.id}:${capability}:${access}`)
 
     // Optimistic: reflect the tick at once, reconcile on the reload.
     setRoles(
@@ -241,7 +229,7 @@ function RolesRoute() {
 
     try {
       await api("POST /api/roles", {
-        body: { key: name, name: label || name, grants: [] },
+        body: { name: label || name, grants: [] },
       })
       toast.success(t`Role made`)
       setCreating(false)
@@ -297,7 +285,7 @@ function RolesRoute() {
 
       <div className="flex flex-col gap-5">
         {roles.map((role) => {
-          const locked = role.built_in
+          const locked = role.is_the_owner
           const summary = CAPABILITY_ORDER.filter((capability) =>
             holds(role, capability, "view"),
           ).length
@@ -307,9 +295,9 @@ function RolesRoute() {
               <CardHeader className="border-b border-border/60 bg-muted/30">
                 <CardTitle className="flex items-center gap-2 text-base">
                   {role.name}
-                  {role.built_in && (
+                  {role.is_the_owner && (
                     <Badge variant="secondary" className="font-normal">
-                      {t`Built-in`}
+                      {t`Owner`}
                     </Badge>
                   )}
                   {role.grants.length === 0 && (
@@ -321,7 +309,7 @@ function RolesRoute() {
                 <CardDescription>
                   {t`Can open ${summary} of ${CAPABILITY_ORDER.length} areas.`}
                 </CardDescription>
-                {!role.built_in && (
+                {!role.is_the_owner && (
                   <CardAction>
                     <Button
                       variant="ghost"
@@ -375,7 +363,7 @@ function RolesRoute() {
                             </TableCell>
                             {(["view", "write", "delete"] as const).map(
                               (access) => {
-                                const key = `${role.key}:${capability}:${access}`
+                                const key = `${role.id}:${capability}:${access}`
                                 return (
                                   <TableCell key={access} className="text-center">
                                     <Tooltip>

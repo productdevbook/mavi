@@ -7,7 +7,7 @@ import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { every, Refused } from "@/lib/v1"
 import { upload } from "@/lib/upload"
-import type { Media } from "@api"
+import type { File as Media } from "@api"
 import { downloadFile, shortcut } from "@/lib/editor-utils"
 import { htmlToMarkdown, markdownToHtml } from "@/lib/markdown"
 import { Button } from "@/components/ui/button"
@@ -109,7 +109,7 @@ function ImageUrlDialog({ editor, open, onClose }: DialogPartProps) {
 
   React.useEffect(() => {
     if (!open || library) return
-    every("GET /api/media")
+    every("GET /api/files")
       .then(setLibrary)
       .catch(() => setLibrary([]))
   }, [open, library])
@@ -127,7 +127,7 @@ function ImageUrlDialog({ editor, open, onClose }: DialogPartProps) {
     editor
       .chain()
       .focus()
-      .setImage({ src: `/uploads/${media.id}`, alt: media.original_name })
+      .setImage({ src: `/uploads/${media.id}`, alt: media.name })
       .run()
     onClose()
   }
@@ -170,7 +170,7 @@ function ImageUrlDialog({ editor, open, onClose }: DialogPartProps) {
                   >
                     <img
                       src={`/uploads/${media.id}`}
-                      alt={media.original_name}
+                      alt={media.name}
                       className="size-full object-cover"
                     />
                   </button>

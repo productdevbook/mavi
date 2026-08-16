@@ -330,7 +330,7 @@ function Shell({ children }: { children: React.ReactNode }) {
             size="icon-sm"
             aria-label={t`Sign out`}
             onClick={() => {
-              void api("DELETE /api/auth/session").finally(() => navigate({ to: "/login" }))
+              void api("DELETE /api/sessions").finally(() => navigate({ to: "/login" }))
             }}
           >
             <LogOut />

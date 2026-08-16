@@ -1,7 +1,9 @@
 import { redirect } from "@tanstack/react-router"
 
 import { api } from "@/lib/v1"
-import type { Me } from "@api"
+import type { Me } from "@/lib/v1-auth"
+
+export type { Me }
 
 /**
  * Whoever is signed in, or the sign-in screen.
@@ -15,9 +17,14 @@ export async function requireAuth(currentHref: string): Promise<{
   /** What this site calls itself, for the tab and the header. */
   site: string | null
 }> {
-  const user = await api("GET /api/auth/me").catch(() => {
+  const settings = await api("GET /api/settings").catch(() => {
     throw redirect({ to: "/login", search: { redirect: currentHref } })
   })
 
-  return { user, site: user.site || null }
+  const user: Me = {
+    grants: [],
+    site: settings.name,
+  }
+
+  return { user, site: settings.name || null }
 }

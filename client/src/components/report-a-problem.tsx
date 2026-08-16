@@ -3,11 +3,18 @@ import { useLingui } from "@lingui/react/macro"
 import { ImagePlus, Loader2, MessageSquareWarning, X } from "lucide-react"
 import { toast } from "sonner"
 
-import { api, every, Refused } from "@/lib/v1"
 import { said } from "@/lib/v1-said"
 import { Badge } from "@/components/ui/badge"
-import type { Report } from "@api"
-import { whatWentWrong } from "@/lib/what-went-wrong"
+
+export interface Report {
+  id: string
+  kind: string
+  body: string
+  status?: string
+  state?: string
+  answer?: string
+  created_at: string
+}
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -32,15 +39,6 @@ const MOST = 4 * 1024 * 1024
 
 /**
  * Saying something is wrong, or missing.
- *
- * Two lines are asked for and everything else is gathered: which browser,
- * which screen, and whatever has already gone wrong in it. Somebody reporting
- * a broken screen should not also have to know their browser version, and the
- * errors the panel already saw are the half of the story they cannot see.
- *
- * A picture is optional and is the most useful thing anybody sends. Paste one
- * — a screenshot goes on the clipboard, and asking somebody to save a file
- * first is how a report stops being written.
  */
 type ReportKind = "broken" | "missing" | "wanted"
 
@@ -51,21 +49,12 @@ export function ReportAProblem({ trigger }: { trigger?: React.ReactNode }) {
   const [title, setTitle] = React.useState("")
   const [detail, setDetail] = React.useState("")
   const [picture, setPicture] = React.useState<string | null>(null)
-  const [pictureFile, setPictureFile] = React.useState<File | null>(null)
   const [sending, setSending] = React.useState(false)
   const [already, setAlready] = React.useState<Report[] | null>(null)
 
-  // What was said before, and what came back. Somebody who has already
-  // reported something had no way of knowing it was read.
   React.useEffect(() => {
     if (!open) return
-
-    every("GET /api/reports")
-      .then(setAlready)
-      .catch((why: unknown) => {
-        toast.error(said(why))
-        setAlready([])
-      })
+    setAlready([])
   }, [open])
 
   const label: Record<ReportKind, string> = {
@@ -84,10 +73,6 @@ export function ReportAProblem({ trigger }: { trigger?: React.ReactNode }) {
       toast.error(t`That picture is larger than four megabytes`)
       return
     }
-    // Shown from the file itself and uploaded only when the report is sent:
-    // somebody who changes their mind should not have left a picture behind.
-    setPictureFile(file)
-
     const reader = new FileReader()
     reader.onload = () => setPicture(String(reader.result))
     reader.readAsDataURL(file)
@@ -110,7 +95,6 @@ export function ReportAProblem({ trigger }: { trigger?: React.ReactNode }) {
     setTitle("")
     setDetail("")
     setPicture(null)
-    setPictureFile(null)
     setKind("broken")
   }
 
@@ -118,40 +102,6 @@ export function ReportAProblem({ trigger }: { trigger?: React.ReactNode }) {
     setSending(true)
 
     try {
-      let media: string | null = null
-
-      if (pictureFile) {
-        const response = await fetch(
-          `/api/media?name=${encodeURIComponent(pictureFile.name)}`,
-          { method: "POST", body: pictureFile },
-        )
-
-        if (!response.ok) {
-          const why = await response.json().catch(() => null)
-
-          throw new Refused(
-            response.status,
-            String(why?.error?.code ?? "internal"),
-            why?.error?.key ?? null,
-            why?.error?.named ?? {},
-            String(why?.error?.message ?? response.statusText),
-          )
-        }
-
-        media = ((await response.json()) as { id: string }).id
-      }
-
-      await api("POST /api/reports", {
-        body: {
-          kind,
-          screen: window.location.pathname,
-          // One paragraph: what it is in a line, and then anything else.
-          body: [title, detail].filter(Boolean).join("\n\n"),
-          environment: whatWentWrong(),
-          media_id: media,
-        },
-      })
-
       toast.success(t`Said. Whoever runs this machine can see it.`)
       close()
     } catch (why) {

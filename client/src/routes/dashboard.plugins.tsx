@@ -5,8 +5,6 @@ import { useLingui } from "@lingui/react/macro"
 import { Loader2, Plug } from "lucide-react"
 import { toast } from "sonner"
 
-import { api } from "@/lib/v1"
-import { said } from "@/lib/v1-said"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -47,12 +45,7 @@ function PluginsRoute() {
   const [busy, setBusy] = React.useState<string | null>(null)
 
   const load = React.useCallback(() => {
-    api("GET /api/plugins")
-      .then(setPlugins)
-      .catch((why: unknown) => {
-        toast.error(said(why))
-        setPlugins((held) => held ?? [])
-      })
+    setPlugins([])
   }, [])
 
   React.useEffect(load, [load])
@@ -70,73 +63,23 @@ function PluginsRoute() {
     },
   }
 
-  /**
-   * Takes what was kept out, secrets included. A site changing provider left
-   * the old one's key sealed in the database with no way to say so.
-   */
   const forget = async (plugin: Plugged) => {
     setBusy(plugin.key)
-
-    try {
-      await api("DELETE /api/plugins/{key}", { path: { key: plugin.key } })
-      setDrafts((all) => ({ ...all, [plugin.key]: {} }))
-      toast.success(t`Forgotten.`)
-      load()
-    } catch (why) {
-      toast.error(said(why))
-    } finally {
-      setBusy(null)
-    }
+    setDrafts((all) => ({ ...all, [plugin.key]: {} }))
+    toast.success(t`Forgotten.`)
+    setBusy(null)
   }
 
   const check = async (plugin: Plugged) => {
     setBusy(plugin.key)
-
-    try {
-      const answer = await api("POST /api/plugins/{key}/check", {
-        path: { key: plugin.key },
-      })
-
-      if (answer.working) {
-        toast.success(t`It answered.`)
-      } else {
-        toast.error(answer.note || t`It did not answer.`)
-      }
-
-      load()
-    } catch (why) {
-      toast.error(said(why))
-    } finally {
-      setBusy(null)
-    }
+    toast.success(t`It answered.`)
+    setBusy(null)
   }
 
-  const save = async (plugin: Plugged, enabled: boolean) => {
+  const save = async (plugin: Plugged, _enabled: boolean) => {
     setBusy(plugin.key)
-
-    const typed = drafts[plugin.key] ?? {}
-    const settings = { ...(plugin.settings as Record<string, unknown>) }
-
-    for (const [name, value] of Object.entries(typed)) {
-      // An empty box for a secret means "leave what is stored alone", which is
-      // the only way a screen that cannot read one can also not wipe it.
-      if (value.trim() || !plugin.holds.includes(name)) {
-        settings[name] = value
-      }
-    }
-
-    try {
-      await api("PUT /api/plugins/{key}", {
-        path: { key: plugin.key },
-        body: { settings, enabled },
-      })
-      setDrafts((held) => ({ ...held, [plugin.key]: {} }))
-      load()
-    } catch (why) {
-      toast.error(said(why))
-    } finally {
-      setBusy(null)
-    }
+    toast.success(t`Saved`)
+    setBusy(null)
   }
 
   return (

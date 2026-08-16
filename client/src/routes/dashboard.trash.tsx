@@ -100,7 +100,7 @@ function TrashRoute() {
     setBusy(entry.id)
     putBack(entry.kind, entry.id)
       .then(() => {
-        toast.success(t`${entry.name} is back`)
+        toast.success(t`${entry.called} is back`)
         load()
       })
       .catch((why) => toast.error(said(why)))
@@ -158,13 +158,10 @@ function TrashRoute() {
                 <Item key={entry.id} size="sm">
                   <ItemMedia>{icon(entry.kind)}</ItemMedia>
                   <ItemContent>
-                    <ItemTitle>{entry.name}</ItemTitle>
+                    <ItemTitle>{entry.called}</ItemTitle>
                     <ItemDescription>
                       {named[entry.kind] ?? entry.kind} ·{" "}
-                      {new Date(entry.thrown_at).toLocaleString()}
-                    </ItemDescription>
-                    <ItemDescription>
-                      {t`Goes for good on ${new Date(entry.goes_at).toLocaleDateString()}`}
+                      {new Date(entry.thrown_away_at).toLocaleString()}
                     </ItemDescription>
                   </ItemContent>
                   <ItemActions>

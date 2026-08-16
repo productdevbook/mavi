@@ -19,13 +19,13 @@ export function useLanguages() {
   }, [])
 
   const defaultCode =
-    languages.find((language) => language.is_default)?.code ??
-    languages[0]?.code ??
+    languages.find((language) => language.is_the_sites_own)?.tag ??
+    languages[0]?.tag ??
     ""
 
   const label = React.useCallback(
     (code: string) =>
-      languages.find((language) => language.code === code)?.name ?? code,
+      languages.find((language) => language.tag === code)?.name ?? code,
     [languages],
   )
 

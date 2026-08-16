@@ -92,9 +92,8 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      // The API's own description of its shapes. One place, so the day they
-      // come from `server/` rather than `old/` this is the line that moves.
-      "@api": path.resolve(__dirname, "../old/types/mavicms.ts"),
+      // The API's own description of its shapes.
+      "@api": path.resolve(__dirname, "./src/api/mavi.ts"),
     },
   },
   server: {

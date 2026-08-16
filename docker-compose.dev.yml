@@ -20,7 +20,7 @@ services:
 
   api:
     build:
-      context: ./old
+      context: ./server
     restart: unless-stopped
     environment:
       # Point this at any PostgreSQL you like — the bundled "postgres"

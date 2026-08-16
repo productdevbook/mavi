@@ -8,7 +8,7 @@ import { toast } from "sonner"
 
 import { api, every } from "@/lib/v1"
 import { said } from "@/lib/v1-said"
-import type { Counts, Post, State } from "@api"
+import type { Writing as Post } from "@api"
 import { useContentTypes } from "@/lib/use-content-types"
 import { useLanguages } from "@/lib/use-languages"
 import {
@@ -51,78 +51,59 @@ export function ContentList({ kind }: { kind: string }) {
   const navigate = useNavigate()
   const STATUS_LABELS = useStatusLabels()
   const [posts, setPosts] = React.useState<Post[] | null>(null)
-  const [counted, setCounted] = React.useState<Counts | null>(null)
   const [going, setGoing] = React.useState<Post | null>(null)
   const [chosen, setChosen] = React.useState<Set<string>>(new Set())
   const { languages, defaultCode, label } = useLanguages()
   const [selectedLocale, setSelectedLocale] = React.useState("")
-  // Named rather than counted, and all of them: a post in two categories
-  // showed one, which read as though it were only in that one.
-  // Counts and the list are always scoped to one language: totalling every
-  // language would report "36 posts" for 12 posts in three languages. Derived
-  // rather than synced through an effect so the default landing doesn't cause
-  // a cascading render.
   const locale = selectedLocale || defaultCode
-
-  // Which kind: `post` and `page` are what a post is; anything else is a kind
-  // the site added, which is a `type` rather than a kind.
-  const asking =
-    kind === "post" || kind === "page"
-      ? { kind, language: locale }
-      : { type: kind, language: locale }
 
   const load = React.useCallback(() => {
     if (!locale) return
 
-    every("GET /api/posts", { query: asking })
-      .then(setPosts)
+    every("GET /api/writings", { query: { kind, language: locale } })
+      .then((page) => setPosts(page.filter((p) => p.kind === kind)))
       .catch((why: unknown) => {
         toast.error(said(why))
         setPosts((held) => held ?? [])
       })
-
-    api("GET /api/posts/counts", { query: asking })
-      .then(setCounted)
-      .catch((why: unknown) => toast.error(said(why)))
-    // The query is rebuilt every render; what it depends on is these two.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [locale, kind])
 
   React.useEffect(() => load(), [load])
 
-  // Straight from the server: counting the rows on screen would report the
-  // size of the page rather than the archive.
-  const counts: Record<string, number> = counted
-    ? {
-        draft: counted.draft,
-        scheduled: counted.scheduled,
-        published: counted.published,
-        archived: counted.archived,
-      }
-    : { draft: 0, scheduled: 0, published: 0, archived: 0 }
+  const counts = React.useMemo(() => {
+    const res = { draft: 0, published: 0 }
+    if (!posts) return res
+    for (const post of posts) {
+      if (post.state === "published") res.published++
+      else res.draft++
+    }
+    return res
+  }, [posts])
 
   /**
    * One act on everything ticked.
-   *
-   * What is left alone comes back named rather than counted: a person who may
-   * change their own and ticked twenty needs to know which four did not move.
    */
   const actOnMany = async (act: string) => {
     try {
-      const done = await api("POST /api/posts/actions", {
-        body: { act, ids: [...chosen] },
-      })
+      for (const id of chosen) {
+        if (act === "publish") {
+          await api("PATCH /api/writings/{id}", {
+            path: { id },
+            body: { publish_at: new Date().toISOString() },
+          })
+        } else if (act === "unpublish") {
+          await api("PATCH /api/writings/{id}", {
+            path: { id },
+            body: { publish_at: null },
+          })
+        } else if (act === "trash") {
+          await api("DELETE /api/writings/{id}", { path: { id } })
+        }
+      }
 
       setChosen(new Set())
       load()
-
-      if (done.left_alone.length > 0) {
-        toast.warning(
-          t`${done.acted_on} done. ${done.left_alone.length} were left alone.`,
-        )
-      } else {
-        toast.success(t`${done.acted_on} done.`)
-      }
+      toast.success(t`Done.`)
     } catch (why) {
       toast.error(said(why))
     }
@@ -132,9 +113,7 @@ export function ContentList({ kind }: { kind: string }) {
     if (!going) return
 
     try {
-      await api("DELETE /api/posts/{id}", { path: { id: going.id } })
-      // Reloaded rather than filtered out: the counts and the list below them
-      // both move when a post goes.
+      await api("DELETE /api/writings/{id}", { path: { id: going.id } })
       load()
       toast.success(t`${one} deleted`)
     } catch (why) {
@@ -160,8 +139,8 @@ export function ContentList({ kind }: { kind: string }) {
             </SelectTrigger>
             <SelectContent>
               {languages.map((language) => (
-                <SelectItem key={language.code} value={language.code}>
-                  {language.name} ({language.code})
+                <SelectItem key={language.tag} value={language.tag}>
+                  {language.name} ({language.tag})
                 </SelectItem>
               ))}
             </SelectContent>
@@ -169,8 +148,8 @@ export function ContentList({ kind }: { kind: string }) {
         </div>
       )}
 
-      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {(Object.keys(counts) as State[]).map((status) => (
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-2">
+        {(["draft", "published"] as const).map((status) => (
           <Card key={status}>
             <CardContent className="pt-6">
               <p className="text-2xl font-semibold">{counts[status]}</p>

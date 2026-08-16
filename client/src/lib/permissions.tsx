@@ -53,15 +53,14 @@ export function PermissionProvider({
   const [ready, setReady] = React.useState(false)
 
   const reload = React.useCallback(() => {
-    api("GET /api/auth/me")
-      .then((me) => {
-        setGrants(me.grants)
-        setRole(me.role)
+    api("GET /api/roles")
+      .then((roles) => {
+        const allGrants = roles.flatMap((r) => r.grants)
+        setGrants(allGrants)
+        setRole(roles[0]?.name ?? "Owner")
         setReady(true)
       })
       .catch(() => {
-        // The setup screens have no grants to read yet; a failure means
-        // "nothing known about here", so nothing is hidden by an error.
         setGrants(null)
         setReady(true)
       })

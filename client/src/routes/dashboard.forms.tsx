@@ -47,8 +47,8 @@ type Draft = {
   name: string
   slug: string
   fields: FormField[]
-  active: boolean
-  retention_days: number
+  open: boolean
+  kept_days: number
 }
 
 /** A key out of a label: lower-case, dashes for gaps. */
@@ -90,8 +90,8 @@ function FormsRoute() {
           body: {
             name: draft.name.trim(),
             fields: draft.fields,
-            active: draft.active,
-            retention_days: draft.retention_days,
+            open: draft.open,
+            kept_days: draft.kept_days,
           },
         })
       } else {
@@ -100,7 +100,7 @@ function FormsRoute() {
             slug: draft.slug.trim() || keyed(draft.name),
             name: draft.name.trim(),
             fields: draft.fields,
-            retention_days: draft.retention_days,
+            kept_days: draft.kept_days,
           },
         })
       }
@@ -133,9 +133,9 @@ function FormsRoute() {
       id: form.id,
       name: form.name,
       slug: form.slug,
-      fields: (form.fields as FormField[] | null) ?? [],
-      active: form.active,
-      retention_days: form.retention_days,
+      fields: form.fields ?? [],
+      open: form.open,
+      kept_days: form.kept_days,
     })
 
   const ready =
@@ -159,8 +159,8 @@ function FormsRoute() {
               name: "",
               slug: "",
               fields: [{ key: "name", label: t`Name`, required: true, kind: "text", options: [] }],
-              active: true,
-              retention_days: 365,
+              open: true,
+              kept_days: 365,
             })
           }
         >
@@ -185,14 +185,14 @@ function FormsRoute() {
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium">
                   {form.name}
-                  {!form.active && (
+                  {!form.open && (
                     <span className="ml-2 text-xs font-normal text-muted-foreground">
                       {t`switched off`}
                     </span>
                   )}
                 </p>
                 <p className="truncate font-mono text-xs text-muted-foreground">
-                  /api/sites/forms/{form.slug}/submissions
+                  /api/forms/{form.slug}/filled
                 </p>
               </div>
 
@@ -201,12 +201,7 @@ function FormsRoute() {
                 params={{ formId: form.id }}
                 className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
               >
-                {form.unseen > 0 ? (
-                  <span className="surface-mark rounded-full px-1.5 py-0.5 text-xs font-semibold text-white">
-                    {form.unseen}
-                  </span>
-                ) : null}
-                {t`${form.submissions} received`}
+                {t`Submissions`}
               </Link>
 
               <Button variant="outline" size="sm" onClick={() => edit(form)}>
@@ -259,7 +254,7 @@ function FormsRoute() {
                   }}
                 />
                 <p className="font-mono text-xs text-muted-foreground">
-                  /api/sites/forms/{draft.slug || keyed(draft.name)}/submissions
+                  /api/forms/{draft.slug || keyed(draft.name)}/filled
                 </p>
               </div>
 
@@ -276,9 +271,9 @@ function FormsRoute() {
                   </p>
                 </div>
                 <Switch
-                  checked={draft.active}
+                  checked={draft.open}
                   onCheckedChange={(value) =>
-                    setDraft({ ...draft, active: value })
+                    setDraft({ ...draft, open: value })
                   }
                 />
               </div>
@@ -288,11 +283,11 @@ function FormsRoute() {
                 <Input
                   id="form-retention"
                   inputMode="numeric"
-                  value={String(draft.retention_days)}
+                  value={String(draft.kept_days)}
                   onChange={(event) =>
                     setDraft({
                       ...draft,
-                      retention_days: Number(event.target.value) || 0,
+                      kept_days: Number(event.target.value) || 0,
                     })
                   }
                 />

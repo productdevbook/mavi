@@ -2,7 +2,9 @@ import * as React from "react"
 import { useLingui } from "@lingui/react/macro"
 
 import { api } from "@/lib/v1"
-import type { ContentType } from "@api"
+import type { AKind } from "@api"
+
+export type ContentType = AKind & { key: string; plural?: string }
 
 // Shared by every list of kinds on screen at once. Adding one is done on the
 // content-types page and read by the sidebar, which is a different mount: kept
@@ -34,7 +36,7 @@ function subscribe(tell: () => void) {
  */
 export function useContentTypes() {
   const { t } = useLingui()
-  const [loaded, setLoaded] = React.useState<ContentType[]>([])
+  const [loaded, setLoaded] = React.useState<AKind[]>([])
   const [loading, setLoading] = React.useState(true)
 
   // Bumped rather than calling the fetch again, so that reloading is a change
@@ -48,7 +50,7 @@ export function useContentTypes() {
   React.useEffect(() => {
     let cancelled = false
 
-    api("GET /api/content-types")
+    api("GET /api/kinds")
       .then((all) => {
         if (!cancelled) setLoaded(all)
       })
@@ -64,27 +66,23 @@ export function useContentTypes() {
     }
   }, [asOf])
 
-  const types = React.useMemo(() => {
-    // The two kinds a site starts with are named by the build, in English.
-    // The panel has its own words for those two — but only while they still
-    // carry the name the build gave them: rename one and what you typed is
-    // what you get, here as everywhere else.
+  const types: ContentType[] = React.useMemo(() => {
     const ours: Record<string, { was: string; name: string; plural: string }> = {
       post: { was: "Post", name: t`Post`, plural: t`Posts` },
       page: { was: "Page", name: t`Page`, plural: t`Pages` },
     }
 
     return loaded.map((kind) => {
-      const seeded = ours[kind.key]
+      const seeded = ours[kind.kind]
 
       return seeded && kind.name === seeded.was
-        ? { ...kind, name: seeded.name, plural: seeded.plural }
-        : kind
+        ? { ...kind, key: kind.kind, name: seeded.name, plural: seeded.plural }
+        : { ...kind, key: kind.kind, plural: kind.name }
     })
   }, [loaded, t])
 
   const find = React.useCallback(
-    (key: string) => types.find((kind) => kind.key === key),
+    (key: string) => types.find((kind) => kind.kind === key || kind.key === key),
     [types],
   )
 

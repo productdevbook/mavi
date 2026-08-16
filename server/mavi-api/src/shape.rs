@@ -23,7 +23,20 @@ pub struct Shape {
     /// type from this.
     pub named: &'static str,
     pub about: &'static str,
-    pub fields: Vec<Field>,
+    pub what: What,
+}
+
+/// What a body is, at the top.
+///
+/// Two, because this API has two: a thing, and a bare list of a thing. The
+/// second is what an endpoint answers where the answer is all of them and
+/// there is nothing to page through — the languages a site writes in, what one
+/// writing is filed under. Wrapping those in an object to make one shape do
+/// would be changing the API to suit the description.
+#[derive(Clone, Debug)]
+pub enum What {
+    Fields(Vec<Field>),
+    Every(&'static str),
 }
 
 /// One field of one shape.
@@ -95,7 +108,27 @@ impl Shape {
         Self {
             named,
             about,
-            fields,
+            what: What::Fields(fields),
+        }
+    }
+
+    /// A bare list of something, which is what an endpoint answers where there
+    /// is nothing to page through.
+    #[must_use]
+    pub fn list_of(named: &'static str, of: &'static str, about: &'static str) -> Self {
+        Self {
+            named,
+            about,
+            what: What::Every(of),
+        }
+    }
+
+    /// Its fields, where it has any.
+    #[must_use]
+    pub fn fields(&self) -> &[Field] {
+        match &self.what {
+            What::Fields(fields) => fields,
+            What::Every(_) => &[],
         }
     }
 
@@ -125,22 +158,36 @@ impl Shape {
     /// The names of every other shape this one refers to.
     #[must_use]
     pub fn refers_to(&self) -> Vec<&'static str> {
-        self.fields
-            .iter()
-            .filter_map(|field| match field.of {
-                Of::Another(named) | Of::ManyOf(named) => Some(named),
-                _ => None,
-            })
-            .collect()
+        match &self.what {
+            What::Every(of) => vec![*of],
+            What::Fields(fields) => fields
+                .iter()
+                .filter_map(|field| match field.of {
+                    Of::Another(named) | Of::ManyOf(named) => Some(named),
+                    _ => None,
+                })
+                .collect(),
+        }
     }
 
     /// This shape as a client is generated from it.
     #[must_use]
     pub fn described(&self) -> Value {
+        let fields = match &self.what {
+            What::Every(of) => {
+                return json!({
+                    "type": "array",
+                    "description": self.about,
+                    "items": { "$ref": format!("#/components/schemas/{of}") },
+                });
+            }
+            What::Fields(fields) => fields,
+        };
+
         let mut properties = Map::new();
         let mut required = Vec::new();
 
-        for field in &self.fields {
+        for field in fields {
             properties.insert(field.name.to_owned(), described(field));
 
             if field.required {
@@ -264,5 +311,20 @@ mod tests {
     #[test]
     fn what_a_shape_refers_to_is_asked_rather_than_read() {
         assert_eq!(a_shape().refers_to(), vec!["Term"]);
+        assert_eq!(
+            Shape::list_of("TermList", "Term", "All of them.").refers_to(),
+            vec!["Term"]
+        );
+    }
+
+    #[test]
+    fn a_bare_list_is_described_as_one() {
+        // Some endpoints answer all of something, with nothing to page
+        // through. Wrapping those in an object so one shape could do would be
+        // changing the API to suit the description.
+        let described = Shape::list_of("TermList", "Term", "All of them.").described();
+
+        assert_eq!(described["type"], "array");
+        assert_eq!(described["items"]["$ref"], "#/components/schemas/Term");
     }
 }

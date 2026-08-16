@@ -5,6 +5,7 @@
 //! so this is one row — said in the schema, where a second row is refused
 //! rather than merely never written.
 
+pub mod described;
 pub mod language;
 pub mod store;
 

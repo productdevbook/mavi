@@ -56,8 +56,10 @@ fn calls(api: &Api) -> String {
     let mut out = String::from(
         "
 /**
- * What each call takes and gives. `never` is a call that takes nothing;
- * `void` is one that answers with nothing.
+ * What each call takes and gives. `never` is a call that takes nothing,
+ * `void` is one that answers with nothing, and `Blob` is an upload — bytes,
+ * whose kind gets decided by reading them rather than by anybody declaring
+ * it.
  */
 export interface Calls {
 ",
@@ -67,7 +69,15 @@ export interface Calls {
     endpoints.sort_by_key(|endpoint| endpoint.named);
 
     for endpoint in endpoints {
-        let takes = endpoint.takes.map_or("never", |takes| takes);
+        // An upload takes the bytes, which is not a shape and never will be —
+        // what a file is gets decided by reading it. `Blob` is what a browser
+        // has in its hand at that point.
+        let takes = match endpoint.takes {
+            Some(crate::THE_BYTES) => "Blob",
+            Some(takes) => takes,
+            None => "never",
+        };
+
         let gives = endpoint.answers.body().unwrap_or("void");
 
         let _ = writeln!(
@@ -351,6 +361,29 @@ mod tests {
 
         assert!(
             written.contains("  \"writings.change\": { takes: WritingChanges; gives: Writing };"),
+            "{written}"
+        );
+    }
+
+    #[test]
+    fn an_upload_takes_bytes_rather_than_a_type_nothing_describes() {
+        let api = Api::of(vec![Endpoint {
+            method: Method::Post,
+            path: "/api/files",
+            named: "files.upload",
+            about: "Takes one.",
+            who: Who::AnAccount,
+            parameters: Vec::new(),
+            takes: Some(crate::THE_BYTES),
+            answers: Answers::Made("File"),
+            refuses: &[],
+            changes: true,
+        }]);
+
+        let written = typescript(&api);
+
+        assert!(
+            written.contains("  \"files.upload\": { takes: Blob; gives: File };"),
             "{written}"
         );
     }

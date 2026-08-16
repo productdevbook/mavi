@@ -109,7 +109,7 @@ async fn said(db: &Db, holds: &'static [&'static str], body: Value) -> (StatusCo
     (status, body)
 }
 
-fn asked(id: u32, method: &str, params: Value) -> Value {
+fn asked(id: u32, method: &str, params: &Value) -> Value {
     json!({ "jsonrpc": "2.0", "id": id, "method": method, "params": params })
 }
 
@@ -121,7 +121,7 @@ async fn an_assistant_is_told_what_it_can_do_and_not_what_it_cannot() {
 
     let db = fresh("listed").await;
 
-    let (status, answer) = said(&db, &["content:view"], asked(1, "tools/list", json!({}))).await;
+    let (status, answer) = said(&db, &["content:view"], asked(1, "tools/list", &json!({}))).await;
 
     assert_eq!(status, StatusCode::OK);
 
@@ -152,7 +152,7 @@ async fn what_a_tool_takes_is_what_the_endpoint_declared() {
 
     let db = fresh("takes").await;
 
-    let (_, answer) = said(&db, &["content:view"], asked(1, "tools/list", json!({}))).await;
+    let (_, answer) = said(&db, &["content:view"], asked(1, "tools/list", &json!({}))).await;
 
     let one = answer["result"]["tools"]
         .as_array()
@@ -183,7 +183,7 @@ async fn a_tool_writes_the_row_and_the_receipt_a_request_would_have() {
         asked(
             1,
             "tools/call",
-            json!({
+            &json!({
                 "name": "writings_write",
                 "arguments": {
                     "body": {
@@ -240,7 +240,7 @@ async fn a_tool_nobody_may_use_refuses_in_the_same_words() {
         asked(
             1,
             "tools/call",
-            json!({
+            &json!({
                 "name": "writings_write",
                 "arguments": { "body": { "kind": "post", "language": "en", "slug": "hello", "title": "A Title" } },
             }),
@@ -272,7 +272,7 @@ async fn a_tool_that_refused_is_not_the_protocol_refusing() {
         asked(
             1,
             "tools/call",
-            json!({
+            &json!({
                 "name": "writings_write",
                 "arguments": {
                     "body": {
@@ -321,7 +321,7 @@ async fn a_method_this_does_not_serve_is_named_back_and_a_notification_is_not() 
     let (status, answer) = said(
         &db,
         &["content:view"],
-        asked(7, "resources/list", json!({})),
+        asked(7, "resources/list", &json!({})),
     )
     .await;
 
@@ -358,7 +358,7 @@ async fn nobody_gets_in_at_all() {
                 .method("POST")
                 .uri("/api/assistant")
                 .header("content-type", "application/json")
-                .body(Body::from(asked(1, "tools/list", json!({})).to_string()))
+                .body(Body::from(asked(1, "tools/list", &json!({})).to_string()))
                 .expect("a request"),
         )
         .await

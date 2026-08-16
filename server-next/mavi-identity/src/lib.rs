@@ -10,10 +10,17 @@ use argon2::{
     Argon2,
     password_hash::{PasswordHasher, PasswordVerifier, phc::PasswordHash},
 };
+use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
+use chrono::{DateTime, Duration, Utc};
 use mavi_contract::{Api, Endpoint, Method};
-use mavi_core::{Action, Capability, MaviError, PersonId, Result, RoleId, SiteContext};
+use mavi_core::{
+    Action, Caller, Capability, Grant, Grants, MaviError, PersonId, Result, RoleId, SessionId,
+    SiteContext,
+};
 use mavi_storage::SiteTx;
+use rand::RngExt;
 use serde::{Deserialize, Serialize};
+use sqlx::Row;
 
 pub const SETUP_ALREADY_COMPLETE: &str = "setup_already_complete";
 pub const EMAIL_INVALID: &str = "email_invalid";
@@ -40,6 +47,7 @@ pub fn api() -> Api {
             "Initialize the site",
         )
         .public_mutation()
+        .takes("SetupInput")
         .returns(201, "Person"),
         Endpoint::new(
             Method::Post,
@@ -48,6 +56,7 @@ pub fn api() -> Api {
             "Create an account session",
         )
         .public_mutation()
+        .takes("LoginInput")
         .returns(201, "Session"),
         Endpoint::new(
             Method::Delete,
@@ -154,6 +163,27 @@ pub struct SetupInput {
     pub password: String,
 }
 
+#[derive(Clone, Deserialize)]
+pub struct LoginInput {
+    pub email: String,
+    pub password: String,
+}
+
+impl fmt::Debug for LoginInput {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("LoginInput")
+            .field("email", &self.email)
+            .field("password", &"<redacted>")
+            .finish()
+    }
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct SetupStatus {
+    pub initialized: bool,
+}
+
 #[derive(Clone, Debug, Serialize)]
 pub struct Person {
     pub id: PersonId,
@@ -162,10 +192,27 @@ pub struct Person {
     pub name: PersonName,
 }
 
+#[derive(Clone, Debug, Serialize)]
+pub struct SessionCreated {
+    pub id: SessionId,
+    pub token: String,
+    pub expires_at: DateTime<Utc>,
+}
+
 #[derive(Clone, Copy, Debug, Default)]
 pub struct IdentityService;
 
 impl IdentityService {
+    pub async fn status(&self, tx: &mut SiteTx, context: &SiteContext) -> Result<SetupStatus> {
+        let initialized: bool =
+            sqlx::query_scalar("select exists(select 1 from people where site_id = $1)")
+                .bind(context.site_id.into_uuid())
+                .fetch_one(tx.conn())
+                .await
+                .map_err(|_| MaviError::Internal)?;
+        Ok(SetupStatus { initialized })
+    }
+
     /// Creates the first site owner exactly once. It is intentionally scoped
     /// to a public setup context: an account, assistant or operator cannot
     /// silently bootstrap another person through this method.
@@ -262,6 +309,114 @@ impl IdentityService {
         })
     }
 
+    pub async fn create_session(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        input: &LoginInput,
+        now: DateTime<Utc>,
+    ) -> Result<SessionCreated> {
+        let email = Email::parse(&input.email)?;
+        let row = sqlx::query(
+            "select id, password_hash from people
+              where site_id = $1 and email = $2 and status = 'active'",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(email.as_str())
+        .fetch_optional(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?
+        .ok_or(MaviError::Unauthenticated)?;
+
+        let password_hash: String = row
+            .try_get("password_hash")
+            .map_err(|_| MaviError::Internal)?;
+        if !self.verify_password(&input.password, &password_hash) {
+            return Err(MaviError::Unauthenticated);
+        }
+
+        let person_id = PersonId::from_uuid(row.try_get("id").map_err(|_| MaviError::Internal)?);
+        let session_id = SessionId::new();
+        let token = new_token();
+        let expires_at = now + Duration::days(30);
+        sqlx::query(
+            "insert into sessions (site_id, id, person_id, token_hash, expires_at)
+             values ($1, $2, $3, $4, $5)",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(session_id.into_uuid())
+        .bind(person_id.into_uuid())
+        .bind(hash_token(&token))
+        .bind(expires_at)
+        .execute(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?;
+
+        Ok(SessionCreated {
+            id: session_id,
+            token,
+            expires_at,
+        })
+    }
+
+    pub async fn authenticate_bearer(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        token: &str,
+        now: DateTime<Utc>,
+    ) -> Result<Caller> {
+        let row = sqlx::query(
+            "select s.id, s.person_id from sessions s
+               join people p on p.site_id = s.site_id and p.id = s.person_id
+              where s.site_id = $1 and s.token_hash = $2
+                and s.expires_at > $3 and s.revoked_at is null and p.status = 'active'",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(hash_token(token))
+        .bind(now)
+        .fetch_optional(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?
+        .ok_or(MaviError::Unauthenticated)?;
+
+        let session_id = SessionId::from_uuid(row.try_get("id").map_err(|_| MaviError::Internal)?);
+        let person_id =
+            PersonId::from_uuid(row.try_get("person_id").map_err(|_| MaviError::Internal)?);
+        let grants = grants_for_person(tx, context.site_id, person_id).await?;
+        Ok(Caller::Account {
+            person_id,
+            session_id: Some(session_id),
+            grants,
+        })
+    }
+
+    pub async fn revoke_current(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        now: DateTime<Utc>,
+    ) -> Result<()> {
+        let Caller::Account {
+            session_id: Some(session_id),
+            ..
+        } = &context.caller
+        else {
+            return Err(MaviError::Unauthenticated);
+        };
+        sqlx::query(
+            "update sessions set revoked_at = $3
+               where site_id = $1 and id = $2 and revoked_at is null",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(session_id.into_uuid())
+        .bind(now)
+        .execute(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?;
+        Ok(())
+    }
+
     #[must_use]
     pub fn verify_password(&self, password: &str, digest: &str) -> bool {
         let Ok(parsed) = PasswordHash::new(digest) else {
@@ -271,6 +426,51 @@ impl IdentityService {
             .verify_password(password.as_bytes(), &parsed)
             .is_ok()
     }
+}
+
+async fn grants_for_person(
+    tx: &mut SiteTx,
+    site_id: mavi_core::SiteId,
+    person_id: PersonId,
+) -> Result<Grants> {
+    let rows = sqlx::query(
+        "select rg.capability, rg.action from person_roles pr
+           join role_grants rg on rg.site_id = pr.site_id and rg.role_id = pr.role_id
+          where pr.site_id = $1 and pr.person_id = $2",
+    )
+    .bind(site_id.into_uuid())
+    .bind(person_id.into_uuid())
+    .fetch_all(tx.conn())
+    .await
+    .map_err(|_| MaviError::Internal)?;
+
+    let mut grants = Vec::with_capacity(rows.len());
+    for row in rows {
+        let capability: String = row.try_get("capability").map_err(|_| MaviError::Internal)?;
+        let action: String = row.try_get("action").map_err(|_| MaviError::Internal)?;
+        let capability = Capability::ALL
+            .into_iter()
+            .find(|candidate| candidate.as_str() == capability)
+            .ok_or(MaviError::Internal)?;
+        let action = Action::ALL
+            .into_iter()
+            .find(|candidate| candidate.as_str() == action)
+            .ok_or(MaviError::Internal)?;
+        grants.push(Grant::new(capability, action));
+    }
+    Ok(Grants::new(grants))
+}
+
+fn new_token() -> String {
+    let mut bytes = [0_u8; 32];
+    rand::rng().fill(&mut bytes);
+    URL_SAFE_NO_PAD.encode(bytes)
+}
+
+fn hash_token(token: &str) -> Vec<u8> {
+    use sha2::{Digest, Sha256};
+
+    Sha256::digest(token.as_bytes()).to_vec()
 }
 
 #[cfg(test)]

@@ -8,7 +8,9 @@ description = "HTTP admission, site context propagation and canonical errors."
 
 [dependencies]
 axum.workspace = true
+chrono.workspace = true
 mavi-core = { path = "../mavi-core" }
+mavi-identity = { path = "../mavi-identity" }
 mavi-runtime = { path = "../mavi-runtime" }
 serde.workspace = true
 

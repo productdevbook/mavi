@@ -78,7 +78,10 @@ where
         self.database.begin(context).await
     }
 
-    pub fn router(&self) -> Router {
+    pub fn router<S>(&self) -> Router<S>
+    where
+        S: Clone + Send + Sync + 'static,
+    {
         Router::new()
             .route("/healthz", get(health))
             .route("/api/v1/health", get(health))

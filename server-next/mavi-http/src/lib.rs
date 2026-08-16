@@ -6,12 +6,15 @@
 
 use axum::{
     Extension, Router,
-    extract::State,
-    http::{HeaderValue, Request, StatusCode},
+    extract::{Json, State},
+    http::{HeaderValue, Request, StatusCode, header::AUTHORIZATION},
     middleware::{self, Next},
     response::{IntoResponse, Response},
+    routing::{delete, get, post},
 };
-use mavi_core::{ErrorCode, MaviError, RequestId, SiteContext};
+use chrono::Utc;
+use mavi_core::{Caller, ErrorCode, MaviError, RequestId, SiteContext};
+use mavi_identity::{IdentityService, LoginInput, Person, SessionCreated, SetupInput, SetupStatus};
 use mavi_runtime::{Runtime, SiteResolver};
 use serde::Serialize;
 
@@ -70,9 +73,38 @@ pub fn router<R>(runtime: Runtime<R>) -> Router
 where
     R: SiteResolver,
 {
+    let state = HttpState {
+        runtime: runtime.clone(),
+        identity: IdentityService,
+    };
     runtime
-        .router()
+        .router::<HttpState<R>>()
+        .route(
+            "/api/v1/setup",
+            get(setup_status::<R>).post(setup_initialize::<R>),
+        )
+        .route("/api/v1/auth/sessions", post(create_session::<R>))
+        .route("/api/v1/auth/sessions/current", delete(revoke_session::<R>))
+        .layer(middleware::from_fn_with_state(
+            runtime.clone(),
+            authenticate::<R>,
+        ))
         .layer(middleware::from_fn_with_state(runtime, admit::<R>))
+        .with_state(state)
+}
+
+struct HttpState<R> {
+    runtime: Runtime<R>,
+    identity: IdentityService,
+}
+
+impl<R> Clone for HttpState<R> {
+    fn clone(&self) -> Self {
+        Self {
+            runtime: self.runtime.clone(),
+            identity: self.identity,
+        }
+    }
 }
 
 /// Returns the context inserted by the admission layer.
@@ -108,6 +140,131 @@ where
         .headers_mut()
         .insert(REQUEST_ID_HEADER, request_id_header);
     response
+}
+
+async fn authenticate<R>(
+    State(runtime): State<Runtime<R>>,
+    mut request: Request<axum::body::Body>,
+    next: Next,
+) -> Response
+where
+    R: SiteResolver,
+{
+    let token = match authorization_token(&request) {
+        Ok(Some(token)) => token,
+        Ok(None) => return next.run(request).await,
+        Err(error) => return HttpError(error).into_response(),
+    };
+    let Some(public_context) = request.extensions().get::<SiteContext>().cloned() else {
+        return HttpError(MaviError::Internal).into_response();
+    };
+
+    let mut transaction = match runtime.begin(&public_context).await {
+        Ok(transaction) => transaction,
+        Err(error) => return HttpError(error).into_response(),
+    };
+    let caller = match IdentityService
+        .authenticate_bearer(&mut transaction, &public_context, token, Utc::now())
+        .await
+    {
+        Ok(caller) => caller,
+        Err(error) => return HttpError(error).into_response(),
+    };
+    if let Err(error) = transaction.commit().await {
+        return HttpError(error).into_response();
+    }
+
+    request.extensions_mut().insert(SiteContext::with_caller(
+        public_context.site_id,
+        caller,
+        public_context.request_id,
+    ));
+    next.run(request).await
+}
+
+fn authorization_token(request: &Request<axum::body::Body>) -> Result<Option<&str>, MaviError> {
+    let Some(value) = request.headers().get(AUTHORIZATION) else {
+        return Ok(None);
+    };
+    let value = value.to_str().map_err(|_| MaviError::Unauthenticated)?;
+    let token = value
+        .strip_prefix("Bearer ")
+        .filter(|token| !token.is_empty())
+        .ok_or(MaviError::Unauthenticated)?;
+    Ok(Some(token))
+}
+
+async fn setup_status<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+) -> Result<axum::Json<SetupStatus>, HttpError>
+where
+    R: SiteResolver,
+{
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let status = state
+        .identity
+        .status(&mut transaction, &context)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(status))
+}
+
+async fn setup_initialize<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Json(input): Json<SetupInput>,
+) -> Result<(StatusCode, Json<Person>), HttpError>
+where
+    R: SiteResolver,
+{
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let person = state
+        .identity
+        .initialize(&mut transaction, &context, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok((StatusCode::CREATED, Json(person)))
+}
+
+async fn create_session<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Json(input): Json<LoginInput>,
+) -> Result<(StatusCode, Json<SessionCreated>), HttpError>
+where
+    R: SiteResolver,
+{
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let session = state
+        .identity
+        .create_session(&mut transaction, &context, &input, Utc::now())
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok((StatusCode::CREATED, Json(session)))
+}
+
+async fn revoke_session<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+) -> Result<StatusCode, HttpError>
+where
+    R: SiteResolver,
+{
+    if !matches!(context.caller, Caller::Account { .. }) {
+        return Err(HttpError(MaviError::Unauthenticated));
+    }
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    state
+        .identity
+        .revoke_current(&mut transaction, &context, Utc::now())
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(StatusCode::NO_CONTENT)
 }
 
 fn status_code(code: ErrorCode) -> StatusCode {
@@ -148,3 +305,31 @@ fn error_message(code: ErrorCode) -> &'static str {
 
 /// A handler can use this extractor once the admission layer is installed.
 pub type SiteExtension = Extension<SiteContext>;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn authorization_header_requires_a_nonempty_bearer_token() {
+        let request = Request::new(axum::body::Body::empty());
+        assert_eq!(authorization_token(&request).expect("no header"), None);
+
+        let mut request = Request::new(axum::body::Body::empty());
+        request
+            .headers_mut()
+            .insert(AUTHORIZATION, HeaderValue::from_static("Basic abc"));
+        assert!(matches!(
+            authorization_token(&request),
+            Err(MaviError::Unauthenticated)
+        ));
+
+        request
+            .headers_mut()
+            .insert(AUTHORIZATION, HeaderValue::from_static("Bearer token"));
+        assert_eq!(
+            authorization_token(&request).expect("bearer"),
+            Some("token")
+        );
+    }
+}

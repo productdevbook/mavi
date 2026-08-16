@@ -101,7 +101,9 @@ impl CedarAuthorizer {
         resource_site_id: SiteId,
     ) -> Result<(), MaviError> {
         let (principal_id, grants) = match &context.caller {
-            Caller::Account { person_id, grants } => (person_id.to_string(), grants.clone()),
+            Caller::Account {
+                person_id, grants, ..
+            } => (person_id.to_string(), grants.clone()),
             Caller::Assistant { key_id, grants, .. } => (key_id.to_string(), grants.clone()),
             Caller::Public | Caller::Student { .. } => return Err(MaviError::Forbidden),
         };

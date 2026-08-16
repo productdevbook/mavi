@@ -92,7 +92,7 @@ pub fn with_everything(
     let site = what_this_site_is(site, db);
     let site = what_it_files_things_under(site, db);
 
-    let site = the_second_step(site, db, seals);
+    let site = the_second_step(site, db, seals.as_ref());
     let site = whether_it_is_well(site, db);
     let site = how_many_read_it(site, db);
     let site = how_a_site_leaves(site, db);
@@ -1417,10 +1417,10 @@ async fn set_up(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
 }
 
 /// The second thing somebody has.
-fn the_second_step(mut site: Site, db: &Db, seals: &Option<Arc<dyn Seals>>) -> Site {
+fn the_second_step(mut site: Site, db: &Db, seals: Option<&Arc<dyn Seals>>) -> Site {
     for endpoint in mavi_second::endpoints() {
         let db = db.clone();
-        let seals = seals.clone();
+        let seals = seals.cloned();
 
         let handler: Option<Handler> = match endpoint.named {
             "second.standing" => Some(handling(db, |db, asked| {
@@ -1482,10 +1482,12 @@ async fn set_a_second_step_up(
 
     let mut tx = db.begin().await?;
 
+    // What the site calls itself, so somebody with several rows in an
+    // authenticator can tell which is which. A site that cannot say is still
+    // one somebody can set a second step up on.
     let what_it_is_called = mavi_settings::store::read(&mut tx)
         .await
-        .map(|settings| settings.name)
-        .unwrap_or_else(|_| "Mavi".to_owned());
+        .map_or_else(|_| "Mavi".to_owned(), |settings| settings.name);
 
     let account = mavi_people::store::one(&mut tx, person).await?.email;
 

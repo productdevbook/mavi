@@ -764,25 +764,24 @@ async fn wrote_about(
 }
 
 async fn signed_out(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
-    // The token itself, not who it belongs to: signing out is about the one
-    // session in hand, and reading it from the header is what makes "this
-    // browser" mean this browser rather than every browser they own.
-    let token = asked
-        .body
-        .get("token")
-        .and_then(Value::as_str)
-        .unwrap_or_default()
-        .to_owned();
+    // The session they came in on, not every session they own. Signing out of
+    // one browser is not signing out of a phone left at home, and the only
+    // thing that knows which session this is is whatever recognised them.
+    let session = asked
+        .caller
+        .session()
+        .and_then(|session| Uuid::parse_str(session).ok())
+        .ok_or_else(|| Error::invalid(Say::of(THAT_IS_NOT_AN_ID)))?;
 
     let mut tx = db.begin().await?;
-    mavi_people::store::sign_out(&mut tx, &token).await?;
+    mavi_people::store::sign_out(&mut tx, session).await?;
 
     let receipt = wrote_about(
         &mut tx,
         asked,
         "sessions.end",
         "session",
-        asked.caller.id(),
+        Some(&session.to_string()),
         &serde_json::json!({}),
     )
     .await?;

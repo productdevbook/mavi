@@ -29,6 +29,7 @@ fn an_editor() -> mavi_serve::WhoIsAsking {
                 Caller::AnAccount {
                     id: "an-editor".to_owned(),
                     grants: Grants::of(["content:write".to_owned(), "content:view".to_owned()]),
+                    session: None,
                 }
             } else {
                 Caller::Nobody

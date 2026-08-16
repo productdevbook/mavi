@@ -40,6 +40,11 @@ pub enum Caller {
     AnAccount {
         id: String,
         grants: Grants,
+        /// The session they were recognised by, where they were recognised by
+        /// one at all. Carried because "sign out" means this session and not
+        /// every session they own, and the only thing that knows which is
+        /// whatever worked out who they are.
+        session: Option<String>,
     },
     /// Somebody enrolled on a course. Not an account: a student holds no
     /// grants and reaches only what is theirs.
@@ -49,6 +54,15 @@ pub enum Caller {
 }
 
 impl Caller {
+    /// The session this caller was recognised by, where there is one.
+    #[must_use]
+    pub fn session(&self) -> Option<&str> {
+        match self {
+            Caller::AnAccount { session, .. } => session.as_deref(),
+            _ => None,
+        }
+    }
+
     /// Who this is, where that is a thing at all. What an `:own` grant is
     /// compared against.
     #[must_use]

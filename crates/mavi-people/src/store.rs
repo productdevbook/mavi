@@ -243,9 +243,9 @@ async fn begin(tx: &mut Tx, person: Uuid) -> Result<Minted> {
 /// Asked of every request, so it is one query against one index: the hash, and
 /// whether the session is still good. It also says when it was last used,
 /// which is what makes "sign out everywhere" mean something afterwards.
-pub async fn whoever_holds(tx: &mut Tx, token: &str) -> Result<Option<Person>> {
+pub async fn whoever_holds(tx: &mut Tx, token: &str) -> Result<Option<(Person, Uuid)>> {
     let row = sqlx::query(&format!(
-        "select {COLUMNS} from sessions s
+        "select {COLUMNS}, s.id as session from sessions s
            join people p on p.id = s.person_id
            join roles r on r.id = p.role_id
           where s.token = $1
@@ -259,16 +259,25 @@ pub async fn whoever_holds(tx: &mut Tx, token: &str) -> Result<Option<Person>> {
     .await
     .map_err(Error::internal)?;
 
-    row.as_ref().map(a_person).transpose()
+    row.map(|row| {
+        let session: Uuid = row.try_get("session").map_err(Error::internal)?;
+
+        Ok((a_person(&row)?, session))
+    })
+    .transpose()
 }
 
-/// Ends the session this token is for.
+/// Ends one session — the one whoever is asking was recognised by.
+///
+/// By its id rather than by its token, because the token is not something a
+/// handler holds and should not have to: what it has is who is asking and the
+/// session they came in on.
 ///
 /// Ended rather than deleted: "when did this stop working" is a question
 /// somebody asks after the fact, and a row that is gone answers nothing.
-pub async fn sign_out(tx: &mut Tx, token: &str) -> Result<()> {
-    sqlx::query("update sessions set ended_at = now() where token = $1 and ended_at is null")
-        .bind(token::hash(token).as_slice())
+pub async fn sign_out(tx: &mut Tx, session: Uuid) -> Result<()> {
+    sqlx::query("update sessions set ended_at = now() where id = $1 and ended_at is null")
+        .bind(session)
         .execute(tx.conn())
         .await
         .map_err(Error::internal)?;

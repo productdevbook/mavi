@@ -77,6 +77,7 @@ fn an_editor() -> mavi_serve::WhoIsAsking {
                         ]
                         .map(ToOwned::to_owned),
                     ),
+                    session: None,
                 }
             } else {
                 Caller::Nobody

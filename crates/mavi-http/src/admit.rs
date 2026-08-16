@@ -121,6 +121,7 @@ mod tests {
         Caller::AnAccount {
             id: "me".to_owned(),
             grants: Grants::of(what.iter().map(ToString::to_string)),
+            session: None,
         }
     }
 

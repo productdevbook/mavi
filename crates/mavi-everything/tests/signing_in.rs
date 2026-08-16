@@ -76,9 +76,10 @@ fn whoever_holds(db: Db) -> mavi_serve::WhoIsAsking {
             };
 
             match mavi_people::store::whoever_holds(&mut tx, &token).await {
-                Ok(Some(person)) => Caller::AnAccount {
+                Ok(Some((person, session))) => Caller::AnAccount {
                     id: person.id.to_string(),
                     grants: mavi_core::grant::Grants::of(person.grants),
+                    session: Some(session.to_string()),
                 },
                 _ => Caller::Nobody,
             }
@@ -459,8 +460,7 @@ async fn signing_out_stops_the_token_that_was_used_and_leaves_a_record() {
             Request::builder()
                 .method("DELETE")
                 .uri("/api/sessions")
-                .header("content-type", "application/json")
-                .body(Body::from(json!({ "token": token.clone() }).to_string()))
+                .body(Body::empty())
                 .expect("a request"),
             &token,
         ),

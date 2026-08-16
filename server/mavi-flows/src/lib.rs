@@ -11,6 +11,7 @@
 //! [`outward`], because that is the one place in this whole family where
 //! somebody using the site decides what the server connects to.
 
+pub mod described;
 pub mod outward;
 pub mod run;
 pub mod step;

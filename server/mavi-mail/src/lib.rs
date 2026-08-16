@@ -10,6 +10,7 @@
 //! somebody did and a letter to a list are different things, not one thing
 //! with a flag. See [`who::Purpose`].
 
+pub mod described;
 pub mod letter;
 pub mod sending;
 pub mod store;

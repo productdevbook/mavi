@@ -5,6 +5,7 @@
 //! smallest domain here, and the only interesting thing in it is [`place`] —
 //! where a card sits, and what happens when the numbers run out.
 
+pub mod described;
 pub mod place;
 pub mod store;
 

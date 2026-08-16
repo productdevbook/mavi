@@ -13,6 +13,7 @@
 //! is work in the queue, and what a caller gets back is that it has been
 //! asked for — never a page waiting on a build.
 
+pub mod described;
 pub mod store;
 pub mod where_it_goes;
 
@@ -131,7 +132,7 @@ fn the_files() -> Vec<Endpoint> {
                 "As it stands in this set of changes. As published, unsaid.",
             )],
             takes: None,
-            answers: Answers::With("FileList"),
+            answers: Answers::With("ProjectFileList"),
             refuses: &[Code::NotFound],
             changes: false,
         },
@@ -146,7 +147,7 @@ fn the_files() -> Vec<Endpoint> {
                 Parameter::query("change", Is::Id, "As it stands in this set of changes."),
             ],
             takes: None,
-            answers: Answers::With("File"),
+            answers: Answers::With("ProjectFile"),
             refuses: &[Code::NotFound],
             changes: false,
         },
@@ -162,7 +163,7 @@ fn the_files() -> Vec<Endpoint> {
                 "Which file, under `src/` or `public/`.",
             )],
             takes: Some("Contents"),
-            answers: Answers::With("File"),
+            answers: Answers::With("ProjectFile"),
             // A path that climbs out of the project, or a file that decides
             // how the site is built rather than how it looks.
             refuses: &[Code::NotFound],

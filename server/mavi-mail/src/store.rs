@@ -429,7 +429,10 @@ pub async fn out(tx: &mut Tx, token: &str) -> Result<()> {
 }
 
 /// What a sending asks for.
-#[derive(Clone, Debug, Deserialize)]
+///
+/// Serialised as well as read, so the test beside the description can hold
+/// what it says it takes against what it takes.
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct NewSending {
     pub subject: String,
     pub body: String,

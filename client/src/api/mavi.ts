@@ -12,6 +12,16 @@ export interface Refusal {
   said: string;
 }
 
+/**
+ * Whether this installation can answer at all. Nothing else — what asks this
+ * is a container runtime rather than a person, and a detailed answer here
+ * would be a description of somebody's installation handed to whoever asks.
+ */
+export interface Alive {
+  /** Always true. An installation that would answer otherwise does not answer. */
+  alive: boolean;
+}
+
 /** A JSON-RPC answer, or nothing at all where none was wanted. */
 export interface AssistantAnswer {
   /** `2.0`. */
@@ -176,6 +186,19 @@ export interface ChangePage {
    * cursor that answers an empty page.
    */
   next?: string;
+}
+
+/** One thing that is either well or not. */
+export interface Check {
+  /**
+   * Which check. A key rather than a sentence, so a panel words it in
+   * somebody's own language.
+   */
+  what: string;
+  /** Whether it is. */
+  well: boolean;
+  /** What was found, where a number is what makes it worth reading. */
+  detail: unknown;
 }
 
 /**
@@ -507,6 +530,14 @@ export interface FormPage {
    * cursor that answers an empty page.
    */
   next?: string;
+}
+
+/** What is wrong with this installation, where anything is. */
+export interface Health {
+  /** Whether every check was. */
+  well: boolean;
+  /** Each of them. */
+  checks: Check[];
 }
 
 /**
@@ -1618,6 +1649,8 @@ export const operations = {
   "forms.mark-seen": { method: "post", path: "/api/forms/{id}/seen", takes: null, answers: "Seen", status: 200 },
   "forms.read": { method: "get", path: "/api/forms/{id}", takes: null, answers: "Form", status: 200 },
   "forms.remove": { method: "delete", path: "/api/forms/{id}", takes: null, answers: null, status: 204 },
+  "health.alive": { method: "get", path: "/api/alive", takes: null, answers: "Alive", status: 200 },
+  "health.read": { method: "get", path: "/api/health", takes: null, answers: "Health", status: 200 },
   "languages.add": { method: "post", path: "/api/languages", takes: "NewLanguage", answers: "Language", status: 201 },
   "languages.forget": { method: "delete", path: "/api/languages/{tag}", takes: null, answers: null, status: 204 },
   "languages.list": { method: "get", path: "/api/languages", takes: null, answers: "LanguageList", status: 200 },
@@ -1733,6 +1766,8 @@ export interface Calls {
   "forms.mark-seen": { takes: never; gives: Seen };
   "forms.read": { takes: never; gives: Form };
   "forms.remove": { takes: never; gives: void };
+  "health.alive": { takes: never; gives: Alive };
+  "health.read": { takes: never; gives: Health };
   "languages.add": { takes: NewLanguage; gives: Language };
   "languages.forget": { takes: never; gives: void };
   "languages.list": { takes: never; gives: LanguageList };

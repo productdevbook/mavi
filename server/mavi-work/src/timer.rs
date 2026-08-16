@@ -39,7 +39,7 @@ impl Often {
     /// Every so many minutes, which is how everything here is written.
     #[must_use]
     pub const fn minutes(kind: &'static str, how_many: u64) -> Self {
-        Self::new(kind, Duration::from_secs(how_many * 60))
+        Self::new(kind, Duration::from_mins(how_many))
     }
 }
 
@@ -103,6 +103,6 @@ mod tests {
     fn how_often_is_said_in_something_a_person_reads() {
         let sweep = Often::minutes("shop.put-back", 5);
 
-        assert_eq!(sweep.every, Duration::from_secs(300));
+        assert_eq!(sweep.every, Duration::from_mins(5));
     }
 }

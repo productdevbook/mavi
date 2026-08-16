@@ -104,6 +104,24 @@ jobs:
       # is wrong, and this one is nothing but documentation and vocabulary.
       - run: cargo test --workspace --doc
 
+      # What the panel is written against is generated from the description
+      # and committed. Written again here and compared, so a shape that
+      # changed and a panel that has not caught up is red here rather than a
+      # screen that breaks in somebody's browser. The file goes up as an
+      # artifact when it differs, so whoever broke it can take the corrected
+      # one rather than work out how to run the generator.
+      - name: The panel has what the API says it is
+        run: |
+          UPDATE_TYPES=1 cargo test -p mavi-everything --test described
+          git -C .. add -N client/src/api/mavi.ts
+          git -C .. diff --exit-code -- client/src/api/mavi.ts
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: the-panels-types
+          path: client/src/api/mavi.ts
+
   client:
     needs: what
     if: needs.what.outputs.skip != 'true' && !fromJSON(needs.what.outputs.paths).client.should_skip

@@ -20,13 +20,15 @@
 
 pub mod describe;
 pub mod shape;
+pub mod typescript;
 
 use std::collections::BTreeSet;
 
 use mavi_core::error::Code;
 
 pub use describe::openapi;
-pub use shape::{Field, Of, Shape};
+pub use shape::{Field, Of, Shape, What};
+pub use typescript::typescript;
 
 /// The name an endpoint uses when what it takes is the bytes themselves.
 ///

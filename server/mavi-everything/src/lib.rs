@@ -34,6 +34,7 @@ pub fn endpoints() -> Vec<Endpoint> {
 
     all.extend(mavi_people::endpoints());
     all.extend(mavi_settings::endpoints());
+    all.extend(mavi_health::endpoints());
     all.extend(mavi_content::endpoints());
     all.extend(mavi_taxonomy::endpoints());
     all.extend(mavi_media::endpoints());
@@ -65,6 +66,7 @@ pub fn shapes() -> Vec<mavi_api::Shape> {
     all.extend(mavi_content::described::shapes());
     all.extend(mavi_taxonomy::described::shapes());
     all.extend(mavi_settings::described::shapes());
+    all.extend(mavi_health::described::shapes());
     all.extend(mavi_media::described::shapes());
     all.extend(mavi_forms::described::shapes());
     all.extend(mavi_people::described::shapes());
@@ -368,32 +370,77 @@ mod tests {
         "/api/addresses",
     ];
 
+    /// Open, and about nothing.
+    ///
+    /// Neither a way in nor something a site shows the world: what asks this
+    /// is whatever keeps the process up, many times a minute, and what it is
+    /// told is that the process is up. Its own list rather than one of the two
+    /// above, because the reason it may be open is its own — **it answers
+    /// nothing about the installation**, and the day one of these does answer
+    /// something it stops belonging here.
+    const SAYS_NOTHING: &[&str] = &["/api/alive"];
+
     #[test]
-    fn everything_anybody_at_all_can_reach_is_a_way_in_or_says_it_is_open() {
+    fn everything_anybody_at_all_can_reach_is_open_for_one_of_three_reasons() {
         // "What can somebody who is not signed in get to" answered by reading
         // a list of paths, across the whole installation rather than one
-        // domain at a time.
+        // domain at a time. Three reasons, each written down: it is what a
+        // site shows the world, it is how somebody stops being a stranger, or
+        // it says nothing at all.
         let reachable: Vec<&str> = endpoints()
             .iter()
             .filter(|e| e.who == Who::Anybody)
             .map(|e| e.path)
-            .filter(|path| !path.starts_with("/api/open/") && !THE_WAYS_IN.contains(path))
+            .filter(|path| {
+                !path.starts_with("/api/open/")
+                    && !THE_WAYS_IN.contains(path)
+                    && !SAYS_NOTHING.contains(path)
+            })
             .collect();
 
         assert!(reachable.is_empty(), "{reachable:#?}");
     }
 
     #[test]
-    fn nothing_that_is_not_a_way_in_asks_to_be_treated_as_one() {
-        // The other direction, and the one that matters more: a path in the
+    fn nothing_that_is_not_open_asks_to_be_treated_as_though_it_were() {
+        // The other direction, and the one that matters more: a path in either
         // list above that is no longer open to anybody is a line nobody
         // notices has stopped meaning anything.
-        for way_in in THE_WAYS_IN {
+        for path in THE_WAYS_IN.iter().chain(SAYS_NOTHING) {
             assert!(
                 endpoints()
                     .iter()
-                    .any(|e| e.path == *way_in && e.who == Who::Anybody),
-                "{way_in} is listed as a way in and nothing open answers there"
+                    .any(|e| e.path == *path && e.who == Who::Anybody),
+                "{path} is listed as open and nothing open answers there"
+            );
+        }
+    }
+
+    #[test]
+    fn what_says_nothing_says_nothing() {
+        // The claim the list above is making, held to. An endpoint that is
+        // open because it answers nothing about the installation, and then
+        // grows a body describing one, is the leak this exists to stop.
+        for path in SAYS_NOTHING {
+            let endpoint = endpoints()
+                .into_iter()
+                .find(|e| e.path == *path)
+                .expect("something open");
+
+            let shape = endpoint
+                .answers
+                .body()
+                .and_then(|named| shapes().into_iter().find(|shape| shape.named == named));
+
+            let fields: Vec<&str> = shape
+                .as_ref()
+                .map(|shape| shape.fields().iter().map(|field| field.name).collect())
+                .unwrap_or_default();
+
+            assert!(
+                fields.len() <= 1,
+                "{path} answers with {fields:?}, which is a description of an \
+                 installation handed to whoever asks"
             );
         }
     }

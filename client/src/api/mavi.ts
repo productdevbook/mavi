@@ -1683,6 +1683,24 @@ export interface TheOrder {
   order: string[];
 }
 
+/** One thing somebody threw away. */
+export interface Thrown {
+  /** What sort of thing. The same word the address takes. */
+  kind: "writings" | "files" | "terms" | "forms" | "products" | "courses" | "boards" | "cards" | "flows";
+  /** Which one. */
+  id: string;
+  /**
+   * Enough to know which one it is. A bin where nine rows say the same thing
+   * is one nobody can restore from.
+   */
+  called: string;
+  /** When it went in. */
+  thrown_away_at: string;
+}
+
+/** What a site threw away, newest first, across every sort at once. */
+export type ThrownList = Thrown[];
+
 /**
  * What can set a flow off, and what a flow can do — with what each one has
  * to be told. Answered rather than written into a screen, so a step this build
@@ -1984,6 +2002,9 @@ export const operations = {
   "terms.list": { method: "get", path: "/api/terms", takes: null, answers: "TermPage", status: 200 },
   "terms.make": { method: "post", path: "/api/terms", takes: "NewTerm", answers: "Term", status: 201 },
   "terms.remove": { method: "delete", path: "/api/terms/{id}", takes: null, answers: null, status: 204 },
+  "trash.for-good": { method: "delete", path: "/api/trash/{sort}/{id}", takes: null, answers: null, status: 204 },
+  "trash.list": { method: "get", path: "/api/trash", takes: null, answers: "ThrownList", status: 200 },
+  "trash.put-back": { method: "post", path: "/api/trash/{sort}/{id}", takes: null, answers: null, status: 204 },
   "writings.change": { method: "patch", path: "/api/writings/{id}", takes: "WritingChanges", answers: "Writing", status: 200 },
   "writings.file-under": { method: "put", path: "/api/writings/{id}/terms", takes: "Filing", answers: "TermList", status: 200 },
   "writings.list": { method: "get", path: "/api/writings", takes: null, answers: "WritingPage", status: 200 },
@@ -2117,6 +2138,9 @@ export interface Calls {
   "terms.list": { takes: never; gives: TermPage };
   "terms.make": { takes: NewTerm; gives: Term };
   "terms.remove": { takes: never; gives: void };
+  "trash.for-good": { takes: never; gives: void };
+  "trash.list": { takes: never; gives: ThrownList };
+  "trash.put-back": { takes: never; gives: void };
   "writings.change": { takes: WritingChanges; gives: Writing };
   "writings.file-under": { takes: Filing; gives: TermList };
   "writings.list": { takes: never; gives: WritingPage };

@@ -18,9 +18,15 @@ pub fn shapes() -> Vec<Shape> {
 }
 
 fn the_accounts() -> Vec<Shape> {
+    let mut all = the_ways_in();
+    all.extend(who_is_here());
+
+    all
+}
+
+/// Getting in, and what a right password gets somebody.
+fn the_ways_in() -> Vec<Shape> {
     vec![
-        a_person(),
-        Shape::page_of("PersonPage", "Person", "Who has an account here."),
         Shape::new(
             "Setup",
             "What making the site asks for. Answers once — an installation that \
@@ -102,6 +108,14 @@ fn the_accounts() -> Vec<Shape> {
                 Field::new("token", Of::One(Is::Text), A_TOKEN),
             ],
         ),
+    ]
+}
+
+/// Who has an account here.
+fn who_is_here() -> Vec<Shape> {
+    vec![
+        a_person(),
+        Shape::page_of("PersonPage", "Person", "Who has an account here."),
         Shape::new(
             "Invitation",
             "Somebody to invite. The account exists immediately and has no \

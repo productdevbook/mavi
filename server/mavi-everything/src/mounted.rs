@@ -1629,7 +1629,11 @@ async fn finished_signing_in(
         None,
     )
     .await
-    .map_err(|_| Error::forbidden(Say::of(THAT_IS_NOT_AN_ADDRESS_AND_A_PASSWORD)))?;
+    .map_err(|_| {
+        Error::forbidden(Say::of(
+            mavi_people::store::THAT_IS_NOT_AN_ADDRESS_AND_A_PASSWORD,
+        ))
+    })?;
 
     let past =
         mavi_second::store::gets_past(&mut tx, seals.as_ref(), person, &code, chrono::Utc::now())
@@ -1637,7 +1641,7 @@ async fn finished_signing_in(
 
     if !past {
         return Err(Error::forbidden(Say::of(
-            THAT_IS_NOT_AN_ADDRESS_AND_A_PASSWORD,
+            mavi_people::store::THAT_IS_NOT_AN_ADDRESS_AND_A_PASSWORD,
         )));
     }
 

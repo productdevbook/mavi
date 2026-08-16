@@ -351,7 +351,7 @@ fn what_it_does_by_itself(mut site: Site, db: &Db) -> Site {
             })),
             // The one answer in this whole file that is not a query: what can
             // start a flow is a fact about the code.
-            "flows.triggers" => Some(handling(db, |_, _| Box::pin(async move { triggers() }))),
+            "flows.triggers" => Some(handling(db, |_, _| Box::pin(async move { Ok(triggers()) }))),
             "flows.make" => Some(handling(db, |db, asked| {
                 Box::pin(async move { arranged_a_flow(&db, &asked).await })
             })),

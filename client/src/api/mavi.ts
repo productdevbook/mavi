@@ -320,6 +320,26 @@ export interface Enrolment {
   student: string;
 }
 
+/** How one page felt, by one measurement. */
+export interface Felt {
+  /** Which measurement. */
+  kind: "lcp" | "inp" | "cls" | "ttfb";
+  /** Which page. */
+  path: string;
+  /** The middle one — what the site is usually like. */
+  middle: number;
+  /**
+   * What a twentieth of readers had worse than. The thing an average hides,
+   * and the reason there is no average here.
+   */
+  bad_end: number;
+  /** How many were measured. */
+  how_many: number;
+}
+
+/** How the site felt, by page. */
+export type FeltList = Felt[];
+
 /** Something somebody uploaded. */
 export interface File {
   /** Which one. */
@@ -933,6 +953,43 @@ export interface OrderPage {
   next?: string;
 }
 
+/**
+ * What this site has. Every number here is one somebody could have counted
+ * from a listing they already hold — this is the same answer in one call
+ * rather than eleven.
+ */
+export interface Overview {
+  /** How many, including drafts. */
+  writings: number;
+  /** How many of them are out. */
+  published: number;
+  /** How many have been uploaded. */
+  files: number;
+  /** What they come to. */
+  bytes: number;
+  /** How many the site asks. */
+  forms: number;
+  /** What people sent that nobody has read. */
+  unread: number;
+  /**
+   * How many may still be written to. Not how many rows there are: a list of
+   * nine hundred nobody may write to is a number that tells whoever reads it
+   * the wrong thing.
+   */
+  readers: number;
+  /** How many are learning here. */
+  students: number;
+  /** How many have been placed. */
+  orders: number;
+  /** How many run by themselves. */
+  flows_on: number;
+  /**
+   * Work the queue has stopped trying. A letter nobody received or a build
+   * nobody got — on the first screen, because nothing else says so.
+   */
+  work_given_up_on: number;
+}
+
 /** Somebody with an account here. */
 export interface Person {
   /** Which one. */
@@ -1087,6 +1144,23 @@ export interface PublicSite {
   /** What it is written in. */
   languages: Language[];
 }
+
+/** One day of one page. */
+export interface Read {
+  /** Which day. */
+  on_day: string;
+  /** Which page. */
+  path: string;
+  /**
+   * How many times it was read. Times, not people — telling those apart
+   * means knowing where a request came from, and this software is not told
+   * that.
+   */
+  views: number;
+}
+
+/** Every day of every page that was read, newest and busiest first. */
+export type ReadList = Read[];
 
 /** Somebody on a list. */
 export interface Reader {
@@ -1324,6 +1398,30 @@ export interface SomebodyToAsk {
  * the trigger.
  */
 export type SomethingMadeUp = Record<string, unknown>;
+
+/**
+ * A page was read. Sent by a reader's own browser — so what is here is what
+ * a browser knows, and it is the whole of what is kept. Nothing about where it
+ * arrived from is looked at, held, or written down.
+ */
+export interface SomethingRead {
+  /**
+   * Which page, as the reader's browser has it. Cut at five hundred characters
+   * rather than refused.
+   */
+  path: string;
+  /**
+   * What was measured, where anything was. The web's own names: when the
+   * biggest thing appeared, how long the page took to answer a tap, how much
+   * moved, how long the server took.
+   */
+  felt?: "lcp" | "inp" | "cls" | "ttfb" | null;
+  /**
+   * Milliseconds, or a hundredth where the measurement is a ratio. Only read
+   * where `felt` says what it is.
+   */
+  value?: number | null;
+}
 
 /** One column on a board. */
 export interface Stage {
@@ -1603,6 +1701,8 @@ export interface Operation {
 /** Every operation this installation describes. */
 export const operations = {
   "addresses.prove": { method: "post", path: "/api/addresses", takes: "Proof", answers: null, status: 204 },
+  "analytics.felt": { method: "get", path: "/api/analytics/felt", takes: null, answers: "FeltList", status: 200 },
+  "analytics.read": { method: "get", path: "/api/analytics", takes: null, answers: "ReadList", status: 200 },
   "assistant.talk": { method: "post", path: "/api/assistant", takes: "AssistantAsked", answers: "AssistantAnswer", status: 200 },
   "audit.list": { method: "get", path: "/api/audit", takes: null, answers: "ReceiptPage", status: 200 },
   "audit.read": { method: "get", path: "/api/audit/{id}", takes: null, answers: "Receipt", status: 200 },
@@ -1672,6 +1772,7 @@ export const operations = {
   "open.form": { method: "get", path: "/api/open/forms/{slug}", takes: null, answers: "OpenForm", status: 200 },
   "open.order": { method: "post", path: "/api/open/orders", takes: "Basket", answers: "Placed", status: 201 },
   "open.products": { method: "get", path: "/api/open/products", takes: null, answers: "ForSalePage", status: 200 },
+  "open.read": { method: "post", path: "/api/open/read", takes: "SomethingRead", answers: null, status: 204 },
   "open.site": { method: "get", path: "/api/open/site", takes: null, answers: "PublicSite", status: 200 },
   "open.unsubscribe": { method: "post", path: "/api/open/mail/out/{token}", takes: null, answers: null, status: 204 },
   "orders.list": { method: "get", path: "/api/orders", takes: null, answers: "OrderPage", status: 200 },
@@ -1695,6 +1796,7 @@ export const operations = {
   "settings.change": { method: "patch", path: "/api/settings", takes: "SettingsChanges", answers: "Settings", status: 200 },
   "settings.read": { method: "get", path: "/api/settings", takes: null, answers: "Settings", status: 200 },
   "setup.once": { method: "post", path: "/api/setup", takes: "Setup", answers: "Ready", status: 201 },
+  "site.overview": { method: "get", path: "/api/overview", takes: null, answers: "Overview", status: 200 },
   "students.ask": { method: "post", path: "/api/students", takes: "SomebodyToAsk", answers: "Student", status: 201 },
   "students.list": { method: "get", path: "/api/students", takes: null, answers: "StudentPage", status: 200 },
   "terms.change": { method: "patch", path: "/api/terms/{id}", takes: "TermChanges", answers: "Term", status: 200 },
@@ -1720,6 +1822,8 @@ export type Named = keyof typeof operations;
  */
 export interface Calls {
   "addresses.prove": { takes: Proof; gives: void };
+  "analytics.felt": { takes: never; gives: FeltList };
+  "analytics.read": { takes: never; gives: ReadList };
   "assistant.talk": { takes: AssistantAsked; gives: AssistantAnswer };
   "audit.list": { takes: never; gives: ReceiptPage };
   "audit.read": { takes: never; gives: Receipt };
@@ -1789,6 +1893,7 @@ export interface Calls {
   "open.form": { takes: never; gives: OpenForm };
   "open.order": { takes: Basket; gives: Placed };
   "open.products": { takes: never; gives: ForSalePage };
+  "open.read": { takes: SomethingRead; gives: void };
   "open.site": { takes: never; gives: PublicSite };
   "open.unsubscribe": { takes: never; gives: void };
   "orders.list": { takes: never; gives: OrderPage };
@@ -1812,6 +1917,7 @@ export interface Calls {
   "settings.change": { takes: SettingsChanges; gives: Settings };
   "settings.read": { takes: never; gives: Settings };
   "setup.once": { takes: Setup; gives: Ready };
+  "site.overview": { takes: never; gives: Overview };
   "students.ask": { takes: SomebodyToAsk; gives: Student };
   "students.list": { takes: never; gives: StudentPage };
   "terms.change": { takes: TermChanges; gives: Term };

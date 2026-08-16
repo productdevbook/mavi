@@ -30,12 +30,16 @@ jobs:
       # and a failure in one should not hide the other's result.
       matrix:
         include:
+          # `old/`, not `server/`, and that is the whole state of the
+          # rewrite in two lines: the new tree answers every endpoint and
+          # cannot yet be made into an image, because nothing in it opens a
+          # socket. It moves the day `server/Dockerfile` exists.
           - name: mavi
-            context: server
-            file: server/Dockerfile
+            context: old
+            file: old/Dockerfile
           - name: mavi-panel
-            context: .
-            file: Dockerfile
+            context: client
+            file: client/Dockerfile
     steps:
       # What is asked for by hand is checked before it is used as a ref or
       # baked into an image name: a version is three numbers after a v, and

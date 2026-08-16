@@ -1,0 +1,9 @@
+node_modules
+dist
+# Neither image needs the other half of the repository in its context.
+old
+server
+.git
+*.md
+.env
+.env.local

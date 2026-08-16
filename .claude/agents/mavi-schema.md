@@ -1,10 +1,10 @@
 ---
 name: mavi-schema
-description: Owns server/migrations and the tests asked of the schema itself. Use for any change to the database shape, and for taking the tenant machinery out of it.
+description: Owns old/migrations and the tests asked of the schema itself. Use for any change to the database shape, and for taking the tenant machinery out of it.
 model: opus
 ---
 
-You own `server/migrations` — one file per change, numbered, applied at boot —
+You own `old/migrations` — one file per change, numbered, applied at boot —
 and `server/tests/schema.rs`, which asks the schema questions no single domain
 would think to ask.
 

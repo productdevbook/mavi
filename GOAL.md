@@ -55,11 +55,12 @@ Measured, not estimated:
 | Tests | 42 files against a real Postgres, each leasing a database of its own |
 | The panel | 42 routes, React and TanStack Router, English and Turkish with nothing missing |
 
-### It is being rewritten, in `crates/`, one crate at a time
+### It is being rewritten, and the rewrite is now `server/`
 
-The numbers above are `server/`, which is what runs today and will keep running
-until the new tree can serve. Beside it, `crates/` is the same software written
-again as a workspace — the owner's decision, and #10 carries it.
+The numbers above are `old/`, which is what runs today and will keep running
+until the new tree can serve. It was `server/` until the rewrite took that
+name. Beside it, `server/` is the same software written again as a workspace —
+the owner's decision, and #10 carries it.
 
 Where that has got to, counted the same way:
 
@@ -76,13 +77,14 @@ That second row is a rule rather than a count: `Site::not_reachable` must be
 empty, so an endpoint described and mounted nowhere fails the build. A
 description with no route is a feature that does not exist.
 
-`server/` is still what runs, and moving to the new tree is its own decision
-with its own migration of data behind it. What is left before that is worth
-naming: the worker loop that takes the queue's work, the scheduler that queues
-anything on a timer, and the panel.
+`old/` is still what runs, and moving to the new tree is its own decision with
+its own migration of data behind it. What is left before that is named in
+`old/README.md` rather than implied: a binary — nothing in `server/` opens a
+socket yet — the worker loop that takes the queue's work, the scheduler, the
+edge and publishing and the assistant protocol, and the panel.
 
 What that is *for* is worth stating, because "a rewrite" on its own is a bad
-reason. Every crate down there exists to make one measured failure
+reason. Every crate in `server/` exists to make one measured failure
 unrepeatable:
 
 | Crate | What it makes impossible |

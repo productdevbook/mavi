@@ -4,8 +4,8 @@ description: Owns kernel/outside.rs and the testing feature — the one seam a c
 model: opus
 ---
 
-You own `server/src/kernel/outside.rs`, the `testing` feature in
-`server/src/testing.rs`, and `server/tests/outside.rs`.
+You own `old/src/kernel/outside.rs`, the `testing` feature in
+`old/src/testing.rs`, and `server/tests/outside.rs`.
 
 This is the only way anything outside this crate is allowed in. `mavi-operator`
 — the paid half, private, where hosting many sites for money lives — depends on

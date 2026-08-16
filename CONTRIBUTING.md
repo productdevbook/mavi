@@ -14,14 +14,20 @@ The backend needs a Postgres. Any will do:
 
     cd server
     cargo fmt
-    cargo clippy --all-targets -- -D warnings
-    cargo nextest run --profile ci
+    cargo clippy --all-targets --all-features -- -D warnings
+    cargo nextest run --workspace
 
-No test migrates its own database. Each shape is migrated once into a template
-by whichever test asks for it first, and every test after that is handed a copy.
+Every test that wants a database makes one of its own and migrates it. There
+are sixty-seven of them, and one of them is every migration in the schema — a
+check constraint nothing ever ran is a claim rather than a rule.
+
+`old/` is what still runs the sites while `server/` is being finished. Its own
+three commands are the same, in `old/`, with `--profile ci`. Read
+`old/README.md` before changing anything in there.
 
 The panel:
 
+    cd client
     bun install
     bun run build && bun run typecheck && bun run lint
 

@@ -42,27 +42,26 @@ jobs:
               paths:
                 - 'server/**'
                 - '.github/workflows/ci.yml'
-            crates:
+            old:
               paths:
-                - 'crates/**'
+                - 'old/**'
                 - '.github/workflows/ci.yml'
-            frontend:
-              paths_ignore:
-                - 'server/**'
-                - 'crates/**'
+            client:
+              paths:
+                - 'client/**'
+                - '.github/workflows/ci.yml'
 
-  # What `server/` is being rewritten into, one crate at a time. Most of it is
-  # vocabulary and runs in seconds; the schema is the part that has to meet a
-  # real Postgres, because a check constraint nothing ever ran is a claim
-  # rather than a rule.
-  crates:
+  # The server: twenty-one crates, a hundred and one endpoints, and a schema
+  # that has to meet a real Postgres — because a check constraint nothing ever
+  # ran is a claim rather than a rule.
+  server:
     needs: what
-    if: needs.what.outputs.skip != 'true' && !fromJSON(needs.what.outputs.paths).crates.should_skip
+    if: needs.what.outputs.skip != 'true' && !fromJSON(needs.what.outputs.paths).server.should_skip
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     defaults:
       run:
-        working-directory: crates
+        working-directory: server
     env:
       TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5434/mavi_crates
       CARGO_PROFILE_DEV_DEBUG: 0
@@ -93,7 +92,7 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: crates
+          workspaces: server
           cache-on-failure: true
 
       - uses: taiki-e/install-action@nextest
@@ -105,11 +104,14 @@ jobs:
       # is wrong, and this one is nothing but documentation and vocabulary.
       - run: cargo test --workspace --doc
 
-  frontend:
+  client:
     needs: what
-    if: needs.what.outputs.skip != 'true' && !fromJSON(needs.what.outputs.paths).frontend.should_skip
+    if: needs.what.outputs.skip != 'true' && !fromJSON(needs.what.outputs.paths).client.should_skip
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: client
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
@@ -126,18 +128,19 @@ jobs:
       - run: bun run --bun build
       - run: bun run --bun lint
 
-  # The API: the formatter, clippy with warnings denied, and the whole test
-  # suite against a real Postgres.
-  server:
+  # What still runs the live sites, until the new tree can. Kept building for
+  # exactly as long as it is what an image is made from — see `old/README.md`
+  # for what has to exist before it goes.
+  old:
     needs: what
-    if: needs.what.outputs.skip != 'true' && !fromJSON(needs.what.outputs.paths).server.should_skip
+    if: needs.what.outputs.skip != 'true' && !fromJSON(needs.what.outputs.paths).old.should_skip
     runs-on: ubuntu-24.04
     # Long enough for a cold cache on a shared runner: the whole suite against
     # a real Postgres, from nothing compiled.
     timeout-minutes: 45
     defaults:
       run:
-        working-directory: server
+        working-directory: old
     env:
       TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5433/mavi_test
       CARGO_PROFILE_DEV_DEBUG: 0
@@ -166,7 +169,7 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: server
+          workspaces: old
           cache-on-failure: true
 
       # A prebuilt binary; `cargo install` would compile a test runner first.

@@ -36,7 +36,8 @@ pub async fn everything(tx: &mut Tx, how_many: i64) -> Result<Vec<Thrown>> {
         all.extend(of_one_sort(tx, *kind, how_many).await?);
     }
 
-    all.sort_by(|one, other| other.thrown_away_at.cmp(&one.thrown_away_at));
+    // Newest first, which is what a bin is read in.
+    all.sort_by_key(|thrown| std::cmp::Reverse(thrown.thrown_away_at));
     all.truncate(usize::try_from(how_many).unwrap_or(usize::MAX));
 
     Ok(all)

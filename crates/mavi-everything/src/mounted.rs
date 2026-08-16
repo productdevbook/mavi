@@ -53,7 +53,7 @@ pub fn site(db: &Db, files: Arc<dyn Files>, who_is_asking: WhoIsAsking) -> Site 
     let site = what_it_writes_to_people(site, db);
     let site = what_it_does_by_itself(site, db);
     let site = how_it_looks(site, db);
-    let site = what_somebody_uploaded(site, db, files);
+    let site = what_somebody_uploaded(site, db, &files);
 
     what_has_been_done(site, db)
 }
@@ -439,10 +439,10 @@ fn how_it_looks(mut site: Site, db: &Db) -> Site {
 }
 
 /// Uploads, which are the one place bytes and a row have to agree.
-fn what_somebody_uploaded(mut site: Site, db: &Db, files: Arc<dyn Files>) -> Site {
+fn what_somebody_uploaded(mut site: Site, db: &Db, files: &Arc<dyn Files>) -> Site {
     for endpoint in mavi_media::endpoints() {
         let db = db.clone();
-        let files = Arc::clone(&files);
+        let files = Arc::clone(files);
 
         let handler: Option<Handler> = match endpoint.named {
             "files.list" => Some(with_files(db, files, |db, _, asked| {

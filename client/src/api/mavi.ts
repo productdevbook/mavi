@@ -693,6 +693,39 @@ export interface Invitation {
   role: string;
 }
 
+/**
+ * A key a script or an assistant signs in with. A session expires, because
+ * somebody walking away from a machine should stop being signed in; a script
+ * has nobody to walk away, so a session is the wrong shape for one.
+ */
+export interface Key {
+  /** Which one. */
+  id: string;
+  /**
+   * What somebody calls it, so the one to stop is the one they meant. "the
+   * deploy script" and "my laptop" are the difference between revoking
+   * confidently and revoking everything.
+   */
+  name: string;
+  /**
+   * What it may do, as a narrowing of what the account may do. Empty means
+   * everything the account can. **Worked out when it is used, not when it was
+   * made** — so a role that loses something loses it for every key made
+   * against it, in the same moment.
+   */
+  grants: string[];
+  /**
+   * Null until it has been used once. What tells somebody which key nobody
+   * uses any more, which is the one worth stopping.
+   */
+  last_seen_at: string | null;
+  /** When it was made. */
+  created_at: string;
+}
+
+/** The keys whoever is asking has made. */
+export type KeyList = Key[];
+
 /** One language a site writes in. */
 export interface Language {
   /**
@@ -786,6 +819,17 @@ export interface List {
 
 /** Every list, and how many are on each. */
 export type ListList = List[];
+
+/**
+ * The key, once. It is not kept and cannot be read back — losing one means
+ * making another.
+ */
+export interface MadeKey {
+  /** The row, from now on. */
+  key: Key;
+  /** Send it as `Authorization: Bearer`. This is the only time it is answered. */
+  token: string;
+}
 
 /** One part of a course. */
 export interface Module {
@@ -895,6 +939,19 @@ export interface NewForm {
   fields?: FormField[];
   /** How long what people send is kept. */
   kept_days?: number | null;
+}
+
+/** One to make. */
+export interface NewKey {
+  /** What to call it. */
+  name: string;
+  /**
+   * What it may do, as a narrowing of what the account may do. Empty means
+   * everything the account can. **Worked out when it is used, not when it was
+   * made** — so a role that loses something loses it for every key made
+   * against it, in the same moment.
+   */
+  grants?: string[];
 }
 
 /** One to start writing in. */
@@ -1985,6 +2042,9 @@ export const operations = {
   "forms.remove": { method: "delete", path: "/api/forms/{id}", takes: null, answers: null, status: 204 },
   "health.alive": { method: "get", path: "/api/alive", takes: null, answers: "Alive", status: 200 },
   "health.read": { method: "get", path: "/api/health", takes: null, answers: "Health", status: 200 },
+  "keys.end": { method: "delete", path: "/api/keys/{id}", takes: null, answers: null, status: 204 },
+  "keys.list": { method: "get", path: "/api/keys", takes: null, answers: "KeyList", status: 200 },
+  "keys.make": { method: "post", path: "/api/keys", takes: "NewKey", answers: "MadeKey", status: 201 },
   "languages.add": { method: "post", path: "/api/languages", takes: "NewLanguage", answers: "Language", status: 201 },
   "languages.forget": { method: "delete", path: "/api/languages/{tag}", takes: null, answers: null, status: 204 },
   "languages.list": { method: "get", path: "/api/languages", takes: null, answers: "LanguageList", status: 200 },
@@ -2123,6 +2183,9 @@ export interface Calls {
   "forms.remove": { takes: never; gives: void };
   "health.alive": { takes: never; gives: Alive };
   "health.read": { takes: never; gives: Health };
+  "keys.end": { takes: never; gives: void };
+  "keys.list": { takes: never; gives: KeyList };
+  "keys.make": { takes: NewKey; gives: MadeKey };
   "languages.add": { takes: NewLanguage; gives: Language };
   "languages.forget": { takes: never; gives: void };
   "languages.list": { takes: never; gives: LanguageList };

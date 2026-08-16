@@ -13,6 +13,7 @@ mavi-content = { path = "../mavi-content" }
 mavi-core = { path = "../mavi-core" }
 mavi-courses = { path = "../mavi-courses" }
 mavi-design = { path = "../mavi-design" }
+mavi-edge = { path = "../mavi-edge" }
 mavi-files = { path = "../mavi-files" }
 mavi-flows = { path = "../mavi-flows" }
 mavi-forms = { path = "../mavi-forms" }
@@ -27,12 +28,12 @@ mavi-http = { path = "../mavi-http" }
 mavi-serve = { path = "../mavi-serve" }
 mavi-work = { path = "../mavi-work" }
 
+axum = { workspace = true }
 chrono = { workspace = true }
 serde_json = { workspace = true }
 uuid = { workspace = true }
 
 [dev-dependencies]
-axum = { workspace = true }
 mavi-settings = { path = "../mavi-settings" }
 mavi-core = { path = "../mavi-core" }
 sqlx = { workspace = true }

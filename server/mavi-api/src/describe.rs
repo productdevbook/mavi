@@ -150,30 +150,24 @@ fn parameter(parameter: &Parameter) -> Value {
 fn refusal() -> Value {
     json!({
         "type": "object",
-        "required": ["error"],
+        "required": ["key", "named", "said"],
         "properties": {
-            "error": {
+            "key": {
+                "type": "string",
+                "description":
+                    "Which refusal, exactly. Stable, and what a panel words in somebody's \
+                     own language.",
+            },
+            "named": {
                 "type": "object",
-                "required": ["code", "key", "named", "message"],
-                "properties": {
-                    "code": { "type": "string", "description": "What kind of refusal. Stable." },
-                    "key": {
-                        "type": ["string", "null"],
-                        "description":
-                            "Which refusal, exactly. Stable, and what a panel words in \
-                             somebody's own language. Null only where the answer is that \
-                             something went wrong at this end.",
-                    },
-                    "named": {
-                        "type": "object",
-                        "additionalProperties": { "type": "string" },
-                        "description": "What the sentence needs: a name, a count, a limit.",
-                    },
-                    "message": {
-                        "type": "string",
-                        "description": "The English, for anything with no wording of its own.",
-                    },
-                },
+                "additionalProperties": { "type": "string" },
+                "description": "What the sentence needs: a name, a count, a limit.",
+            },
+            "said": {
+                "type": "string",
+                "description":
+                    "The English, for anything with no wording of its own. Never the only \
+                     thing there, because whoever reads it may not read English.",
             },
         },
     })
@@ -267,12 +261,15 @@ mod tests {
     #[test]
     fn there_is_one_shape_of_refusal() {
         let described = openapi(&an_api(), "0.0.0");
-        let refusals =
-            described["components"]["schemas"]["Refusal"]["properties"]["error"]["properties"]
-                .as_object()
-                .expect("an error");
+        let refusals = described["components"]["schemas"]["Refusal"]["properties"]
+            .as_object()
+            .expect("a refusal");
 
-        for named in ["code", "key", "named", "message"] {
+        // What is here is what a client branches on. Whether it is also what
+        // comes back is asked where both halves are in one place — a
+        // description nobody compares to the thing it describes is how this
+        // said `error.code` for as long as it did while nothing ever sent one.
+        for named in ["key", "named", "said"] {
             assert!(refusals.contains_key(named), "a refusal has no {named}");
         }
     }

@@ -190,6 +190,10 @@ pub async fn make(tx: &mut Tx, new: &New) -> Result<Writing> {
 /// What may be changed about one.
 #[derive(Clone, Debug, Default, serde::Deserialize)]
 pub struct Changes {
+    /// Where it answers. Renaming leaves the old address working: a link
+    /// somebody made last year is not something to break because a title was
+    /// improved.
+    pub slug: Option<String>,
     pub title: Option<String>,
     pub excerpt: Option<String>,
     pub body: Option<String>,
@@ -197,6 +201,28 @@ pub struct Changes {
     /// Absent leaves it where it is. `draft` takes something back off the
     /// site; a date sends it out then.
     pub publish_at: Option<Option<DateTime<Utc>>>,
+}
+
+/// Where a page went, for an address the site has no page at.
+///
+/// Asked by the edge, and answered with every language the name was used in —
+/// choosing between them is the edge's, because only the address says which
+/// language somebody was reading.
+pub async fn moved(tx: &mut Tx, slug: &str) -> Result<Vec<(String, String)>> {
+    let rows = sqlx::query("select language, now_at from redirects where was = $1")
+        .bind(slug)
+        .fetch_all(tx.conn())
+        .await
+        .map_err(Error::internal)?;
+
+    rows.iter()
+        .map(|row| {
+            Ok((
+                row.try_get("language").map_err(Error::internal)?,
+                row.try_get("now_at").map_err(Error::internal)?,
+            ))
+        })
+        .collect()
 }
 
 /// Changes one.
@@ -220,9 +246,36 @@ pub async fn change(tx: &mut Tx, id: WritingId, changes: &Changes) -> Result<Wri
         Some(Some(when)) => (State::Published, Some(when)),
     };
 
+    // The address, and what the old one now points at. Written in the same
+    // transaction as the rename, because a rename that leaves no redirect is
+    // every link anybody made answering "not here" — and a redirect written
+    // afterwards is one a crash between the two loses.
+    let slug = match &changes.slug {
+        Some(asked) => {
+            let slug = Slug::parse(asked)?;
+
+            if slug.as_str() != now.slug.as_str() {
+                sqlx::query(
+                    "insert into redirects (was, language, now_at) values ($1, $2, $3)
+                     on conflict (was, language) do update set now_at = excluded.now_at",
+                )
+                .bind(now.slug.as_str())
+                .bind(&now.language)
+                .bind(slug.as_str())
+                .execute(tx.conn())
+                .await
+                .map_err(Error::internal)?;
+            }
+
+            slug.as_str().to_owned()
+        }
+        None => now.slug.as_str().to_owned(),
+    };
+
     let row = sqlx::query(&format!(
         "update writings
-            set title = $2,
+            set slug = $8,
+                title = $2,
                 excerpt = coalesce($3, excerpt),
                 body = coalesce($4, body),
                 fields = coalesce($5, fields),
@@ -239,9 +292,16 @@ pub async fn change(tx: &mut Tx, id: WritingId, changes: &Changes) -> Result<Wri
     .bind(changes.fields.as_ref())
     .bind(state.as_str())
     .bind(published_at)
+    .bind(&slug)
     .fetch_optional(tx.conn())
     .await
-    .map_err(Error::internal)?;
+    .map_err(|cause| {
+        if crate::writing::taken(&cause) {
+            Error::conflict(Say::of(SOMETHING_ELSE_ANSWERS_AT_THAT_ADDRESS))
+        } else {
+            Error::internal(cause)
+        }
+    })?;
 
     row.as_ref()
         .map(a_writing)

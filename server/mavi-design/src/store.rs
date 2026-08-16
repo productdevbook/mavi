@@ -248,6 +248,35 @@ pub async fn write_file(tx: &mut Tx, change: Uuid, path: &str, contents: &str) -
     })
 }
 
+/// Everything in a set of changes, as bytes.
+///
+/// What a build is given. Read whole rather than one file at a time because a
+/// build reads all of them and a file read after another has been written is a
+/// build of two different things.
+///
+/// A design's files are text — that is what the column is, and what the panel
+/// writes. A picture belongs in what a site uploaded rather than in how it
+/// looks, so the bytes here are always somebody's typing encoded.
+pub async fn everything_in(tx: &mut Tx, change: Uuid) -> Result<Vec<(String, Vec<u8>)>> {
+    let rows = sqlx::query(
+        "select path, contents from design_files
+          where change_id = $1 and not removed order by path",
+    )
+    .bind(change)
+    .fetch_all(tx.conn())
+    .await
+    .map_err(Error::internal)?;
+
+    rows.iter()
+        .map(|row| {
+            let path: String = row.try_get("path").map_err(Error::internal)?;
+            let contents: String = row.try_get("contents").map_err(Error::internal)?;
+
+            Ok((path, contents.into_bytes()))
+        })
+        .collect()
+}
+
 /// What building one is told about afterwards.
 #[derive(Clone, Debug, Deserialize)]
 pub struct Built {

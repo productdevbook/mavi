@@ -31,6 +31,23 @@ use uuid::Uuid;
 
 pub const THAT_IS_NOT_AN_ID: &str = "that_is_not_an_id";
 
+/// Everything on one address: the API, and the site itself.
+///
+/// Two halves rather than two deployments. What the API described answers as
+/// the API answers, and everything else is a visitor asking the site for a
+/// page — which is what makes a published page appear at once rather than when
+/// somebody puts a container in front of it.
+#[must_use]
+pub fn everything(db: &Db, files: &Arc<dyn Files>, who_is_asking: WhoIsAsking) -> axum::Router {
+    site(db, files, who_is_asking)
+        .into_router()
+        .fallback(axum::routing::any(crate::showing::serve))
+        .with_state(crate::showing::Site {
+            db: db.clone(),
+            files: Arc::clone(files),
+        })
+}
+
 /// Everything this installation serves today.
 ///
 /// It is not everything it describes, and that is measured rather than
@@ -2815,18 +2832,11 @@ async fn asked_for_a_build(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
 async fn published_it(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
     let id = a_uuid(asked)?;
 
+    // Publishing is the row changing, and nothing else: the edge answers from
+    // whichever set of changes says it is published, so there is no moment
+    // between "live" and "serving" for something to go wrong in.
     let mut tx = db.begin().await?;
     let change = mavi_design::store::publish(&mut tx, id).await?;
-
-    let queue = mavi_work::Queue::of(&crate::work());
-    queue
-        .add(
-            &mut tx,
-            mavi_design::PUT_IT_LIVE.name,
-            &serde_json::json!({ "change": id }),
-            None,
-        )
-        .await?;
 
     let receipt = wrote_about(
         &mut tx,

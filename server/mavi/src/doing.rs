@@ -127,3 +127,51 @@ async fn put_back_what_nobody_paid_for(db: &Db) -> Result<()> {
 
     tx.commit().await
 }
+
+/// Queues what is due, for as long as the process is up.
+///
+/// A tick claimed here is this process's: the claim and the moving-forward are
+/// one statement, so two workers ticking at the same moment is one of them
+/// getting it. What it does with a tick is put a job in the queue — the work
+/// itself is the worker's, and a scheduler that did the work would be a second
+/// place where a job runs without a lease.
+pub async fn keep_time(db: Db, queue: Queue, worker: Worker) {
+    let all = mavi_everything::on_a_timer();
+
+    loop {
+        match a_tick(&db, &queue, &all).await {
+            Ok(queued) => {
+                for kind in queued {
+                    println!("{} is due, and queued by {}", kind, worker.named);
+                }
+            }
+            Err(wrong) => eprintln!("could not ask what is due: {wrong}"),
+        }
+
+        // Often enough that the shortest schedule is not late by much, rarely
+        // enough that an idle installation is not asking a database twice a
+        // second what time it is.
+        tokio::time::sleep(Duration::from_secs(30)).await;
+    }
+}
+
+/// One tick: what is due, and the work for it, in one transaction.
+///
+/// Both or neither. A tick moved forward with nothing queued behind it is a
+/// sweep that is skipped for a whole interval and leaves no trace of having
+/// been.
+async fn a_tick(db: &Db, queue: &Queue, all: &[mavi_work::Often]) -> Result<Vec<String>> {
+    let mut tx = db.begin().await?;
+
+    let due = mavi_work::due(&mut tx, all).await?;
+
+    for kind in &due {
+        queue
+            .add(&mut tx, kind, &serde_json::json!({}), None)
+            .await?;
+    }
+
+    tx.commit().await?;
+
+    Ok(due)
+}

@@ -21,6 +21,8 @@
 //! row went back to ready, and the work ran a third time — from one slow
 //! worker and no error anywhere.
 
+pub mod timer;
+
 use std::collections::BTreeMap;
 
 use chrono::{DateTime, Duration, Utc};
@@ -30,6 +32,8 @@ use mavi_db::{Db, Tx};
 use serde::{Deserialize, Serialize};
 use sqlx::Row;
 use uuid::Uuid;
+
+pub use timer::{Often, due, keep};
 
 pub const NOTHING_RUNS_WORK_LIKE_THAT: &str = "nothing_runs_work_like_that";
 

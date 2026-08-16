@@ -63,7 +63,20 @@ fn an_editor() -> mavi_serve::WhoIsAsking {
             if headers.contains_key("authorization") {
                 Caller::AnAccount {
                     id: "01930000-0000-7000-8000-000000000001".to_owned(),
-                    grants: Grants::of(["content:write".to_owned(), "content:view".to_owned()]),
+                    // What these tests reach for. Written out rather than
+                    // "everything", so a test that starts needing another
+                    // capability says so here.
+                    grants: Grants::of(
+                        [
+                            "content:view",
+                            "content:write",
+                            "taxonomy:view",
+                            "taxonomy:write",
+                            "settings:view",
+                            "settings:write",
+                        ]
+                        .map(ToOwned::to_owned),
+                    ),
                 }
             } else {
                 Caller::Nobody

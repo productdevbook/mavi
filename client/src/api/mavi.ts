@@ -1680,8 +1680,10 @@ export type Named = keyof typeof operations;
 
 
 /**
- * What each call takes and gives. `never` is a call that takes nothing;
- * `void` is one that answers with nothing.
+ * What each call takes and gives. `never` is a call that takes nothing,
+ * `void` is one that answers with nothing, and `Blob` is an upload — bytes,
+ * whose kind gets decided by reading them rather than by anybody declaring
+ * it.
  */
 export interface Calls {
   "addresses.prove": { takes: Proof; gives: void };
@@ -1716,7 +1718,7 @@ export interface Calls {
   "files.list": { takes: never; gives: FilePage };
   "files.read": { takes: never; gives: File };
   "files.remove": { takes: never; gives: void };
-  "files.upload": { takes: TheBytes; gives: File };
+  "files.upload": { takes: Blob; gives: File };
   "filled.forget": { takes: never; gives: void };
   "flows.change": { takes: FlowChanges; gives: Flow };
   "flows.list": { takes: never; gives: FlowPage };

@@ -86,7 +86,11 @@ pub struct Writing {
 }
 
 /// What writing one asks for.
-#[derive(Clone, Debug, Deserialize)]
+///
+/// Serialised as well as read, so the test beside the description can put a
+/// real one through the same serialiser and compare its fields with what the
+/// API says it takes.
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct New {
     pub kind: String,
     pub language: String,

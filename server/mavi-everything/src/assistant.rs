@@ -47,6 +47,59 @@ pub fn endpoint() -> Endpoint {
     }
 }
 
+/// What the door takes and answers with.
+///
+/// Thin on purpose. The envelope is JSON-RPC's rather than this
+/// installation's, and describing its `params` in detail would be describing
+/// the protocol — which every client already has, and which would go stale
+/// here the moment the protocol moves.
+#[must_use]
+pub fn shapes() -> Vec<mavi_api::Shape> {
+    use mavi_api::{Field, Is, Of, Shape};
+
+    vec![
+        Shape::new(
+            "AssistantAsked",
+            "A JSON-RPC envelope. `initialize`, `tools/list` and `tools/call` \
+             are answered; anything else is named back as not served.",
+            vec![
+                Field::new("jsonrpc", Of::One(Is::Text), "`2.0`.").maybe(),
+                Field::new("method", Of::One(Is::Text), "Which of them."),
+                Field::new(
+                    "params",
+                    Of::Whatever,
+                    "What the method takes. For `tools/call`: a `name` and its \
+                     `arguments`.",
+                )
+                .maybe(),
+                Field::new(
+                    "id",
+                    Of::Whatever,
+                    "Left out means no answer is wanted, which is respected.",
+                )
+                .maybe()
+                .or_null(),
+            ],
+        ),
+        Shape::new(
+            "AssistantAnswer",
+            "A JSON-RPC answer, or nothing at all where none was wanted.",
+            vec![
+                Field::new("jsonrpc", Of::One(Is::Text), "`2.0`.").maybe(),
+                Field::new("id", Of::Whatever, "Whatever was sent.").maybe(),
+                Field::new("result", Of::Whatever, "What the method answered.").maybe(),
+                Field::new(
+                    "error",
+                    Of::Whatever,
+                    "The protocol refusing, which is not a tool refusing — a \
+                     tool that said no is a `result` with `isError`.",
+                )
+                .maybe(),
+            ],
+        ),
+    ]
+}
+
 /// Mounts the door.
 ///
 /// **After everything else**, and that is the whole of the arrangement: what

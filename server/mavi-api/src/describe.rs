@@ -50,12 +50,27 @@ pub fn openapi(api: &Api, version: &str) -> Value {
                          where it came from.",
                 },
             },
-            "schemas": {
-                "Refusal": refusal(),
-            },
+            "schemas": schemas(api),
         },
         "paths": paths,
     })
+}
+
+/// Every body this API has, by name.
+///
+/// The refusal is here rather than declared by a domain because no domain owns
+/// it: it is what the guard and the router answer, and every operation refers
+/// to it.
+fn schemas(api: &Api) -> Value {
+    let mut schemas = Map::new();
+
+    schemas.insert("Refusal".to_owned(), refusal());
+
+    for shape in &api.shapes {
+        schemas.insert(shape.named.to_owned(), shape.described());
+    }
+
+    Value::Object(schemas)
 }
 
 fn operation(endpoint: &Endpoint) -> Value {
@@ -105,12 +120,27 @@ fn operation(endpoint: &Endpoint) -> Value {
     }
 
     if let Some(takes) = endpoint.takes {
+        // An upload is bytes, and describing it as JSON with a schema is how a
+        // generated client comes to send a picture as a string. There is no
+        // shape for it and there never will be — what a file is gets decided
+        // by reading it rather than by anybody declaring it.
+        let content = if takes == crate::THE_BYTES {
+            json!({
+                "application/octet-stream": {
+                    "schema": { "type": "string", "format": "binary" },
+                },
+            })
+        } else {
+            json!({
+                "application/json": {
+                    "schema": { "$ref": format!("#/components/schemas/{takes}") },
+                },
+            })
+        };
+
         object.insert(
             "requestBody".to_owned(),
-            json!({
-                "required": true,
-                "content": { "application/json": { "schema": { "$ref": format!("#/components/schemas/{takes}") } } },
-            }),
+            json!({ "required": true, "content": content }),
         );
     }
 
@@ -256,6 +286,35 @@ mod tests {
         assert_eq!(parameters[0]["in"], "path");
         assert_eq!(parameters[0]["required"], true);
         assert_eq!(parameters[0]["schema"]["format"], "uuid");
+    }
+
+    #[test]
+    fn an_upload_is_described_as_bytes_rather_than_as_json() {
+        let described = openapi(
+            &Api::of(vec![Endpoint {
+                method: Method::Post,
+                path: "/api/files",
+                named: "files.upload",
+                about: "Takes one.",
+                who: Who::AnAccount,
+                parameters: Vec::new(),
+                takes: Some(crate::THE_BYTES),
+                answers: Answers::Made("File"),
+                refuses: &[],
+                changes: true,
+            }]),
+            "0.0.0",
+        );
+
+        let body = &described["paths"]["/api/files"]["post"]["requestBody"]["content"];
+
+        // Described as JSON with a schema, this is how a generated client
+        // comes to send somebody's picture as a string.
+        assert!(body["application/json"].is_null());
+        assert_eq!(
+            body["application/octet-stream"]["schema"]["format"],
+            "binary"
+        );
     }
 
     #[test]

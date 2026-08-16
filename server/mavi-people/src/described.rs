@@ -10,6 +10,13 @@ const A_TOKEN: &str = "The token that signs them in. Sent as \
 
 #[must_use]
 pub fn shapes() -> Vec<Shape> {
+    let mut all = the_accounts();
+    all.extend(the_roles());
+
+    all
+}
+
+fn the_accounts() -> Vec<Shape> {
     vec![
         a_person(),
         Shape::page_of("PersonPage", "Person", "Who has an account here."),
@@ -93,6 +100,80 @@ pub fn shapes() -> Vec<Shape> {
     ]
 }
 
+fn the_roles() -> Vec<Shape> {
+    vec![
+        a_role(),
+        Shape::list_of(
+            "RoleList",
+            "Role",
+            "Every role. A handful, with nothing to page through — a role \
+             picker with a cursor in it is one somebody has to page through to \
+             find \"Editor\".",
+        ),
+        Shape::new(
+            "NewRole",
+            "One to make. Never the owner's: that one is made when the site is, \
+             exactly once, and a second thing that can do everything is a \
+             second thing to have taken.",
+            vec![
+                Field::new("name", Of::One(Is::Text), "What it is called."),
+                Field::new("grants", Of::Many(Is::Text), WHAT_A_ROLE_HOLDS).maybe(),
+            ],
+        ),
+        Shape::new(
+            "RoleChanges",
+            "What may be changed. The owner's may be renamed and what it holds \
+             may not be touched — it holds everything by being what it is, and \
+             a set of grants written onto it would be a second answer to what \
+             it can do, one that could be made smaller.",
+            vec![
+                Field::new("name", Of::One(Is::Text), "What it is called.").maybe(),
+                Field::new(
+                    "grants",
+                    Of::Many(Is::Text),
+                    "The whole set, replaced. What somebody is editing is which \
+                     switches are on, and sending only the ones they turned on \
+                     would never turn one off.",
+                )
+                .maybe()
+                .or_null(),
+            ],
+        ),
+        Shape::new(
+            "WhichRole",
+            "Which role to move somebody to.",
+            vec![Field::new("role", Of::One(Is::Id), "Which one.")],
+        ),
+    ]
+}
+
+const WHAT_A_ROLE_HOLDS: &str = "What it holds, as `content:write` and the \
+                                 like. Each is checked against the one list of \
+                                 capabilities, because a grant nobody spelled \
+                                 right is a switch in a panel that looks on and \
+                                 does nothing.";
+
+fn a_role() -> Shape {
+    Shape::new(
+        "Role",
+        "A name and a set of grants. An account holds exactly one, and that is \
+         the whole of the permission system.",
+        vec![
+            Field::new("id", Of::One(Is::Id), "Which one."),
+            Field::new("name", Of::One(Is::Text), "What it is called."),
+            Field::new("grants", Of::Many(Is::Text), WHAT_A_ROLE_HOLDS),
+            Field::new(
+                "is_the_owner",
+                Of::One(Is::Bool),
+                "The one that can do everything, including the things nothing \
+                 else may. Exactly one exists; it is never made and never \
+                 removed.",
+            ),
+            Field::new("created_at", Of::One(Is::Moment), "When it was made."),
+        ],
+    )
+}
+
 fn a_person() -> Shape {
     Shape::new(
         "Person",
@@ -127,6 +208,7 @@ fn a_person() -> Shape {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::role::{NewRole, Role, RoleChanges, WhichRole};
     use crate::store::{Invitation, Person, Setup};
     use std::collections::BTreeSet;
 
@@ -191,5 +273,44 @@ mod tests {
         .expect("an invitation");
 
         assert_eq!(keys(&invitation), fields_of("Invitation"));
+
+        let role = serde_json::to_value(NewRole {
+            name: "Editor".to_owned(),
+            grants: vec!["content:view".to_owned()],
+        })
+        .expect("a new role");
+
+        assert_eq!(keys(&role), fields_of("NewRole"));
+
+        assert_eq!(
+            keys(&serde_json::to_value(RoleChanges::default()).expect("changes")),
+            fields_of("RoleChanges")
+        );
+
+        assert_eq!(
+            keys(
+                &serde_json::to_value(WhichRole {
+                    role: uuid::Uuid::nil()
+                })
+                .expect("which role")
+            ),
+            fields_of("WhichRole")
+        );
+    }
+
+    #[test]
+    fn what_a_role_is_is_what_is_described() {
+        let role = Role {
+            id: uuid::Uuid::nil(),
+            name: "Editor".to_owned(),
+            grants: vec!["content:view".to_owned()],
+            is_the_owner: false,
+            created_at: chrono::Utc::now(),
+        };
+
+        assert_eq!(
+            keys(&serde_json::to_value(&role).expect("a role")),
+            fields_of("Role")
+        );
     }
 }

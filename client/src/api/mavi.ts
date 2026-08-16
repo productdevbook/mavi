@@ -916,6 +916,22 @@ export interface NewReader {
   name?: string | null;
 }
 
+/**
+ * One to make. Never the owner's: that one is made when the site is, exactly
+ * once, and a second thing that can do everything is a second thing to have
+ * taken.
+ */
+export interface NewRole {
+  /** What it is called. */
+  name: string;
+  /**
+   * What it holds, as `content:write` and the like. Each is checked against
+   * the one list of capabilities, because a grant nobody spelled right is a
+   * switch in a panel that looks on and does nothing.
+   */
+  grants?: string[];
+}
+
 /** One thing for a flow to do. */
 export interface NewStep {
   /** Which of them. */
@@ -1342,6 +1358,52 @@ export interface Received {
   id: string;
 }
 
+/**
+ * A name and a set of grants. An account holds exactly one, and that is the
+ * whole of the permission system.
+ */
+export interface Role {
+  /** Which one. */
+  id: string;
+  /** What it is called. */
+  name: string;
+  /**
+   * What it holds, as `content:write` and the like. Each is checked against
+   * the one list of capabilities, because a grant nobody spelled right is a
+   * switch in a panel that looks on and does nothing.
+   */
+  grants: string[];
+  /**
+   * The one that can do everything, including the things nothing else may.
+   * Exactly one exists; it is never made and never removed.
+   */
+  is_the_owner: boolean;
+  /** When it was made. */
+  created_at: string;
+}
+
+/**
+ * What may be changed. The owner's may be renamed and what it holds may not be
+ * touched — it holds everything by being what it is, and a set of grants
+ * written onto it would be a second answer to what it can do, one that could
+ * be made smaller.
+ */
+export interface RoleChanges {
+  /** What it is called. */
+  name?: string;
+  /**
+   * The whole set, replaced. What somebody is editing is which switches are
+   * on, and sending only the ones they turned on would never turn one off.
+   */
+  grants?: string[] | null;
+}
+
+/**
+ * Every role. A handful, with nothing to page through — a role picker with a
+ * cursor in it is one somebody has to page through to find "Editor".
+ */
+export type RoleList = Role[];
+
 /** One journey through a flow. */
 export interface Run {
   /** Which one. */
@@ -1683,6 +1745,12 @@ export interface WhereItGoes {
   to: "paid" | "sent" | "called_off" | "given_back";
 }
 
+/** Which role to move somebody to. */
+export interface WhichRole {
+  /** Which one. */
+  role: string;
+}
+
 /** Which student to put on this course. */
 export interface WhoToPutOn {
   /** Which one. */
@@ -1882,6 +1950,8 @@ export const operations = {
   "passwords.choose": { method: "post", path: "/api/passwords", takes: "ChosenPassword", answers: null, status: 204 },
   "people.invite": { method: "post", path: "/api/people", takes: "Invitation", answers: "Person", status: 201 },
   "people.list": { method: "get", path: "/api/people", takes: null, answers: "PersonPage", status: 200 },
+  "people.move": { method: "patch", path: "/api/people/{id}", takes: "WhichRole", answers: "Person", status: 200 },
+  "people.remove": { method: "delete", path: "/api/people/{id}", takes: null, answers: null, status: 204 },
   "portable.read-in": { method: "post", path: "/api/portable", takes: "Bundle", answers: "WhatWasRead", status: 200 },
   "portable.take": { method: "get", path: "/api/portable", takes: null, answers: "Bundle", status: 200 },
   "products.change": { method: "patch", path: "/api/products/{id}", takes: "ProductChanges", answers: "Product", status: 200 },
@@ -1891,6 +1961,10 @@ export const operations = {
   "readers.add": { method: "post", path: "/api/mail/lists/{id}/readers", takes: "NewReader", answers: "Reader", status: 201 },
   "readers.forget": { method: "delete", path: "/api/mail/readers/{id}", takes: null, answers: null, status: 204 },
   "readers.list": { method: "get", path: "/api/mail/lists/{id}/readers", takes: null, answers: "ReaderPage", status: 200 },
+  "roles.change": { method: "patch", path: "/api/roles/{id}", takes: "RoleChanges", answers: "Role", status: 200 },
+  "roles.list": { method: "get", path: "/api/roles", takes: null, answers: "RoleList", status: 200 },
+  "roles.make": { method: "post", path: "/api/roles", takes: "NewRole", answers: "Role", status: 201 },
+  "roles.remove": { method: "delete", path: "/api/roles/{id}", takes: null, answers: null, status: 204 },
   "runs.list": { method: "get", path: "/api/flows/{id}/runs", takes: null, answers: "RunPage", status: 200 },
   "runs.read": { method: "get", path: "/api/runs/{id}", takes: null, answers: "Run", status: 200 },
   "sendings.send": { method: "post", path: "/api/mail/lists/{id}/sendings", takes: "Sending", answers: null, status: 202 },
@@ -2005,6 +2079,8 @@ export interface Calls {
   "passwords.choose": { takes: ChosenPassword; gives: void };
   "people.invite": { takes: Invitation; gives: Person };
   "people.list": { takes: never; gives: PersonPage };
+  "people.move": { takes: WhichRole; gives: Person };
+  "people.remove": { takes: never; gives: void };
   "portable.read-in": { takes: Bundle; gives: WhatWasRead };
   "portable.take": { takes: never; gives: Bundle };
   "products.change": { takes: ProductChanges; gives: Product };
@@ -2014,6 +2090,10 @@ export interface Calls {
   "readers.add": { takes: NewReader; gives: Reader };
   "readers.forget": { takes: never; gives: void };
   "readers.list": { takes: never; gives: ReaderPage };
+  "roles.change": { takes: RoleChanges; gives: Role };
+  "roles.list": { takes: never; gives: RoleList };
+  "roles.make": { takes: NewRole; gives: Role };
+  "roles.remove": { takes: never; gives: void };
   "runs.list": { takes: never; gives: RunPage };
   "runs.read": { takes: never; gives: Run };
   "sendings.send": { takes: Sending; gives: void };

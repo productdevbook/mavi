@@ -6,8 +6,6 @@
 //! design of a tick being claimed by the statement that moves it forward is
 //! for exactly this test to pass.
 
-use std::time::Duration;
-
 use mavi_db::Db;
 use mavi_work::timer::{Often, due, keep};
 use sqlx::{Connection, PgConnection};
@@ -173,5 +171,4 @@ async fn how_often_follows_the_code_rather_than_the_row() {
         .expect("the row");
 
     assert_eq!(seconds, 60);
-    assert_eq!(Duration::from_secs(60).as_secs(), 60);
 }

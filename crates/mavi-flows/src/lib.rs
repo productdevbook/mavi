@@ -14,6 +14,7 @@
 pub mod outward;
 pub mod run;
 pub mod step;
+pub mod store;
 
 use mavi_api::{Answers, Endpoint, Is, Method, Parameter, Who};
 use mavi_core::error::Code;

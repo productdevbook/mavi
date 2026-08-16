@@ -8,10 +8,14 @@ description = "How a site looks, and how it goes live."
 [dependencies]
 mavi-api = { path = "../mavi-api" }
 mavi-core = { path = "../mavi-core" }
+mavi-db = { path = "../mavi-db" }
 mavi-people = { path = "../mavi-people" }
 mavi-work = { path = "../mavi-work" }
 
+chrono = { workspace = true }
 serde = { workspace = true }
+serde_json = { workspace = true }
+sqlx = { workspace = true }
 uuid = { workspace = true }
 
 [lints]

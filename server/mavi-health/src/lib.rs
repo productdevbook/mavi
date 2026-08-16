@@ -19,7 +19,8 @@
 pub mod described;
 pub mod store;
 
-use mavi_api::{Answers, Code, Endpoint, Method, Who};
+use mavi_api::{Answers, Endpoint, Method, Who};
+use mavi_core::error::Code;
 use mavi_core::grant::{Access, Needs};
 
 pub use store::{Check, Health, look_at};

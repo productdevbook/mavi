@@ -105,7 +105,7 @@ unrepeatable:
 | `mavi-design` | Anything that decides how a site is built being written through the API. A layout going live without being built and looked at first. |
 | `mavi-boards` | Two cards in one place, after the fiftieth time somebody dropped one between the same two. |
 | `mavi-work` | Two workers running one job. A worker whose lease lapsed marking done a job somebody else now holds — which put the row back to `ready` and ran the work a third time. Work queued for a kind nothing runs. |
-| `mavi-serve` | A route nobody described, and a description nobody can find is unmounted. A refusal shaped one way for endpoints and another way for the parts of a router nobody wrote. |
+| `mavi-serve` | A route nobody described. An endpoint that is described and mounted nowhere going unnoticed — that is a number this crate answers. A refusal shaped one way for endpoints and another for the parts of a router nobody wrote. |
 | `mavi-everything` | Two crates describing one route, or naming one endpoint twice. A capability nothing asks for, or one asked for that a site cannot grant. |
 
 The dependency graph made this cheap rather than heroic: **22 of the 27 domains

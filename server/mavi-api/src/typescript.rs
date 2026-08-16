@@ -37,6 +37,47 @@ pub fn typescript(api: &Api) -> String {
 
     out.push('\n');
     out.push_str(&operations(api));
+    out.push('\n');
+    out.push_str(&calls(api));
+
+    out
+}
+
+/// What each operation takes and gives, by name, as types.
+///
+/// The operations table above is data — what a screen reads to build an
+/// address. This is the same list as **types**, which is what makes one
+/// function able to say "give me the answer to this call" and be held to it.
+/// Two renderings of one list, and both written from it rather than by hand.
+///
+/// Keyed by the operation's name rather than by its method and path. The name
+/// is what the API says is stable; a path is a thing that moves.
+fn calls(api: &Api) -> String {
+    let mut out = String::from(
+        "
+/**
+ * What each call takes and gives. `never` is a call that takes nothing;
+ * `void` is one that answers with nothing.
+ */
+export interface Calls {
+",
+    );
+
+    let mut endpoints: Vec<_> = api.endpoints.iter().collect();
+    endpoints.sort_by_key(|endpoint| endpoint.named);
+
+    for endpoint in endpoints {
+        let takes = endpoint.takes.map_or("never", |takes| takes);
+        let gives = endpoint.answers.body().unwrap_or("void");
+
+        let _ = writeln!(
+            out,
+            "  \"{}\": {{ takes: {takes}; gives: {gives} }};",
+            endpoint.named
+        );
+    }
+
+    out.push_str("}\n");
 
     out
 }
@@ -297,6 +338,19 @@ mod tests {
                 "\"writings.change\": { method: \"patch\", path: \"/api/writings/{id}\", \
                  takes: \"WritingChanges\", answers: \"Writing\", status: 200 },"
             ),
+            "{written}"
+        );
+    }
+
+    #[test]
+    fn what_a_call_takes_and_gives_is_said_as_types() {
+        // The operations table is data, for building an address. This is the
+        // same list as types, which is what lets one function say "give me the
+        // answer to this call" and be held to it.
+        let written = typescript(&an_api());
+
+        assert!(
+            written.contains("  \"writings.change\": { takes: WritingChanges; gives: Writing };"),
             "{written}"
         );
     }

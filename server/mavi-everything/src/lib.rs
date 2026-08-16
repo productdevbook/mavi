@@ -15,6 +15,7 @@
 //! Nothing here mounts anything. It is the list, and the tests are what make
 //! the list worth having.
 
+pub mod about;
 pub mod assistant;
 pub mod building;
 pub mod mounted;
@@ -54,6 +55,7 @@ pub fn endpoints() -> Vec<Endpoint> {
     // The two this crate owns rather than a domain, and each because no domain
     // could: one asks across all of them, the other is a way in to all of them.
     all.push(crate::overview::endpoint());
+    all.extend(crate::about::endpoints());
     all.push(crate::assistant::endpoint());
 
     all
@@ -74,6 +76,7 @@ pub fn shapes() -> Vec<mavi_api::Shape> {
     all.extend(mavi_health::described::shapes());
     all.extend(mavi_analytics::described::shapes());
     all.extend(crate::overview::shapes());
+    all.extend(crate::about::shapes());
     all.extend(mavi_portable::described::shapes());
     all.extend(mavi_trash::described::shapes());
     all.extend(mavi_media::described::shapes());

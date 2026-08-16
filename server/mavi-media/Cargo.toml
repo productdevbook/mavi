@@ -13,6 +13,7 @@ mavi-people = { path = "../mavi-people" }
 
 chrono = { workspace = true }
 serde = { workspace = true }
+serde_json = { workspace = true }
 sqlx = { workspace = true }
 uuid = { workspace = true }
 

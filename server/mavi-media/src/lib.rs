@@ -5,6 +5,7 @@
 //! failures the crate this replaces had a test for, and both are worth keeping
 //! as rules rather than as tests.
 
+pub mod described;
 pub mod kept;
 pub mod store;
 

@@ -65,6 +65,8 @@ pub fn shapes() -> Vec<mavi_api::Shape> {
     all.extend(mavi_content::described::shapes());
     all.extend(mavi_taxonomy::described::shapes());
     all.extend(mavi_settings::described::shapes());
+    all.extend(mavi_media::described::shapes());
+    all.extend(mavi_forms::described::shapes());
     all.extend(crate::assistant::shapes());
 
     all
@@ -146,18 +148,11 @@ mod tests {
         "CoursePage",
         "Credentials",
         "Enrolment",
-        "File",
         "FileList",
-        "FilePage",
-        "Filled",
-        "FilledPage",
         "Flow",
         "FlowChanges",
         "FlowPage",
         "ForSalePage",
-        "Form",
-        "FormChanges",
-        "FormPage",
         "Invitation",
         "LearningList",
         "Lesson",
@@ -173,13 +168,11 @@ mod tests {
         "NewCoupon",
         "NewCourse",
         "NewFlow",
-        "NewForm",
         "NewLesson",
         "NewList",
         "NewModule",
         "NewProduct",
         "NewReader",
-        "OpenForm",
         "Order",
         "OrderPage",
         "Person",
@@ -196,10 +189,8 @@ mod tests {
         "Ready",
         "Receipt",
         "ReceiptPage",
-        "Received",
         "Run",
         "RunPage",
-        "Seen",
         "Sending",
         "Session",
         "Setup",

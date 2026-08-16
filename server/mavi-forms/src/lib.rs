@@ -11,6 +11,7 @@
 //! is answered by reading a path instead of by trusting that every declaration
 //! got its audience right.
 
+pub mod described;
 pub mod field;
 pub mod filled;
 pub mod store;

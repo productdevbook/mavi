@@ -7,7 +7,7 @@
 use mavi_core::email::Email;
 use mavi_core::error::{Error, Result};
 use mavi_core::say::Say;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
 use crate::field::{Declared, Kind};
@@ -25,7 +25,10 @@ pub const THAT_IS_MORE_THAN_A_FORM_TAKES: &str = "that_is_more_than_a_form_takes
 pub const AT_MOST_ALTOGETHER: usize = 64 * 1024;
 
 /// What somebody filled in.
-#[derive(Clone, Debug, Deserialize)]
+///
+/// Serialised as well as read, so the test beside the description can hold
+/// what it says it takes against what it takes.
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Filled {
     pub answers: Map<String, Value>,
 }

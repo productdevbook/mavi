@@ -8,6 +8,7 @@ description = "What a writing is filed under: categories and tags, which are one
 [dependencies]
 mavi-api = { path = "../mavi-api" }
 mavi-core = { path = "../mavi-core" }
+mavi-db = { path = "../mavi-db" }
 mavi-people = { path = "../mavi-people" }
 
 chrono = { workspace = true }

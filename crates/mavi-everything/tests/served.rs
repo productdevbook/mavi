@@ -63,7 +63,20 @@ fn an_editor() -> mavi_serve::WhoIsAsking {
             if headers.contains_key("authorization") {
                 Caller::AnAccount {
                     id: "01930000-0000-7000-8000-000000000001".to_owned(),
-                    grants: Grants::of(["content:write".to_owned(), "content:view".to_owned()]),
+                    // What these tests reach for. Written out rather than
+                    // "everything", so a test that starts needing another
+                    // capability says so here.
+                    grants: Grants::of(
+                        [
+                            "content:view",
+                            "content:write",
+                            "taxonomy:view",
+                            "taxonomy:write",
+                            "settings:view",
+                            "settings:write",
+                        ]
+                        .map(ToOwned::to_owned),
+                    ),
                 }
             } else {
                 Caller::Nobody
@@ -326,4 +339,125 @@ async fn what_is_described_and_not_yet_served() {
         !serving.reachable().is_empty(),
         "what is mounted should be something"
     );
+}
+
+#[tokio::test]
+async fn what_a_site_is_and_what_it_writes_in() {
+    if postgres().is_none() {
+        return;
+    }
+
+    let db = fresh("site").await;
+
+    // Setting up is what makes the settings row and the first language, so
+    // everything here is asked of a site that has been set up rather than of
+    // rows a test inserted behind the API's back.
+    let (status, _) = asked(
+        &db,
+        Request::builder()
+            .method("POST")
+            .uri("/api/setup")
+            .header("content-type", "application/json")
+            .body(Body::from(
+                json!({
+                    "site": "A Site",
+                    "name": "Somebody",
+                    "email": "somebody@example.test",
+                    "password": "a long enough password",
+                })
+                .to_string(),
+            ))
+            .expect("a request"),
+    )
+    .await;
+    assert_eq!(status, StatusCode::CREATED);
+
+    let (status, site) = asked(
+        &db,
+        Request::builder()
+            .uri("/api/open/site")
+            .body(Body::empty())
+            .expect("a request"),
+    )
+    .await;
+
+    // Open to anybody, and what it answers is the site's own shape: a name,
+    // what it says about itself, and what it writes in. Nothing else.
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(site["name"], "A Site");
+    assert_eq!(site["languages"].as_array().expect("languages").len(), 1);
+
+    let (status, refusal) = asked(
+        &db,
+        signed_in(
+            Request::builder()
+                .method("DELETE")
+                .uri("/api/languages/en")
+                .body(Body::empty())
+                .expect("a request"),
+        ),
+    )
+    .await;
+
+    // The last language, and the site's own. Two rules and one of them speaks
+    // first; either way the site still writes in something.
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
+    assert!(
+        mavi_settings::store::REFUSALS.contains(&refusal["key"].as_str().unwrap_or_default()),
+        "{refusal}"
+    );
+}
+
+#[tokio::test]
+async fn a_category_cannot_be_put_under_its_own_child() {
+    if postgres().is_none() {
+        return;
+    }
+
+    let db = fresh("loop").await;
+
+    let make = |slug: &'static str, parent: Option<String>| {
+        signed_in(
+            Request::builder()
+                .method("POST")
+                .uri("/api/terms")
+                .header("content-type", "application/json")
+                .body(Body::from(
+                    json!({
+                        "sort": "category",
+                        "language": "en",
+                        "slug": slug,
+                        "name": "A Heading",
+                        "parent": parent,
+                    })
+                    .to_string(),
+                ))
+                .expect("a request"),
+        )
+    };
+
+    let (_, above) = asked(&db, make("above", None)).await;
+    let above_id = above["id"].as_str().expect("an id").to_owned();
+
+    let (status, below) = asked(&db, make("below", Some(above_id.clone()))).await;
+    assert_eq!(status, StatusCode::CREATED);
+    let below_id = below["id"].as_str().expect("an id").to_owned();
+
+    // One step is a check constraint. Two is not, and a tree with a loop in it
+    // is a screen that draws until something stops it.
+    let (status, refusal) = asked(
+        &db,
+        signed_in(
+            Request::builder()
+                .method("PATCH")
+                .uri(format!("/api/terms/{above_id}"))
+                .header("content-type", "application/json")
+                .body(Body::from(json!({ "parent": below_id }).to_string()))
+                .expect("a request"),
+        ),
+    )
+    .await;
+
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
+    assert_eq!(refusal["key"], "nothing_goes_under_itself");
 }

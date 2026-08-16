@@ -5,6 +5,7 @@
 //! one rule — a category may have a parent, a tag may not — and a rule is a
 //! constraint rather than a second table.
 
+pub mod store;
 pub mod term;
 
 use mavi_api::{Answers, Endpoint, Is, Method, Parameter, Who};

@@ -14,6 +14,7 @@
 use std::future::Future;
 use std::sync::Arc;
 
+use mavi_api::Who;
 use mavi_audit::{Actor, Who as Whom, record};
 use mavi_content::listing::Filter;
 use mavi_content::store::{self, Changes};
@@ -35,8 +36,19 @@ pub const THAT_IS_NOT_AN_ID: &str = "that_is_not_an_id";
 /// implied — see the test beside this, which prints what is still to do.
 #[must_use]
 pub fn site(db: &Db, who_is_asking: WhoIsAsking) -> Site {
-    let mut site = Site::new(who_is_asking);
+    let site = Site::new(who_is_asking);
 
+    // One function per domain, in the order somebody meets them: getting in,
+    // what the site is, what it files things under, and what it wrote.
+    let site = the_way_in(site, db);
+    let site = what_this_site_is(site, db);
+    let site = what_it_files_things_under(site, db);
+
+    what_it_wrote(site, db)
+}
+
+/// Setting up, signing in, and who has an account.
+fn the_way_in(mut site: Site, db: &Db) -> Site {
     for endpoint in mavi_people::endpoints() {
         let db = db.clone();
 
@@ -66,6 +78,95 @@ pub fn site(db: &Db, who_is_asking: WhoIsAsking) -> Site {
         }
     }
 
+    site
+}
+
+/// The site's own name, and what it writes in.
+fn what_this_site_is(mut site: Site, db: &Db) -> Site {
+    for endpoint in mavi_settings::endpoints() {
+        let db = db.clone();
+
+        let handler: Option<Handler> = match endpoint.named {
+            "settings.read" => Some(handling(db, |db, _| {
+                Box::pin(async move { read_settings(&db).await })
+            })),
+            "settings.change" => Some(handling(db, |db, asked| {
+                Box::pin(async move { change_settings(&db, &asked).await })
+            })),
+            "languages.list" => Some(handling(db, |db, _| {
+                Box::pin(async move { languages(&db).await })
+            })),
+            "languages.add" => Some(handling(db, |db, asked| {
+                Box::pin(async move { add_a_language(&db, &asked).await })
+            })),
+            "languages.make-own" => Some(handling(db, |db, asked| {
+                Box::pin(async move { make_it_ours(&db, &asked).await })
+            })),
+            "languages.forget" => Some(handling(db, |db, asked| {
+                Box::pin(async move { forget_a_language(&db, &asked).await })
+            })),
+            "open.site" => Some(handling(db, |db, _| {
+                Box::pin(async move { public_site(&db).await })
+            })),
+            _ => None,
+        };
+
+        if let Some(handler) = handler {
+            let needs = match (endpoint.who, endpoint.changes) {
+                // What a page reads about the site is open to anybody, so it
+                // asks for nothing held.
+                (Who::Anybody, _) => None,
+                (_, true) => Some(mavi_settings::to_write()),
+                (_, false) => Some(mavi_settings::to_read()),
+            };
+
+            site = site.mount(endpoint, needs, handler);
+        }
+    }
+
+    site
+}
+
+/// Categories and tags, and what is filed under them.
+fn what_it_files_things_under(mut site: Site, db: &Db) -> Site {
+    for endpoint in mavi_taxonomy::endpoints() {
+        let db = db.clone();
+
+        let handler: Option<Handler> = match endpoint.named {
+            "terms.list" => Some(handling(db, |db, asked| {
+                Box::pin(async move { terms(&db, &asked).await })
+            })),
+            "terms.make" => Some(handling(db, |db, asked| {
+                Box::pin(async move { made_a_term(&db, &asked).await })
+            })),
+            "terms.change" => Some(handling(db, |db, asked| {
+                Box::pin(async move { changed_a_term(&db, &asked).await })
+            })),
+            "terms.remove" => Some(handling(db, |db, asked| {
+                Box::pin(async move { removed_a_term(&db, &asked).await })
+            })),
+            "writings.file-under" => Some(handling(db, |db, asked| {
+                Box::pin(async move { filed_under(&db, &asked).await })
+            })),
+            _ => None,
+        };
+
+        if let Some(handler) = handler {
+            let needs = if endpoint.changes {
+                mavi_taxonomy::to_write()
+            } else {
+                mavi_taxonomy::to_read()
+            };
+
+            site = site.mount(endpoint, Some(needs), handler);
+        }
+    }
+
+    site
+}
+
+/// Posts, pages, and whatever else a site decides a thing is.
+fn what_it_wrote(mut site: Site, db: &Db) -> Site {
     for endpoint in mavi_content::endpoints() {
         let db = db.clone();
 
@@ -327,4 +428,296 @@ async fn people(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
     Ok(Answered::Read(
         serde_json::to_value(page).map_err(Error::internal)?,
     ))
+}
+
+async fn read_settings(db: &Db) -> Result<Answered<Value>> {
+    let mut tx = db.begin().await?;
+    let settings = mavi_settings::store::read(&mut tx).await?;
+
+    Ok(Answered::Read(
+        serde_json::to_value(settings).map_err(Error::internal)?,
+    ))
+}
+
+async fn change_settings(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
+    let changes: mavi_settings::store::SettingsChanges = serde_json::from_value(asked.body.clone())
+        .map_err(|_| Error::invalid(Say::of("that_is_not_a_change_to_this_site")))?;
+
+    let mut tx = db.begin().await?;
+    let settings = mavi_settings::store::change(&mut tx, &changes).await?;
+    let receipt = wrote_about(
+        &mut tx,
+        asked,
+        "settings.change",
+        "settings",
+        None,
+        &serde_json::json!({}),
+    )
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(Answered::Changed(
+        serde_json::to_value(settings).map_err(Error::internal)?,
+        receipt,
+    ))
+}
+
+async fn languages(db: &Db) -> Result<Answered<Value>> {
+    let mut tx = db.begin().await?;
+    let writing_in = mavi_settings::store::languages(&mut tx).await?;
+
+    Ok(Answered::Read(
+        serde_json::to_value(writing_in).map_err(Error::internal)?,
+    ))
+}
+
+async fn add_a_language(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
+    let tag = asked.body["tag"].as_str().unwrap_or_default().to_owned();
+    let name = asked.body["name"].as_str().unwrap_or_default().to_owned();
+
+    let mut tx = db.begin().await?;
+    let language = mavi_settings::store::add(&mut tx, &tag, &name).await?;
+    let receipt = wrote_about(
+        &mut tx,
+        asked,
+        "languages.add",
+        "language",
+        Some(&tag),
+        &serde_json::json!({ "name": name }),
+    )
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(Answered::Changed(
+        serde_json::to_value(language).map_err(Error::internal)?,
+        receipt,
+    ))
+}
+
+async fn make_it_ours(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
+    let tag = asked
+        .path
+        .get("tag")
+        .cloned()
+        .ok_or_else(|| Error::invalid(Say::of(THAT_IS_NOT_AN_ID)))?;
+
+    let mut tx = db.begin().await?;
+    let writing_in = mavi_settings::store::make_it_ours(&mut tx, &tag).await?;
+    let receipt = wrote_about(
+        &mut tx,
+        asked,
+        "languages.make-own",
+        "language",
+        Some(&tag),
+        &serde_json::json!({}),
+    )
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(Answered::Changed(
+        serde_json::to_value(writing_in).map_err(Error::internal)?,
+        receipt,
+    ))
+}
+
+async fn forget_a_language(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
+    let tag = asked
+        .path
+        .get("tag")
+        .cloned()
+        .ok_or_else(|| Error::invalid(Say::of(THAT_IS_NOT_AN_ID)))?;
+
+    let mut tx = db.begin().await?;
+    mavi_settings::store::forget(&mut tx, &tag).await?;
+    let receipt = wrote_about(
+        &mut tx,
+        asked,
+        "languages.forget",
+        "language",
+        Some(&tag),
+        &serde_json::json!({}),
+    )
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(Answered::Changed(Value::Null, receipt))
+}
+
+async fn public_site(db: &Db) -> Result<Answered<Value>> {
+    let mut tx = db.begin().await?;
+    let site = mavi_settings::store::public(&mut tx).await?;
+
+    Ok(Answered::Read(
+        serde_json::to_value(site).map_err(Error::internal)?,
+    ))
+}
+
+async fn terms(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
+    let sort = match asked.query.get("sort").map(String::as_str) {
+        Some("tag") => Some(mavi_taxonomy::Sort::Tag),
+        Some("category") => Some(mavi_taxonomy::Sort::Category),
+        _ => None,
+    };
+
+    let query = Query {
+        after: asked.query.get("after").cloned(),
+        limit: asked.query.get("limit").and_then(|how| how.parse().ok()),
+    };
+
+    let mut tx = db.begin().await?;
+    let page = mavi_taxonomy::store::list(
+        &mut tx,
+        sort,
+        asked.query.get("language").map(String::as_str),
+        &query,
+    )
+    .await?;
+
+    Ok(Answered::Read(
+        serde_json::to_value(page).map_err(Error::internal)?,
+    ))
+}
+
+async fn made_a_term(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
+    let new: mavi_taxonomy::store::NewTerm = serde_json::from_value(asked.body.clone())
+        .map_err(|_| Error::invalid(Say::of("that_is_not_a_term")))?;
+
+    let mut tx = db.begin().await?;
+    let term = mavi_taxonomy::store::make(&mut tx, &new).await?;
+    let receipt = wrote_about(
+        &mut tx,
+        asked,
+        "terms.make",
+        "term",
+        Some(&term.id.to_string()),
+        &serde_json::json!({ "sort": term.sort.as_str() }),
+    )
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(Answered::Changed(
+        serde_json::to_value(term).map_err(Error::internal)?,
+        receipt,
+    ))
+}
+
+async fn changed_a_term(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
+    let changes: mavi_taxonomy::store::TermChanges = serde_json::from_value(asked.body.clone())
+        .map_err(|_| Error::invalid(Say::of("that_is_not_a_change_to_a_term")))?;
+
+    let id = mavi_taxonomy::term::TermId(a_uuid(asked)?);
+
+    let mut tx = db.begin().await?;
+    let term = mavi_taxonomy::store::change(&mut tx, id, &changes).await?;
+    let receipt = wrote_about(
+        &mut tx,
+        asked,
+        "terms.change",
+        "term",
+        Some(&id.to_string()),
+        &serde_json::json!({}),
+    )
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(Answered::Changed(
+        serde_json::to_value(term).map_err(Error::internal)?,
+        receipt,
+    ))
+}
+
+async fn removed_a_term(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
+    let id = mavi_taxonomy::term::TermId(a_uuid(asked)?);
+
+    let mut tx = db.begin().await?;
+    mavi_taxonomy::store::remove(&mut tx, id).await?;
+    let receipt = wrote_about(
+        &mut tx,
+        asked,
+        "terms.remove",
+        "term",
+        Some(&id.to_string()),
+        &serde_json::json!({}),
+    )
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(Answered::Changed(Value::Null, receipt))
+}
+
+async fn filed_under(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
+    let writing = a_uuid(asked)?;
+
+    let terms: Vec<Uuid> = asked.body["terms"]
+        .as_array()
+        .map(|terms| {
+            terms
+                .iter()
+                .filter_map(|term| term.as_str())
+                .filter_map(|term| Uuid::parse_str(term).ok())
+                .collect()
+        })
+        .unwrap_or_default();
+
+    let mut tx = db.begin().await?;
+    let filed = mavi_taxonomy::store::file_under(&mut tx, writing, &terms).await?;
+    let receipt = wrote_about(
+        &mut tx,
+        asked,
+        "writings.file-under",
+        "writing",
+        Some(&writing.to_string()),
+        &serde_json::json!({ "under": terms.len() }),
+    )
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(Answered::Changed(
+        serde_json::to_value(filed).map_err(Error::internal)?,
+        receipt,
+    ))
+}
+
+/// The id in the path, whatever the endpoint calls it.
+fn a_uuid(asked: &Asked) -> Result<Uuid> {
+    let id = asked
+        .path
+        .get("id")
+        .ok_or_else(|| Error::invalid(Say::of(THAT_IS_NOT_AN_ID)))?;
+
+    Uuid::parse_str(id).map_err(|_| Error::invalid(Say::of(THAT_IS_NOT_AN_ID)))
+}
+
+/// A receipt about anything, for the handlers whose subject is not a writing.
+async fn wrote_about(
+    tx: &mut Tx,
+    asked: &Asked,
+    did: &str,
+    about: &str,
+    about_id: Option<&str>,
+    what: &Value,
+) -> Result<mavi_audit::Receipt> {
+    let actor = match &asked.caller {
+        Caller::AnAccount { id, .. } => Actor {
+            who: Whom::AnAccount,
+            id: Some(id.clone()),
+            request: "a-request".to_owned(),
+        },
+        Caller::AStudent { id } => Actor {
+            who: Whom::AStudent,
+            id: Some(id.clone()),
+            request: "a-request".to_owned(),
+        },
+        Caller::Nobody => Actor::the_machine("a-request"),
+    };
+
+    record(tx, &actor, did, about, about_id, what).await
 }

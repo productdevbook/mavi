@@ -122,6 +122,17 @@ pub async fn read_in(tx: &mut Tx, bundle: &Bundle) -> Result<Read> {
 
     let mut read = Read::default();
 
+    languages_in(tx, bundle, &mut read).await?;
+
+    let theirs_to_ours = terms_in(tx, bundle, &mut read).await?;
+
+    writings_in(tx, bundle, &theirs_to_ours, &mut read).await
+}
+
+/// Never the site's own. Which language a site writes in is a decision it has
+/// already made, and a file read into it does not get to change that from
+/// underneath whoever made it.
+async fn languages_in(tx: &mut Tx, bundle: &Bundle, read: &mut Read) -> Result<()> {
     for language in &bundle.languages {
         let took = sqlx::query(
             "insert into languages (tag, name, is_the_sites_own) values ($1, $2, false)
@@ -134,12 +145,19 @@ pub async fn read_in(tx: &mut Tx, bundle: &Bundle) -> Result<Read> {
         .map_err(Error::internal)?
         .rows_affected();
 
-        // Never the site's own. Which language a site writes in is a decision
-        // it has already made, and a file read into it does not get to change
-        // that from underneath whoever made it.
         tally(&mut read.languages, &mut read.left_alone, took);
     }
 
+    Ok(())
+}
+
+/// The terms, and what this site ends up calling each of them.
+///
+/// The ids in a file are the file's own. What comes back is the map from those
+/// to whatever is here — including where a term was already here under a
+/// different id, so that a writing filing itself under it points at the one
+/// that exists rather than at nothing.
+async fn terms_in(tx: &mut Tx, bundle: &Bundle, read: &mut Read) -> Result<BTreeMap<Uuid, Uuid>> {
     let mut theirs_to_ours: BTreeMap<Uuid, Uuid> = BTreeMap::new();
 
     for term in &bundle.terms {
@@ -164,34 +182,40 @@ pub async fn read_in(tx: &mut Tx, bundle: &Bundle) -> Result<Read> {
         .await
         .map_err(Error::internal)?;
 
-        match row {
-            Some(_) => {
-                theirs_to_ours.insert(term.id, ours);
-                read.terms += 1;
-            }
-            // Already here. What a writing in this file files itself under has
-            // to point at the one that is here, not at nothing.
-            None => {
-                let here: Option<Uuid> = sqlx::query_scalar(
-                    "select id from terms
-                      where sort = $1 and language = $2 and slug = $3 and deleted_at is null",
-                )
-                .bind(&term.sort)
-                .bind(&term.language)
-                .bind(&term.slug)
-                .fetch_optional(tx.conn())
-                .await
-                .map_err(Error::internal)?;
-
-                if let Some(here) = here {
-                    theirs_to_ours.insert(term.id, here);
-                }
-
-                read.left_alone += 1;
-            }
+        if row.is_some() {
+            theirs_to_ours.insert(term.id, ours);
+            read.terms += 1;
+            continue;
         }
+
+        // Already here, so what points at it has to point at the one that is.
+        let here: Option<Uuid> = sqlx::query_scalar(
+            "select id from terms
+              where sort = $1 and language = $2 and slug = $3 and deleted_at is null",
+        )
+        .bind(&term.sort)
+        .bind(&term.language)
+        .bind(&term.slug)
+        .fetch_optional(tx.conn())
+        .await
+        .map_err(Error::internal)?;
+
+        if let Some(here) = here {
+            theirs_to_ours.insert(term.id, here);
+        }
+
+        read.left_alone += 1;
     }
 
+    Ok(theirs_to_ours)
+}
+
+async fn writings_in(
+    tx: &mut Tx,
+    bundle: &Bundle,
+    theirs_to_ours: &BTreeMap<Uuid, Uuid>,
+    read: &mut Read,
+) -> Result<Read> {
     for writing in &bundle.writings {
         let ours = Uuid::now_v7();
 
@@ -240,7 +264,7 @@ pub async fn read_in(tx: &mut Tx, bundle: &Bundle) -> Result<Read> {
         }
     }
 
-    Ok(read)
+    Ok(read.clone())
 }
 
 /// One row, counted as added or as left alone.

@@ -236,7 +236,7 @@ pub struct CourseChanges {
 
 /// Renames one, or opens or closes it.
 pub async fn change(tx: &mut Tx, id: Uuid, changes: &CourseChanges) -> Result<Course> {
-    let changed = sqlx::query(
+    let touched = sqlx::query(
         "update courses
             set title = coalesce($2, title),
                 about = coalesce($3, about),
@@ -252,7 +252,7 @@ pub async fn change(tx: &mut Tx, id: Uuid, changes: &CourseChanges) -> Result<Co
     .await
     .map_err(Error::internal)?;
 
-    if changed.rows_affected() == 0 {
+    if touched.rows_affected() == 0 {
         return Err(Error::not_found(Say::of(THERE_IS_NO_COURSE_LIKE_THAT)));
     }
 

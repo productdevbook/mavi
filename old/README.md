@@ -26,8 +26,11 @@ working the moment this does.
 1. ~~`server/` produces a binary.~~ It does: `server/mavi` opens the socket,
    applies the migrations, and runs the worker beside itself.
    `server/Dockerfile` makes an image of it.
-2. The scheduler exists — nothing yet queues work on a timer, so a post given
-   a date does not go out on it.
+2. ~~The scheduler exists.~~ It does: `mavi_work::timer` claims a tick with
+   the statement that moves it forward, so two workers is one tick. What a
+   post given a date needed turned out not to be a scheduler at all — a feed
+   asks for `published_at <= now()`, so it goes out on its date without
+   anything running.
 3. The edge, publishing and the assistant protocol are written in the rewrite,
    or a decision is written down that they are not coming back.
 4. `client/` is rewritten against the new API.

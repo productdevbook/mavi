@@ -76,6 +76,21 @@ pub fn work() -> Vec<mavi_work::Kind> {
     ]
 }
 
+/// What happens on its own, and how often.
+///
+/// Beside the list of what work exists, because a schedule for work nothing
+/// runs is a tick that queues something the queue then refuses — and the two
+/// lists being in one file is what makes that a thing somebody notices.
+#[must_use]
+pub fn on_a_timer() -> Vec<mavi_work::Often> {
+    vec![
+        // Stock held for a checkout nobody paid for. Five minutes because a
+        // hold lasts thirty: something that has run out is on the shelf again
+        // within a sixth of the time it was held for.
+        mavi_work::Often::minutes(mavi_shop::PUT_BACK_WHAT_NOBODY_PAID_FOR.name, 5),
+    ]
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -198,6 +213,22 @@ mod tests {
             the_site_has, asked,
             "the capabilities a site can grant and the ones anything asks for are not the same list"
         );
+    }
+
+    #[test]
+    fn nothing_is_scheduled_that_nothing_runs() {
+        // A tick for work the queue refuses is a row that fails every five
+        // minutes for ever, and the only sign of it is a dead job nobody
+        // reads.
+        let runs: BTreeSet<&str> = work().iter().map(|kind| kind.name).collect();
+
+        for often in on_a_timer() {
+            assert!(
+                runs.contains(often.kind),
+                "{} is on a timer and nothing runs it",
+                often.kind
+            );
+        }
     }
 
     #[test]

@@ -55,7 +55,21 @@ async fn main() -> Result<()> {
     // that is a decision rather than a convenience: a queue nobody runs is a
     // queue that fills up quietly, and one installation should not need two
     // things started in the right order to send a letter.
-    let working = tokio::spawn(doing::keep_working(db.clone(), queue, told.worker.clone()));
+    // What happens on its own is written down at every start: how often is a
+    // fact about the code, and a row that says otherwise is corrected here
+    // rather than being a second copy of it.
+    {
+        let mut tx = db.begin().await?;
+        mavi_work::keep(&mut tx, &mavi_everything::on_a_timer()).await?;
+        tx.commit().await?;
+    }
+
+    let working = tokio::spawn(doing::keep_working(
+        db.clone(),
+        queue.clone(),
+        told.worker.clone(),
+    ));
+    let timing = tokio::spawn(doing::keep_time(db.clone(), queue, told.worker.clone()));
 
     axum::serve(listener, router)
         .with_graceful_shutdown(asked_to_stop())
@@ -66,6 +80,7 @@ async fn main() -> Result<()> {
     // left with a lapsed lease rather than half done: another worker takes it
     // when the lease runs out, which is what the lease is for.
     working.abort();
+    timing.abort();
 
     println!("stopped");
 

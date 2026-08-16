@@ -1149,6 +1149,15 @@ fn what_it_wrote(mut site: Site, db: &Db) -> Site {
         let db = db.clone();
 
         let handler: Option<Handler> = match endpoint.named {
+            "kinds.list" => Some(handling(db, |db, _| {
+                Box::pin(async move { the_kinds(&db).await })
+            })),
+            "kinds.declare" => Some(handling(db, |db, asked| {
+                Box::pin(async move { declared_a_kind(&db, &asked).await })
+            })),
+            "kinds.stop-saying" => Some(handling(db, |db, asked| {
+                Box::pin(async move { stopped_saying(&db, &asked).await })
+            })),
             "writings.list" => Some(handling(db, |db, asked| {
                 Box::pin(async move { listed(&db, &asked).await })
             })),
@@ -1911,6 +1920,70 @@ async fn ended_a_key(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
         "keys.end",
         "key",
         Some(&id.to_string()),
+        &serde_json::json!({}),
+    )
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(Answered::Changed(Value::Null, receipt))
+}
+
+/// Which kind an address named.
+fn which_kind(asked: &Asked) -> String {
+    asked.path.get("kind").cloned().unwrap_or_default()
+}
+
+async fn the_kinds(db: &Db) -> Result<Answered<Value>> {
+    let mut tx = db.begin().await?;
+    let kinds = mavi_content::kinds::every(&mut tx).await?;
+
+    Ok(Answered::Read(
+        serde_json::to_value(kinds).map_err(Error::internal)?,
+    ))
+}
+
+async fn declared_a_kind(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
+    let kind = which_kind(asked);
+    let said: mavi_content::kinds::Declaring = serde_json::from_value(asked.body.clone())
+        .map_err(|_| Error::invalid(Say::of(mavi_content::kinds::THAT_IS_NOT_A_KIND)))?;
+
+    let mut tx = db.begin().await?;
+    let declared = mavi_content::kinds::declare(&mut tx, &kind, &said).await?;
+
+    // What it asks for now, in the receipt. What somebody needs a year later
+    // is what the shape was, not that somebody edited it.
+    let receipt = wrote_about(
+        &mut tx,
+        asked,
+        "kinds.declare",
+        "kind",
+        Some(&declared.kind),
+        &serde_json::json!({ "fields": declared.fields.fields().len() }),
+    )
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(Answered::Changed(
+        serde_json::to_value(declared).map_err(Error::internal)?,
+        receipt,
+    ))
+}
+
+async fn stopped_saying(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
+    let kind = which_kind(asked);
+
+    let mut tx = db.begin().await?;
+
+    mavi_content::kinds::stop_saying(&mut tx, &kind).await?;
+
+    let receipt = wrote_about(
+        &mut tx,
+        asked,
+        "kinds.stop-saying",
+        "kind",
+        Some(&kind),
         &serde_json::json!({}),
     )
     .await?;

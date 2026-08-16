@@ -15,9 +15,9 @@ use sqlx::Row;
 use sqlx::postgres::PgRow;
 use uuid::Uuid;
 
-use crate::field::{Declared, Field};
 use crate::filled::Filled;
 use crate::{BY_RECENT, Form, KEPT_FOR_DAYS, OpenForm, Sent};
+use mavi_core::asked::{Declared, Field};
 
 pub const NOTHING_IS_ASKED_AT_THAT_ADDRESS: &str = "nothing_is_asked_at_that_address";
 pub const SOMETHING_ELSE_ASKS_AT_THAT_ADDRESS: &str = "something_else_asks_at_that_address";

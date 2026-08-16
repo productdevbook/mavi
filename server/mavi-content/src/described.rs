@@ -26,9 +26,46 @@ pub fn shapes() -> Vec<Shape> {
     vec![
         a_writing(),
         Shape::page_of("WritingPage", "Writing", "What a site has written."),
+        a_kind(),
+        Shape::list_of(
+            "KindList",
+            "AKind",
+            "What a site decided its kinds of writing are. A handful, with \
+             nothing to page through.",
+        ),
+        Shape::new(
+            "Declaring",
+            "What a kind asks for.",
+            vec![
+                Field::new("name", Of::One(Is::Text), "What to call it on a screen."),
+                Field::new("fields", Of::ManyOf("FormField"), WHAT_IT_ASKS).maybe(),
+            ],
+        ),
         something_to_write(),
         what_may_change(),
     ]
+}
+
+const WHAT_IT_ASKS: &str = "What one of them asks for, in the same vocabulary \
+                            a form uses — the two are one idea, so they are one \
+                            vocabulary rather than two that drift. Empty means \
+                            a kind whose fields nothing checks, which is what \
+                            every kind is until a site says otherwise.";
+
+fn a_kind() -> Shape {
+    Shape::new(
+        "AKind",
+        "One kind of writing, as a site declared it. A kind is free text, \
+         because a CMS whose kinds are fixed at compile time is a CMS for one \
+         site — this is where a site says what its own ask for, so that a \
+         panel can draw the right boxes and something can check what arrives.",
+        vec![
+            Field::new("kind", Of::One(Is::Text), "The word a writing carries."),
+            Field::new("name", Of::One(Is::Text), "What to call it on a screen."),
+            Field::new("fields", Of::ManyOf("FormField"), WHAT_IT_ASKS),
+            Field::new("created_at", Of::One(Is::Moment), "When it was declared."),
+        ],
+    )
 }
 
 fn a_writing() -> Shape {

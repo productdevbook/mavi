@@ -13,6 +13,7 @@
 //! they do.
 
 pub mod described;
+pub mod kinds;
 pub mod listing;
 pub mod store;
 pub mod writing;
@@ -42,6 +43,45 @@ pub const fn to_write() -> Needs {
 #[must_use]
 pub fn endpoints() -> Vec<Endpoint> {
     vec![
+        Endpoint {
+            method: Method::Get,
+            path: "/api/kinds",
+            named: "kinds.list",
+            about: "What a site decided its kinds of writing are, and what each \
+                    one asks for.",
+            who: Who::AnAccount,
+            parameters: Vec::new(),
+            takes: None,
+            answers: Answers::With("KindList"),
+            refuses: &[],
+            changes: false,
+        },
+        Endpoint {
+            method: Method::Put,
+            path: "/api/kinds/{kind}",
+            named: "kinds.declare",
+            about: "Says what a kind asks for, or says it differently. One \
+                    door for both, so the checking cannot be two things.",
+            who: Who::AnAccount,
+            parameters: vec![Parameter::path("kind", Is::Text, "Which kind.")],
+            takes: Some("Declaring"),
+            answers: Answers::With("AKind"),
+            refuses: &[Code::Invalid],
+            changes: true,
+        },
+        Endpoint {
+            method: Method::Delete,
+            path: "/api/kinds/{kind}",
+            named: "kinds.stop-saying",
+            about: "Stops saying what a kind is. The writings stay, and so \
+                    does what is in their fields.",
+            who: Who::AnAccount,
+            parameters: vec![Parameter::path("kind", Is::Text, "Which kind.")],
+            takes: None,
+            answers: Answers::Nothing,
+            refuses: &[Code::NotFound],
+            changes: true,
+        },
         Endpoint {
             method: Method::Get,
             path: "/api/writings",

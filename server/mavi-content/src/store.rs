@@ -157,6 +157,11 @@ pub async fn read(tx: &mut Tx, id: WritingId) -> Result<Writing> {
 /// address both find it free.
 pub async fn make(tx: &mut Tx, new: &New) -> Result<Writing> {
     let (kind, slug) = new.checked()?;
+
+    // What the site said this kind asks for, where it said anything. A kind
+    // nothing was declared about keeps whatever is in `fields`, which is what
+    // every kind is until somebody says otherwise.
+    fields_fit(tx, kind.as_str(), &new.fields).await?;
     let (state, published_at) = new.goes_out();
 
     let row = sqlx::query(&format!(
@@ -275,6 +280,10 @@ pub async fn change(tx: &mut Tx, id: WritingId, changes: &Changes) -> Result<Wri
         None => now.slug.as_str().to_owned(),
     };
 
+    if let Some(fields) = &changes.fields {
+        fields_fit(tx, now.kind.as_str(), fields).await?;
+    }
+
     let row = sqlx::query(&format!(
         "update writings
             set slug = $8,
@@ -310,6 +319,24 @@ pub async fn change(tx: &mut Tx, id: WritingId, changes: &Changes) -> Result<Wri
         .map(a_writing)
         .transpose()?
         .ok_or_else(|| Error::not_found(Say::of(NOTHING_IS_WRITTEN_AT_THAT_ADDRESS)))
+}
+
+/// What a site said this kind asks for, held against what arrived.
+///
+/// Nothing declared means nothing checked — which is not a hole, it is what a
+/// kind is until a site says otherwise, and it is what every kind was before
+/// there was anywhere to say it.
+async fn fields_fit(tx: &mut Tx, kind: &str, fields: &serde_json::Value) -> Result<()> {
+    let Some(declared) = crate::kinds::asked_for(tx, kind).await? else {
+        return Ok(());
+    };
+
+    // A kind that was declared and a writing sending nothing is a writing with
+    // none of its required fields, which is what the check is for.
+    let empty = serde_json::Map::new();
+    let answers = fields.as_object().unwrap_or(&empty);
+
+    mavi_core::asked::fits(answers, &declared)
 }
 
 /// Throws one away.

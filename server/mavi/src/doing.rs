@@ -92,7 +92,6 @@ async fn doing(db: &Db, job: &Job) -> Result<()> {
         }
         name => not_written_yet(name, "nothing here knows what this is"),
     }
-    .map(|()| ())
 }
 
 /// A kind that is declared and has no hands yet.

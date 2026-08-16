@@ -23,6 +23,7 @@ use std::future::Future;
 use std::pin::Pin;
 
 use chrono::{DateTime, Utc};
+use uuid::Uuid;
 
 use crate::error::Result;
 
@@ -59,6 +60,45 @@ pub trait Files: Debug + Send + Sync {
     fn put<'a>(&'a self, at: &'a str, bytes: Vec<u8>) -> Answering<'a, ()>;
     fn get<'a>(&'a self, at: &'a str) -> Answering<'a, Vec<u8>>;
     fn remove<'a>(&'a self, at: &'a str) -> Answering<'a, ()>;
+}
+
+/// Turning what a design is into what a visitor is served.
+///
+/// The one port that runs somebody else's code. A site's look is a project —
+/// it may be plain files, and it may be a generator with its own dependencies
+/// and its own command. The second is a machine running whatever a customer
+/// wrote, which is a sandbox, a scheduler and a quota rather than a function,
+/// and none of those belong in a library that anybody installs.
+///
+/// So this software says what it needs and does not say how. What ships with
+/// it serves what a design put under `public/`, which is a whole site when a
+/// site is plain files. A host that builds each site's own project implements
+/// this instead, and nothing above here knows which one it got.
+pub trait Builds: Debug + Send + Sync {
+    /// `everything` is a set of changes, whole: every path in the project and
+    /// its bytes. Read whole rather than a file at a time because a build
+    /// reads all of them, and files read one after another while somebody is
+    /// writing are a build of two different things.
+    fn build<'a>(
+        &'a self,
+        change: Uuid,
+        everything: &'a [(String, Vec<u8>)],
+    ) -> Answering<'a, Built>;
+}
+
+/// What a build came back with.
+///
+/// Not a `Result`. A design that does not compile is an ordinary thing for
+/// somebody to go and fix, and what they need is **the message** — so it comes
+/// back as an answer rather than as an error, which is the only way it survives
+/// to be shown. An `Err` from [`Builds::build`] means the builder itself could
+/// not be reached, and that is this end's problem rather than theirs.
+#[derive(Clone, Debug)]
+pub enum Built {
+    /// What to serve, by the path a visitor asks for it at.
+    Serve(Vec<(String, Vec<u8>)>),
+    /// It did not build, and this is what it said.
+    WentWrong(String),
 }
 
 /// Where a letter goes.

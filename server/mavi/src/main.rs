@@ -18,7 +18,7 @@ mod who;
 use std::sync::Arc;
 
 use mavi_core::error::{Error, Result};
-use mavi_core::ports::Files;
+use mavi_core::ports::{Builds, Files};
 use mavi_db::Db;
 use mavi_files::InADirectory;
 use mavi_work::Queue;
@@ -40,6 +40,12 @@ async fn main() -> Result<()> {
     db.migrate().await?;
 
     let files: Arc<dyn Files> = Arc::new(InADirectory::at(&told.files));
+
+    // A site of plain files. An installation that builds each site's own
+    // project hands in its own here instead — running somebody else's build
+    // command is a sandbox and a quota rather than a function, and this
+    // process has neither.
+    let builds: Arc<dyn Builds> = Arc::new(mavi_everything::building::WhatIsInPublic);
     let queue = Queue::of(&mavi_everything::work());
 
     let router = mavi_everything::mounted::everything(&db, &files, who::whoever_holds(db.clone()));
@@ -67,6 +73,7 @@ async fn main() -> Result<()> {
         db.clone(),
         queue.clone(),
         Arc::clone(&files),
+        Arc::clone(&builds),
         told.worker.clone(),
     ));
     let timing = tokio::spawn(doing::keep_time(db.clone(), queue, told.worker.clone()));

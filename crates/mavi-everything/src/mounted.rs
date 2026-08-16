@@ -44,7 +44,32 @@ pub fn site(db: &Db, who_is_asking: WhoIsAsking) -> Site {
     let site = what_this_site_is(site, db);
     let site = what_it_files_things_under(site, db);
 
-    what_it_wrote(site, db)
+    let site = what_it_wrote(site, db);
+
+    what_has_been_done(site, db)
+}
+
+/// What was done here, which is read and never written through the API.
+fn what_has_been_done(mut site: Site, db: &Db) -> Site {
+    for endpoint in mavi_audit::endpoints() {
+        let db = db.clone();
+
+        let handler: Option<Handler> = match endpoint.named {
+            "audit.list" => Some(handling(db, |db, asked| {
+                Box::pin(async move { what_was_done(&db, &asked).await })
+            })),
+            "audit.read" => Some(handling(db, |db, asked| {
+                Box::pin(async move { one_receipt(&db, &asked).await })
+            })),
+            _ => None,
+        };
+
+        if let Some(handler) = handler {
+            site = site.mount(endpoint, Some(mavi_audit::to_read()), handler);
+        }
+    }
+
+    site
 }
 
 /// Setting up, signing in, and who has an account.
@@ -62,6 +87,18 @@ fn the_way_in(mut site: Site, db: &Db) -> Site {
             "people.list" => Some(handling(db, |db, asked| {
                 Box::pin(async move { people(&db, &asked).await })
             })),
+            "sessions.end" => Some(handling(db, |db, asked| {
+                Box::pin(async move { signed_out(&db, &asked).await })
+            })),
+            "people.invite" => Some(handling(db, |db, asked| {
+                Box::pin(async move { invited(&db, &asked).await })
+            })),
+            "passwords.choose" => Some(handling(db, |db, asked| {
+                Box::pin(async move { chose_a_password(&db, &asked).await })
+            })),
+            "addresses.prove" => Some(handling(db, |db, asked| {
+                Box::pin(async move { proved_an_address(&db, &asked).await })
+            })),
             _ => None,
         };
 
@@ -69,8 +106,12 @@ fn the_way_in(mut site: Site, db: &Db) -> Site {
             // The two ways in ask for nothing held, because whoever is using
             // them is holding nothing yet. What they answer is what the guard
             // has to work with afterwards.
+            // The ways in ask for nothing held, because whoever is using them
+            // is holding nothing yet. Everything else here is about accounts,
+            // which is what `people` is.
             let needs = match endpoint.named {
                 "people.list" => Some(mavi_people::to_read()),
+                "people.invite" => Some(mavi_people::to_write()),
                 _ => None,
             };
 
@@ -720,4 +761,163 @@ async fn wrote_about(
     };
 
     record(tx, &actor, did, about, about_id, what).await
+}
+
+async fn signed_out(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
+    // The token itself, not who it belongs to: signing out is about the one
+    // session in hand, and reading it from the header is what makes "this
+    // browser" mean this browser rather than every browser they own.
+    let token = asked
+        .body
+        .get("token")
+        .and_then(Value::as_str)
+        .unwrap_or_default()
+        .to_owned();
+
+    let mut tx = db.begin().await?;
+    mavi_people::store::sign_out(&mut tx, &token).await?;
+
+    let receipt = wrote_about(
+        &mut tx,
+        asked,
+        "sessions.end",
+        "session",
+        asked.caller.id(),
+        &serde_json::json!({}),
+    )
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(Answered::Changed(Value::Null, receipt))
+}
+
+async fn invited(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
+    let invitation: mavi_people::store::Invitation = serde_json::from_value(asked.body.clone())
+        .map_err(|_| Error::invalid(Say::of("that_is_not_an_invitation")))?;
+
+    let mut tx = db.begin().await?;
+    let (person, token) = mavi_people::store::invite(&mut tx, &invitation).await?;
+
+    let receipt = wrote_about(
+        &mut tx,
+        asked,
+        "people.invite",
+        "person",
+        Some(&person.id.to_string()),
+        // Never the token. What is worth recording is that somebody was
+        // invited; the link is theirs and a record of it is a way in.
+        &serde_json::json!({ "role": invitation.role }),
+    )
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(Answered::Changed(
+        serde_json::json!({ "person": person, "link": token }),
+        receipt,
+    ))
+}
+
+async fn chose_a_password(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
+    let token = asked.body["token"].as_str().unwrap_or_default().to_owned();
+    let said = asked.body["password"]
+        .as_str()
+        .unwrap_or_default()
+        .to_owned();
+
+    let mut tx = db.begin().await?;
+
+    // Which of the two it was is the ticket's own business, and both set a
+    // password — so this asks for either in turn rather than making the caller
+    // say which link they are holding.
+    let redeemed = mavi_people::store::redeem(
+        &mut tx,
+        &token,
+        mavi_people::ticket::For::AnInvitation,
+        Some(&said),
+    )
+    .await;
+
+    if redeemed.is_err() {
+        mavi_people::store::redeem(
+            &mut tx,
+            &token,
+            mavi_people::ticket::For::AForgottenPassword,
+            Some(&said),
+        )
+        .await?;
+    }
+
+    let receipt = wrote_about(
+        &mut tx,
+        asked,
+        "passwords.choose",
+        "password",
+        None,
+        &serde_json::json!({}),
+    )
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(Answered::Changed(Value::Null, receipt))
+}
+
+async fn proved_an_address(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
+    let token = asked.body["token"].as_str().unwrap_or_default().to_owned();
+
+    let mut tx = db.begin().await?;
+
+    mavi_people::store::redeem(
+        &mut tx,
+        &token,
+        mavi_people::ticket::For::AnAddressToProve,
+        None,
+    )
+    .await?;
+
+    let receipt = wrote_about(
+        &mut tx,
+        asked,
+        "addresses.prove",
+        "address",
+        None,
+        &serde_json::json!({}),
+    )
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(Answered::Changed(Value::Null, receipt))
+}
+
+async fn what_was_done(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
+    let query = Query {
+        after: asked.query.get("after").cloned(),
+        limit: asked.query.get("limit").and_then(|how| how.parse().ok()),
+    };
+
+    let mut tx = db.begin().await?;
+    let page = mavi_audit::reading::list(
+        &mut tx,
+        asked.query.get("about").map(String::as_str),
+        asked.query.get("about_id").map(String::as_str),
+        asked.query.get("who_id").map(String::as_str),
+        &query,
+    )
+    .await?;
+
+    Ok(Answered::Read(
+        serde_json::to_value(page).map_err(Error::internal)?,
+    ))
+}
+
+async fn one_receipt(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
+    let mut tx = db.begin().await?;
+    let written = mavi_audit::reading::read(&mut tx, a_uuid(asked)?).await?;
+
+    Ok(Answered::Read(
+        serde_json::to_value(written).map_err(Error::internal)?,
+    ))
 }

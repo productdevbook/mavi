@@ -317,3 +317,230 @@ async fn a_token_nobody_was_given_reaches_nothing() {
 
     assert_eq!(status, StatusCode::UNAUTHORIZED);
 }
+
+#[tokio::test]
+async fn somebody_invited_chooses_a_password_and_can_then_get_in() {
+    if postgres().is_none() {
+        return;
+    }
+
+    let db = fresh("invited").await;
+
+    let (_, ready) = asked(&db, posting("/api/setup", &setting_up())).await;
+    let token = ready["token"].as_str().expect("a token").to_owned();
+    let role = ready["person"]["role"].as_str().expect("a role").to_owned();
+
+    let (status, invited) = asked(
+        &db,
+        holding(
+            posting(
+                "/api/people",
+                &json!({
+                    "email": "somebody-else@example.test",
+                    "name": "Somebody Else",
+                    "role": role,
+                }),
+            ),
+            &token,
+        ),
+    )
+    .await;
+
+    assert_eq!(status, StatusCode::CREATED);
+
+    // The account exists straight away and has no password: that is the
+    // difference between an invitation and a promise.
+    let link = invited["link"].as_str().expect("a link").to_owned();
+
+    let (status, _) = asked(
+        &db,
+        posting(
+            "/api/sessions",
+            &json!({
+                "email": "somebody-else@example.test",
+                "password": "a long enough password",
+            }),
+        ),
+    )
+    .await;
+    assert_eq!(
+        status,
+        StatusCode::FORBIDDEN,
+        "an invitation is not a way in"
+    );
+
+    let (status, _) = asked(
+        &db,
+        posting(
+            "/api/passwords",
+            &json!({ "token": link, "password": "another long password" }),
+        ),
+    )
+    .await;
+    assert_eq!(status, StatusCode::NO_CONTENT);
+
+    let (status, _) = asked(
+        &db,
+        posting(
+            "/api/sessions",
+            &json!({
+                "email": "somebody-else@example.test",
+                "password": "another long password",
+            }),
+        ),
+    )
+    .await;
+    assert_eq!(status, StatusCode::CREATED);
+}
+
+#[tokio::test]
+async fn a_link_is_good_once() {
+    if postgres().is_none() {
+        return;
+    }
+
+    let db = fresh("once_only").await;
+
+    let (_, ready) = asked(&db, posting("/api/setup", &setting_up())).await;
+    let token = ready["token"].as_str().expect("a token").to_owned();
+    let role = ready["person"]["role"].as_str().expect("a role").to_owned();
+
+    let (_, invited) = asked(
+        &db,
+        holding(
+            posting(
+                "/api/people",
+                &json!({
+                    "email": "somebody-else@example.test",
+                    "name": "Somebody Else",
+                    "role": role,
+                }),
+            ),
+            &token,
+        ),
+    )
+    .await;
+
+    let link = invited["link"].as_str().expect("a link").to_owned();
+
+    let choosing = |password: &'static str| {
+        posting(
+            "/api/passwords",
+            &json!({ "token": link.clone(), "password": password }),
+        )
+    };
+
+    let (first, _) = asked(&db, choosing("another long password")).await;
+    assert_eq!(first, StatusCode::NO_CONTENT);
+
+    // A link found later in an inbox is a link that does nothing. One refusal
+    // for spent, expired and never-ours together, because telling somebody
+    // which of the three it was tells them whether a token exists.
+    let (second, refusal) = asked(&db, choosing("a different long password")).await;
+
+    assert_eq!(second, StatusCode::UNPROCESSABLE_ENTITY);
+    assert_eq!(refusal["key"], "that_link_has_been_used_or_run_out");
+}
+
+#[tokio::test]
+async fn signing_out_stops_the_token_that_was_used_and_leaves_a_record() {
+    if postgres().is_none() {
+        return;
+    }
+
+    let db = fresh("out").await;
+
+    let (_, ready) = asked(&db, posting("/api/setup", &setting_up())).await;
+    let token = ready["token"].as_str().expect("a token").to_owned();
+
+    let (status, _) = asked(
+        &db,
+        holding(
+            Request::builder()
+                .method("DELETE")
+                .uri("/api/sessions")
+                .header("content-type", "application/json")
+                .body(Body::from(json!({ "token": token.clone() }).to_string()))
+                .expect("a request"),
+            &token,
+        ),
+    )
+    .await;
+
+    assert_eq!(status, StatusCode::NO_CONTENT);
+
+    // Immediately, which is what "the token stops working" has to mean.
+    let (status, _) = asked(
+        &db,
+        holding(
+            Request::builder()
+                .uri("/api/people")
+                .body(Body::empty())
+                .expect("a request"),
+            &token,
+        ),
+    )
+    .await;
+
+    assert_eq!(status, StatusCode::UNAUTHORIZED);
+
+    // And the row is ended rather than deleted, so "when did this stop
+    // working" has an answer.
+    let ended: bool = sqlx::query("select ended_at is not null from sessions limit 1")
+        .fetch_one(db.pool())
+        .await
+        .expect("the session")
+        .get(0);
+
+    assert!(ended);
+}
+
+#[tokio::test]
+async fn what_was_done_can_be_read_back_and_never_written() {
+    if postgres().is_none() {
+        return;
+    }
+
+    let db = fresh("record").await;
+
+    let (_, ready) = asked(&db, posting("/api/setup", &setting_up())).await;
+    let token = ready["token"].as_str().expect("a token").to_owned();
+
+    let (status, what) = asked(
+        &db,
+        holding(
+            Request::builder()
+                .uri("/api/audit?about=site")
+                .body(Body::empty())
+                .expect("a request"),
+            &token,
+        ),
+    )
+    .await;
+
+    assert_eq!(status, StatusCode::OK);
+
+    let items = what["items"].as_array().expect("items");
+    assert_eq!(items.len(), 1);
+    assert_eq!(items[0]["did"], "setup.once");
+
+    // There is no way to add to it or take from it, and the router says so in
+    // the plainest way there is.
+    let (status, _) = asked(
+        &db,
+        holding(
+            Request::builder()
+                .method("DELETE")
+                .uri(format!(
+                    "/api/audit/{}",
+                    items[0]["id"].as_str().unwrap_or_default()
+                ))
+                .body(Body::empty())
+                .expect("a request"),
+            &token,
+        ),
+    )
+    .await;
+
+    assert_eq!(status, StatusCode::METHOD_NOT_ALLOWED);
+}

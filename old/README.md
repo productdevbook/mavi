@@ -51,9 +51,19 @@ working the moment this does.
      through the same `Door::call` — so "forbidden in the panel, allowed over
      there" is impossible rather than unlikely.
 4. `client/` is rewritten against the new API.
+   - ~~It has something to be written against.~~ `client/src/api/mavi.ts` is
+     generated from the description — a hundred and eighteen types and a
+     hundred and two calls, each carrying the sentence its endpoint or its
+     field already had. A test writes it and compares, so a shape that moves
+     and a panel that has not caught up is a red build rather than a screen
+     that breaks in somebody's browser.
+   - **The screens.** Forty-three routes, of which forty-one talk to the API
+     this replaces. `src/lib/v1.ts` is already the right shape — it keys its
+     calls by name and takes its types from `@api` — so what is left is
+     pointing that alias at the new file and following the type errors.
 
-Three of the four are done. What is left is the panel, and when it is, this
-directory is one `git rm -r` and the history keeps it.
+Three of the four are done, and the fourth has what it needs to start. When
+the last one is, this directory is one `git rm -r` and the history keeps it.
 
 ## Until then
 

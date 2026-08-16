@@ -189,6 +189,80 @@ async fn a_published_page_is_what_a_visitor_gets() {
 }
 
 #[tokio::test]
+async fn a_browser_that_already_has_the_page_is_not_sent_it_again() {
+    if postgres().is_none() {
+        return;
+    }
+
+    let db = fresh("held").await;
+    let files = somewhere_for_files();
+
+    a_published_site(
+        &db,
+        &files,
+        &[("public/index.html", "<h1>The front page</h1>")],
+    )
+    .await;
+
+    let first = everything(&db, &files, a_visitor())
+        .oneshot(
+            Request::builder()
+                .uri("/")
+                .body(Body::empty())
+                .expect("a request"),
+        )
+        .await
+        .expect("an answer");
+
+    let tag = first
+        .headers()
+        .get(header::ETAG)
+        .expect("a tag on what came back")
+        .to_str()
+        .expect("a readable tag")
+        .to_owned();
+
+    for said in [
+        tag.clone(),
+        "*".to_owned(),
+        format!("\"something-else\", {tag}"),
+    ] {
+        let again = everything(&db, &files, a_visitor())
+            .oneshot(
+                Request::builder()
+                    .uri("/")
+                    .header(header::IF_NONE_MATCH, &said)
+                    .body(Body::empty())
+                    .expect("a request"),
+            )
+            .await
+            .expect("an answer");
+
+        assert_eq!(again.status(), StatusCode::NOT_MODIFIED, "{said}");
+
+        let body = axum::body::to_bytes(again.into_body(), 256 * 1024)
+            .await
+            .expect("a body");
+
+        assert!(body.is_empty(), "{said} was answered with the page anyway");
+    }
+
+    // A tag that is not this one is a page that has changed since.
+    let changed = everything(&db, &files, a_visitor())
+        .oneshot(
+            Request::builder()
+                .uri("/")
+                .header(header::IF_NONE_MATCH, "\"not-this-one\"")
+                .body(Body::empty())
+                .expect("a request"),
+        )
+        .await
+        .expect("an answer");
+
+    assert_eq!(changed.status(), StatusCode::OK);
+}
+
+#[tokio::test]
 async fn nothing_published_is_not_a_site_yet() {
     if postgres().is_none() {
         return;

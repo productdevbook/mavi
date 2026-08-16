@@ -35,7 +35,16 @@ impl std::fmt::Debug for Site {
 /// one function of two values.
 pub async fn serve(site: Site, request: Request<Body>) -> Response {
     let path = request.uri().path().to_owned();
+    let held = request.headers().get(header::IF_NONE_MATCH).cloned();
 
+    let answer = answering(&site, &path).await;
+
+    already_have_it(answer, held.as_ref())
+}
+
+/// What a visitor is being told, before anything is said about what they
+/// already have.
+async fn answering(site: &Site, path: &str) -> Response {
     // Under `/api`, the API's own shape holds all the way down: a client that
     // mistypes a path gets the refusal every other refusal looks like, not a
     // site's not-found page. One fallback, and this is the line that keeps the
@@ -52,17 +61,17 @@ pub async fn serve(site: Site, request: Request<Body>) -> Response {
     // is a fact about the site that caches and search engines act on, and
     // saying it because a connection failed is how an outage becomes a site
     // that has been deindexed.
-    let Ok(live) = published(&site).await else {
+    let Ok(live) = published(site).await else {
         return (StatusCode::SERVICE_UNAVAILABLE, "not answering just now").into_response();
     };
 
     // Somebody looking at a build. Under the build's own id, which nothing
     // links to — so this comes before what is published, and works for a
     // design nobody has put out yet.
-    if let Some((build, rest)) = mavi_edge::looking(&path) {
-        return match file(&site, build, &rest).await {
+    if let Some((build, rest)) = mavi_edge::looking(path) {
+        return match file(site, build, &rest).await {
             Some(answer) => answer,
-            None => nothing_here(&site, live).await,
+            None => nothing_here(site, live).await,
         };
     }
 
@@ -72,23 +81,67 @@ pub async fn serve(site: Site, request: Request<Body>) -> Response {
         return (StatusCode::NOT_FOUND, "nothing is published yet").into_response();
     };
 
-    if let Some(answer) = file(&site, live, &path).await {
+    if let Some(answer) = file(site, live, path).await {
         return answer;
     }
 
     // No page there. Before saying so: a page that was renamed keeps its old
     // address working, which is the other half of writing the row.
-    if let Some(went) = moved(&site, &path).await {
+    if let Some(went) = moved(site, path).await {
         return went;
     }
 
     // A missing stylesheet is not a missing page. Answering one with a page of
     // HTML is how a stylesheet becomes a parse error in somebody's console
     // instead of a plain four-oh-four.
-    match mavi_edge::file_for(&path).map(|file| Kind::of(&file)) {
+    match mavi_edge::file_for(path).map(|file| Kind::of(&file)) {
         Some(Kind::Something) => (StatusCode::NOT_FOUND, "not found").into_response(),
-        _ => nothing_here(&site, Some(live)).await,
+        _ => nothing_here(site, Some(live)).await,
     }
+}
+
+/// The same answer with nothing in it, where the browser already has this.
+///
+/// A tag that is sent and never read is a header that does nothing: the whole
+/// point of naming what came back is that the next request can carry the name
+/// and be told there is nothing new. Only for a page that was found — a
+/// refusal is short, and "you already have this refusal" is a second thing to
+/// get right for no saving.
+fn already_have_it(answer: Response, held: Option<&HeaderValue>) -> Response {
+    if answer.status() != StatusCode::OK {
+        return answer;
+    }
+
+    let Some(held) = held.and_then(|held| held.to_str().ok()) else {
+        return answer;
+    };
+
+    let Some(tag) = answer
+        .headers()
+        .get(header::ETAG)
+        .and_then(|tag| tag.to_str().ok())
+    else {
+        return answer;
+    };
+
+    // A list, and `*` meaning whatever is there. Both are the specification's
+    // and neither is what a browser usually sends, which is exactly why they
+    // are the two that go untested everywhere else.
+    let theirs = held
+        .split(',')
+        .map(str::trim)
+        .any(|one| one == "*" || one == tag);
+
+    if !theirs {
+        return answer;
+    }
+
+    let (mut parts, _) = answer.into_parts();
+    parts.status = StatusCode::NOT_MODIFIED;
+    // Nothing is being sent, so nothing may say how much.
+    parts.headers.remove(header::CONTENT_LENGTH);
+
+    Response::from_parts(parts, Body::empty())
 }
 
 /// Which set of changes is live, where the database says.

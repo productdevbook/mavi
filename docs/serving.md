@@ -65,7 +65,7 @@ guessed from contents is a file a browser can be talked into running.
 
 ## When something is not there
 
-Three different answers, and the difference matters:
+Four different answers, and the difference matters:
 
 | What happened | What a visitor gets |
 |---|---|
@@ -106,6 +106,12 @@ address does not carry which build answered it, so a longer hold would serve
 yesterday's page out of somebody's browser after a publish. The fix for that
 is names with a fingerprint in them, written by whatever builds the site —
 not a bigger number here.
+
+The tag is read as well as written. A request carrying `If-None-Match` for
+the page it already has is answered `304` with nothing in it — a list and
+`*` both understood, because both are the specification's and neither is
+what a browser usually sends, which is why they are the two that go
+untested.
 
 Whatever a build produced is the site's own, and nothing in the way decides
 what it may do: a content policy this software put on its own answers would

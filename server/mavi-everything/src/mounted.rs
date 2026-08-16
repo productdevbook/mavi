@@ -37,7 +37,6 @@ pub const THAT_IS_NOT_AN_ID: &str = "that_is_not_an_id";
 /// the API answers, and everything else is a visitor asking the site for a
 /// page — which is what makes a published page appear at once rather than when
 /// somebody puts a container in front of it.
-#[must_use]
 pub fn everything(db: &Db, files: &Arc<dyn Files>, who_is_asking: WhoIsAsking) -> axum::Router {
     let showing = crate::showing::Site {
         db: db.clone(),

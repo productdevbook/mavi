@@ -158,7 +158,7 @@ fn a_run() -> Shape {
 mod tests {
     use super::*;
     use crate::step::{Does, TRIGGERS, Trigger};
-    use crate::store::{Flow, NewFlow, NewStep, Run, Told, WouldDo};
+    use crate::store::{Flow, FlowChanges, NewFlow, NewStep, Run, Told, WouldDo};
     use std::collections::BTreeSet;
 
     fn fields_of(named: &str) -> BTreeSet<&'static str> {
@@ -293,5 +293,10 @@ mod tests {
         .expect("a new flow");
 
         assert_eq!(keys(&flow), fields_of("NewFlow"));
+
+        assert_eq!(
+            keys(&serde_json::to_value(FlowChanges::default()).expect("changes")),
+            fields_of("FlowChanges")
+        );
     }
 }

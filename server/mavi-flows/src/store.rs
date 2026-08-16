@@ -120,7 +120,10 @@ async fn steps(tx: &mut Tx, flow: Uuid) -> Result<Vec<Told>> {
 }
 
 /// What arranging one asks for.
-#[derive(Clone, Debug, Deserialize)]
+///
+/// Serialised as well as read, so the test beside the description can hold
+/// what it says it takes against what it takes.
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct NewFlow {
     pub name: String,
     pub trigger: String,
@@ -128,7 +131,7 @@ pub struct NewFlow {
 }
 
 /// One step, as it arrives.
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct NewStep {
     pub does: String,
     #[serde(default)]
@@ -205,7 +208,7 @@ pub async fn read(tx: &mut Tx, id: Uuid) -> Result<Flow> {
 }
 
 /// What may be changed about a flow.
-#[derive(Clone, Debug, Default, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct FlowChanges {
     pub name: Option<String>,
     pub on: Option<bool>,

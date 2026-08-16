@@ -456,9 +456,36 @@ pub async fn place(tx: &mut Tx, basket: &Basket) -> Result<Order> {
     .await
     .map_err(Error::internal)?;
 
+    take_off_the_shelf(tx, order, &taking, &lines).await?;
+
+    if let Some(code) = code {
+        // One row per use, so "used twice" is refused by the database rather
+        // than counted and then trusted.
+        sqlx::query("insert into coupon_uses (coupon_id, order_id) values ($1, $2)")
+            .bind(code)
+            .bind(order)
+            .execute(tx.conn())
+            .await
+            .map_err(Error::internal)?;
+    }
+
+    read(tx, order).await
+}
+
+/// Off the shelf and into a hold, one line at a time.
+///
+/// The check constraint on the shelf refuses a negative, so a race that got
+/// past the count is a transaction that fails rather than a shop that owes
+/// somebody something.
+async fn take_off_the_shelf(
+    tx: &mut Tx,
+    order: Uuid,
+    taking: &[(Uuid, u32)],
+    lines: &[Line],
+) -> Result<()> {
     let held_until = Utc::now() + Duration::minutes(HELD_FOR_MINUTES);
 
-    for ((product, how_many), line) in taking.iter().zip(&lines) {
+    for ((product, how_many), line) in taking.iter().zip(lines) {
         sqlx::query(
             "insert into order_lines (id, order_id, product_id, name, each_minor, how_many)
              values ($1, $2, $3, $4, $5, $6)",
@@ -499,18 +526,7 @@ pub async fn place(tx: &mut Tx, basket: &Basket) -> Result<Order> {
         .map_err(Error::internal)?;
     }
 
-    if let Some(code) = code {
-        // One row per use, so "used twice" is refused by the database rather
-        // than counted and then trusted.
-        sqlx::query("insert into coupon_uses (coupon_id, order_id) values ($1, $2)")
-            .bind(code)
-            .bind(order)
-            .execute(tx.conn())
-            .await
-            .map_err(Error::internal)?;
-    }
-
-    read(tx, order).await
+    Ok(())
 }
 
 /// A code this shop honours, its id, and how many times it has been used.

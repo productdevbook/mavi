@@ -287,10 +287,19 @@ pub async fn what_came_in(
         .map_err(Error::internal)?
         .iter()
         .map(|row| {
+            // `jsonb` comes back as a `Value`, and what was written there is
+            // always an object — the column says so with a check constraint.
+            // Taken apart here rather than trusted: a row that is somehow not
+            // an object is a row this refuses to answer with.
+            let answers: serde_json::Value = row.try_get("answers").map_err(Error::internal)?;
+            let answers = answers.as_object().cloned().ok_or_else(|| {
+                Error::internal(std::io::Error::other("answers that are not an object"))
+            })?;
+
             Ok(Sent {
                 id: crate::FilledId(row.try_get("id").map_err(Error::internal)?),
                 form_id: crate::FormId(row.try_get("form_id").map_err(Error::internal)?),
-                answers: row.try_get("answers").map_err(Error::internal)?,
+                answers,
                 seen_at: row.try_get("seen_at").map_err(Error::internal)?,
                 created_at: row.try_get("created_at").map_err(Error::internal)?,
             })

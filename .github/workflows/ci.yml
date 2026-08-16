@@ -104,6 +104,17 @@ jobs:
       # is wrong, and this one is nothing but documentation and vocabulary.
       - run: cargo test --workspace --doc
 
+      # What the panel is written against is generated from the description
+      # and committed, and one of the tests above writes it and compares. When
+      # that one fails the corrected file is already in the tree, so it goes up
+      # here — whoever broke it takes it rather than working out how to produce
+      # it.
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: the-panels-types
+          path: client/src/api/mavi.ts
+
   client:
     needs: what
     if: needs.what.outputs.skip != 'true' && !fromJSON(needs.what.outputs.paths).client.should_skip

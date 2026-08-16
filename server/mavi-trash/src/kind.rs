@@ -94,14 +94,13 @@ impl Kind {
     #[must_use]
     pub const fn called(self) -> &'static str {
         match self {
-            Kind::Writings | Kind::Courses => "title",
+            Kind::Writings | Kind::Courses | Kind::Cards => "title",
             Kind::Files
             | Kind::Terms
             | Kind::Forms
             | Kind::Products
             | Kind::Boards
             | Kind::Flows => "name",
-            Kind::Cards => "title",
         }
     }
 }

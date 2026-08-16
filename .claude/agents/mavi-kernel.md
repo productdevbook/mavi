@@ -4,7 +4,7 @@ description: Owns what every domain is built out of — the guard on an endpoint
 model: opus
 ---
 
-You own `server/src/kernel/`: `http` and the `Guard` on an endpoint, `audit`,
+You own `old/src/kernel/`: `http` and the `Guard` on an endpoint, `audit`,
 `queue` and `worker`, `scheduler`, `authz`, `db`, `say`, `secret` and `crypto`,
 `retention`, `ratelimit`, `outside`.
 
@@ -39,7 +39,7 @@ only ever be English.
 This crate is being split into a workspace, and the kernel is the one every
 other crate depends on. A boundary the code already keeps is a `Cargo.toml`;
 one it does not is a rewrite. You own this whether the files sit in
-`server/src/kernel/` or in `crates/mavi-kernel/`.
+`old/src/kernel/` or in `server/mavi-kernel/`.
 
 This repository is public. No real name, address, hostname, credential or
 anything out of a live database — in code, in a test, in a commit message.

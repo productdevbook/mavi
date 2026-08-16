@@ -10,7 +10,7 @@ the panel, `learn` and `shop` — and `bun run build` makes all of them.
 
 Every call goes through the typed client `src/lib/v1.ts` (`api()`, `every()`,
 `Refused`); a refusal is worded by `src/lib/v1-said.ts`, which falls back to
-the English the API sent. The types in `server/types/mavicms.ts` are generated
+the English the API sent. The types in `old/types/mavicms.ts` are generated
 from the API and never edited by hand — when a shape is wrong there, the fix
 is in `server/`.
 

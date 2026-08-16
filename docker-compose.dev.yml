@@ -20,7 +20,7 @@ services:
 
   api:
     build:
-      context: ./server
+      context: ./old
     restart: unless-stopped
     environment:
       # Point this at any PostgreSQL you like — the bundled "postgres"
@@ -57,7 +57,7 @@ services:
 
   frontend:
     build:
-      context: .
+      context: ./client
     restart: unless-stopped
     depends_on:
       - api

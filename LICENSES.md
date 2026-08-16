@@ -24,7 +24,7 @@ else's behalf by pasting a function.
 
 Reading it to learn what a mail integration needs is fine — an API's required
 fields are facts, and facts are not copyrightable. Implementations are.
-`server/src/mail/` is written against the providers' published APIs.
+`old/src/mail/` is written against the providers' published APIs.
 
 ## What rendering Markdown uses
 

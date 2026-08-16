@@ -1,0 +1,64 @@
+[package]
+name = "mavi"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+axum = "0.8"
+tokio = { version = "1", features = ["full"] }
+sqlx = { version = "0.8", default-features = false, features = [
+  "runtime-tokio-rustls",
+  "postgres",
+  "uuid",
+  "chrono",
+  "json",
+  "migrate",
+  "macros",
+] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+uuid = { version = "1", features = ["v7", "serde"] }
+chrono = { version = "0.4", default-features = false, features = ["serde", "clock"] }
+thiserror = "2"
+argon2 = "0.5"
+rand = "0.9"
+sha1 = "0.10"
+sha2 = "0.10"
+cedar-policy = "4"
+hmac = "0.12"
+metrics = "0.24"
+utoipa = { version = "5", features = ["uuid", "chrono", "preserve_order"] }
+metrics-exporter-prometheus = { version = "0.17", default-features = false }
+base64 = "0.22"
+chacha20poly1305 = "0.10"
+lettre = { version = "0.11", default-features = false, features = ["tokio1-rustls", "smtp-transport", "builder", "ring", "webpki-roots"] }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+[features]
+# What an outside crate needs to write tests of its own against this one —
+# see `src/testing.rs`. Off by default, so none of it is in a release build.
+testing = []
+
+[dev-dependencies]
+# Self-referencing so this crate's own tests get `testing` without a release
+# build ever seeing it: a dev-dependency's features apply to the crate only
+# while building its tests, examples and benches.
+mavi = { path = ".", features = ["testing"] }
+tokio = { version = "1", features = ["full", "test-util"] }
+tower = { version = "0.5", features = ["util"] }
+http-body-util = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json", "registry"] }
+
+[lints.rust]
+unsafe_code = "deny"
+missing_debug_implementations = "warn"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+module_name_repetitions = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"

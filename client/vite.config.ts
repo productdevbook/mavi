@@ -1,0 +1,49 @@
+import path from "path"
+import tailwindcss from "@tailwindcss/vite"
+import react from "@vitejs/plugin-react"
+import babel from "@rolldown/plugin-babel"
+import { tanstackRouter } from "@tanstack/router-plugin/vite"
+import { lingui, linguiTransformerBabelPreset } from "@lingui/vite-plugin"
+import { defineConfig } from "vite"
+
+// https://vite.dev/config/
+export default defineConfig({
+  // The panel lives under /admin, because "/" belongs to the site being
+  // published — every hosted site serves its own pages there.
+  base: "/admin/",
+  build: {
+    // Written but not advertised: the .js carries no sourceMappingURL, so a
+    // browser never asks for the map. The image build uploads them to the
+    // error tracker if one is configured, and deletes them either way.
+    sourcemap: "hidden",
+  },
+  plugins: [
+    tanstackRouter({ target: "react", autoCodeSplitting: true }),
+    react(),
+    tailwindcss(),
+    lingui(),
+    babel({ presets: [linguiTransformerBabelPreset()] }),
+  ],
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+      // The API's own description of its shapes. One place, so the day they
+      // come from `server/` rather than `old/` this is the line that moves.
+      "@api": path.resolve(__dirname, "../old/types/mavicms.ts"),
+    },
+  },
+  server: {
+    allowedHosts: [".trycloudflare.com"],
+    proxy: {
+      "/api": {
+        target: process.env.VITE_API_PROXY_TARGET ?? "http://localhost:8080",
+        changeOrigin: true,
+        rewrite: (requestPath) => requestPath.replace(/^\/api/, ""),
+      },
+      "/uploads": {
+        target: process.env.VITE_API_PROXY_TARGET ?? "http://localhost:8080",
+        changeOrigin: true,
+      },
+    },
+  },
+})

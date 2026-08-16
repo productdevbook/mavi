@@ -35,12 +35,19 @@ The same goes for test data: names that are obviously invented.
 
 ## Where things are
 
-    server/       the API, the queue and the scheduler — one Rust crate
-    server/src/*/   one module per thing a site does, each with its own README
-    server/src/setup/ the one moment that makes the operator and the site together
-    server/migrations one file per change, applied at startup
-    src/          the panel — React, TanStack Router, Lingui (English, Turkish)
+    server/       the API — a Rust workspace, one crate per thing a site does
+    server/mavi-core/   the vocabulary every other crate is built out of
+    server/mavi-db/migrations  one file per change, applied at startup
+    server/mavi-everything/    the whole API, and the questions no one crate
+                               can ask about itself
+    client/       the panel — React, TanStack Router, Lingui (English, Turkish)
+    old/          what still runs the sites, until `server/` can. `old/README.md`
+                  says what has to be true before it goes
     docs/         one document per thing that is not obvious from the code
+
+Two Rust trees, and the difference matters at every turn: `server/` is where
+work goes, `old/` is what is deployed. A change to `old/` is a change to
+something being replaced, and is worth asking about before making.
 
 One installation is one site: `/api/setup` makes an owner role and the account
 able to sign into it, in one transaction, and answers once.
@@ -55,11 +62,11 @@ than one that stops.
 Running many sites on one machine is a hosting product built on top of this,
 not a mode inside it.
 
-`server/src/kernel/` is what every module is built out of: the guard on an
+`old/src/kernel/` is what every module of the old tree is built out of: the guard on an
 endpoint, the audit receipt, the queue, cursor pages, and `Say` — a refusal is
 a key with named arguments so it can be said in somebody's own language.
 
-`server/src/kernel/outside.rs` is the seam something outside this crate attaches
+`old/src/kernel/outside.rs` is the seam something outside that crate attached
 through: endpoints and job kinds, mounted through the same guard and the same
 audit rule as this crate's own. It exists because what a hosting business
 needs — metering, billing, a console over many sites — is built on this rather
@@ -69,14 +76,18 @@ than in it.
 
     cd server
     cargo fmt
-    cargo clippy --all-targets -- -D warnings
-    cargo nextest run --profile ci
+    cargo clippy --all-targets --all-features -- -D warnings
+    cargo nextest run --workspace
 
-Some tests want a Postgres, because a site is rows in one:
+Some tests want a Postgres, because a site is rows in one — and here that is
+sixty-seven of them, including every migration:
 
     docker run -d --name mavi-test-db -p 127.0.0.1:5433:5432 \
       -e POSTGRES_PASSWORD=test -e POSTGRES_DB=mavi_test postgres:18-alpine
     export TEST_DATABASE_URL=postgres://postgres:test@127.0.0.1:5433/mavi_test
+
+`old/` is the same three commands in `old/` with `--profile ci`, and is only
+worth running when something in `old/` changed.
 
 Every test gets a machine of its own. An installation is one site, so two
 tests cannot share a database and still be two installations — but migrating
@@ -86,6 +97,7 @@ handed it emptied of whatever the last holder left.
 
 The panel:
 
+    cd client
     bun run build && bun run typecheck && bun run lint
 
 The build is what generates the route tree, so it comes first — `tsc --noEmit`

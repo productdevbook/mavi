@@ -204,25 +204,31 @@ settings, which is enough to carry a site somewhere else by hand.
 Requires [Bun](https://bun.sh) and a Rust toolchain.
 
 ```bash
+cd client
 bun install
 bun run dev          # http://localhost:5173, proxies the API to :8080
 
-cd server
+cd ../old
 cargo run            # http://localhost:8080
 ```
+
+`old/` is what runs a site today; `server/` is the same software written again
+as a workspace, and it answers every endpoint but does not open a socket yet.
+`old/README.md` says what has to be true before it goes.
 
 The panel expects the API on `:8080`; point it elsewhere with
 `VITE_API_PROXY_TARGET`.
 
 ```bash
+cd client
 bun run build        # builds, then typechecks — vite generates the route tree
 bun run typecheck
 bun run lint
 bun run extract      # pull new translatable strings into src/locales/*/messages.po
 
-cd server
-cargo clippy --all-targets -- -D warnings
-cargo nextest run --profile ci
+cd ../server
+cargo clippy --all-targets --all-features -- -D warnings
+cargo nextest run --workspace
 ```
 
 The tests want a PostgreSQL, because a site is rows in one and a test of what a
@@ -246,14 +252,20 @@ docker compose -f docker-compose.dev.yml up --build
 ### Layout
 
 ```
-src/                 React 19, Vite, TanStack Router, Tailwind 4, Tiptap 3
-server/src/kernel/       what every domain is built out of: the router, the
-                     database, authorization, the queue, the words a refusal
-                     is said in
-server/src/<domain>/     one folder per thing a site does — content, media, mail,
-                     shop, learning, flows, publishing, people
-server/migrations/       the schema, run at boot
-server/types/            the panel's types, generated from the API's description
+client/              the panel — React 19, Vite, TanStack Router, Tailwind 4
+server/              the API, as a Rust workspace
+  mavi-core/         the vocabulary: refusals, money, ids, pages, grants
+  mavi-db/           where the rows are, and the one place an order becomes SQL
+  mavi-api/          what an endpoint is, and what it must say about itself
+  mavi-http/         what lets a request in, and what it has to leave behind
+  mavi-serve/        what makes an endpoint reachable
+  mavi-work/         work that happens after the answer
+  mavi-audit/        what was done, and by whom
+  mavi-<domain>/     one crate per thing a site does — content, media, forms,
+                     mail, shop, courses, flows, design, boards, people…
+  mavi-everything/   the whole API, and the questions no one crate can ask
+                     about itself
+old/                 what still runs the sites, until `server/` can
 wordpress-plugin/    the WordPress migration plugin (GPLv2+)
 ```
 
@@ -288,7 +300,7 @@ machine, moving one between machines, a console that reads across all of them.
 That is somebody's product, and this is the CMS such a product would run.
 
 The seam it is built on is real rather than a promise:
-`server/src/kernel/outside.rs` lets a crate that depends on this one hand in
+`old/src/kernel/outside.rs` let a crate that depended on this one hand in
 its own endpoints and its own kinds of queued work, mounted through the same
 guard, the same rate limit and the same audit rule as everything here. Nothing
 mounted that way can skip a permission check or a receipt, and a test says so.

@@ -4,7 +4,7 @@ description: Works on one thing a site does — content, media, shop, learning, 
 model: sonnet
 ---
 
-You work on one domain at a time: a module under `server/src/` that is one
+You work on one domain at a time: a module under `old/src/` that is one
 thing a site does — `content`, `media`, `shop`, `learning`, `flows`, `forms`,
 `mail`, `publishing`, `people`, `boards`, `analytics` and the others beside
 them. Each has a `README.md` saying what it owns, who may reach it, and what
@@ -28,7 +28,7 @@ already has — a second way to page a list, a second way to word a refusal, a
 second way to write an audit row. When two domains need the same thing it
 belongs in `kernel`, which is `mavi-kernel`'s work rather than a copy in each.
 
-Everything reachable is in `endpoints()` in `server/src/lib.rs`. A handler
+Everything reachable is in `endpoints()` in `old/src/lib.rs`. A handler
 nothing puts in that list is a feature that does not exist — written, tested
 and unreachable. Check the list, not the handler.
 
@@ -43,7 +43,7 @@ When one fails it has found something: read it before you change it. Adding an
 entry to a tolerated list to make it pass is concealment, not a fix.
 
 The panel is generated against these endpoints: after changing a request or
-response shape, `server/types/mavicms.ts` is regenerated and never hand-edited.
+response shape, `old/types/mavicms.ts` is regenerated and never hand-edited.
 
 A domain becomes its own crate when this workspace is split. Being built only
 out of `kernel` is what makes that a `Cargo.toml` rather than a rewrite.

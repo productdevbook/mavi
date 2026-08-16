@@ -162,87 +162,6 @@ impl Declared {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn asking(key: &str, kind: Kind) -> Field {
-        Field {
-            key: Slug::parse(key).expect("an address"),
-            label: "Something".to_owned(),
-            required: false,
-            kind,
-            options: Vec::new(),
-        }
-    }
-
-    fn refused(fields: Vec<Field>) -> &'static str {
-        Declared::checked(fields)
-            .expect_err("a refusal")
-            .said()
-            .expect("a sentence")
-            .key
-    }
-
-    #[test]
-    fn a_form_asks_each_thing_once() {
-        // Two fields with one key is one column in the answers, and whichever
-        // of the two is checked second is a rule nothing enforces.
-        let twice = vec![asking("email", Kind::Email), asking("email", Kind::Text)];
-
-        assert_eq!(refused(twice), IT_ASKS_EACH_THING_ONCE);
-    }
-
-    #[test]
-    fn a_choice_with_nothing_to_choose_from_is_refused_when_it_is_written() {
-        // It would otherwise be refused every time somebody fills the form in,
-        // which is a hundred refusals nobody can act on instead of one that
-        // whoever made the form can.
-        assert_eq!(
-            refused(vec![asking("colour", Kind::Choice)]),
-            A_CHOICE_NEEDS_SOMETHING_TO_CHOOSE_FROM
-        );
-    }
-
-    #[test]
-    fn options_on_something_that_is_not_a_choice_are_a_mistake_worth_saying() {
-        let mut text = asking("name", Kind::Text);
-        text.options = vec!["one".to_owned()];
-
-        assert_eq!(refused(vec![text]), ONLY_A_CHOICE_HAS_OPTIONS);
-    }
-
-    #[test]
-    fn a_form_is_bounded_at_both_ends() {
-        let many: Vec<Field> = (0..=AT_MOST_FIELDS)
-            .map(|n| asking(&format!("field-{n}"), Kind::Text))
-            .collect();
-
-        assert_eq!(refused(many), IT_ASKS_AT_MOST_SO_MANY_THINGS);
-
-        let mut choice = asking("colour", Kind::Choice);
-        choice.options = (0..=AT_MOST_OPTIONS).map(|n| n.to_string()).collect();
-
-        assert_eq!(refused(vec![choice]), A_CHOICE_OFFERS_AT_MOST_SO_MANY);
-    }
-
-    #[test]
-    fn a_label_nobody_can_read_is_not_a_label() {
-        let mut blank = asking("name", Kind::Text);
-        blank.label = "   ".to_owned();
-
-        assert_eq!(refused(vec![blank]), A_LABEL_IS_BETWEEN_ONE_AND_TWO_HUNDRED);
-    }
-
-    #[test]
-    fn a_form_that_asks_for_nothing_is_a_form() {
-        // Declaring nothing is allowed. What it accepts is the interesting
-        // half, and that is decided where a submission is checked rather than
-        // here: it accepts nothing, which is not what it used to do.
-        assert!(Declared::checked(Vec::new()).expect("a form").is_empty());
-    }
-}
-
 /// What arrived, held against what was asked for.
 ///
 /// The order is not decoration. Size first, because it is the only check whose
@@ -336,4 +255,85 @@ pub fn weighs(answers: &Map<String, Value>) -> Result<()> {
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn asking(key: &str, kind: Kind) -> Field {
+        Field {
+            key: Slug::parse(key).expect("an address"),
+            label: "Something".to_owned(),
+            required: false,
+            kind,
+            options: Vec::new(),
+        }
+    }
+
+    fn refused(fields: Vec<Field>) -> &'static str {
+        Declared::checked(fields)
+            .expect_err("a refusal")
+            .said()
+            .expect("a sentence")
+            .key
+    }
+
+    #[test]
+    fn a_form_asks_each_thing_once() {
+        // Two fields with one key is one column in the answers, and whichever
+        // of the two is checked second is a rule nothing enforces.
+        let twice = vec![asking("email", Kind::Email), asking("email", Kind::Text)];
+
+        assert_eq!(refused(twice), IT_ASKS_EACH_THING_ONCE);
+    }
+
+    #[test]
+    fn a_choice_with_nothing_to_choose_from_is_refused_when_it_is_written() {
+        // It would otherwise be refused every time somebody fills the form in,
+        // which is a hundred refusals nobody can act on instead of one that
+        // whoever made the form can.
+        assert_eq!(
+            refused(vec![asking("colour", Kind::Choice)]),
+            A_CHOICE_NEEDS_SOMETHING_TO_CHOOSE_FROM
+        );
+    }
+
+    #[test]
+    fn options_on_something_that_is_not_a_choice_are_a_mistake_worth_saying() {
+        let mut text = asking("name", Kind::Text);
+        text.options = vec!["one".to_owned()];
+
+        assert_eq!(refused(vec![text]), ONLY_A_CHOICE_HAS_OPTIONS);
+    }
+
+    #[test]
+    fn a_form_is_bounded_at_both_ends() {
+        let many: Vec<Field> = (0..=AT_MOST_FIELDS)
+            .map(|n| asking(&format!("field-{n}"), Kind::Text))
+            .collect();
+
+        assert_eq!(refused(many), IT_ASKS_AT_MOST_SO_MANY_THINGS);
+
+        let mut choice = asking("colour", Kind::Choice);
+        choice.options = (0..=AT_MOST_OPTIONS).map(|n| n.to_string()).collect();
+
+        assert_eq!(refused(vec![choice]), A_CHOICE_OFFERS_AT_MOST_SO_MANY);
+    }
+
+    #[test]
+    fn a_label_nobody_can_read_is_not_a_label() {
+        let mut blank = asking("name", Kind::Text);
+        blank.label = "   ".to_owned();
+
+        assert_eq!(refused(vec![blank]), A_LABEL_IS_BETWEEN_ONE_AND_TWO_HUNDRED);
+    }
+
+    #[test]
+    fn a_form_that_asks_for_nothing_is_a_form() {
+        // Declaring nothing is allowed. What it accepts is the interesting
+        // half, and that is decided where a submission is checked rather than
+        // here: it accepts nothing, which is not what it used to do.
+        assert!(Declared::checked(Vec::new()).expect("a form").is_empty());
+    }
 }

@@ -78,7 +78,17 @@ impl Files for InADirectory {
             // Written beside and then moved into place: a reader that opens
             // the name half way through a write gets half a file, and a crash
             // leaves one behind for ever.
-            let beside = to.with_extension("part");
+            //
+            // Added to the name rather than put in place of what it ends in.
+            // `site.css` and `site.js` are one file called `site.part` if the
+            // extension is replaced, and a build writing a directory full of
+            // files would have two of them writing the same name at once.
+            let beside = {
+                let mut name = to.file_name().unwrap_or_default().to_os_string();
+                name.push(".part");
+
+                to.with_file_name(name)
+            };
 
             tokio::fs::write(&beside, bytes)
                 .await
@@ -179,6 +189,34 @@ mod tests {
         files.remove("ab/cdef.png").await.expect("removed again");
 
         assert!(files.get("ab/cdef.png").await.is_err());
+
+        tokio::fs::remove_dir_all(&under).await.ok();
+    }
+
+    #[tokio::test]
+    async fn two_files_of_one_name_are_never_written_beside_each_other() {
+        // What a build does: a directory full of files, some sharing a name
+        // and differing only in what they end in. A half-written name shared
+        // between two of them is one arriving with the other's bytes.
+        let under = std::env::temp_dir().join(format!("mavi-files-{}", uuid::Uuid::now_v7()));
+        let files = InADirectory::at(&under);
+
+        let (css, js) = tokio::join!(
+            files.put("styles/site.css", b"body { color: teal }".to_vec()),
+            files.put("styles/site.js", b"console.log(1)".to_vec()),
+        );
+
+        css.expect("a stylesheet");
+        js.expect("a script");
+
+        assert_eq!(
+            files.get("styles/site.css").await.expect("read"),
+            b"body { color: teal }"
+        );
+        assert_eq!(
+            files.get("styles/site.js").await.expect("read"),
+            b"console.log(1)"
+        );
 
         tokio::fs::remove_dir_all(&under).await.ok();
     }

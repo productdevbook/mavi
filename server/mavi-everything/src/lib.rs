@@ -37,6 +37,7 @@ pub fn endpoints() -> Vec<Endpoint> {
     all.extend(mavi_settings::endpoints());
     all.extend(mavi_health::endpoints());
     all.extend(mavi_analytics::endpoints());
+    all.extend(mavi_portable::endpoints());
     all.extend(mavi_content::endpoints());
     all.extend(mavi_taxonomy::endpoints());
     all.extend(mavi_media::endpoints());
@@ -72,6 +73,7 @@ pub fn shapes() -> Vec<mavi_api::Shape> {
     all.extend(mavi_health::described::shapes());
     all.extend(mavi_analytics::described::shapes());
     all.extend(crate::overview::shapes());
+    all.extend(mavi_portable::described::shapes());
     all.extend(mavi_media::described::shapes());
     all.extend(mavi_forms::described::shapes());
     all.extend(mavi_people::described::shapes());
@@ -469,6 +471,7 @@ mod tests {
             mavi_design::DESIGN,
             mavi_boards::BOARDS,
             mavi_audit::AUDIT,
+            mavi_portable::PORTABLE,
         ]
         .into_iter()
         .collect();

@@ -6,6 +6,7 @@
 //! where a card sits, and what happens when the numbers run out.
 
 pub mod place;
+pub mod store;
 
 use mavi_api::{Answers, Endpoint, Is, Method, Parameter, Who};
 use mavi_core::error::Code;

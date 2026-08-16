@@ -8,9 +8,12 @@ description = "What is being worked on: boards, stages, cards, and where a card 
 [dependencies]
 mavi-api = { path = "../mavi-api" }
 mavi-core = { path = "../mavi-core" }
+mavi-db = { path = "../mavi-db" }
 mavi-people = { path = "../mavi-people" }
 
+chrono = { workspace = true }
 serde = { workspace = true }
+sqlx = { workspace = true }
 uuid = { workspace = true }
 
 [lints]

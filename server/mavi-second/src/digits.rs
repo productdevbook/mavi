@@ -111,6 +111,8 @@ pub fn what_an_app_reads(secret: &[u8], site: &str, account: &str) -> String {
 }
 
 fn escaped(text: &str) -> String {
+    use std::fmt::Write;
+
     let mut out = String::with_capacity(text.len());
 
     for byte in text.bytes() {
@@ -118,7 +120,10 @@ fn escaped(text: &str) -> String {
             b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'.' | b'_' | b'~' => {
                 out.push(byte as char);
             }
-            _ => out.push_str(&format!("%{byte:02X}")),
+            // Writing into a string cannot fail.
+            _ => {
+                let _ = write!(out, "%{byte:02X}");
+            }
         }
     }
 

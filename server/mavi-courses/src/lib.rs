@@ -232,6 +232,30 @@ fn what_is_in_them() -> Vec<Endpoint> {
 fn who_is_on_it() -> Vec<Endpoint> {
     vec![
         Endpoint {
+            method: Method::Delete,
+            path: "/api/modules/{id}",
+            named: "modules.remove",
+            about: "Takes a part of a course away, and its lessons with it.",
+            who: Who::AnAccount,
+            parameters: vec![Parameter::path("id", Is::Id, "Which one.")],
+            takes: None,
+            answers: Answers::Nothing,
+            refuses: &[Code::NotFound],
+            changes: true,
+        },
+        Endpoint {
+            method: Method::Delete,
+            path: "/api/lessons/{id}",
+            named: "lessons.remove",
+            about: "Takes a lesson away, and what students had finished of it.",
+            who: Who::AnAccount,
+            parameters: vec![Parameter::path("id", Is::Id, "Which one.")],
+            takes: None,
+            answers: Answers::Nothing,
+            refuses: &[Code::NotFound],
+            changes: true,
+        },
+        Endpoint {
             method: Method::Get,
             path: "/api/students",
             named: "students.list",

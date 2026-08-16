@@ -361,3 +361,33 @@ pub async fn remove(tx: &mut Tx, id: Uuid) -> Result<()> {
 
     Ok(())
 }
+
+/// Takes a board away, and everything on it.
+///
+/// The cards go with it rather than being refused over, because a card is not
+/// a thing on its own: it lives in a column of one board, and a board removed
+/// while its cards stayed would leave rows nothing can ever reach or show.
+/// That is the opposite of a role, where what holds it exists without it.
+pub async fn remove_a_board(tx: &mut Tx, id: Uuid) -> Result<()> {
+    let gone =
+        sqlx::query("update boards set deleted_at = now() where id = $1 and deleted_at is null")
+            .bind(id)
+            .execute(tx.conn())
+            .await
+            .map_err(Error::internal)?;
+
+    if gone.rows_affected() == 0 {
+        return Err(Error::not_found(Say::of(THERE_IS_NO_BOARD_LIKE_THAT)));
+    }
+
+    sqlx::query(
+        "update cards set deleted_at = now()
+          where board_id = $1 and deleted_at is null",
+    )
+    .bind(id)
+    .execute(tx.conn())
+    .await
+    .map_err(Error::internal)?;
+
+    Ok(())
+}

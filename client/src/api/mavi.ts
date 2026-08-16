@@ -1878,6 +1878,7 @@ export const operations = {
   "boards.list": { method: "get", path: "/api/boards", takes: null, answers: "BoardList", status: 200 },
   "boards.make": { method: "post", path: "/api/boards", takes: "NewBoard", answers: "Board", status: 201 },
   "boards.read": { method: "get", path: "/api/boards/{id}", takes: null, answers: "Board", status: 200 },
+  "boards.remove": { method: "delete", path: "/api/boards/{id}", takes: null, answers: null, status: 204 },
   "cards.change": { method: "patch", path: "/api/cards/{id}", takes: "CardChanges", answers: "Card", status: 200 },
   "cards.list": { method: "get", path: "/api/boards/{id}/cards", takes: null, answers: "CardPage", status: 200 },
   "cards.make": { method: "post", path: "/api/boards/{id}/cards", takes: "NewCard", answers: "Card", status: 201 },
@@ -1890,6 +1891,7 @@ export const operations = {
   "changes.start": { method: "post", path: "/api/design/changes", takes: "NewChange", answers: "Change", status: 201 },
   "coupons.list": { method: "get", path: "/api/coupons", takes: null, answers: "CouponList", status: 200 },
   "coupons.make": { method: "post", path: "/api/coupons", takes: "NewCoupon", answers: "Coupon", status: 201 },
+  "coupons.remove": { method: "delete", path: "/api/coupons/{code}", takes: null, answers: null, status: 204 },
   "courses.change": { method: "patch", path: "/api/courses/{id}", takes: "CourseChanges", answers: "Course", status: 200 },
   "courses.list": { method: "get", path: "/api/courses", takes: null, answers: "CoursePage", status: 200 },
   "courses.make": { method: "post", path: "/api/courses", takes: "NewCourse", answers: "Course", status: 201 },
@@ -1929,6 +1931,7 @@ export const operations = {
   "learning.mine": { method: "get", path: "/api/learning", takes: null, answers: "LearningList", status: 200 },
   "lessons.change": { method: "patch", path: "/api/lessons/{id}", takes: "LessonChanges", answers: "Lesson", status: 200 },
   "lessons.make": { method: "post", path: "/api/modules/{id}/lessons", takes: "NewLesson", answers: "Lesson", status: 201 },
+  "lessons.remove": { method: "delete", path: "/api/lessons/{id}", takes: null, answers: null, status: 204 },
   "letters.forget": { method: "delete", path: "/api/mail/letters/{kind}", takes: null, answers: null, status: 204 },
   "letters.list": { method: "get", path: "/api/mail/letters", takes: null, answers: "LetterList", status: 200 },
   "letters.press": { method: "post", path: "/api/mail/letters/{kind}/pressed", takes: "Values", answers: "Pressed", status: 200 },
@@ -1936,6 +1939,7 @@ export const operations = {
   "lists.list": { method: "get", path: "/api/mail/lists", takes: null, answers: "ListList", status: 200 },
   "lists.make": { method: "post", path: "/api/mail/lists", takes: "NewList", answers: "List", status: 201 },
   "modules.make": { method: "post", path: "/api/courses/{id}/modules", takes: "NewModule", answers: "Module", status: 201 },
+  "modules.remove": { method: "delete", path: "/api/modules/{id}", takes: null, answers: null, status: 204 },
   "modules.reorder": { method: "put", path: "/api/modules/{id}/order", takes: "TheOrder", answers: "Module", status: 200 },
   "open.fill-in": { method: "post", path: "/api/open/forms/{slug}", takes: "Filled", answers: "Received", status: 201 },
   "open.form": { method: "get", path: "/api/open/forms/{slug}", takes: null, answers: "OpenForm", status: 200 },
@@ -2007,6 +2011,7 @@ export interface Calls {
   "boards.list": { takes: never; gives: BoardList };
   "boards.make": { takes: NewBoard; gives: Board };
   "boards.read": { takes: never; gives: Board };
+  "boards.remove": { takes: never; gives: void };
   "cards.change": { takes: CardChanges; gives: Card };
   "cards.list": { takes: never; gives: CardPage };
   "cards.make": { takes: NewCard; gives: Card };
@@ -2019,6 +2024,7 @@ export interface Calls {
   "changes.start": { takes: NewChange; gives: Change };
   "coupons.list": { takes: never; gives: CouponList };
   "coupons.make": { takes: NewCoupon; gives: Coupon };
+  "coupons.remove": { takes: never; gives: void };
   "courses.change": { takes: CourseChanges; gives: Course };
   "courses.list": { takes: never; gives: CoursePage };
   "courses.make": { takes: NewCourse; gives: Course };
@@ -2058,6 +2064,7 @@ export interface Calls {
   "learning.mine": { takes: never; gives: LearningList };
   "lessons.change": { takes: LessonChanges; gives: Lesson };
   "lessons.make": { takes: NewLesson; gives: Lesson };
+  "lessons.remove": { takes: never; gives: void };
   "letters.forget": { takes: never; gives: void };
   "letters.list": { takes: never; gives: LetterList };
   "letters.press": { takes: Values; gives: Pressed };
@@ -2065,6 +2072,7 @@ export interface Calls {
   "lists.list": { takes: never; gives: ListList };
   "lists.make": { takes: NewList; gives: List };
   "modules.make": { takes: NewModule; gives: Module };
+  "modules.remove": { takes: never; gives: void };
   "modules.reorder": { takes: TheOrder; gives: Module };
   "open.fill-in": { takes: Filled; gives: Received };
   "open.form": { takes: never; gives: OpenForm };

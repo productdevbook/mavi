@@ -95,6 +95,18 @@ fn the_boards() -> Vec<Endpoint> {
             changes: true,
         },
         Endpoint {
+            method: Method::Delete,
+            path: "/api/boards/{id}",
+            named: "boards.remove",
+            about: "Takes a board away, and everything on it.",
+            who: Who::AnAccount,
+            parameters: vec![Parameter::path("id", Is::Id, "Which one.")],
+            takes: None,
+            answers: Answers::Nothing,
+            refuses: &[Code::NotFound],
+            changes: true,
+        },
+        Endpoint {
             method: Method::Get,
             path: "/api/boards/{id}",
             named: "boards.read",

@@ -60,10 +60,12 @@ pub const fn to_publish() -> Needs {
 /// Building a change, so somebody can look at it. Not worth trying for ever:
 /// a build that fails fails the same way each time, and what somebody needs is
 /// the error rather than another go.
+///
+/// There is no second kind for putting it live. What is published is a row
+/// saying which build the site answers from, and a job that ran afterwards to
+/// "put it live" would be a second answer to a question one row already
+/// answers — and the moment between them is a site serving neither.
 pub const BUILD_A_LOOK: Work = Work::new("design.build", 2);
-
-/// Building what is published and putting it where visitors reach it.
-pub const PUT_IT_LIVE: Work = Work::new("design.publish", 3);
 
 /// Where a set of changes has got to.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]

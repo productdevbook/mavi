@@ -42,8 +42,7 @@ async fn main() -> Result<()> {
     let files: Arc<dyn Files> = Arc::new(InADirectory::at(&told.files));
     let queue = Queue::of(&mavi_everything::work());
 
-    let router =
-        mavi_everything::mounted::site(&db, &files, who::whoever_holds(db.clone())).into_router();
+    let router = mavi_everything::mounted::everything(&db, &files, who::whoever_holds(db.clone()));
 
     let listener = TcpListener::bind(&told.listen)
         .await
@@ -67,6 +66,7 @@ async fn main() -> Result<()> {
     let working = tokio::spawn(doing::keep_working(
         db.clone(),
         queue.clone(),
+        Arc::clone(&files),
         told.worker.clone(),
     ));
     let timing = tokio::spawn(doing::keep_time(db.clone(), queue, told.worker.clone()));

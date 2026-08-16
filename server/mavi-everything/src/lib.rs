@@ -15,7 +15,9 @@
 //! Nothing here mounts anything. It is the list, and the tests are what make
 //! the list worth having.
 
+pub mod building;
 pub mod mounted;
+pub mod showing;
 
 use mavi_api::{Api, Endpoint};
 
@@ -72,7 +74,6 @@ pub fn work() -> Vec<mavi_work::Kind> {
         mavi_flows::SOMETHING_HAPPENED,
         mavi_flows::ONE_STEP,
         mavi_design::BUILD_A_LOOK,
-        mavi_design::PUT_IT_LIVE,
     ]
 }
 
@@ -96,6 +97,33 @@ mod tests {
     use super::*;
     use mavi_api::Who;
     use std::collections::{BTreeMap, BTreeSet};
+
+    #[tokio::test]
+    async fn the_refusal_a_client_is_generated_from_is_the_refusal_that_comes_back() {
+        // The description and the answer are written in two crates, and only
+        // one crate depends on both. This description said a refusal was
+        // `error.code` and `error.message` for as long as it did because
+        // nothing ever put the two side by side — and a client generated from
+        // it would have branched on a field no answer has ever carried.
+        let described = described("0.0.0");
+        let described = described["components"]["schemas"]["Refusal"]["properties"]
+            .as_object()
+            .expect("a described refusal");
+
+        let sent = mavi_serve::refusal::answer(&mavi_core::error::Error::invalid(
+            mavi_core::say::Say::of("that_form_wants_that_field").with("field", &"email"),
+        ));
+        let sent = axum::body::to_bytes(sent.into_body(), 64 * 1024)
+            .await
+            .expect("a body");
+        let sent: serde_json::Value = serde_json::from_slice(&sent).expect("a refusal");
+        let sent = sent.as_object().expect("an object");
+
+        assert_eq!(
+            described.keys().collect::<BTreeSet<_>>(),
+            sent.keys().collect::<BTreeSet<_>>(),
+        );
+    }
 
     #[test]
     fn every_endpoint_this_installation_has_says_everything_about_itself() {

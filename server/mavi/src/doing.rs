@@ -7,9 +7,11 @@
 //! answers means the two lists have come apart, and that is worth an error
 //! somebody can read.
 
+use std::sync::Arc;
 use std::time::Duration;
 
 use mavi_core::error::Result;
+use mavi_core::ports::Files;
 use mavi_db::Db;
 use mavi_work::{Ended, Job, Queue};
 use uuid::Uuid;
@@ -17,7 +19,7 @@ use uuid::Uuid;
 use crate::config::Worker;
 
 /// Takes work until something stops the process.
-pub async fn keep_working(db: Db, queue: Queue, worker: Worker) {
+pub async fn keep_working(db: Db, queue: Queue, files: Arc<dyn Files>, worker: Worker) {
     let kinds: Vec<String> = mavi_everything::work()
         .iter()
         .map(|kind| kind.name.to_owned())
@@ -26,7 +28,7 @@ pub async fn keep_working(db: Db, queue: Queue, worker: Worker) {
     loop {
         match queue.take(&db, &worker.named, &kinds).await {
             Ok(Some(job)) => {
-                one(&db, &queue, &worker, &job).await;
+                one(&db, &queue, files.as_ref(), &worker, &job).await;
             }
             Ok(None) => tokio::time::sleep(worker.when_there_is_nothing).await,
             Err(wrong) => {
@@ -47,8 +49,8 @@ pub async fn keep_working(db: Db, queue: Queue, worker: Worker) {
 /// queue decides whether that is another go or the end of it. Neither is
 /// written here, because "how many times is worth trying" belongs to the kind
 /// rather than to the loop.
-async fn one(db: &Db, queue: &Queue, worker: &Worker, job: &Job) {
-    let went = doing(db, job).await;
+async fn one(db: &Db, queue: &Queue, files: &dyn Files, worker: &Worker, job: &Job) {
+    let went = doing(db, files, job).await;
 
     let ended = match went {
         Ok(()) => queue.done(db, job.id, &worker.named).await,
@@ -73,17 +75,12 @@ async fn one(db: &Db, queue: &Queue, worker: &Worker, job: &Job) {
 }
 
 /// What each kind of work actually is.
-async fn doing(db: &Db, job: &Job) -> Result<()> {
+async fn doing(db: &Db, files: &dyn Files, job: &Job) -> Result<()> {
     match job.kind.as_str() {
         name if name == mavi_shop::PUT_BACK_WHAT_NOBODY_PAID_FOR.name => {
             put_back_what_nobody_paid_for(db).await
         }
-        name if name == mavi_design::BUILD_A_LOOK.name => {
-            not_written_yet(name, "building a site's own project")
-        }
-        name if name == mavi_design::PUT_IT_LIVE.name => {
-            not_written_yet(name, "putting a built design in front of everybody")
-        }
+        name if name == mavi_design::BUILD_A_LOOK.name => build_a_look(db, files, job).await,
         name if name == mavi_flows::SOMETHING_HAPPENED.name => {
             not_written_yet(name, "starting what a site arranged for an event")
         }
@@ -94,12 +91,31 @@ async fn doing(db: &Db, job: &Job) -> Result<()> {
     }
 }
 
+/// One set of changes, built.
+///
+/// What was queued is an id and nothing else, so the whole of what is built
+/// comes out of the database rather than out of the job — a payload written
+/// last week is not a description of a design as it is now.
+async fn build_a_look(db: &Db, files: &dyn Files, job: &Job) -> Result<()> {
+    let change = job.payload["change"]
+        .as_str()
+        .and_then(|change| Uuid::parse_str(change).ok())
+        .ok_or_else(|| {
+            mavi_core::error::Error::internal(std::io::Error::other(
+                "a build was queued without saying what to build",
+            ))
+        })?;
+
+    mavi_everything::building::build(db, files, change).await?;
+
+    Ok(())
+}
+
 /// A kind that is declared and has no hands yet.
 ///
-/// Building a design needs somewhere to put what it built, and running a flow
-/// needs somewhere for a letter to go. Both are ports, and they arrive as
-/// arguments the day the hands are written rather than being carried around
-/// empty until then.
+/// Running a flow needs somewhere for a letter to go. That is a port, and it
+/// arrives as an argument the day the hands are written rather than being
+/// carried around empty until then.
 ///
 /// An error rather than a shrug. The queue will try it again and then give up
 /// on it, and what is left is a dead row that says which kind and why — which

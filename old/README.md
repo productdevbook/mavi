@@ -5,13 +5,13 @@ changed when the rewrite took that name, and nothing else about it did.
 
 It is here rather than deleted because **deleting it would take features off
 the internet.** That is not a feeling about risk, it is a list. What is in this
-directory and has no replacement in `server/`:
+directory, and what of it the rewrite can do:
 
 | Here | Lines | In the rewrite |
 |---|---|---|
-| `src/edge` | 343 | nothing — this is what serves a visitor the site's own pages |
+| `src/edge` | 343 | ~~nothing~~ `server/mavi-edge` and `mavi-everything/src/showing.rs` |
 | `src/mcp` | 726 | nothing — the assistant protocol a site answers |
-| `src/publishing` + `src/building` | 1377 | nothing — building a site's pages and putting them out |
+| `src/publishing` + `src/building` | 1377 | **half.** `mavi-everything/src/building.rs` copies what a design put under `public/`, which is a whole site when the site is plain files. Running a site's own generator — a project with its own dependencies and its own command, on a machine — is not written, and is a decision with its own shape rather than a missing function. |
 | `src/analytics`, `src/reports` | 829 | nothing |
 | `src/portable` | 403 | nothing — how a site leaves |
 | `src/plugins` | 524 | nothing |
@@ -33,10 +33,19 @@ working the moment this does.
    anything running.
 3. The edge, publishing and the assistant protocol are written in the rewrite,
    or a decision is written down that they are not coming back.
+   - ~~The edge.~~ Written: `mavi-edge` decides which file answers an address
+     and where a renamed page went, with no database anywhere near it, and
+     `mavi-everything/src/showing.rs` is where the bytes come from. Under
+     `/api` the API still answers as the API; everything else is the site.
+   - ~~Putting a build out.~~ Written, and smaller than it was: what is
+     published is one row, so there is no job that "puts it live" afterwards
+     and no moment between the two where a site serves neither.
+   - **Building** is a copy of `public/`. A site whose pages are plain files
+     is served completely; one that needs its own generator run is not.
+   - **The assistant protocol** is not written.
 4. `client/` is rewritten against the new API.
 
-Each of those is somebody's afternoon rather than a mystery, and none of them
-is done. When the last one is, this directory is one `git rm -r` and the
+Two are done. When the last one is, this directory is one `git rm -r` and the
 history keeps it.
 
 ## Until then

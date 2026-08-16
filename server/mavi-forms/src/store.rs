@@ -10,7 +10,7 @@ use mavi_core::page::{Page, Query};
 use mavi_core::say::Say;
 use mavi_core::slug::Slug;
 use mavi_db::{Tx, Walk};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use sqlx::Row;
 use sqlx::postgres::PgRow;
 use uuid::Uuid;
@@ -85,7 +85,10 @@ pub async fn list(tx: &mut Tx, query: &Query) -> Result<Page<Form>> {
 }
 
 /// What making one asks for.
-#[derive(Clone, Debug, Deserialize)]
+///
+/// Serialised as well as read, so the test beside the description can hold
+/// what it says it takes against what it takes.
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct NewForm {
     pub slug: String,
     pub name: String,
@@ -141,7 +144,7 @@ pub async fn read(tx: &mut Tx, id: Uuid) -> Result<Form> {
 }
 
 /// What may be changed about one.
-#[derive(Clone, Debug, Default, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct FormChanges {
     pub name: Option<String>,
     pub fields: Option<Vec<Field>>,

@@ -564,6 +564,23 @@ export interface ForSalePage {
   next?: string;
 }
 
+/** What went, and what was emptied rather than taken away. */
+export interface Forgotten {
+  /** Accounts removed. */
+  account: number;
+  /** Places on a list removed. */
+  on_lists: number;
+  /** Enrolments removed. */
+  learning: number;
+  /**
+   * Orders kept and emptied of the person. A bill that vanished is one nobody
+   * can explain.
+   */
+  orders_emptied: number;
+  /** Things sent through a form, removed. */
+  sent_through_forms: number;
+}
+
 /** Something a site asks people, as whoever made it sees it. */
 export interface Form {
   /** Which one. */
@@ -639,6 +656,26 @@ export interface Health {
   well: boolean;
   /** Each of them. */
   checks: Check[];
+}
+
+/**
+ * What this site holds about one address, counted, across everything that
+ * could hold it.
+ */
+export interface Held {
+  /** An account here. */
+  account: number;
+  /** Places on a mailing list. */
+  on_lists: number;
+  /** As somebody learning here. */
+  learning: number;
+  /** Orders placed. */
+  orders: number;
+  /**
+   * Things sent through a form whose answers name this address anywhere in
+   * them.
+   */
+  sent_through_forms: number;
 }
 
 /**
@@ -1527,6 +1564,12 @@ export interface Setup {
   password: string;
 }
 
+/** Which address this is about. */
+export interface Somebody {
+  /** Where they are reached. */
+  email: string;
+}
+
 /** Somebody to invite to learn here. */
 export interface SomebodyToAsk {
   /** Where to reach them. */
@@ -1887,6 +1930,8 @@ export interface Operation {
 
 /** Every operation this installation describes. */
 export const operations = {
+  "about.forget": { method: "post", path: "/api/about/forget", takes: "Somebody", answers: "Forgotten", status: 200 },
+  "about.gather": { method: "post", path: "/api/about", takes: "Somebody", answers: "Held", status: 200 },
   "addresses.prove": { method: "post", path: "/api/addresses", takes: "Proof", answers: null, status: 204 },
   "analytics.felt": { method: "get", path: "/api/analytics/felt", takes: null, answers: "FeltList", status: 200 },
   "analytics.read": { method: "get", path: "/api/analytics", takes: null, answers: "ReadList", status: 200 },
@@ -2023,6 +2068,8 @@ export type Named = keyof typeof operations;
  * it.
  */
 export interface Calls {
+  "about.forget": { takes: Somebody; gives: Forgotten };
+  "about.gather": { takes: Somebody; gives: Held };
   "addresses.prove": { takes: Proof; gives: void };
   "analytics.felt": { takes: never; gives: FeltList };
   "analytics.read": { takes: never; gives: ReadList };

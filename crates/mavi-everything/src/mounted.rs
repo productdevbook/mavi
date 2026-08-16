@@ -2489,7 +2489,7 @@ async fn flows(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
 ///
 /// Answered rather than written in a manual: a panel that has to know the list
 /// is a panel that goes out of date on its own.
-fn triggers() -> Result<Answered<Value>> {
+fn triggers() -> Answered<Value> {
     let triggers: Vec<Value> = mavi_flows::step::TRIGGERS
         .iter()
         .map(|trigger| serde_json::json!({ "name": trigger.as_str() }))
@@ -2505,9 +2505,7 @@ fn triggers() -> Result<Answered<Value>> {
     .map(|does| serde_json::json!({ "name": does.as_str(), "needs": does.needs() }))
     .collect();
 
-    Ok(Answered::Read(
-        serde_json::json!({ "triggers": triggers, "does": does }),
-    ))
+    Answered::Read(serde_json::json!({ "triggers": triggers, "does": does }))
 }
 
 async fn arranged_a_flow(db: &Db, asked: &Asked) -> Result<Answered<Value>> {

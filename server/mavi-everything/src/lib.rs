@@ -37,6 +37,7 @@ pub fn endpoints() -> Vec<Endpoint> {
     all.extend(mavi_people::endpoints());
     all.extend(mavi_settings::endpoints());
     all.extend(mavi_health::endpoints());
+    all.extend(mavi_second::endpoints());
     all.extend(mavi_analytics::endpoints());
     all.extend(mavi_portable::endpoints());
     all.extend(mavi_trash::endpoints());
@@ -74,6 +75,7 @@ pub fn shapes() -> Vec<mavi_api::Shape> {
     all.extend(mavi_taxonomy::described::shapes());
     all.extend(mavi_settings::described::shapes());
     all.extend(mavi_health::described::shapes());
+    all.extend(mavi_second::described::shapes());
     all.extend(mavi_analytics::described::shapes());
     all.extend(crate::overview::shapes());
     all.extend(crate::about::shapes());

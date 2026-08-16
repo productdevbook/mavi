@@ -1,0 +1,28 @@
+[package]
+name = "mavi-second"
+version = "0.0.0"
+edition = "2024"
+publish = false
+description = "The second thing somebody has, besides the password they know."
+
+[dependencies]
+mavi-api = { path = "../mavi-api" }
+mavi-core = { path = "../mavi-core" }
+mavi-db = { path = "../mavi-db" }
+
+chrono = { workspace = true }
+hmac = { workspace = true }
+rand = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sha1 = { workspace = true }
+sha2 = { workspace = true }
+sqlx = { workspace = true }
+subtle = { workspace = true }
+uuid = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt"] }
+
+[lints]
+workspace = true

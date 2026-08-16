@@ -93,7 +93,7 @@ fn the_ways_in() -> Vec<Endpoint> {
             // with the wrong password answer the same way, or the refusal is
             // a way to ask which addresses have accounts.
             refuses: &[Code::Forbidden],
-            answers: Answers::Made("Session"),
+            answers: Answers::Made("WayIn"),
             changes: true,
         },
         Endpoint {

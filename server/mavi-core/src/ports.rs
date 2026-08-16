@@ -101,6 +101,28 @@ pub enum Built {
     WentWrong(String),
 }
 
+/// Sealing something this software has to be able to read back.
+///
+/// A password is hashed, because nothing ever needs it again — what is checked
+/// is whether a new hash matches. A **second factor's secret is not like that**:
+/// the six digits have to be computed from it on every sign-in, so it has to
+/// come back out. Hashing it is not an option, and keeping it plainly makes a
+/// copy of the database a drawer of working authenticators.
+///
+/// So it is sealed, and the key belongs to whoever runs this rather than to
+/// this. A host with a key manager uses it; a host with a file on disk uses
+/// that. What this software knows is that the secret must not be readable from
+/// the rows alone.
+///
+/// **An installation that provides none of this simply has no second factors.**
+/// That is said where somebody asks for one, rather than sealed with a key
+/// baked into the source — which would be the appearance of the thing without
+/// the thing.
+pub trait Seals: Debug + Send + Sync {
+    fn seal<'a>(&'a self, what: &'a [u8]) -> Answering<'a, Vec<u8>>;
+    fn open<'a>(&'a self, sealed: &'a [u8]) -> Answering<'a, Vec<u8>>;
+}
+
 /// Where a letter goes.
 ///
 /// This software decides that a letter should be sent and what it says. It

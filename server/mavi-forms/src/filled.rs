@@ -8,7 +8,7 @@ use mavi_core::error::Result;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
-use mavi_core::asked::{Declared, Kind};
+use mavi_core::asked::Declared;
 
 pub use mavi_core::asked::{
     AT_MOST_ALTOGETHER, IT_HAS_NO_SUCH_FIELD as THAT_FORM_HAS_NO_SUCH_FIELD,
@@ -41,7 +41,7 @@ impl Filled {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use mavi_core::asked::Field;
+    use mavi_core::asked::{Field, Kind};
     use mavi_core::slug::Slug;
     use serde_json::json;
 

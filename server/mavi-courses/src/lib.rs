@@ -10,6 +10,7 @@
 //! everything switched off — an account with everything switched off is one
 //! flag away from an account with something switched on.
 
+pub mod described;
 pub mod sequence;
 pub mod store;
 pub mod student;

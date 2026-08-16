@@ -69,6 +69,7 @@ pub fn shapes() -> Vec<mavi_api::Shape> {
     all.extend(mavi_forms::described::shapes());
     all.extend(mavi_people::described::shapes());
     all.extend(mavi_shop::described::shapes());
+    all.extend(mavi_courses::described::shapes());
     all.extend(crate::assistant::shapes());
 
     all
@@ -141,33 +142,21 @@ mod tests {
         "Change",
         "ChangePage",
         "Contents",
-        "Course",
-        "CourseChanges",
-        "CoursePage",
-        "Enrolment",
         "FileList",
         "Flow",
         "FlowChanges",
         "FlowPage",
-        "LearningList",
-        "Lesson",
-        "LessonChanges",
         "Letter",
         "LetterList",
         "List",
         "ListList",
-        "Module",
         "NewBoard",
         "NewCard",
         "NewChange",
-        "NewCourse",
         "NewFlow",
-        "NewLesson",
         "NewList",
-        "NewModule",
         "NewReader",
         "Pressed",
-        "Progress",
         "Reader",
         "ReaderPage",
         "Receipt",
@@ -175,15 +164,10 @@ mod tests {
         "Run",
         "RunPage",
         "Sending",
-        "SomebodyToAsk",
         "SomethingMadeUp",
-        "Student",
-        "StudentPage",
-        "TheOrder",
         "TriggerList",
         "Values",
         "WhatItWouldDo",
-        "WhoToPutOn",
         "Wording",
     ];
 

@@ -21,7 +21,10 @@
 //! row went back to ready, and the work ran a third time — from one slow
 //! worker and no error anywhere.
 
+pub mod pool;
 pub mod timer;
+
+pub use pool::{PoolConfig, ProcessLimits};
 
 use std::collections::BTreeMap;
 

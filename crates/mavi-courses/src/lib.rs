@@ -11,6 +11,7 @@
 //! flag away from an account with something switched on.
 
 pub mod sequence;
+pub mod store;
 pub mod student;
 
 use mavi_api::{Answers, Endpoint, Is, Method, Parameter, Who};

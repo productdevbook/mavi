@@ -8,9 +8,12 @@ description = "What somebody is learning: courses, the order they are in, and wh
 [dependencies]
 mavi-api = { path = "../mavi-api" }
 mavi-core = { path = "../mavi-core" }
+mavi-db = { path = "../mavi-db" }
 mavi-people = { path = "../mavi-people" }
 
+chrono = { workspace = true }
 serde = { workspace = true }
+sqlx = { workspace = true }
 uuid = { workspace = true }
 
 [dev-dependencies]

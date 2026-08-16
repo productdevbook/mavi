@@ -49,7 +49,10 @@ pub use refusal::Refusal;
 pub struct TheBytes;
 
 impl TheBytes {
-    pub const NAMED: &'static str = "TheBytes";
+    /// The description's own, rather than a second copy of the word. The
+    /// question "is every named body described" has to skip exactly this one,
+    /// and two spellings of it is that question quietly answering wrongly.
+    pub const NAMED: &'static str = mavi_api::THE_BYTES;
 }
 
 /// What a handler is given.

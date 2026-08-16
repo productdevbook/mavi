@@ -19,10 +19,21 @@
 //! description is complete" is a number rather than a feeling.
 
 pub mod describe;
+pub mod shape;
+
+use std::collections::BTreeSet;
 
 use mavi_core::error::Code;
 
 pub use describe::openapi;
+pub use shape::{Field, Of, Shape};
+
+/// The name an endpoint uses when what it takes is the bytes themselves.
+///
+/// Said here as well as where the router reads it, because the question "is
+/// every named body described" has to know the one name that is deliberately
+/// not a body.
+pub const THE_BYTES: &str = "TheBytes";
 
 /// How a request arrives.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -214,6 +225,10 @@ pub struct Endpoint {
 #[derive(Debug, Default)]
 pub struct Api {
     pub endpoints: Vec<Endpoint>,
+    /// The bodies those endpoints name. Separate from the endpoints because
+    /// one shape is named by several of them, and describing it once is the
+    /// point.
+    pub shapes: Vec<Shape>,
 }
 
 /// Something an endpoint did not say, found by asking rather than by reading.
@@ -226,7 +241,48 @@ pub struct Hole {
 impl Api {
     #[must_use]
     pub fn of(endpoints: Vec<Endpoint>) -> Self {
-        Self { endpoints }
+        Self {
+            endpoints,
+            shapes: Vec::new(),
+        }
+    }
+
+    /// The same, with the bodies described.
+    #[must_use]
+    pub fn and(mut self, shapes: Vec<Shape>) -> Self {
+        self.shapes = shapes;
+        self
+    }
+
+    /// Every name referred to that nothing describes.
+    ///
+    /// A description whose references point at nothing is one a client cannot
+    /// be generated from — and the way that stays true is that this is
+    /// measured rather than remembered. Endpoints and shapes both refer: a
+    /// shape naming another that does not exist is the same hole one step
+    /// further in.
+    ///
+    /// The bytes are not a shape and never will be: an upload is a body whose
+    /// kind is decided by reading it, and describing it as an object would be
+    /// describing it wrongly.
+    #[must_use]
+    pub fn undescribed(&self) -> Vec<&'static str> {
+        let described: BTreeSet<&str> = self.shapes.iter().map(|shape| shape.named).collect();
+
+        let referred = self
+            .endpoints
+            .iter()
+            .flat_map(|endpoint| endpoint.takes.into_iter().chain(endpoint.answers.body()))
+            .chain(self.shapes.iter().flat_map(Shape::refers_to));
+
+        let mut missing: Vec<&'static str> = referred
+            .filter(|named| *named != crate::THE_BYTES && !described.contains(named))
+            .collect();
+
+        missing.sort_unstable();
+        missing.dedup();
+
+        missing
     }
 
     /// The refusals every caller of this endpoint can receive without the

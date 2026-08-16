@@ -12,6 +12,7 @@
 //! functions, so that a description generated from them cannot drift from what
 //! they do.
 
+pub mod described;
 pub mod listing;
 pub mod store;
 pub mod writing;

@@ -53,10 +53,25 @@ pub fn endpoints() -> Vec<Endpoint> {
     all
 }
 
+/// Every body those endpoints name.
+///
+/// Beside the endpoints for the same reason they are collected here at all:
+/// one shape is named by several of them, and whether every name resolves is a
+/// question no single domain can ask.
+#[must_use]
+pub fn shapes() -> Vec<mavi_api::Shape> {
+    let mut all = Vec::new();
+
+    all.extend(mavi_content::described::shapes());
+    all.extend(crate::assistant::shapes());
+
+    all
+}
+
 /// The whole thing, ready to be asked questions.
 #[must_use]
 pub fn api() -> Api {
-    Api::of(endpoints())
+    Api::of(endpoints()).and(shapes())
 }
 
 /// The description a client is generated from.
@@ -102,6 +117,187 @@ mod tests {
     use super::*;
     use mavi_api::Who;
     use std::collections::{BTreeMap, BTreeSet};
+
+    /// What is named and not described yet.
+    ///
+    /// A description whose references point at nothing is one no client can be
+    /// generated from, and this is what is left of that. It is written down
+    /// rather than counted so that the test below is a real check: **a name is
+    /// only ever removed from here.** Adding one means an endpoint was written
+    /// naming a body nobody described, which is the thing this exists to stop.
+    const STILL_TO_DESCRIBE: &[&str] = &[
+        "Basket",
+        "Between",
+        "Board",
+        "BoardList",
+        "Card",
+        "CardChanges",
+        "CardPage",
+        "Change",
+        "ChangePage",
+        "ChosenPassword",
+        "Contents",
+        "Coupon",
+        "CouponList",
+        "Course",
+        "CourseChanges",
+        "CoursePage",
+        "Credentials",
+        "Enrolment",
+        "File",
+        "FileList",
+        "FilePage",
+        "Filing",
+        "Filled",
+        "FilledPage",
+        "Flow",
+        "FlowChanges",
+        "FlowPage",
+        "ForSalePage",
+        "Form",
+        "FormChanges",
+        "FormPage",
+        "Invitation",
+        "Language",
+        "LanguageList",
+        "LearningList",
+        "Lesson",
+        "LessonChanges",
+        "Letter",
+        "LetterList",
+        "List",
+        "ListList",
+        "Module",
+        "NewBoard",
+        "NewCard",
+        "NewChange",
+        "NewCoupon",
+        "NewCourse",
+        "NewFlow",
+        "NewForm",
+        "NewLanguage",
+        "NewLesson",
+        "NewList",
+        "NewModule",
+        "NewPost",
+        "NewProduct",
+        "NewReader",
+        "NewTerm",
+        "OpenForm",
+        "Order",
+        "OrderPage",
+        "Person",
+        "PersonPage",
+        "Placed",
+        "Post",
+        "Pressed",
+        "Product",
+        "ProductChanges",
+        "ProductPage",
+        "Progress",
+        "Proof",
+        "PublicSite",
+        "Reader",
+        "ReaderPage",
+        "Ready",
+        "Receipt",
+        "ReceiptPage",
+        "Received",
+        "Run",
+        "RunPage",
+        "Seen",
+        "Sending",
+        "Session",
+        "Settings",
+        "SettingsChanges",
+        "Setup",
+        "SomebodyToAsk",
+        "SomethingMadeUp",
+        "Student",
+        "StudentPage",
+        "Term",
+        "TermChanges",
+        "TermList",
+        "TermPage",
+        "TheOrder",
+        "Thing",
+        "TriggerList",
+        "Values",
+        "WhatItWouldDo",
+        "WhereItGoes",
+        "WhoToPutOn",
+        "Wording",
+    ];
+
+    #[test]
+    fn every_name_an_endpoint_uses_is_either_described_or_on_the_list() {
+        let missing = api().undescribed();
+
+        assert_eq!(
+            missing,
+            STILL_TO_DESCRIBE.to_vec(),
+            "a body was named that nothing describes and nothing admits to"
+        );
+    }
+
+    #[test]
+    fn every_reference_in_the_document_resolves_or_is_admitted_to() {
+        // The other half, and the one that catches a reference written
+        // wrongly rather than a body left undescribed: whatever the document
+        // says `$ref` to has to be in the document.
+        let described = described("0.0.0");
+        let schemas = described["components"]["schemas"]
+            .as_object()
+            .expect("schemas");
+
+        let mut refs = Vec::new();
+        collect(&described, &mut refs);
+
+        for named in refs {
+            let Some(named) = named.strip_prefix("#/components/schemas/") else {
+                panic!("{named} is not a reference into this document");
+            };
+
+            assert!(
+                schemas.contains_key(named) || STILL_TO_DESCRIBE.contains(&named),
+                "{named} is referred to and is neither described nor admitted to"
+            );
+        }
+    }
+
+    /// Every `$ref` anywhere in a document, however deep.
+    fn collect(what: &serde_json::Value, into: &mut Vec<String>) {
+        match what {
+            serde_json::Value::Object(object) => {
+                for (key, value) in object {
+                    if key == "$ref"
+                        && let Some(named) = value.as_str()
+                    {
+                        into.push(named.to_owned());
+                    }
+
+                    collect(value, into);
+                }
+            }
+            serde_json::Value::Array(items) => {
+                for item in items {
+                    collect(item, into);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    #[test]
+    fn what_is_described_is_described_once() {
+        let mut named: Vec<&str> = shapes().iter().map(|shape| shape.named).collect();
+        let count = named.len();
+
+        named.sort_unstable();
+        named.dedup();
+
+        assert_eq!(named.len(), count, "two shapes answer to one name");
+    }
 
     #[test]
     fn no_two_endpoints_anywhere_are_one_tool() {

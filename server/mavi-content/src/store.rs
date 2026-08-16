@@ -188,7 +188,10 @@ pub async fn make(tx: &mut Tx, new: &New) -> Result<Writing> {
 }
 
 /// What may be changed about one.
-#[derive(Clone, Debug, Default, serde::Deserialize)]
+///
+/// Serialised as well as read, for the same reason [`crate::writing::New`] is:
+/// so what it says it takes is held against what it takes.
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Changes {
     /// Where it answers. Renaming leaves the old address working: a link
     /// somebody made last year is not something to break because a title was

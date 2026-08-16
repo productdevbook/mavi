@@ -50,12 +50,27 @@ pub fn openapi(api: &Api, version: &str) -> Value {
                          where it came from.",
                 },
             },
-            "schemas": {
-                "Refusal": refusal(),
-            },
+            "schemas": schemas(api),
         },
         "paths": paths,
     })
+}
+
+/// Every body this API has, by name.
+///
+/// The refusal is here rather than declared by a domain because no domain owns
+/// it: it is what the guard and the router answer, and every operation refers
+/// to it.
+fn schemas(api: &Api) -> Value {
+    let mut schemas = Map::new();
+
+    schemas.insert("Refusal".to_owned(), refusal());
+
+    for shape in &api.shapes {
+        schemas.insert(shape.named.to_owned(), shape.described());
+    }
+
+    Value::Object(schemas)
 }
 
 fn operation(endpoint: &Endpoint) -> Value {

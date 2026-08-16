@@ -1043,11 +1043,12 @@ fn the_way_in(mut site: Site, db: &Db) -> Site {
                 // role can give themselves anything.
                 "people.invite" | "people.move" | "people.remove" | "roles.make"
                 | "roles.change" | "roles.remove" => Some(mavi_people::to_write()),
-                // Nothing. A key is whoever is asking, giving themselves
-                // another way in that is never more than they already have —
-                // and a grant on it would be a grant somebody needs in order
-                // to be able to use a script as themselves.
-                "keys.list" | "keys.make" | "keys.end" => None,
+                // Nothing, for two different reasons that happen to arrive at
+                // the same answer. The ways in are reached by somebody who is
+                // holding nothing yet. And a key is whoever is asking giving
+                // themselves another way in that is never more than they
+                // already have — a grant on that would be a grant somebody
+                // needs in order to use a script as themselves.
                 _ => None,
             };
 

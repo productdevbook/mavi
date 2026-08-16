@@ -13,6 +13,28 @@ export interface Refusal {
 }
 
 /**
+ * One kind of writing, as a site declared it. A kind is free text, because a
+ * CMS whose kinds are fixed at compile time is a CMS for one site — this is
+ * where a site says what its own ask for, so that a panel can draw the right
+ * boxes and something can check what arrives.
+ */
+export interface AKind {
+  /** The word a writing carries. */
+  kind: string;
+  /** What to call it on a screen. */
+  name: string;
+  /**
+   * What one of them asks for, in the same vocabulary a form uses — the two
+   * are one idea, so they are one vocabulary rather than two that drift. Empty
+   * means a kind whose fields nothing checks, which is what every kind is
+   * until a site says otherwise.
+   */
+  fields: FormField[];
+  /** When it was declared. */
+  created_at: string;
+}
+
+/**
  * Whether this installation can answer at all. Nothing else — what asks this
  * is a container runtime rather than a person, and a detailed answer here
  * would be a description of somebody's installation handed to whoever asks.
@@ -391,6 +413,19 @@ export interface Credentials {
   password: string;
 }
 
+/** What a kind asks for. */
+export interface Declaring {
+  /** What to call it on a screen. */
+  name: string;
+  /**
+   * What one of them asks for, in the same vocabulary a form uses — the two
+   * are one idea, so they are one vocabulary rather than two that drift. Empty
+   * means a kind whose fields nothing checks, which is what every kind is
+   * until a site says otherwise.
+   */
+  fields?: FormField[];
+}
+
 /** They are on it. */
 export interface Enrolment {
   /** Which enrolment. */
@@ -725,6 +760,12 @@ export interface Key {
 
 /** The keys whoever is asking has made. */
 export type KeyList = Key[];
+
+/**
+ * What a site decided its kinds of writing are. A handful, with nothing to
+ * page through.
+ */
+export type KindList = AKind[];
 
 /** One language a site writes in. */
 export interface Language {
@@ -2045,6 +2086,9 @@ export const operations = {
   "keys.end": { method: "delete", path: "/api/keys/{id}", takes: null, answers: null, status: 204 },
   "keys.list": { method: "get", path: "/api/keys", takes: null, answers: "KeyList", status: 200 },
   "keys.make": { method: "post", path: "/api/keys", takes: "NewKey", answers: "MadeKey", status: 201 },
+  "kinds.declare": { method: "put", path: "/api/kinds/{kind}", takes: "Declaring", answers: "AKind", status: 200 },
+  "kinds.list": { method: "get", path: "/api/kinds", takes: null, answers: "KindList", status: 200 },
+  "kinds.stop-saying": { method: "delete", path: "/api/kinds/{kind}", takes: null, answers: null, status: 204 },
   "languages.add": { method: "post", path: "/api/languages", takes: "NewLanguage", answers: "Language", status: 201 },
   "languages.forget": { method: "delete", path: "/api/languages/{tag}", takes: null, answers: null, status: 204 },
   "languages.list": { method: "get", path: "/api/languages", takes: null, answers: "LanguageList", status: 200 },
@@ -2186,6 +2230,9 @@ export interface Calls {
   "keys.end": { takes: never; gives: void };
   "keys.list": { takes: never; gives: KeyList };
   "keys.make": { takes: NewKey; gives: MadeKey };
+  "kinds.declare": { takes: Declaring; gives: AKind };
+  "kinds.list": { takes: never; gives: KindList };
+  "kinds.stop-saying": { takes: never; gives: void };
   "languages.add": { takes: NewLanguage; gives: Language };
   "languages.forget": { takes: never; gives: void };
   "languages.list": { takes: never; gives: LanguageList };

@@ -13,6 +13,7 @@
 //! they do.
 
 pub mod described;
+pub mod kinds;
 pub mod listing;
 pub mod store;
 pub mod writing;
@@ -41,6 +42,59 @@ pub const fn to_write() -> Needs {
 /// Everything this domain answers, said completely enough to describe.
 #[must_use]
 pub fn endpoints() -> Vec<Endpoint> {
+    let mut all = the_kinds();
+    all.extend(what_it_wrote());
+
+    all
+}
+
+/// What a site decided its kinds of writing are.
+fn the_kinds() -> Vec<Endpoint> {
+    vec![
+        Endpoint {
+            method: Method::Get,
+            path: "/api/kinds",
+            named: "kinds.list",
+            about: "What a site decided its kinds of writing are, and what each \
+                    one asks for.",
+            who: Who::AnAccount,
+            parameters: Vec::new(),
+            takes: None,
+            answers: Answers::With("KindList"),
+            refuses: &[],
+            changes: false,
+        },
+        Endpoint {
+            method: Method::Put,
+            path: "/api/kinds/{kind}",
+            named: "kinds.declare",
+            about: "Says what a kind asks for, or says it differently. One \
+                    door for both, so the checking cannot be two things.",
+            who: Who::AnAccount,
+            parameters: vec![Parameter::path("kind", Is::Text, "Which kind.")],
+            takes: Some("Declaring"),
+            answers: Answers::With("AKind"),
+            refuses: &[Code::Invalid],
+            changes: true,
+        },
+        Endpoint {
+            method: Method::Delete,
+            path: "/api/kinds/{kind}",
+            named: "kinds.stop-saying",
+            about: "Stops saying what a kind is. The writings stay, and so \
+                    does what is in their fields.",
+            who: Who::AnAccount,
+            parameters: vec![Parameter::path("kind", Is::Text, "Which kind.")],
+            takes: None,
+            answers: Answers::Nothing,
+            refuses: &[Code::NotFound],
+            changes: true,
+        },
+    ]
+}
+
+/// What a site wrote.
+fn what_it_wrote() -> Vec<Endpoint> {
     vec![
         Endpoint {
             method: Method::Get,

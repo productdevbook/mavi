@@ -12,7 +12,6 @@
 //! got its audience right.
 
 pub mod described;
-pub mod field;
 pub mod filled;
 pub mod store;
 
@@ -26,8 +25,13 @@ use mavi_core::slug::Slug;
 use chrono::{DateTime, Utc};
 use serde::Serialize;
 
-pub use field::{Declared, Field};
 pub use filled::Filled;
+/// What a form asks for.
+///
+/// The same vocabulary a kind of writing declares its own fields with, and in
+/// `mavi-core` for that reason — two things that ask for a list of things and
+/// then take whatever arrives are one idea, and two copies of it drift.
+pub use mavi_core::asked::{Declared, Field};
 
 id!(
     /// One form.

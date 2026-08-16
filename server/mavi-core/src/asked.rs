@@ -1,27 +1,41 @@
-//! What a form asks for.
+//! A list of things somebody is asked for, declared.
 //!
-//! A form is a list of fields, and the list is checked when it is declared
-//! rather than when somebody fills it in. That order is the whole design: a
-//! form is declared once by somebody signed in, and filled in by anybody, any
-//! number of times. Every question answered at declaration is a question not
-//! asked on a public endpoint.
+//! Two things in this software declare what they want and then take whatever
+//! arrives: a **form**, which anybody fills in, and a **kind of writing**,
+//! whose own fields a site decides. They are the same idea, so they are one
+//! vocabulary rather than two that drift — and it lives here, because a domain
+//! reaching into another domain for a type is the thing crate boundaries are
+//! for.
+//!
+//! The list is checked **when it is declared**, not when it is filled in. That
+//! order is the whole design: a declaration is made once by somebody signed
+//! in, and answered any number of times by anybody. Every question settled at
+//! declaration is a question not asked on a public endpoint.
 
-use mavi_core::error::{Error, Result};
-use mavi_core::say::Say;
-use mavi_core::slug::Slug;
+use crate::error::{Error, Result};
+use crate::say::Say;
+use crate::slug::Slug;
 use serde::{Deserialize, Serialize};
+use serde_json::{Map, Value};
 
-pub const A_FORM_ASKS_AT_MOST_SO_MANY_THINGS: &str = "a_form_asks_at_most_so_many_things";
-pub const A_FORM_ASKS_EACH_THING_ONCE: &str = "a_form_asks_each_thing_once";
+pub const IT_ASKS_AT_MOST_SO_MANY_THINGS: &str = "a_form_asks_at_most_so_many_things";
+pub const IT_WANTS_THAT_FIELD: &str = "that_form_wants_that_field";
+pub const THAT_IS_NOT_WHAT_THAT_FIELD_HOLDS: &str = "that_is_not_what_that_field_holds";
+pub const IT_HAS_NO_SUCH_FIELD: &str = "that_form_has_no_such_field";
+pub const THAT_IS_MORE_THAN_IT_TAKES: &str = "that_is_more_than_a_form_takes";
+
+/// How much one answer may weigh, all of it together.
+pub const AT_MOST_ALTOGETHER: usize = 64 * 1024;
+pub const IT_ASKS_EACH_THING_ONCE: &str = "a_form_asks_each_thing_once";
 pub const A_LABEL_IS_BETWEEN_ONE_AND_TWO_HUNDRED: &str = "a_label_is_between_one_and_two_hundred";
 pub const A_CHOICE_NEEDS_SOMETHING_TO_CHOOSE_FROM: &str = "a_choice_needs_something_to_choose_from";
 pub const ONLY_A_CHOICE_HAS_OPTIONS: &str = "only_a_choice_has_options";
 pub const A_CHOICE_OFFERS_AT_MOST_SO_MANY: &str = "a_choice_offers_at_most_so_many";
 
-/// How many things one form may ask for.
+/// How many things one declaration may ask for.
 ///
-/// A limit exists because a form with none is a `jsonb` column whose size
-/// whoever declares the form decides, checked in a loop on every submission.
+/// A limit exists because one with none is a `jsonb` column whose size
+/// whoever declared it decides, checked in a loop on every answer.
 pub const AT_MOST_FIELDS: usize = 50;
 
 /// How many things one choice may offer.
@@ -87,7 +101,7 @@ impl Declared {
     pub fn checked(fields: Vec<Field>) -> Result<Self> {
         if fields.len() > AT_MOST_FIELDS {
             return Err(Error::invalid(
-                Say::of(A_FORM_ASKS_AT_MOST_SO_MANY_THINGS).with("at_most", &AT_MOST_FIELDS),
+                Say::of(IT_ASKS_AT_MOST_SO_MANY_THINGS).with("at_most", &AT_MOST_FIELDS),
             ));
         }
 
@@ -102,7 +116,7 @@ impl Declared {
 
             if fields[..at].iter().any(|before| before.key == field.key) {
                 return Err(Error::invalid(
-                    Say::of(A_FORM_ASKS_EACH_THING_ONCE).with("field", &field.key.as_str()),
+                    Say::of(IT_ASKS_EACH_THING_ONCE).with("field", &field.key.as_str()),
                 ));
             }
 
@@ -148,6 +162,101 @@ impl Declared {
     }
 }
 
+/// What arrived, held against what was asked for.
+///
+/// The order is not decoration. Size first, because it is the only check whose
+/// cost does not depend on how big the thing is; then the fields that were
+/// declared, so a refusal names what is missing; then anything sent that was
+/// never asked for.
+///
+/// Written here rather than beside a form, because the second thing that
+/// declares a list and then takes whatever arrives — a site's own kind of
+/// writing — has to check it the same way. Two copies of this would be two
+/// answers to whether an email is an email.
+pub fn fits(answers: &Map<String, Value>, declared: &Declared) -> Result<()> {
+    weighs(answers)?;
+
+    for field in declared.fields() {
+        let given = answers.get(field.key.as_str());
+
+        let empty = match given {
+            None | Some(Value::Null) => true,
+            Some(Value::String(text)) => text.trim().is_empty(),
+            Some(_) => false,
+        };
+
+        if empty {
+            if field.required {
+                return Err(Error::invalid(
+                    Say::of(IT_WANTS_THAT_FIELD).with("field", &field.key.as_str()),
+                ));
+            }
+
+            continue;
+        }
+
+        let Some(value) = given else { continue };
+
+        let holds = match field.kind {
+            Kind::Text | Kind::Long => value.is_string(),
+            Kind::Email => value
+                .as_str()
+                .is_some_and(|written| crate::email::Email::parse(written).is_ok()),
+            Kind::Number => value.is_number(),
+            Kind::Boolean => value.is_boolean(),
+            Kind::Choice => value
+                .as_str()
+                .is_some_and(|written| field.options.iter().any(|one| one == written)),
+        };
+
+        if !holds {
+            return Err(Error::invalid(
+                Say::of(THAT_IS_NOT_WHAT_THAT_FIELD_HOLDS).with("field", &field.key.as_str()),
+            ));
+        }
+    }
+
+    // Anything never asked for. In the crate this replaces the whole check was
+    // skipped when nothing had been declared — so the one shape where nothing
+    // at all was declared was the one shape that accepted anything, and what
+    // it accepted went in front of whoever reads the submissions.
+    if let Some(unasked) = answers
+        .keys()
+        .find(|key| !declared.fields().iter().any(|f| f.key.as_str() == *key))
+    {
+        return Err(Error::invalid(
+            Say::of(IT_HAS_NO_SUCH_FIELD).with("field", unasked),
+        ));
+    }
+
+    Ok(())
+}
+
+/// How much of it there is, counted the way it will be stored.
+///
+/// A limit on each answer and none on the whole is not a limit: a hundred
+/// answers of ten thousand characters each is a megabyte, and the endpoint
+/// that takes a form takes it from anybody.
+pub fn weighs(answers: &Map<String, Value>) -> Result<()> {
+    let mut weight = 0_usize;
+
+    for (key, value) in answers {
+        weight += key.len();
+        weight += match value {
+            Value::String(text) => text.len(),
+            other => other.to_string().len(),
+        };
+
+        if weight > AT_MOST_ALTOGETHER {
+            return Err(Error::invalid(
+                Say::of(THAT_IS_MORE_THAN_IT_TAKES).with("at_most", &AT_MOST_ALTOGETHER),
+            ));
+        }
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -176,7 +285,7 @@ mod tests {
         // of the two is checked second is a rule nothing enforces.
         let twice = vec![asking("email", Kind::Email), asking("email", Kind::Text)];
 
-        assert_eq!(refused(twice), A_FORM_ASKS_EACH_THING_ONCE);
+        assert_eq!(refused(twice), IT_ASKS_EACH_THING_ONCE);
     }
 
     #[test]
@@ -204,7 +313,7 @@ mod tests {
             .map(|n| asking(&format!("field-{n}"), Kind::Text))
             .collect();
 
-        assert_eq!(refused(many), A_FORM_ASKS_AT_MOST_SO_MANY_THINGS);
+        assert_eq!(refused(many), IT_ASKS_AT_MOST_SO_MANY_THINGS);
 
         let mut choice = asking("colour", Kind::Choice);
         choice.options = (0..=AT_MOST_OPTIONS).map(|n| n.to_string()).collect();

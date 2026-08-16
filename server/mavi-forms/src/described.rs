@@ -213,11 +213,11 @@ mod tests {
 
     #[test]
     fn what_is_described_is_what_is_sent() {
-        let field = crate::field::Field {
+        let field = mavi_core::asked::Field {
             key: mavi_core::slug::Slug::parse("name").expect("a key"),
             label: "Your name".to_owned(),
             required: true,
-            kind: crate::field::Kind::Text,
+            kind: mavi_core::asked::Kind::Text,
             options: Vec::new(),
         };
 

@@ -12,10 +12,11 @@ use argon2::{
 };
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use chrono::{DateTime, Duration, Utc};
-use mavi_contract::{Api, Endpoint, Method};
+use mavi_audit::{AuditEntry, AuditService};
+use mavi_contract::{Api, Endpoint, Method, Permission};
 use mavi_core::{
-    Action, Caller, Capability, Grant, Grants, MaviError, PersonId, Result, RoleId, SessionId,
-    SiteContext,
+    Action, ApiKeyId, Caller, Capability, Grant, Grants, MaviError, PersonId, Result, RoleId,
+    SessionId, SiteContext,
 };
 use mavi_storage::SiteTx;
 use rand::RngExt;
@@ -26,6 +27,8 @@ pub const SETUP_ALREADY_COMPLETE: &str = "setup_already_complete";
 pub const EMAIL_INVALID: &str = "email_invalid";
 pub const PERSON_NAME_INVALID: &str = "person_name_invalid";
 pub const PASSWORD_INVALID: &str = "password_invalid";
+pub const API_KEY_NAME_INVALID: &str = "api_key_name_invalid";
+pub const API_KEY_GRANTS_INVALID: &str = "api_key_grants_invalid";
 
 /// Setup and authentication routes are public by design, but every mutation
 /// is explicitly marked in the canonical contract.
@@ -66,6 +69,31 @@ pub fn api() -> Api {
         )
         .returns(204, "Empty")
         .self_only(),
+        Endpoint::new(
+            Method::Post,
+            "/api/v1/auth/api-keys",
+            "auth.api_key.create",
+            "Create an assistant API key",
+        )
+        .requires(Permission {
+            capability: Capability::People,
+            action: Action::Write,
+        })
+        .takes("CreateApiKey")
+        .returns(201, "ApiKeyCreated")
+        .changes(false),
+        Endpoint::new(
+            Method::Delete,
+            "/api/v1/auth/api-keys/{id}",
+            "auth.api_key.revoke",
+            "Revoke an assistant API key",
+        )
+        .requires(Permission {
+            capability: Capability::People,
+            action: Action::Delete,
+        })
+        .returns(204, "Empty")
+        .changes(false),
     ])
 }
 
@@ -197,6 +225,23 @@ pub struct SessionCreated {
     pub id: SessionId,
     pub token: String,
     pub expires_at: DateTime<Utc>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct CreateApiKey {
+    pub name: String,
+    pub grants: Vec<Grant>,
+    #[serde(default)]
+    pub expires_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct ApiKeyCreated {
+    pub id: ApiKeyId,
+    pub name: String,
+    pub token: String,
+    pub grants: Grants,
+    pub expires_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -377,16 +422,47 @@ impl IdentityService {
         .bind(now)
         .fetch_optional(tx.conn())
         .await
+        .map_err(|_| MaviError::Internal)?;
+
+        if let Some(row) = row {
+            let session_id =
+                SessionId::from_uuid(row.try_get("id").map_err(|_| MaviError::Internal)?);
+            let person_id =
+                PersonId::from_uuid(row.try_get("person_id").map_err(|_| MaviError::Internal)?);
+            let grants = grants_for_person(tx, context.site_id, person_id).await?;
+            return Ok(Caller::Account {
+                person_id,
+                session_id: Some(session_id),
+                grants,
+            });
+        }
+
+        let Some(prefix) = api_key_prefix(token) else {
+            return Err(MaviError::Unauthenticated);
+        };
+        let row = sqlx::query(
+            "select k.id, k.person_id from api_keys k
+               join people p on p.site_id = k.site_id and p.id = k.person_id
+              where k.site_id = $1 and k.prefix = $2 and k.secret_hash = $3
+                and (k.expires_at is null or k.expires_at > $4)
+                and k.revoked_at is null and p.status = 'active'",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(prefix)
+        .bind(hash_token(token))
+        .bind(now)
+        .fetch_optional(tx.conn())
+        .await
         .map_err(|_| MaviError::Internal)?
         .ok_or(MaviError::Unauthenticated)?;
 
-        let session_id = SessionId::from_uuid(row.try_get("id").map_err(|_| MaviError::Internal)?);
+        let key_id = ApiKeyId::from_uuid(row.try_get("id").map_err(|_| MaviError::Internal)?);
         let person_id =
             PersonId::from_uuid(row.try_get("person_id").map_err(|_| MaviError::Internal)?);
-        let grants = grants_for_person(tx, context.site_id, person_id).await?;
-        Ok(Caller::Account {
-            person_id,
-            session_id: Some(session_id),
+        let grants = grants_for_api_key(tx, context.site_id, key_id).await?;
+        Ok(Caller::Assistant {
+            key_id,
+            person_id: Some(person_id),
             grants,
         })
     }
@@ -415,6 +491,131 @@ impl IdentityService {
         .await
         .map_err(|_| MaviError::Internal)?;
         Ok(())
+    }
+
+    pub async fn create_api_key(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        input: &CreateApiKey,
+        now: DateTime<Utc>,
+    ) -> Result<ApiKeyCreated> {
+        let Caller::Account {
+            person_id, grants, ..
+        } = &context.caller
+        else {
+            return Err(MaviError::Forbidden);
+        };
+        let name = input.name.trim();
+        if name.is_empty() || name.chars().count() > 120 {
+            return Err(MaviError::validation(API_KEY_NAME_INVALID));
+        }
+        if input.grants.is_empty() {
+            return Err(MaviError::validation(API_KEY_GRANTS_INVALID));
+        }
+        let mut requested = Vec::new();
+        for grant in &input.grants {
+            if !grants.allows(*grant) {
+                return Err(MaviError::Forbidden);
+            }
+            if !requested.contains(grant) {
+                requested.push(*grant);
+            }
+        }
+        if input.expires_at.is_some_and(|expires_at| expires_at <= now) {
+            return Err(MaviError::validation("api_key_expiry_invalid"));
+        }
+
+        let api_key_id = ApiKeyId::new();
+        let token = new_prefixed_token();
+        let prefix = api_key_prefix(&token).ok_or(MaviError::Internal)?;
+        sqlx::query(
+            "insert into api_keys (site_id, id, person_id, name, prefix, secret_hash, expires_at)
+             values ($1, $2, $3, $4, $5, $6, $7)",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(api_key_id.into_uuid())
+        .bind(person_id.into_uuid())
+        .bind(name)
+        .bind(prefix)
+        .bind(hash_token(&token))
+        .bind(input.expires_at)
+        .execute(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?;
+
+        for grant in &requested {
+            sqlx::query(
+                "insert into api_key_grants (site_id, key_id, capability, action)
+                 values ($1, $2, $3, $4)",
+            )
+            .bind(context.site_id.into_uuid())
+            .bind(api_key_id.into_uuid())
+            .bind(grant.capability.as_str())
+            .bind(grant.action.as_str())
+            .execute(tx.conn())
+            .await
+            .map_err(|_| MaviError::Internal)?;
+        }
+
+        AuditService
+            .record(
+                tx,
+                context,
+                &AuditEntry {
+                    action: "auth.api_key.created".to_owned(),
+                    resource_type: "ApiKey".to_owned(),
+                    resource_id: Some(api_key_id.into_uuid()),
+                    payload: serde_json::json!({"grant_count": requested.len()}),
+                },
+            )
+            .await?;
+
+        Ok(ApiKeyCreated {
+            id: api_key_id,
+            name: name.to_owned(),
+            token,
+            grants: Grants::new(requested),
+            expires_at: input.expires_at,
+        })
+    }
+
+    pub async fn revoke_api_key(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        key_id: ApiKeyId,
+        now: DateTime<Utc>,
+    ) -> Result<()> {
+        let affected = sqlx::query(
+            "update api_keys set revoked_at = $3
+               where site_id = $1 and id = $2 and revoked_at is null",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(key_id.into_uuid())
+        .bind(now)
+        .execute(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?
+        .rows_affected();
+        if affected == 0 {
+            return Err(MaviError::NotFound {
+                resource: "api_key_not_found",
+            });
+        }
+
+        AuditService
+            .record(
+                tx,
+                context,
+                &AuditEntry {
+                    action: "auth.api_key.revoked".to_owned(),
+                    resource_type: "ApiKey".to_owned(),
+                    resource_id: Some(key_id.into_uuid()),
+                    payload: serde_json::json!({}),
+                },
+            )
+            .await
     }
 
     #[must_use]
@@ -461,10 +662,51 @@ async fn grants_for_person(
     Ok(Grants::new(grants))
 }
 
+async fn grants_for_api_key(
+    tx: &mut SiteTx,
+    site_id: mavi_core::SiteId,
+    key_id: ApiKeyId,
+) -> Result<Grants> {
+    let rows = sqlx::query(
+        "select capability, action from api_key_grants
+          where site_id = $1 and key_id = $2",
+    )
+    .bind(site_id.into_uuid())
+    .bind(key_id.into_uuid())
+    .fetch_all(tx.conn())
+    .await
+    .map_err(|_| MaviError::Internal)?;
+
+    let mut grants = Vec::with_capacity(rows.len());
+    for row in rows {
+        let capability: String = row.try_get("capability").map_err(|_| MaviError::Internal)?;
+        let action: String = row.try_get("action").map_err(|_| MaviError::Internal)?;
+        let capability = Capability::ALL
+            .into_iter()
+            .find(|candidate| candidate.as_str() == capability)
+            .ok_or(MaviError::Internal)?;
+        let action = Action::ALL
+            .into_iter()
+            .find(|candidate| candidate.as_str() == action)
+            .ok_or(MaviError::Internal)?;
+        grants.push(Grant::new(capability, action));
+    }
+    Ok(Grants::new(grants))
+}
+
 fn new_token() -> String {
     let mut bytes = [0_u8; 32];
     rand::rng().fill(&mut bytes);
     URL_SAFE_NO_PAD.encode(bytes)
+}
+
+fn new_prefixed_token() -> String {
+    format!("mavi_key_{}", new_token())
+}
+
+fn api_key_prefix(token: &str) -> Option<&str> {
+    token.strip_prefix("mavi_key_")?;
+    token.get(..16)
 }
 
 fn hash_token(token: &str) -> Vec<u8> {
@@ -498,6 +740,22 @@ mod tests {
 
         assert!(service.verify_password("long-enough-password", &digest.0));
         assert!(!service.verify_password("different-password", &digest.0));
+    }
+
+    #[test]
+    fn api_key_tokens_are_prefixed_and_prefix_lookup_rejects_sessions() {
+        let token = new_prefixed_token();
+        assert!(token.starts_with("mavi_key_"));
+        assert_eq!(api_key_prefix(&token), Some(&token[..16]));
+        assert!(api_key_prefix(&new_token()).is_none());
+    }
+
+    #[test]
+    fn api_key_prefix_is_not_a_secret() {
+        let token = new_prefixed_token();
+        let prefix = api_key_prefix(&token).expect("prefix");
+        assert_ne!(prefix, token);
+        assert!(token.starts_with(prefix));
     }
 
     #[test]

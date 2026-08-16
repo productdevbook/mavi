@@ -22,7 +22,10 @@ use mavi_core::{
     Action, Caller, Capability, ContentId, ErrorCode, Grant, MaviError, Page, RequestId,
     SiteContext,
 };
-use mavi_identity::{IdentityService, LoginInput, Person, SessionCreated, SetupInput, SetupStatus};
+use mavi_identity::{
+    ApiKeyCreated, CreateApiKey, IdentityService, LoginInput, Person, SessionCreated, SetupInput,
+    SetupStatus,
+};
 use mavi_runtime::{Runtime, SiteResolver};
 use serde::{Deserialize, Serialize};
 
@@ -95,6 +98,8 @@ where
         )
         .route("/api/v1/auth/sessions", post(create_session::<R>))
         .route("/api/v1/auth/sessions/current", delete(revoke_session::<R>))
+        .route("/api/v1/auth/api-keys", post(create_api_key::<R>))
+        .route("/api/v1/auth/api-keys/{id}", delete(revoke_api_key::<R>))
         .route(
             "/api/v1/content/{id}",
             get(read_content::<R>)
@@ -290,6 +295,56 @@ where
     state
         .identity
         .revoke_current(&mut transaction, &context, Utc::now())
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+async fn create_api_key<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Json(input): Json<CreateApiKey>,
+) -> Result<(StatusCode, Json<ApiKeyCreated>), HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::People, Action::Write),
+        "ApiKey",
+        "api_key_collection",
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let key = state
+        .identity
+        .create_api_key(&mut transaction, &context, &input, Utc::now())
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok((StatusCode::CREATED, Json(key)))
+}
+
+async fn revoke_api_key<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<mavi_core::ApiKeyId>,
+) -> Result<StatusCode, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::People, Action::Delete),
+        "ApiKey",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    state
+        .identity
+        .revoke_api_key(&mut transaction, &context, id, Utc::now())
         .await
         .map_err(HttpError)?;
     transaction.commit().await.map_err(HttpError)?;
@@ -610,9 +665,22 @@ fn require_grant<R>(
 where
     R: SiteResolver,
 {
+    require_grant_for(state, context, grant, "Content", resource_id)
+}
+
+fn require_grant_for<R>(
+    state: &HttpState<R>,
+    context: &SiteContext,
+    grant: Grant,
+    resource_type: impl Into<String>,
+    resource_id: impl Into<String>,
+) -> Result<(), HttpError>
+where
+    R: SiteResolver,
+{
     state
         .authorizer
-        .authorize_context(context, grant, "Content", resource_id, context.site_id)
+        .authorize_context(context, grant, resource_type, resource_id, context.site_id)
         .map_err(HttpError)
 }
 

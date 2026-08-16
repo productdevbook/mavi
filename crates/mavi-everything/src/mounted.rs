@@ -50,6 +50,8 @@ pub fn site(db: &Db, who_is_asking: WhoIsAsking) -> Site {
     let site = what_it_teaches(site, db);
     let site = what_it_sells(site, db);
     let site = what_it_writes_to_people(site, db);
+    let site = what_it_does_by_itself(site, db);
+    let site = how_it_looks(site, db);
 
     what_has_been_done(site, db)
 }
@@ -329,6 +331,102 @@ fn what_it_writes_to_people(mut site: Site, db: &Db) -> Site {
                 (Who::Anybody, _) => None,
                 (_, true) => Some(mavi_mail::to_write()),
                 (_, false) => Some(mavi_mail::to_read()),
+            };
+
+            site = site.mount(endpoint, needs, handler);
+        }
+    }
+
+    site
+}
+
+/// Flows, and what they have done.
+fn what_it_does_by_itself(mut site: Site, db: &Db) -> Site {
+    for endpoint in mavi_flows::endpoints() {
+        let db = db.clone();
+
+        let handler: Option<Handler> = match endpoint.named {
+            "flows.list" => Some(handling(db, |db, asked| {
+                Box::pin(async move { flows(&db, &asked).await })
+            })),
+            "flows.triggers" => Some(handling(db, |_, _| {
+                Box::pin(async move { triggers().await })
+            })),
+            "flows.make" => Some(handling(db, |db, asked| {
+                Box::pin(async move { arranged_a_flow(&db, &asked).await })
+            })),
+            "flows.change" => Some(handling(db, |db, asked| {
+                Box::pin(async move { changed_a_flow(&db, &asked).await })
+            })),
+            "flows.remove" => Some(handling(db, |db, asked| {
+                Box::pin(async move { removed_a_flow(&db, &asked).await })
+            })),
+            "runs.list" => Some(handling(db, |db, asked| {
+                Box::pin(async move { runs(&db, &asked).await })
+            })),
+            "runs.read" => Some(handling(db, |db, asked| {
+                Box::pin(async move { one_run(&db, &asked).await })
+            })),
+            "flows.try" => Some(handling(db, |db, asked| {
+                Box::pin(async move { tried_a_flow(&db, &asked).await })
+            })),
+            _ => None,
+        };
+
+        if let Some(handler) = handler {
+            let needs = if endpoint.changes {
+                mavi_flows::to_write()
+            } else {
+                mavi_flows::to_read()
+            };
+
+            site = site.mount(endpoint, Some(needs), handler);
+        }
+    }
+
+    site
+}
+
+/// The site's own project, and what goes live.
+fn how_it_looks(mut site: Site, db: &Db) -> Site {
+    for endpoint in mavi_design::endpoints() {
+        let db = db.clone();
+
+        let handler: Option<Handler> = match endpoint.named {
+            "design.files" => Some(handling(db, |db, asked| {
+                Box::pin(async move { design_files(&db, &asked).await })
+            })),
+            "design.read" => Some(handling(db, |db, asked| {
+                Box::pin(async move { read_a_file(&db, &asked).await })
+            })),
+            "design.write" => Some(handling(db, |db, asked| {
+                Box::pin(async move { wrote_a_file(&db, &asked).await })
+            })),
+            "changes.list" => Some(handling(db, |db, asked| {
+                Box::pin(async move { changes(&db, &asked).await })
+            })),
+            "changes.start" => Some(handling(db, |db, asked| {
+                Box::pin(async move { started_changes(&db, &asked).await })
+            })),
+            "changes.read" => Some(handling(db, |db, asked| {
+                Box::pin(async move { one_change(&db, &asked).await })
+            })),
+            "changes.build" => Some(handling(db, |db, asked| {
+                Box::pin(async move { asked_for_a_build(&db, &asked).await })
+            })),
+            "changes.publish" => Some(handling(db, |db, asked| {
+                Box::pin(async move { published_it(&db, &asked).await })
+            })),
+            _ => None,
+        };
+
+        if let Some(handler) = handler {
+            // Putting a design in front of everybody is its own capability:
+            // laying out a page and publishing it are different jobs.
+            let needs = match endpoint.named {
+                "changes.publish" => Some(mavi_design::to_publish()),
+                _ if endpoint.changes => Some(mavi_design::to_write_design()),
+                _ => Some(mavi_design::to_read_design()),
             };
 
             site = site.mount(endpoint, needs, handler);
@@ -2376,4 +2474,326 @@ async fn took_themselves_off(db: &Db, asked: &Asked) -> Result<Answered<Value>> 
     tx.commit().await?;
 
     Ok(Answered::Changed(Value::Null, receipt))
+}
+
+async fn flows(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
+    let mut tx = db.begin().await?;
+    let page = mavi_flows::store::list(&mut tx, &asking(asked)).await?;
+
+    Ok(Answered::Read(
+        serde_json::to_value(page).map_err(Error::internal)?,
+    ))
+}
+
+/// Everything that can start a flow, and what each one may name.
+///
+/// Answered rather than written in a manual: a panel that has to know the list
+/// is a panel that goes out of date on its own.
+async fn triggers() -> Result<Answered<Value>> {
+    let triggers: Vec<Value> = mavi_flows::step::TRIGGERS
+        .iter()
+        .map(|trigger| serde_json::json!({ "name": trigger.as_str() }))
+        .collect();
+
+    let does: Vec<Value> = [
+        mavi_flows::Does::SendALetter,
+        mavi_flows::Does::CallAnAddress,
+        mavi_flows::Does::Wait,
+        mavi_flows::Does::PutOnAList,
+    ]
+    .iter()
+    .map(|does| serde_json::json!({ "name": does.as_str(), "needs": does.needs() }))
+    .collect();
+
+    Ok(Answered::Read(
+        serde_json::json!({ "triggers": triggers, "does": does }),
+    ))
+}
+
+async fn arranged_a_flow(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
+    let new: mavi_flows::store::NewFlow = serde_json::from_value(asked.body.clone())
+        .map_err(|_| Error::invalid(Say::of("that_is_not_a_flow")))?;
+
+    let mut tx = db.begin().await?;
+    let flow = mavi_flows::store::make(&mut tx, &new).await?;
+    let receipt = wrote_about(
+        &mut tx,
+        asked,
+        "flows.make",
+        "flow",
+        Some(&flow.id.to_string()),
+        &serde_json::json!({ "trigger": flow.trigger, "steps": flow.steps.len() }),
+    )
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(Answered::Changed(
+        serde_json::to_value(flow).map_err(Error::internal)?,
+        receipt,
+    ))
+}
+
+async fn changed_a_flow(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
+    let changes: mavi_flows::store::FlowChanges = serde_json::from_value(asked.body.clone())
+        .map_err(|_| Error::invalid(Say::of("that_is_not_a_change_to_a_flow")))?;
+
+    let id = a_uuid(asked)?;
+    let mut tx = db.begin().await?;
+    let flow = mavi_flows::store::change(&mut tx, id, &changes).await?;
+    let receipt = wrote_about(
+        &mut tx,
+        asked,
+        "flows.change",
+        "flow",
+        Some(&id.to_string()),
+        &serde_json::json!({ "on": flow.on }),
+    )
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(Answered::Changed(
+        serde_json::to_value(flow).map_err(Error::internal)?,
+        receipt,
+    ))
+}
+
+async fn removed_a_flow(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
+    let id = a_uuid(asked)?;
+    let mut tx = db.begin().await?;
+
+    mavi_flows::store::remove(&mut tx, id).await?;
+
+    let receipt = wrote_about(
+        &mut tx,
+        asked,
+        "flows.remove",
+        "flow",
+        Some(&id.to_string()),
+        &serde_json::json!({}),
+    )
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(Answered::Changed(Value::Null, receipt))
+}
+
+async fn runs(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
+    let mut tx = db.begin().await?;
+    let page = mavi_flows::store::runs(
+        &mut tx,
+        a_uuid(asked)?,
+        asked.query.get("state").map(String::as_str),
+        &asking(asked),
+    )
+    .await?;
+
+    Ok(Answered::Read(
+        serde_json::to_value(page).map_err(Error::internal)?,
+    ))
+}
+
+async fn one_run(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
+    let mut tx = db.begin().await?;
+    let run = mavi_flows::store::a_run_of_it(&mut tx, a_uuid(asked)?).await?;
+
+    Ok(Answered::Read(
+        serde_json::to_value(run).map_err(Error::internal)?,
+    ))
+}
+
+async fn tried_a_flow(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
+    let mut tx = db.begin().await?;
+    let would = mavi_flows::store::would_do(&mut tx, a_uuid(asked)?, &asked.body).await?;
+
+    // Nothing left the machine and no run was written, so there is nothing to
+    // record. A `POST` because it carries what to try it against.
+    Ok(Answered::Read(
+        serde_json::to_value(would).map_err(Error::internal)?,
+    ))
+}
+
+/// Which set of changes a request is about, where it says.
+fn which_change(asked: &Asked) -> Option<Uuid> {
+    asked
+        .query
+        .get("change")
+        .and_then(|change| Uuid::parse_str(change).ok())
+}
+
+async fn design_files(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
+    let mut tx = db.begin().await?;
+    let files = mavi_design::store::files(&mut tx, which_change(asked)).await?;
+
+    Ok(Answered::Read(
+        serde_json::to_value(files).map_err(Error::internal)?,
+    ))
+}
+
+/// The path a request is about. Everything after the prefix, so a path with
+/// slashes in it arrives whole rather than as its first segment.
+fn which_path(asked: &Asked) -> Result<String> {
+    asked
+        .path
+        .get("path")
+        .cloned()
+        .ok_or_else(|| Error::invalid(Say::of(THAT_IS_NOT_AN_ID)))
+}
+
+async fn read_a_file(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
+    let mut tx = db.begin().await?;
+    let file =
+        mavi_design::store::read_file(&mut tx, which_change(asked), &which_path(asked)?).await?;
+
+    Ok(Answered::Read(
+        serde_json::to_value(file).map_err(Error::internal)?,
+    ))
+}
+
+async fn wrote_a_file(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
+    let path = which_path(asked)?;
+    let contents = asked.body["contents"]
+        .as_str()
+        .unwrap_or_default()
+        .to_owned();
+
+    // Which set of changes, said rather than assumed: writing into "whatever
+    // is live" is the one thing this crate exists to make impossible.
+    let change = asked.body["change"]
+        .as_str()
+        .and_then(|change| Uuid::parse_str(change).ok())
+        .ok_or_else(|| Error::invalid(Say::of(THAT_IS_NOT_AN_ID)))?;
+
+    let mut tx = db.begin().await?;
+    let file = mavi_design::store::write_file(&mut tx, change, &path, &contents).await?;
+    let receipt = wrote_about(
+        &mut tx,
+        asked,
+        "design.write",
+        "file",
+        Some(&file.path),
+        &serde_json::json!({ "change": change }),
+    )
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(Answered::Changed(
+        serde_json::to_value(file).map_err(Error::internal)?,
+        receipt,
+    ))
+}
+
+async fn changes(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
+    let mut tx = db.begin().await?;
+    let page = mavi_design::store::changes(&mut tx, &asking(asked)).await?;
+
+    Ok(Answered::Read(
+        serde_json::to_value(page).map_err(Error::internal)?,
+    ))
+}
+
+async fn started_changes(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
+    let name = asked.body["name"].as_str().unwrap_or("A change").to_owned();
+
+    let mut tx = db.begin().await?;
+    let change = mavi_design::store::start(&mut tx, &name).await?;
+    let receipt = wrote_about(
+        &mut tx,
+        asked,
+        "changes.start",
+        "change",
+        Some(&change.id.to_string()),
+        &serde_json::json!({}),
+    )
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(Answered::Changed(
+        serde_json::to_value(change).map_err(Error::internal)?,
+        receipt,
+    ))
+}
+
+async fn one_change(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
+    let mut tx = db.begin().await?;
+    let change = mavi_design::store::read(&mut tx, a_uuid(asked)?).await?;
+
+    Ok(Answered::Read(
+        serde_json::to_value(change).map_err(Error::internal)?,
+    ))
+}
+
+async fn asked_for_a_build(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
+    let id = a_uuid(asked)?;
+
+    let mut tx = db.begin().await?;
+
+    // It exists and is not the published one — asked before the work is
+    // queued, so a build for something that cannot be built is refused rather
+    // than taken and failed.
+    let change = mavi_design::store::read(&mut tx, id).await?;
+
+    let queue = mavi_work::Queue::of(&crate::work());
+    queue
+        .add(
+            &mut tx,
+            mavi_design::BUILD_A_LOOK.name,
+            &serde_json::json!({ "change": id }),
+            None,
+        )
+        .await?;
+
+    let receipt = wrote_about(
+        &mut tx,
+        asked,
+        "changes.build",
+        "change",
+        Some(&id.to_string()),
+        &serde_json::json!({ "at": change.at.as_str() }),
+    )
+    .await?;
+
+    tx.commit().await?;
+
+    // What comes back is that it has been asked for. Building is somebody
+    // else's minute, and a page held open for it is a page that times out.
+    Ok(Answered::Changed(Value::Null, receipt))
+}
+
+async fn published_it(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
+    let id = a_uuid(asked)?;
+
+    let mut tx = db.begin().await?;
+    let change = mavi_design::store::publish(&mut tx, id).await?;
+
+    let queue = mavi_work::Queue::of(&crate::work());
+    queue
+        .add(
+            &mut tx,
+            mavi_design::PUT_IT_LIVE.name,
+            &serde_json::json!({ "change": id }),
+            None,
+        )
+        .await?;
+
+    let receipt = wrote_about(
+        &mut tx,
+        asked,
+        "changes.publish",
+        "change",
+        Some(&id.to_string()),
+        &serde_json::json!({}),
+    )
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(Answered::Changed(
+        serde_json::to_value(change).map_err(Error::internal)?,
+        receipt,
+    ))
 }

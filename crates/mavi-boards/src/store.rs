@@ -269,13 +269,16 @@ pub struct Between {
 /// column has room by construction and a second failure is a bug rather than a
 /// crowded column.
 pub async fn moved(tx: &mut Tx, id: Uuid, dropped: &Between) -> Result<Card> {
-    let place = match somewhere_between(tx, dropped).await {
-        Ok(place) => place,
-        Err(_) => {
-            spread_out(tx, dropped.stage).await?;
+    let place = if let Ok(place) = somewhere_between(tx, dropped).await {
+        place
+    } else {
+        // No room left between those two. The column is given room again,
+        // keeping the order it is already in, and the drop is tried once more
+        // — a spread column has room by construction, so a second failure is a
+        // bug rather than a crowded column.
+        spread_out(tx, dropped.stage).await?;
 
-            somewhere_between(tx, dropped).await?
-        }
+        somewhere_between(tx, dropped).await?
     };
 
     let row = sqlx::query(
@@ -297,14 +300,12 @@ pub async fn moved(tx: &mut Tx, id: Uuid, dropped: &Between) -> Result<Card> {
 }
 
 async fn somewhere_between(tx: &mut Tx, dropped: &Between) -> Result<f64> {
-    let at = |card: Option<Uuid>| async move { card };
-
-    let after = match at(dropped.after).await {
+    let after = match dropped.after {
         Some(card) => place_of(tx, card).await?,
         None => None,
     };
 
-    let before = match at(dropped.before).await {
+    let before = match dropped.before {
         Some(card) => place_of(tx, card).await?,
         None => None,
     };

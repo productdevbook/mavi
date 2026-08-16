@@ -6,17 +6,21 @@
 
 use axum::{
     Extension, Router,
-    extract::{Json, State},
+    extract::{Json, Path, Query, State},
     http::{HeaderValue, Request, StatusCode, header::AUTHORIZATION},
     middleware::{self, Next},
     response::{IntoResponse, Response},
     routing::{delete, get, post},
 };
 use chrono::Utc;
-use mavi_core::{Caller, ErrorCode, MaviError, RequestId, SiteContext};
+use mavi_authz::CedarAuthorizer;
+use mavi_content::{Content, ContentService, CreateContent, UpdateContent};
+use mavi_core::{
+    Action, Caller, Capability, ContentId, ErrorCode, Grant, MaviError, RequestId, SiteContext,
+};
 use mavi_identity::{IdentityService, LoginInput, Person, SessionCreated, SetupInput, SetupStatus};
 use mavi_runtime::{Runtime, SiteResolver};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 const REQUEST_ID_HEADER: &str = "x-request-id";
 
@@ -69,15 +73,17 @@ impl IntoResponse for HttpError {
 }
 
 /// Builds the shared router and admits every request into a site context.
-pub fn router<R>(runtime: Runtime<R>) -> Router
+pub fn router<R>(runtime: Runtime<R>) -> Result<Router, MaviError>
 where
     R: SiteResolver,
 {
     let state = HttpState {
         runtime: runtime.clone(),
         identity: IdentityService,
+        content: ContentService,
+        authorizer: CedarAuthorizer::new()?,
     };
-    runtime
+    Ok(runtime
         .router::<HttpState<R>>()
         .route(
             "/api/v1/setup",
@@ -85,17 +91,25 @@ where
         )
         .route("/api/v1/auth/sessions", post(create_session::<R>))
         .route("/api/v1/auth/sessions/current", delete(revoke_session::<R>))
+        .route(
+            "/api/v1/content/{id}",
+            get(read_content::<R>).patch(update_content::<R>),
+        )
+        .route("/api/v1/content", post(create_content::<R>))
+        .route("/public/v1/content/{slug}", get(public_content::<R>))
         .layer(middleware::from_fn_with_state(
             runtime.clone(),
             authenticate::<R>,
         ))
         .layer(middleware::from_fn_with_state(runtime, admit::<R>))
-        .with_state(state)
+        .with_state(state))
 }
 
 struct HttpState<R> {
     runtime: Runtime<R>,
     identity: IdentityService,
+    content: ContentService,
+    authorizer: CedarAuthorizer,
 }
 
 impl<R> Clone for HttpState<R> {
@@ -103,6 +117,8 @@ impl<R> Clone for HttpState<R> {
         Self {
             runtime: self.runtime.clone(),
             identity: self.identity,
+            content: self.content,
+            authorizer: self.authorizer.clone(),
         }
     }
 }
@@ -265,6 +281,139 @@ where
         .map_err(HttpError)?;
     transaction.commit().await.map_err(HttpError)?;
     Ok(StatusCode::NO_CONTENT)
+}
+
+async fn read_content<R>(
+    State(state): State<HttpState<R>>,
+    Extension(site_context): Extension<SiteContext>,
+    Path(id): Path<ContentId>,
+) -> Result<Json<Content>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant(
+        &state,
+        &site_context,
+        Grant::new(Capability::Content, Action::View),
+        id.to_string(),
+    )?;
+    let mut transaction = state
+        .runtime
+        .begin(&site_context)
+        .await
+        .map_err(HttpError)?;
+    let entry = state
+        .content
+        .get(&mut transaction, &site_context, id)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(entry))
+}
+
+async fn create_content<R>(
+    State(state): State<HttpState<R>>,
+    Extension(site_context): Extension<SiteContext>,
+    Json(input): Json<CreateContent>,
+) -> Result<(StatusCode, Json<Content>), HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant(
+        &state,
+        &site_context,
+        Grant::new(Capability::Content, Action::Write),
+        "content_collection",
+    )?;
+    let mut transaction = state
+        .runtime
+        .begin(&site_context)
+        .await
+        .map_err(HttpError)?;
+    let entry = state
+        .content
+        .create(&mut transaction, &site_context, &input, Utc::now())
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok((StatusCode::CREATED, Json(entry)))
+}
+
+async fn update_content<R>(
+    State(state): State<HttpState<R>>,
+    Extension(site_context): Extension<SiteContext>,
+    Path(id): Path<ContentId>,
+    Json(input): Json<UpdateContent>,
+) -> Result<Json<Content>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant(
+        &state,
+        &site_context,
+        Grant::new(Capability::Content, Action::Write),
+        id.to_string(),
+    )?;
+    let mut transaction = state
+        .runtime
+        .begin(&site_context)
+        .await
+        .map_err(HttpError)?;
+    let entry = state
+        .content
+        .update(&mut transaction, &site_context, id, &input, Utc::now())
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(entry))
+}
+
+#[derive(Debug, Deserialize)]
+struct PublicContentQuery {
+    #[serde(default = "default_language")]
+    language: String,
+}
+
+fn default_language() -> String {
+    "en".to_owned()
+}
+
+async fn public_content<R>(
+    State(state): State<HttpState<R>>,
+    Extension(site_context): Extension<SiteContext>,
+    Path(slug): Path<String>,
+    Query(query): Query<PublicContentQuery>,
+) -> Result<Json<Content>, HttpError>
+where
+    R: SiteResolver,
+{
+    let mut transaction = state
+        .runtime
+        .begin(&site_context)
+        .await
+        .map_err(HttpError)?;
+    let entry = state
+        .content
+        .public_get(&mut transaction, &site_context, &query.language, &slug)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(entry))
+}
+
+fn require_grant<R>(
+    state: &HttpState<R>,
+    context: &SiteContext,
+    grant: Grant,
+    resource_id: impl Into<String>,
+) -> Result<(), HttpError>
+where
+    R: SiteResolver,
+{
+    state
+        .authorizer
+        .authorize_context(context, grant, "Content", resource_id, context.site_id)
+        .map_err(HttpError)
 }
 
 fn status_code(code: ErrorCode) -> StatusCode {

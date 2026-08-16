@@ -1,0 +1,18 @@
+entity Principal = {
+    "site_id": __cedar::String,
+    "grants": Set<__cedar::String>
+};
+
+entity Resource = {
+    "site_id": __cedar::String,
+    "kind": __cedar::String
+};
+
+action authorize appliesTo {
+    principal: [Principal],
+    resource: [Resource],
+    context: {
+        "site_id": __cedar::String,
+        "grant": __cedar::String
+    }
+};

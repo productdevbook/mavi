@@ -19,7 +19,7 @@ license = "MIT"
 publish = false
 
 [workspace.dependencies]
-axum = { version = "0.8.9", default-features = false, features = ["json", "http1", "tokio"] }
+axum = { version = "0.8.9", default-features = false, features = ["json", "http1", "query", "tokio"] }
 argon2 = { version = "0.6.0-rc.8", default-features = true }
 base64 = "0.23.1"
 chrono = { version = "0.4.45", default-features = false, features = ["clock", "serde"] }

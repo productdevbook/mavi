@@ -43,7 +43,7 @@ async fn main() -> Result<()> {
         .map_err(|_| MaviError::Internal)?;
 
     tracing::info!(%address, %site_id, "mavi runtime listening");
-    axum::serve(listener, router(runtime))
+    axum::serve(listener, router(runtime)?)
         .await
         .map_err(|_| MaviError::Internal)
 }

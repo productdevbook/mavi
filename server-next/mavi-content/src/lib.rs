@@ -457,6 +457,34 @@ impl ContentService {
         from_row(&row)
     }
 
+    pub async fn public_get(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        language: &str,
+        slug: &str,
+    ) -> Result<Content> {
+        let language = LanguageTag::parse(language)?;
+        let slug = Slug::parse(slug)?;
+        let row = sqlx::query(
+            "select id, site_id, kind, language, slug, title, excerpt, body, fields, status, scheduled_at, published_at, revision, created_at, updated_at
+               from content_entries
+              where site_id = $1 and language = $2 and slug = $3
+                and status = 'published' and published_at <= now() and deleted_at is null",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(language.as_str())
+        .bind(slug.as_str())
+        .fetch_optional(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?
+        .ok_or(MaviError::NotFound {
+            resource: CONTENT_NOT_FOUND,
+        })?;
+
+        from_row(&row)
+    }
+
     pub async fn update(
         &self,
         tx: &mut SiteTx,

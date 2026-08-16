@@ -7,11 +7,15 @@
 
 use std::str::FromStr;
 
-use cedar_policy::{Authorizer, Context, Decision, Entities, EntityUid, PolicySet, Request};
+use cedar_policy::{
+    Authorizer, Context, Decision, Entities, EntityUid, PolicySet, Request, Schema, ValidationMode,
+    Validator,
+};
 use mavi_core::{Caller, Grant, Grants, MaviError, SiteContext, SiteId};
 use serde_json::json;
 
 const SITE_POLICY: &str = include_str!("../policies/site.cedar");
+const SITE_SCHEMA: &str = include_str!("../policies/site.cedarschema");
 
 #[derive(Clone, Debug)]
 pub struct AuthorizationRequest {
@@ -34,6 +38,14 @@ pub struct CedarAuthorizer {
 impl CedarAuthorizer {
     pub fn new() -> Result<Self, MaviError> {
         let policies = PolicySet::from_str(SITE_POLICY).map_err(|_| MaviError::Internal)?;
+        let (schema, _) =
+            Schema::from_cedarschema_str(SITE_SCHEMA).map_err(|_| MaviError::Internal)?;
+        if !Validator::new(schema)
+            .validate(&policies, ValidationMode::Strict)
+            .validation_passed()
+        {
+            return Err(MaviError::Internal);
+        }
         Ok(Self {
             authorizer: Authorizer::new(),
             policies,
@@ -49,7 +61,7 @@ impl CedarAuthorizer {
 
         let principal = uid("Principal", &request.principal_id)?;
         let action = uid("Action", "authorize")?;
-        let resource = uid(&request.resource_type, &request.resource_id)?;
+        let resource = uid("Resource", &request.resource_id)?;
         let context = Context::from_json_value(
             json!({
                 "site_id": request.request_site_id.to_string(),
@@ -71,8 +83,11 @@ impl CedarAuthorizer {
                     "parents": []
                 },
                 {
-                    "uid": {"type": request.resource_type, "id": request.resource_id},
-                    "attrs": {"site_id": request.resource_site_id.to_string()},
+                    "uid": {"type": "Resource", "id": request.resource_id},
+                    "attrs": {
+                        "site_id": request.resource_site_id.to_string(),
+                        "kind": request.resource_type
+                    },
                     "parents": []
                 }
             ]),

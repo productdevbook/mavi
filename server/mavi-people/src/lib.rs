@@ -27,7 +27,7 @@ pub use ticket::{For, Ticket};
 /// is the difference between a capability and a typo.
 pub const CAPABILITIES: &[&str] = &[
     "content", "media", "taxonomy", "forms", "mail", "flows", "courses", "shop", "people",
-    "settings", "publish", "design", "boards", "audit", "portable",
+    "settings", "publish", "design", "boards", "audit", "portable", "trash",
 ];
 
 /// What holding `people` is about: the accounts themselves, and what they may

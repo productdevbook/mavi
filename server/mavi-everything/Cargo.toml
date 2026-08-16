@@ -27,6 +27,7 @@ mavi-portable = { path = "../mavi-portable" }
 mavi-settings = { path = "../mavi-settings" }
 mavi-shop = { path = "../mavi-shop" }
 mavi-taxonomy = { path = "../mavi-taxonomy" }
+mavi-trash = { path = "../mavi-trash" }
 mavi-db = { path = "../mavi-db" }
 mavi-http = { path = "../mavi-http" }
 mavi-serve = { path = "../mavi-serve" }

@@ -96,7 +96,7 @@ fn somewhere_for_files() -> Arc<dyn mavi_core::ports::Files> {
 }
 
 async fn asked(db: &Db, request: Request<Body>) -> (StatusCode, Value) {
-    let answer = site(db, somewhere_for_files(), whoever_holds(db.clone()))
+    let answer = site(db, &somewhere_for_files(), whoever_holds(db.clone()))
         .into_router()
         .oneshot(request)
         .await

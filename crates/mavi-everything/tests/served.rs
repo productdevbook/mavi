@@ -95,7 +95,7 @@ fn somewhere_for_files() -> Arc<dyn mavi_core::ports::Files> {
 }
 
 async fn asked(db: &Db, request: Request<Body>) -> (StatusCode, Value) {
-    let answer = site(db, somewhere_for_files(), an_editor())
+    let answer = site(db, &somewhere_for_files(), an_editor())
         .into_router()
         .oneshot(request)
         .await
@@ -330,7 +330,7 @@ async fn what_is_described_and_not_yet_served() {
     let db = fresh("left").await;
 
     let described = mavi_everything::api();
-    let serving = site(&db, somewhere_for_files(), an_editor());
+    let serving = site(&db, &somewhere_for_files(), an_editor());
 
     let left = serving.not_reachable(&described);
 

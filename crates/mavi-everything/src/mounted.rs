@@ -36,7 +36,7 @@ pub const THAT_IS_NOT_AN_ID: &str = "that_is_not_an_id";
 /// It is not everything it describes, and that is measured rather than
 /// implied — see the test beside this, which prints what is still to do.
 #[must_use]
-pub fn site(db: &Db, files: Arc<dyn Files>, who_is_asking: WhoIsAsking) -> Site {
+pub fn site(db: &Db, files: &Arc<dyn Files>, who_is_asking: WhoIsAsking) -> Site {
     let site = Site::new(who_is_asking);
 
     // One function per domain, in the order somebody meets them: getting in,
@@ -53,7 +53,7 @@ pub fn site(db: &Db, files: Arc<dyn Files>, who_is_asking: WhoIsAsking) -> Site 
     let site = what_it_writes_to_people(site, db);
     let site = what_it_does_by_itself(site, db);
     let site = how_it_looks(site, db);
-    let site = what_somebody_uploaded(site, db, &files);
+    let site = what_somebody_uploaded(site, db, files);
 
     what_has_been_done(site, db)
 }

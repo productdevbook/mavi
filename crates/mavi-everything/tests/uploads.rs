@@ -76,7 +76,7 @@ fn a_directory() -> std::path::PathBuf {
 async fn asked(db: &Db, under: &std::path::Path, request: Request<Body>) -> (StatusCode, Value) {
     let files = Arc::new(InADirectory::at(under));
 
-    let answer = site(db, files, somebody())
+    let answer = site(db, &files, somebody())
         .into_router()
         .oneshot(request)
         .await

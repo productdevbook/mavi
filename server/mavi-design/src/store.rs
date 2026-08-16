@@ -254,9 +254,10 @@ pub async fn write_file(tx: &mut Tx, change: Uuid, path: &str, contents: &str) -
 /// build reads all of them and a file read after another has been written is a
 /// build of two different things.
 ///
-/// A design's files are text — that is what the column is, and what the panel
-/// writes. A picture belongs in what a site uploaded rather than in how it
-/// looks, so the bytes here are always somebody's typing encoded.
+/// Bytes, which is what the column holds. What writes into it takes text, so
+/// everything in there today is somebody's typing — but a build copies what
+/// it is given rather than deciding it is a string first, because the day
+/// something writes a picture in here is not the day to find out.
 pub async fn everything_in(tx: &mut Tx, change: Uuid) -> Result<Vec<(String, Vec<u8>)>> {
     let rows = sqlx::query(
         "select path, contents from design_files
@@ -269,10 +270,10 @@ pub async fn everything_in(tx: &mut Tx, change: Uuid) -> Result<Vec<(String, Vec
 
     rows.iter()
         .map(|row| {
-            let path: String = row.try_get("path").map_err(Error::internal)?;
-            let contents: String = row.try_get("contents").map_err(Error::internal)?;
-
-            Ok((path, contents.into_bytes()))
+            Ok((
+                row.try_get("path").map_err(Error::internal)?,
+                row.try_get("contents").map_err(Error::internal)?,
+            ))
         })
         .collect()
 }

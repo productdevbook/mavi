@@ -10,6 +10,13 @@ const A_TOKEN: &str = "The token that signs them in. Sent as \
 
 #[must_use]
 pub fn shapes() -> Vec<Shape> {
+    let mut all = the_accounts();
+    all.extend(the_roles());
+
+    all
+}
+
+fn the_accounts() -> Vec<Shape> {
     vec![
         a_person(),
         Shape::page_of("PersonPage", "Person", "Who has an account here."),
@@ -90,6 +97,11 @@ pub fn shapes() -> Vec<Shape> {
                 "What was in the link.",
             )],
         ),
+    ]
+}
+
+fn the_roles() -> Vec<Shape> {
+    vec![
         a_role(),
         Shape::list_of(
             "RoleList",

@@ -54,6 +54,15 @@ pub fn is_a_capability(name: &str) -> bool {
 
 #[must_use]
 pub fn endpoints() -> Vec<Endpoint> {
+    let mut all = the_ways_in();
+    all.extend(the_accounts());
+    all.extend(the_roles());
+
+    all
+}
+
+/// Setting up, signing in, and the two links a letter carries.
+fn the_ways_in() -> Vec<Endpoint> {
     vec![
         Endpoint {
             method: Method::Post,
@@ -98,6 +107,38 @@ pub fn endpoints() -> Vec<Endpoint> {
             refuses: &[],
             changes: true,
         },
+        Endpoint {
+            method: Method::Post,
+            path: "/api/passwords",
+            named: "passwords.choose",
+            about: "Chooses a password, using a link somebody was sent.",
+            who: Who::Anybody,
+            parameters: Vec::new(),
+            takes: Some("ChosenPassword"),
+            answers: Answers::Nothing,
+            // The link has been used, or has run out. Not `NotFound`: whether
+            // a token exists is not something to answer.
+            refuses: &[Code::Invalid],
+            changes: true,
+        },
+        Endpoint {
+            method: Method::Post,
+            path: "/api/addresses",
+            named: "addresses.prove",
+            about: "Proves an address, using a link sent to it. Touches nothing else.",
+            who: Who::Anybody,
+            parameters: Vec::new(),
+            takes: Some("Proof"),
+            answers: Answers::Nothing,
+            refuses: &[Code::Invalid],
+            changes: true,
+        },
+    ]
+}
+
+/// Who has an account, and what happens to one.
+fn the_accounts() -> Vec<Endpoint> {
+    vec![
         Endpoint {
             method: Method::Get,
             path: "/api/people",
@@ -151,6 +192,13 @@ pub fn endpoints() -> Vec<Endpoint> {
             refuses: &[Code::NotFound, Code::Conflict],
             changes: true,
         },
+    ]
+}
+
+/// What an account may do. A role is a name and a set of grants, and that is
+/// the whole of the permission system.
+fn the_roles() -> Vec<Endpoint> {
+    vec![
         Endpoint {
             method: Method::Get,
             path: "/api/roles",
@@ -198,32 +246,6 @@ pub fn endpoints() -> Vec<Endpoint> {
             takes: None,
             answers: Answers::Nothing,
             refuses: &[Code::NotFound, Code::Conflict],
-            changes: true,
-        },
-        Endpoint {
-            method: Method::Post,
-            path: "/api/passwords",
-            named: "passwords.choose",
-            about: "Chooses a password, using a link somebody was sent.",
-            who: Who::Anybody,
-            parameters: Vec::new(),
-            takes: Some("ChosenPassword"),
-            answers: Answers::Nothing,
-            // The link has been used, or has run out. Not `NotFound`: whether
-            // a token exists is not something to answer.
-            refuses: &[Code::Invalid],
-            changes: true,
-        },
-        Endpoint {
-            method: Method::Post,
-            path: "/api/addresses",
-            named: "addresses.prove",
-            about: "Proves an address, using a link sent to it. Touches nothing else.",
-            who: Who::Anybody,
-            parameters: Vec::new(),
-            takes: Some("Proof"),
-            answers: Answers::Nothing,
-            refuses: &[Code::Invalid],
             changes: true,
         },
     ]

@@ -77,10 +77,10 @@ pub struct Asked {
     pub raw: Vec<u8>,
 }
 
-type Answer = Pin<Box<dyn Future<Output = Result<Answered<Value>>> + Send>>;
+pub type Answering = Pin<Box<dyn Future<Output = Result<Answered<Value>>> + Send>>;
 
 /// What answers one endpoint.
-pub type Handler = Arc<dyn Fn(Asked) -> Answer + Send + Sync>;
+pub type Handler = Arc<dyn Fn(Asked) -> Answering + Send + Sync>;
 
 /// Who is asking, worked out from the request.
 ///
@@ -162,6 +162,13 @@ impl Site {
             handler,
         });
 
+        self
+    }
+
+    /// Mounts multiple doors at once.
+    #[must_use]
+    pub fn mount_doors(mut self, doors: impl IntoIterator<Item = Door>) -> Self {
+        self.mounted.extend(doors);
         self
     }
 

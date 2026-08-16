@@ -15,6 +15,8 @@
 //! earlier and somewhere else.
 
 use chrono::{DateTime, Utc};
+pub mod described;
+
 use mavi_api::{Answers, Endpoint, Is, Method, Parameter, Who as Audience};
 use mavi_core::error::{Error, Result};
 use mavi_core::grant::{Access, Needs};

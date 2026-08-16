@@ -13,6 +13,7 @@
 //! is work in the queue, and what a caller gets back is that it has been
 //! asked for — never a page waiting on a build.
 
+pub mod described;
 pub mod store;
 pub mod where_it_goes;
 

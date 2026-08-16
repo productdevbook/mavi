@@ -37,6 +37,11 @@ pub struct Shape {
 pub enum What {
     Fields(Vec<Field>),
     Every(&'static str),
+    /// An object this software does not decide the shape of. What a site put
+    /// in its own fields, what the thing that set a flow off was carrying —
+    /// describing those would be inventing them, and a generator acts on the
+    /// invention.
+    Anything,
 }
 
 /// One field of one shape.
@@ -123,12 +128,22 @@ impl Shape {
         }
     }
 
+    /// An object whose shape is not this software's to say.
+    #[must_use]
+    pub fn anything(named: &'static str, about: &'static str) -> Self {
+        Self {
+            named,
+            about,
+            what: What::Anything,
+        }
+    }
+
     /// Its fields, where it has any.
     #[must_use]
     pub fn fields(&self) -> &[Field] {
         match &self.what {
             What::Fields(fields) => fields,
-            What::Every(_) => &[],
+            What::Every(_) | What::Anything => &[],
         }
     }
 
@@ -159,6 +174,7 @@ impl Shape {
     #[must_use]
     pub fn refers_to(&self) -> Vec<&'static str> {
         match &self.what {
+            What::Anything => Vec::new(),
             What::Every(of) => vec![*of],
             What::Fields(fields) => fields
                 .iter()
@@ -174,6 +190,12 @@ impl Shape {
     #[must_use]
     pub fn described(&self) -> Value {
         let fields = match &self.what {
+            What::Anything => {
+                // No `properties`, which is how a schema says "an object, and
+                // whatever is in it". Saying `properties: {}` instead is how a
+                // generator comes to refuse every field a site invented.
+                return json!({ "type": "object", "description": self.about });
+            }
             What::Every(of) => {
                 return json!({
                     "type": "array",

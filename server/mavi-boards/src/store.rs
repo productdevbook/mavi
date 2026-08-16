@@ -108,7 +108,10 @@ async fn stages(tx: &mut Tx, board: Uuid) -> Result<Vec<Stage>> {
 }
 
 /// What making one asks for.
-#[derive(Clone, Debug, Deserialize)]
+///
+/// Serialised as well as read, so the test beside the description can hold
+/// what it says it takes against what it takes.
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct NewBoard {
     pub name: String,
     /// The columns it starts with. A board with none is a board nothing can be
@@ -181,7 +184,7 @@ pub async fn cards(tx: &mut Tx, board: Uuid, stage: Option<Uuid>) -> Result<Vec<
 }
 
 /// What putting one on asks for.
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct NewCard {
     pub stage: Uuid,
     pub title: String,
@@ -221,7 +224,7 @@ pub async fn add(tx: &mut Tx, board: Uuid, new: &NewCard) -> Result<Card> {
 }
 
 /// What may be changed about a card.
-#[derive(Clone, Debug, Default, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct CardChanges {
     pub title: Option<String>,
     pub detail: Option<String>,
@@ -254,7 +257,7 @@ pub async fn change(tx: &mut Tx, id: Uuid, changes: &CardChanges) -> Result<Card
 }
 
 /// Where a card was dropped: which column, and between which two cards.
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Between {
     pub stage: Uuid,
     pub after: Option<Uuid>,

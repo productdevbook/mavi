@@ -70,6 +70,11 @@ pub fn shapes() -> Vec<mavi_api::Shape> {
     all.extend(mavi_people::described::shapes());
     all.extend(mavi_shop::described::shapes());
     all.extend(mavi_courses::described::shapes());
+    all.extend(mavi_mail::described::shapes());
+    all.extend(mavi_flows::described::shapes());
+    all.extend(mavi_design::described::shapes());
+    all.extend(mavi_boards::described::shapes());
+    all.extend(mavi_audit::described::shapes());
     all.extend(crate::assistant::shapes());
 
     all
@@ -125,68 +130,22 @@ mod tests {
     use mavi_api::Who;
     use std::collections::{BTreeMap, BTreeSet};
 
-    /// What is named and not described yet.
-    ///
-    /// A description whose references point at nothing is one no client can be
-    /// generated from, and this is what is left of that. It is written down
-    /// rather than counted so that the test below is a real check: **a name is
-    /// only ever removed from here.** Adding one means an endpoint was written
-    /// naming a body nobody described, which is the thing this exists to stop.
-    const STILL_TO_DESCRIBE: &[&str] = &[
-        "Between",
-        "Board",
-        "BoardList",
-        "Card",
-        "CardChanges",
-        "CardPage",
-        "Change",
-        "ChangePage",
-        "Contents",
-        "FileList",
-        "Flow",
-        "FlowChanges",
-        "FlowPage",
-        "Letter",
-        "LetterList",
-        "List",
-        "ListList",
-        "NewBoard",
-        "NewCard",
-        "NewChange",
-        "NewFlow",
-        "NewList",
-        "NewReader",
-        "Pressed",
-        "Reader",
-        "ReaderPage",
-        "Receipt",
-        "ReceiptPage",
-        "Run",
-        "RunPage",
-        "Sending",
-        "SomethingMadeUp",
-        "TriggerList",
-        "Values",
-        "WhatItWouldDo",
-        "Wording",
-    ];
-
     #[test]
-    fn every_name_an_endpoint_uses_is_either_described_or_on_the_list() {
+    fn every_body_an_endpoint_names_is_described() {
+        // A description whose references point at nothing is one no client can
+        // be generated from. This was a hundred and one names once, written
+        // out so that the list could only shrink; it is empty, and an endpoint
+        // written naming a body nobody described fails here.
         let missing = api().undescribed();
 
-        assert_eq!(
-            missing,
-            STILL_TO_DESCRIBE.to_vec(),
-            "a body was named that nothing describes and nothing admits to"
-        );
+        assert!(missing.is_empty(), "{missing:#?}");
     }
 
     #[test]
-    fn every_reference_in_the_document_resolves_or_is_admitted_to() {
-        // The other half, and the one that catches a reference written
-        // wrongly rather than a body left undescribed: whatever the document
-        // says `$ref` to has to be in the document.
+    fn every_reference_in_the_document_resolves() {
+        // The other half, and the one that catches a reference written wrongly
+        // rather than a body left out: whatever the document says `$ref` to has
+        // to be in the document.
         let described = described("0.0.0");
         let schemas = described["components"]["schemas"]
             .as_object()
@@ -195,16 +154,58 @@ mod tests {
         let mut refs = Vec::new();
         collect(&described, &mut refs);
 
+        assert!(!refs.is_empty(), "a description with no references at all");
+
         for named in refs {
             let Some(named) = named.strip_prefix("#/components/schemas/") else {
                 panic!("{named} is not a reference into this document");
             };
 
             assert!(
-                schemas.contains_key(named) || STILL_TO_DESCRIBE.contains(&named),
-                "{named} is referred to and is neither described nor admitted to"
+                schemas.contains_key(named),
+                "{named} is referred to and nothing describes it"
             );
         }
+    }
+
+    #[test]
+    fn nothing_is_described_that_nothing_refers_to() {
+        // The direction nobody thinks of. A shape nothing points at is a type
+        // in every generated client that no method ever returns, and it stays
+        // there being maintained for as long as somebody assumes it matters.
+        let api = api();
+
+        let mut reachable: BTreeSet<&str> = api
+            .endpoints
+            .iter()
+            .flat_map(|endpoint| endpoint.takes.into_iter().chain(endpoint.answers.body()))
+            .collect();
+
+        // Whatever those reach, and whatever those reach, until nothing new.
+        loop {
+            let more: BTreeSet<&str> = api
+                .shapes
+                .iter()
+                .filter(|shape| reachable.contains(shape.named))
+                .flat_map(mavi_api::Shape::refers_to)
+                .filter(|named| !reachable.contains(named))
+                .collect();
+
+            if more.is_empty() {
+                break;
+            }
+
+            reachable.extend(more);
+        }
+
+        let orphaned: Vec<&str> = api
+            .shapes
+            .iter()
+            .map(|shape| shape.named)
+            .filter(|named| !reachable.contains(named))
+            .collect();
+
+        assert!(orphaned.is_empty(), "{orphaned:#?}");
     }
 
     /// Every `$ref` anywhere in a document, however deep.

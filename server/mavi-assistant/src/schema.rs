@@ -114,6 +114,8 @@ pub fn pieces(endpoint: &Endpoint, arguments: &Value) -> (Vec<(String, String)>,
 /// and known: the separators a query is made of, and the space. Everything
 /// else a caller sends is its own business.
 fn escaped(said: &str) -> String {
+    use std::fmt::Write;
+
     let mut out = String::with_capacity(said.len());
 
     for byte in said.bytes() {
@@ -121,7 +123,11 @@ fn escaped(said: &str) -> String {
             b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
                 out.push(byte as char);
             }
-            _ => out.push_str(&format!("%{byte:02X}")),
+            // Writing into a string cannot fail, and the alternative is
+            // building a second one per byte.
+            _ => {
+                let _ = write!(out, "%{byte:02X}");
+            }
         }
     }
 

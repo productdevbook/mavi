@@ -70,7 +70,7 @@ pub type Answer = Option<Value>;
 
 /// An answer to something that was asked.
 #[must_use]
-pub fn answered(id: Option<&Value>, result: Value) -> Answer {
+pub fn answered(id: Option<&Value>, result: &Value) -> Answer {
     id.map(|id| json!({ "jsonrpc": "2.0", "id": id, "result": result }))
 }
 
@@ -114,7 +114,7 @@ pub fn refused(said: &Value) -> Value {
 /// reads the first; anything built on this reads the second rather than
 /// parsing a sentence back apart.
 #[must_use]
-pub fn came_back(what: Value) -> Value {
+pub fn came_back(what: &Value) -> Value {
     json!({
         "content": [{
             "type": "text",
@@ -178,7 +178,7 @@ mod tests {
     fn nobody_who_did_not_ask_is_answered() {
         // A notification. Its sender said outright that no answer is wanted,
         // and telling one it got a method wrong is answering it anyway.
-        assert_eq!(answered(None, json!({})), None);
+        assert_eq!(answered(None, &json!({})), None);
         assert_eq!(not_a_method(None, "resources/list"), None);
 
         // And `id: null` is the same as none, because that is what a client
@@ -202,7 +202,7 @@ mod tests {
 
     #[test]
     fn what_came_back_is_readable_and_still_itself() {
-        let answer = came_back(json!({ "slug": "hello" }));
+        let answer = came_back(&json!({ "slug": "hello" }));
 
         assert_eq!(answer["structuredContent"]["slug"], "hello");
         assert_eq!(answer["content"][0]["type"], "text");

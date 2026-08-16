@@ -96,6 +96,6 @@ mod tests {
             asked_for(&all, "writings_throw_away").map(|it| it.named),
             Some("writings.throw-away")
         );
-        assert_eq!(asked_for(&all, "nothing_like_this"), None);
+        assert!(asked_for(&all, "nothing_like_this").is_none());
     }
 }

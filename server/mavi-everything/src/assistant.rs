@@ -70,14 +70,14 @@ async fn talked(reachable: &BTreeMap<&'static str, Door>, asked: Asked) -> Resul
     let (id, what) = mavi_assistant::what_was_asked(&asked.body);
 
     let answer = match what {
-        mavi_assistant::Asked::Introduce => mavi_assistant::answered(id.as_ref(), introduced()),
+        mavi_assistant::Asked::Introduce => mavi_assistant::answered(id.as_ref(), &introduced()),
         mavi_assistant::Asked::WhatIsThere => {
-            mavi_assistant::answered(id.as_ref(), what_is_there(reachable, &asked.caller))
+            mavi_assistant::answered(id.as_ref(), &what_is_there(reachable, &asked.caller))
         }
         mavi_assistant::Asked::Use { called, arguments } => {
             let used = used(reachable, &asked.caller, &called, &arguments).await?;
 
-            mavi_assistant::answered(id.as_ref(), used)
+            mavi_assistant::answered(id.as_ref(), &used)
         }
         mavi_assistant::Asked::NotServed(method) => {
             mavi_assistant::not_a_method(id.as_ref(), &method)
@@ -170,7 +170,7 @@ async fn used(
         .await;
 
     Ok(match went {
-        Ok(what) => mavi_assistant::came_back(what),
+        Ok(what) => mavi_assistant::came_back(&what),
         // A tool that refused did its job. The model is meant to read what it
         // said and try something else, so it comes back as a tool result
         // rather than as the protocol failing — which is what a client, not a

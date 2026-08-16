@@ -67,9 +67,9 @@ Where that has got to, counted the same way:
 |---|---|
 | The API | **101 operations** across 70 paths, every one declaring its parameters, its failures, the status it answers and how to authenticate |
 | Reachable | **all 101 answer**, through the guard and the audit rule, against a real Postgres |
-| The workspace | 22 crates — eight of foundation, twelve domains, one that holds the whole API and asks it what no domain can ask about itself, and one that puts files somewhere |
+| The workspace | 21 crates — eight of foundation, twelve domains, and one that holds the whole API and asks it what no domain can ask about itself |
 | The schema | 16 migrations, applied to a real Postgres by a test rather than believed |
-| Tests | over 330, of which about 60 need a database and get one of their own |
+| Tests | 324, of which 67 need a database and get one of their own |
 | The panel | not started, on purpose: it is written last, against an API worth writing one against |
 
 That second row is a rule rather than a count: `Site::not_reachable` must be

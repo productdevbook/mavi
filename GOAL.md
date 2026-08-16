@@ -65,17 +65,23 @@ Where that has got to, counted the same way:
 
 | | |
 |---|---|
-| The API | **100 operations** across 69 paths, every one declaring its parameters, its failures, the status it answers and how to authenticate |
-| The workspace | 19 crates — six of foundation, twelve domains, and one that holds the whole API and asks it what no domain can ask about itself |
-| The schema | 14 migrations, applied to a real Postgres by a test rather than believed |
-| Tests | 263, of which 26 need a database and get one of their own |
+| The API | **101 operations** across 70 paths, every one declaring its parameters, its failures, the status it answers and how to authenticate |
+| Reachable | **26 of them answer**, through the guard and the audit rule, against a real Postgres |
+| The workspace | 20 crates — seven of foundation, twelve domains, and one that holds the whole API and asks it what no domain can ask about itself |
+| The schema | 15 migrations, applied to a real Postgres by a test rather than believed |
+| Tests | 304, of which 40 need a database and get one of their own |
 | The panel | not started, on purpose: it is written last, against an API worth writing one against |
 
-What is written down there is the **shape**: types, rules, the schema, and the
-description every endpoint generates. What is not written yet is the wiring —
-nothing in `crates/` serves an HTTP request, and `server/` is still what runs.
-That order is deliberate and the remaining half is named rather than implied:
-the axum binding, the handlers that read and write rows, and the panel.
+The second row is the honest one. Setting a site up, signing in and out,
+inviting somebody and their choosing a password, what the site is and what it
+writes in, what it files things under, what it wrote, and reading what was done
+— all of those go in at the front of a router and come out having written a row.
+The rest is described and not yet mounted, and `Site::not_reachable` is what
+counts them: written and tested is not reachable, and a function with no route
+is a feature that does not exist.
+
+`server/` is still what runs. The order from here is the remaining handlers,
+then the panel.
 
 What that is *for* is worth stating, because "a rewrite" on its own is a bad
 reason. Every crate down there exists to make one measured failure
@@ -87,7 +93,6 @@ unrepeatable:
 | `mavi-db` | The `order by` and the cursor predicate disagreeing, because both are generated from one declaration. A migration nobody has ever run: every one of them is applied to a real Postgres in CI, and the constraints in them are asserted by the thing they refuse. |
 | `mavi-api` | An endpoint that does not say its parameters, its failures, its real status, or how to authenticate — all four of which were missing from all 177 operations. Two endpoints that are secretly one route. |
 | `mavi-http` | A change that answers without a record, decided by what the endpoint said rather than by the HTTP verb. Two admission paths, one of which had no audit gate. |
-| `mavi-work` | Two workers running one job. A worker whose lease lapsed marking done a job somebody else now holds — which put the row back to `ready` and ran the work a third time. Work queued for a kind nothing runs. |
 | `mavi-audit` | A receipt for a change that was never written: `record` is the only thing that makes one, in the change's own transaction. A record anybody can rewrite, refused by the database rather than by the code. |
 | `mavi-content` | An address in use being taken by a check-then-write race. Published and its date disagreeing. |
 | `mavi-taxonomy` | A tag with a parent; a category under a tag; a term under itself. |
@@ -99,6 +104,8 @@ unrepeatable:
 | `mavi-flows` | A flow calling the database, the metadata service, or the machine next to it. A step that cannot run, written and only discovered once per order. |
 | `mavi-design` | Anything that decides how a site is built being written through the API. A layout going live without being built and looked at first. |
 | `mavi-boards` | Two cards in one place, after the fiftieth time somebody dropped one between the same two. |
+| `mavi-work` | Two workers running one job. A worker whose lease lapsed marking done a job somebody else now holds — which put the row back to `ready` and ran the work a third time. Work queued for a kind nothing runs. |
+| `mavi-serve` | A route nobody described, and a description nobody can find is unmounted. A refusal shaped one way for endpoints and another way for the parts of a router nobody wrote. |
 | `mavi-everything` | Two crates describing one route, or naming one endpoint twice. A capability nothing asks for, or one asked for that a site cannot grant. |
 
 The dependency graph made this cheap rather than heroic: **22 of the 27 domains

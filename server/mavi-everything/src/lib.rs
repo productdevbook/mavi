@@ -15,6 +15,7 @@
 //! Nothing here mounts anything. It is the list, and the tests are what make
 //! the list worth having.
 
+pub mod assistant;
 pub mod building;
 pub mod mounted;
 pub mod showing;
@@ -44,6 +45,10 @@ pub fn endpoints() -> Vec<Endpoint> {
     all.extend(mavi_design::endpoints());
     all.extend(mavi_boards::endpoints());
     all.extend(mavi_audit::endpoints());
+
+    // Last, because it is the only endpoint that is not a thing a site does.
+    // It is a way in to all the others.
+    all.push(crate::assistant::endpoint());
 
     all
 }
@@ -97,6 +102,48 @@ mod tests {
     use super::*;
     use mavi_api::Who;
     use std::collections::{BTreeMap, BTreeSet};
+
+    #[test]
+    fn no_two_endpoints_anywhere_are_one_tool() {
+        // A tool name is an endpoint's with its dots and dashes made
+        // underscores, so `writings.throw-away` and a future `writings.throw`
+        // under an `away` would be one name — and one of the two would be
+        // unreachable to an assistant with nothing saying so.
+        let mut by_tool: BTreeMap<String, Vec<&'static str>> = BTreeMap::new();
+
+        for endpoint in endpoints() {
+            by_tool
+                .entry(mavi_assistant::named(&endpoint))
+                .or_default()
+                .push(endpoint.named);
+        }
+
+        let clashes: Vec<_> = by_tool.values().filter(|named| named.len() > 1).collect();
+
+        assert!(clashes.is_empty(), "{clashes:#?}");
+    }
+
+    #[test]
+    fn every_tool_is_named_the_way_the_protocol_allows() {
+        // Letters, digits, underscores and dashes, and not longer than
+        // sixty-four. A name outside that is a tool a client refuses to
+        // register, which looks like the tool not existing.
+        for endpoint in endpoints() {
+            let called = mavi_assistant::named(&endpoint);
+
+            assert!(
+                !called.is_empty() && called.len() <= mavi_assistant::called::AT_MOST,
+                "{called} is {} characters",
+                called.len()
+            );
+            assert!(
+                called
+                    .chars()
+                    .all(|letter| letter.is_ascii_alphanumeric() || letter == '_' || letter == '-'),
+                "{called} has something in it a client will not take"
+            );
+        }
+    }
 
     #[tokio::test]
     async fn the_refusal_a_client_is_generated_from_is_the_refusal_that_comes_back() {

@@ -75,9 +75,9 @@ async fn talked(reachable: &BTreeMap<&'static str, Door>, asked: Asked) -> Resul
             mavi_assistant::answered(id.as_ref(), &what_is_there(reachable, &asked.caller))
         }
         mavi_assistant::Asked::Use { called, arguments } => {
-            let used = used(reachable, &asked.caller, &called, &arguments).await?;
+            let did = used(reachable, &asked.caller, &called, &arguments).await?;
 
-            mavi_assistant::answered(id.as_ref(), &used)
+            mavi_assistant::answered(id.as_ref(), &did)
         }
         mavi_assistant::Asked::NotServed(method) => {
             mavi_assistant::not_a_method(id.as_ref(), &method)
@@ -138,15 +138,15 @@ fn may(door: &Door, caller: &Caller) -> Result<()> {
 async fn used(
     reachable: &BTreeMap<&'static str, Door>,
     caller: &Caller,
-    called: &str,
+    wanted: &str,
     arguments: &Value,
 ) -> Result<Value> {
     let Some(door) = reachable
         .values()
-        .find(|door| mavi_assistant::named(&door.endpoint) == called)
+        .find(|door| mavi_assistant::named(&door.endpoint) == wanted)
     else {
         return Err(Error::not_found(
-            Say::of(THERE_IS_NO_TOOL_LIKE_THAT).with("tool", &called),
+            Say::of(THERE_IS_NO_TOOL_LIKE_THAT).with("tool", &wanted),
         ));
     };
 

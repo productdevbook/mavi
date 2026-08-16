@@ -131,9 +131,14 @@ async fn a_published_site(
 
     tx.commit().await.expect("the writing");
 
-    mavi_everything::building::build(db, files.as_ref(), change.id)
-        .await
-        .expect("a build");
+    mavi_everything::building::build(
+        db,
+        files.as_ref(),
+        &mavi_everything::building::WhatIsInPublic,
+        change.id,
+    )
+    .await
+    .expect("a build");
 
     let mut tx = db.begin().await.expect("a transaction");
     mavi_design::store::publish(&mut tx, change.id)

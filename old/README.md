@@ -11,7 +11,7 @@ directory, and what of it the rewrite can do:
 |---|---|---|
 | `src/edge` | 343 | ~~nothing~~ `server/mavi-edge` and `mavi-everything/src/showing.rs` |
 | `src/mcp` | 726 | ~~nothing~~ `server/mavi-assistant` and `mavi-everything/src/assistant.rs`, and none of its seven hundred lines came with it: a tool is an endpoint |
-| `src/publishing` + `src/building` | 1377 | **half.** `mavi-everything/src/building.rs` copies what a design put under `public/`, which is a whole site when the site is plain files. Running a site's own generator — a project with its own dependencies and its own command, on a machine — is not written, and is a decision with its own shape rather than a missing function. |
+| `src/publishing` + `src/building` | 1377 | ~~nothing~~ publishing is one row, and how a site is built is the `Builds` port. What ships serves what a design put under `public/`; a host that runs each site's own generator hands in its own. |
 | `src/analytics`, `src/reports` | 829 | nothing |
 | `src/portable` | 403 | nothing — how a site leaves |
 | `src/plugins` | 524 | nothing |
@@ -40,18 +40,20 @@ working the moment this does.
    - ~~Putting a build out.~~ Written, and smaller than it was: what is
      published is one row, so there is no job that "puts it live" afterwards
      and no moment between the two where a site serves neither.
-   - **Building** is a copy of `public/`. A site whose pages are plain files
-     is served completely; one that needs its own generator run is not.
+   - ~~Building.~~ Decided rather than written, which is what this item
+     allows for: **how** a site is built is a port. What ships serves what a
+     design put under `public/`, which is a whole site when a site is plain
+     files. Running a site's own generator is a machine running somebody
+     else's code — a sandbox, a scheduler and a quota — and that is the
+     host's, not a library's.
    - ~~The assistant protocol.~~ Written, and without a list of tools in it.
      An assistant is a caller, a tool is an endpoint, and both ways in go
      through the same `Door::call` — so "forbidden in the panel, allowed over
      there" is impossible rather than unlikely.
 4. `client/` is rewritten against the new API.
 
-Three of the four are done, and what is left of the third is **building** — a
-site whose pages are plain files is served completely; one that needs its own
-generator run is not. When the last one is, this directory is one `git rm -r`
-and the history keeps it.
+Three of the four are done. What is left is the panel, and when it is, this
+directory is one `git rm -r` and the history keeps it.
 
 ## Until then
 

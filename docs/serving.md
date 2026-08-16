@@ -38,17 +38,33 @@ neither.
 
 ## What is built
 
-With no generator configured, a build is a copy: what a design put under
-`public/` **is** the site. A site of plain files is a real site rather than a
-degenerate case.
+**How** a site is built is a port — `Builds` — for one reason: a design that
+has to be built is a project with its own dependencies and its own command,
+and running it is a machine running whatever somebody else wrote. That is a
+sandbox, a scheduler and a quota rather than a function, and none of them
+belong in a library anybody installs.
 
-`src/` is what a generator would read, and with no generator it is not served
-at all — serving somebody's templates as pages would be publishing the thing
+So this software says what it needs and does not say how:
+
+> given everything in this set of changes, what should a visitor be served
+
+What ships with it is `WhatIsInPublic`: whatever a design put under `public/`
+is the site, as it is. A site of plain files is a real site rather than a
+degenerate case, and nothing runs — so there is nothing to sandbox and nothing
+to wait for.
+
+`src/` is what a generator would read, and to something that does not run one
+it is not a page. Serving somebody's templates would be publishing the thing
 that makes the pages.
 
-Running a site's own build — a project with its own dependencies and its own
-command — is a machine running somebody else's code. That is a decision with
-its own shape rather than a branch in the builder, and it is not written here.
+A host that builds each site's own project hands in its own implementation
+instead, and nothing above the port knows which one it got.
+
+A build that failed is **not an error.** A design that does not compile is an
+ordinary thing for somebody to go and fix, and what they need is the message —
+so it comes back as an answer and is written down where the panel shows it. An
+error from the port means the builder itself could not be reached, which is
+this end's problem rather than theirs.
 
 ## Which file answers an address
 

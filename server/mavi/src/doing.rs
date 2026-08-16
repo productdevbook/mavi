@@ -11,7 +11,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use mavi_core::error::Result;
-use mavi_core::ports::Files;
+use mavi_core::ports::{Builds, Files};
 use mavi_db::Db;
 use mavi_work::{Ended, Job, Queue};
 use uuid::Uuid;
@@ -19,7 +19,13 @@ use uuid::Uuid;
 use crate::config::Worker;
 
 /// Takes work until something stops the process.
-pub async fn keep_working(db: Db, queue: Queue, files: Arc<dyn Files>, worker: Worker) {
+pub async fn keep_working(
+    db: Db,
+    queue: Queue,
+    files: Arc<dyn Files>,
+    builds: Arc<dyn Builds>,
+    worker: Worker,
+) {
     let kinds: Vec<String> = mavi_everything::work()
         .iter()
         .map(|kind| kind.name.to_owned())
@@ -28,7 +34,7 @@ pub async fn keep_working(db: Db, queue: Queue, files: Arc<dyn Files>, worker: W
     loop {
         match queue.take(&db, &worker.named, &kinds).await {
             Ok(Some(job)) => {
-                one(&db, &queue, files.as_ref(), &worker, &job).await;
+                one(&db, &queue, files.as_ref(), builds.as_ref(), &worker, &job).await;
             }
             Ok(None) => tokio::time::sleep(worker.when_there_is_nothing).await,
             Err(wrong) => {
@@ -49,8 +55,15 @@ pub async fn keep_working(db: Db, queue: Queue, files: Arc<dyn Files>, worker: W
 /// queue decides whether that is another go or the end of it. Neither is
 /// written here, because "how many times is worth trying" belongs to the kind
 /// rather than to the loop.
-async fn one(db: &Db, queue: &Queue, files: &dyn Files, worker: &Worker, job: &Job) {
-    let went = doing(db, files, job).await;
+async fn one(
+    db: &Db,
+    queue: &Queue,
+    files: &dyn Files,
+    builds: &dyn Builds,
+    worker: &Worker,
+    job: &Job,
+) {
+    let went = doing(db, files, builds, job).await;
 
     let ended = match went {
         Ok(()) => queue.done(db, job.id, &worker.named).await,
@@ -75,12 +88,14 @@ async fn one(db: &Db, queue: &Queue, files: &dyn Files, worker: &Worker, job: &J
 }
 
 /// What each kind of work actually is.
-async fn doing(db: &Db, files: &dyn Files, job: &Job) -> Result<()> {
+async fn doing(db: &Db, files: &dyn Files, builds: &dyn Builds, job: &Job) -> Result<()> {
     match job.kind.as_str() {
         name if name == mavi_shop::PUT_BACK_WHAT_NOBODY_PAID_FOR.name => {
             put_back_what_nobody_paid_for(db).await
         }
-        name if name == mavi_design::BUILD_A_LOOK.name => build_a_look(db, files, job).await,
+        name if name == mavi_design::BUILD_A_LOOK.name => {
+            build_a_look(db, files, builds, job).await
+        }
         name if name == mavi_flows::SOMETHING_HAPPENED.name => {
             not_written_yet(name, "starting what a site arranged for an event")
         }
@@ -96,7 +111,7 @@ async fn doing(db: &Db, files: &dyn Files, job: &Job) -> Result<()> {
 /// What was queued is an id and nothing else, so the whole of what is built
 /// comes out of the database rather than out of the job — a payload written
 /// last week is not a description of a design as it is now.
-async fn build_a_look(db: &Db, files: &dyn Files, job: &Job) -> Result<()> {
+async fn build_a_look(db: &Db, files: &dyn Files, builds: &dyn Builds, job: &Job) -> Result<()> {
     let change = job.payload["change"]
         .as_str()
         .and_then(|change| Uuid::parse_str(change).ok())
@@ -106,7 +121,7 @@ async fn build_a_look(db: &Db, files: &dyn Files, job: &Job) -> Result<()> {
             ))
         })?;
 
-    mavi_everything::building::build(db, files, change).await?;
+    mavi_everything::building::build(db, files, builds, change).await?;
 
     Ok(())
 }

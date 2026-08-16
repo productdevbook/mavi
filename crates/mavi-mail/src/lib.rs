@@ -12,6 +12,7 @@
 
 pub mod letter;
 pub mod sending;
+pub mod store;
 pub mod who;
 
 use mavi_api::{Answers, Endpoint, Is, Method, Parameter, Who};

@@ -1362,6 +1362,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "mavi-audit"
+version = "0.1.0"
+dependencies = [
+ "mavi-core",
+ "mavi-storage",
+ "serde_json",
+ "sqlx",
+ "uuid",
+]
+
+[[package]]
 name = "mavi-authz"
 version = "0.1.0"
 dependencies = [
@@ -1375,6 +1386,7 @@ name = "mavi-content"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "mavi-audit",
  "mavi-contract",
  "mavi-core",
  "mavi-storage",

@@ -7,6 +7,7 @@
 use std::fmt;
 
 use chrono::{DateTime, Utc};
+use mavi_audit::{AuditEntry, AuditService};
 use mavi_contract::{Api, Endpoint, Method, Permission};
 use mavi_core::{Action, Capability, ContentId, MaviError, Result, SiteContext, SiteId};
 use mavi_storage::SiteTx;
@@ -432,6 +433,19 @@ impl ContentService {
         .await
         .map_err(|_| MaviError::Internal)?;
 
+        AuditService
+            .record(
+                tx,
+                context,
+                &AuditEntry {
+                    action: "content.created".to_owned(),
+                    resource_type: "Content".to_owned(),
+                    resource_id: Some(created.id.into_uuid()),
+                    payload: serde_json::json!({"revision": created.revision}),
+                },
+            )
+            .await?;
+
         Ok(created)
     }
 
@@ -563,6 +577,19 @@ impl ContentService {
         .execute(tx.conn())
         .await
         .map_err(|_| MaviError::Internal)?;
+
+        AuditService
+            .record(
+                tx,
+                context,
+                &AuditEntry {
+                    action: "content.updated".to_owned(),
+                    resource_type: "Content".to_owned(),
+                    resource_id: Some(updated.id.into_uuid()),
+                    payload: serde_json::json!({"revision": updated.revision}),
+                },
+            )
+            .await?;
 
         Ok(updated)
     }

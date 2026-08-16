@@ -92,5 +92,9 @@ mod tests {
             )
         );
         assert!(migration.contains("content_entries_site_language_slug"));
+
+        let audit_migration = include_str!("../migrations/0004_audit.sql");
+        assert!(audit_migration.contains("alter table audit_events force row level security"));
+        assert!(audit_migration.contains("request_id uuid not null"));
     }
 }

@@ -9,6 +9,7 @@ members = [
   "mavi-content",
   "mavi-identity",
   "mavi-authz",
+  "mavi-audit",
   "mavi",
 ]
 

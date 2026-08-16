@@ -71,6 +71,9 @@ fn what_it_asks_people(mut site: Site, db: &Db) -> Site {
             "forms.make" => Some(handling(db, |db, asked| {
                 Box::pin(async move { made_a_form(&db, &asked).await })
             })),
+            "forms.read" => Some(handling(db, |db, asked| {
+                Box::pin(async move { one_form(&db, &asked).await })
+            })),
             "forms.change" => Some(handling(db, |db, asked| {
                 Box::pin(async move { changed_a_form(&db, &asked).await })
             })),
@@ -2915,4 +2918,13 @@ async fn removed_a_file(db: &Db, files: &dyn Files, asked: &Asked) -> Result<Ans
     tx.commit().await?;
 
     Ok(Answered::Changed(Value::Null, receipt))
+}
+
+async fn one_form(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
+    let mut tx = db.begin().await?;
+    let form = mavi_forms::store::read(&mut tx, a_uuid(asked)?).await?;
+
+    Ok(Answered::Read(
+        serde_json::to_value(form).map_err(Error::internal)?,
+    ))
 }

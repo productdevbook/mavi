@@ -126,6 +126,20 @@ fn taken(cause: &sqlx::Error) -> Error {
     }
 }
 
+/// One form, and everything it asks for.
+pub async fn read(tx: &mut Tx, id: Uuid) -> Result<Form> {
+    let row = sqlx::query(&format!(
+        "select {COLUMNS} from forms where id = $1 and deleted_at is null"
+    ))
+    .bind(id)
+    .fetch_optional(tx.conn())
+    .await
+    .map_err(Error::internal)?
+    .ok_or_else(|| Error::not_found(Say::of(NOTHING_IS_ASKED_AT_THAT_ADDRESS)))?;
+
+    a_form(&row)
+}
+
 /// What may be changed about one.
 #[derive(Clone, Debug, Default, Deserialize)]
 pub struct FormChanges {

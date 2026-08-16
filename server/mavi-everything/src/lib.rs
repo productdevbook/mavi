@@ -380,6 +380,7 @@ mod tests {
         // that it is a conflict rather than a door.
         "/api/setup",
         "/api/sessions",
+        "/api/sessions/finish",
         "/api/passwords",
         "/api/addresses",
     ];

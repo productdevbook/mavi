@@ -526,6 +526,20 @@ export interface FilledPage {
   next?: string;
 }
 
+/** Finishing signing in. */
+export interface Finishing {
+  /**
+   * What signing in answered with. Short-lived, and it says nothing about who
+   * it is for.
+   */
+  moment: string;
+  /**
+   * The six digits, or one of the ways back in. Either is taken here, because
+   * somebody without their phone is somebody who has to get in.
+   */
+  code: string;
+}
+
 /** Something a site does by itself when something happens. */
 export interface Flow {
   /** Which one. */
@@ -1570,6 +1584,34 @@ export interface RunPage {
   next?: string;
 }
 
+/** Whether whoever is asking has a second step. */
+export interface SecondStanding {
+  /** Whether one has been started. */
+  set_up: boolean;
+  /**
+   * Whether the digits have been shown to work. **An unconfirmed one stands
+   * between nobody and their account** — somebody who scanned a picture and
+   * closed the tab has not locked themselves out.
+   */
+  confirmed: boolean;
+  /**
+   * How many are left unused. Somebody down to their last one should be told
+   * before the phone goes, not after.
+   */
+  ways_back_in: number;
+}
+
+/** What to put in front of somebody setting one up. Shown once. */
+export interface SecondToSetUp {
+  /** An `otpauth://` address. What a picture is made out of. */
+  what_an_app_reads: string;
+  /**
+   * The same secret written out, for somebody whose machine cannot show a
+   * picture or whose phone cannot read one.
+   */
+  typed_in: string;
+}
+
 /** How many were marked as read. */
 export interface Seen {
   /** How many had not been read and now have been. */
@@ -1660,6 +1702,12 @@ export interface Setup {
   email: string;
   /** What they will sign in with. */
   password: string;
+}
+
+/** The six digits an app is showing. */
+export interface SomeDigits {
+  /** What it says. */
+  code: string;
 }
 
 /** Which address this is about. */
@@ -1866,6 +1914,48 @@ export interface Wanted {
   product: string;
   /** How many of it. */
   how_many: number;
+}
+
+/**
+ * What a right password got somebody. **Two answers in one shape**, and
+ * `finished` says which: an account with a second step is not signed in by a
+ * password alone, and a client that assumed a session would walk straight past
+ * the step.
+ */
+export interface WayIn {
+  /**
+   * True where this is a session. False where a second step has to be got past
+   * first.
+   */
+  finished: boolean;
+  /** Who, once finished. */
+  person?: Person | null;
+  /**
+   * The token that signs them in. Sent as `Authorization: Bearer`. Handed over
+   * once and kept nowhere: what this installation stores is a hash of it, so a
+   * copy of the database is not a drawer of working keys.
+   */
+  token?: string | null;
+  /**
+   * What to finish with, where it is not finished. Not a way in: whoever holds
+   * it has given a right password and nothing more, and it lasts minutes.
+   */
+  moment?: string | null;
+  /** How many seconds the moment lasts. */
+  how_long?: number | null;
+}
+
+/**
+ * What gets somebody back in when the phone is gone. **Shown once** — what
+ * is kept is their hashes, so nothing can answer them again.
+ */
+export interface WaysBackIn {
+  /**
+   * Ten of them. No letters a handwritten note confuses, because the moment
+   * these are read is the moment somebody is already locked out and typing off
+   * paper.
+   */
+  codes: string[];
 }
 
 /**
@@ -2138,9 +2228,14 @@ export const operations = {
   "roles.remove": { method: "delete", path: "/api/roles/{id}", takes: null, answers: null, status: 204 },
   "runs.list": { method: "get", path: "/api/flows/{id}/runs", takes: null, answers: "RunPage", status: 200 },
   "runs.read": { method: "get", path: "/api/runs/{id}", takes: null, answers: "Run", status: 200 },
+  "second.confirm": { method: "post", path: "/api/second/confirm", takes: "SomeDigits", answers: "WaysBackIn", status: 200 },
+  "second.set-up": { method: "post", path: "/api/second", takes: null, answers: "SecondToSetUp", status: 201 },
+  "second.standing": { method: "get", path: "/api/second", takes: null, answers: "SecondStanding", status: 200 },
+  "second.take-off": { method: "delete", path: "/api/second", takes: "SomeDigits", answers: null, status: 204 },
   "sendings.send": { method: "post", path: "/api/mail/lists/{id}/sendings", takes: "Sending", answers: null, status: 202 },
-  "sessions.begin": { method: "post", path: "/api/sessions", takes: "Credentials", answers: "Session", status: 201 },
+  "sessions.begin": { method: "post", path: "/api/sessions", takes: "Credentials", answers: "WayIn", status: 201 },
   "sessions.end": { method: "delete", path: "/api/sessions", takes: null, answers: null, status: 204 },
+  "sessions.finish": { method: "post", path: "/api/sessions/finish", takes: "Finishing", answers: "Session", status: 201 },
   "settings.change": { method: "patch", path: "/api/settings", takes: "SettingsChanges", answers: "Settings", status: 200 },
   "settings.read": { method: "get", path: "/api/settings", takes: null, answers: "Settings", status: 200 },
   "setup.once": { method: "post", path: "/api/setup", takes: "Setup", answers: "Ready", status: 201 },
@@ -2282,9 +2377,14 @@ export interface Calls {
   "roles.remove": { takes: never; gives: void };
   "runs.list": { takes: never; gives: RunPage };
   "runs.read": { takes: never; gives: Run };
+  "second.confirm": { takes: SomeDigits; gives: WaysBackIn };
+  "second.set-up": { takes: never; gives: SecondToSetUp };
+  "second.standing": { takes: never; gives: SecondStanding };
+  "second.take-off": { takes: SomeDigits; gives: void };
   "sendings.send": { takes: Sending; gives: void };
-  "sessions.begin": { takes: Credentials; gives: Session };
+  "sessions.begin": { takes: Credentials; gives: WayIn };
   "sessions.end": { takes: never; gives: void };
+  "sessions.finish": { takes: Finishing; gives: Session };
   "settings.change": { takes: SettingsChanges; gives: Settings };
   "settings.read": { takes: never; gives: Settings };
   "setup.once": { takes: Setup; gives: Ready };

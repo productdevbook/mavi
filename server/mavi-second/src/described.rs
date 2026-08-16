@@ -79,20 +79,6 @@ pub fn shapes() -> Vec<Shape> {
                 ),
             ],
         ),
-        Shape::new(
-            "AMomentToFinish",
-            "What signing in answers with when the account has a second step. \
-             Not a session and not a way in — whoever holds it has given a \
-             right password and nothing more.",
-            vec![
-                Field::new("moment", Of::One(Is::Text), "What to send back."),
-                Field::new(
-                    "how_long",
-                    Of::One(Is::Number),
-                    "How many seconds it lasts.",
-                ),
-            ],
-        ),
     ]
 }
 

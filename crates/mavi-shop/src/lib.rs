@@ -11,6 +11,7 @@
 pub mod coupon;
 pub mod order;
 pub mod stock;
+pub mod store;
 
 use mavi_api::{Answers, Endpoint, Is, Method, Parameter, Who};
 use mavi_core::error::Code;

@@ -142,7 +142,10 @@ pub async fn list(tx: &mut Tx, state: Option<&str>, query: &Query) -> Result<Pag
 }
 
 /// What starting one asks for.
-#[derive(Clone, Debug, Deserialize)]
+///
+/// Serialised as well as read, so the test beside the description can hold
+/// what it says it takes against what it takes.
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct NewCourse {
     pub slug: String,
     pub title: String,
@@ -226,7 +229,7 @@ async fn lessons(tx: &mut Tx, module: Uuid) -> Result<Vec<Lesson>> {
 }
 
 /// What may be changed about a course.
-#[derive(Clone, Debug, Default, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct CourseChanges {
     pub title: Option<String>,
     pub about: Option<String>,
@@ -366,7 +369,7 @@ pub async fn add_lesson(tx: &mut Tx, module: Uuid, title: &str, body: &str) -> R
 }
 
 /// What may be changed about a lesson.
-#[derive(Clone, Debug, Default, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct LessonChanges {
     pub title: Option<String>,
     pub body: Option<String>,

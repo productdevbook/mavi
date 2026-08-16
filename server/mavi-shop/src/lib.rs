@@ -9,6 +9,7 @@
 //! says nothing until something says twelve fifty of what.
 
 pub mod coupon;
+pub mod described;
 pub mod order;
 pub mod stock;
 pub mod store;

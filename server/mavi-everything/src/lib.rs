@@ -68,6 +68,8 @@ pub fn shapes() -> Vec<mavi_api::Shape> {
     all.extend(mavi_media::described::shapes());
     all.extend(mavi_forms::described::shapes());
     all.extend(mavi_people::described::shapes());
+    all.extend(mavi_shop::described::shapes());
+    all.extend(mavi_courses::described::shapes());
     all.extend(crate::assistant::shapes());
 
     all
@@ -131,7 +133,6 @@ mod tests {
     /// only ever removed from here.** Adding one means an endpoint was written
     /// naming a body nobody described, which is the thing this exists to stop.
     const STILL_TO_DESCRIBE: &[&str] = &[
-        "Basket",
         "Between",
         "Board",
         "BoardList",
@@ -141,44 +142,21 @@ mod tests {
         "Change",
         "ChangePage",
         "Contents",
-        "Coupon",
-        "CouponList",
-        "Course",
-        "CourseChanges",
-        "CoursePage",
-        "Enrolment",
         "FileList",
         "Flow",
         "FlowChanges",
         "FlowPage",
-        "ForSalePage",
-        "LearningList",
-        "Lesson",
-        "LessonChanges",
         "Letter",
         "LetterList",
         "List",
         "ListList",
-        "Module",
         "NewBoard",
         "NewCard",
         "NewChange",
-        "NewCoupon",
-        "NewCourse",
         "NewFlow",
-        "NewLesson",
         "NewList",
-        "NewModule",
-        "NewProduct",
         "NewReader",
-        "Order",
-        "OrderPage",
-        "Placed",
         "Pressed",
-        "Product",
-        "ProductChanges",
-        "ProductPage",
-        "Progress",
         "Reader",
         "ReaderPage",
         "Receipt",
@@ -186,16 +164,10 @@ mod tests {
         "Run",
         "RunPage",
         "Sending",
-        "SomebodyToAsk",
         "SomethingMadeUp",
-        "Student",
-        "StudentPage",
-        "TheOrder",
         "TriggerList",
         "Values",
         "WhatItWouldDo",
-        "WhereItGoes",
-        "WhoToPutOn",
         "Wording",
     ];
 

@@ -134,7 +134,10 @@ pub async fn for_sale(tx: &mut Tx, query: &Query) -> Result<Page<ForSale>> {
 }
 
 /// What putting something on the shelf asks for.
-#[derive(Clone, Debug, Deserialize)]
+///
+/// Serialised as well as read, so the test beside the description can hold
+/// what it says it takes against what it takes.
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct NewProduct {
     pub slug: String,
     pub name: String,
@@ -174,7 +177,7 @@ pub async fn add(tx: &mut Tx, new: &NewProduct) -> Result<Product> {
 }
 
 /// What may be changed about something for sale.
-#[derive(Clone, Debug, Default, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ProductChanges {
     pub name: Option<String>,
     pub about: Option<String>,
@@ -361,7 +364,7 @@ async fn lines(tx: &mut Tx, order: Uuid) -> Result<Vec<Line>> {
 }
 
 /// A basket, as it arrives.
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Basket {
     pub email: String,
     pub wanted: Vec<Wanted>,
@@ -588,7 +591,7 @@ pub async fn coupons(tx: &mut Tx) -> Result<Vec<Coupon>> {
 }
 
 /// What making a code asks for.
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct NewCoupon {
     pub code: String,
     pub percent: Option<u32>,

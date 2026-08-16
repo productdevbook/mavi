@@ -28,6 +28,10 @@ pub enum For {
     AnInvitation,
     /// Somebody who has one and cannot remember it.
     AForgottenPassword,
+    /// Somebody who has given a right password and has a second step. Holding
+    /// one is not being signed in — it is being half way there, and it lasts
+    /// minutes.
+    AMomentToFinish,
     /// An address that has to prove it is reachable. **Proves the address and
     /// nothing else** — not the password, not the account's state, and it does
     /// not end anybody's sessions. Proving an address is not a credential
@@ -43,6 +47,7 @@ impl For {
             For::AnInvitation => "invitation",
             For::AForgottenPassword => "forgotten_password",
             For::AnAddressToProve => "address_to_prove",
+            For::AMomentToFinish => "a_moment_to_finish",
         }
     }
 
@@ -55,7 +60,7 @@ impl For {
     pub const fn sets_a_password(self) -> bool {
         match self {
             For::AnInvitation | For::AForgottenPassword => true,
-            For::AnAddressToProve => false,
+            For::AnAddressToProve | For::AMomentToFinish => false,
         }
     }
 }
@@ -125,6 +130,7 @@ mod tests {
             For::AnInvitation,
             For::AForgottenPassword,
             For::AnAddressToProve,
+            For::AMomentToFinish,
         ];
 
         let mut clauses: Vec<String> = all.iter().map(|what| only(*what)).collect();

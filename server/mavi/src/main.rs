@@ -18,7 +18,7 @@ mod who;
 use std::sync::Arc;
 
 use mavi_core::error::{Error, Result};
-use mavi_core::ports::{Builds, Files};
+use mavi_core::ports::{Builds, Files, Seals};
 use mavi_db::Db;
 use mavi_files::InADirectory;
 use mavi_work::Queue;
@@ -46,9 +46,27 @@ async fn main() -> Result<()> {
     // command is a sandbox and a quota rather than a function, and this
     // process has neither.
     let builds: Arc<dyn Builds> = Arc::new(mavi_everything::building::WhatIsInPublic);
+
+    // Read here, so a key that is not a key is a message at the moment the
+    // process starts rather than at the first sign-in that needed one.
+    let seals: Option<Arc<dyn Seals>> = told
+        .sealing_key
+        .as_deref()
+        .map(mavi_sealed::WithAKey::read)
+        .transpose()?
+        .map(|sealing| Arc::new(sealing) as Arc<dyn Seals>);
+
+    if seals.is_none() {
+        println!("no sealing key, so no second step");
+    }
     let queue = Queue::of(&mavi_everything::work());
 
-    let router = mavi_everything::mounted::everything(&db, &files, who::whoever_holds(db.clone()));
+    let router = mavi_everything::mounted::with_all_of_it(
+        &db,
+        &files,
+        &seals,
+        who::whoever_holds(db.clone()),
+    );
 
     let listener = TcpListener::bind(&told.listen)
         .await

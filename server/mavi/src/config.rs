@@ -26,6 +26,15 @@ pub struct Config {
     pub files: String,
     /// What to answer on.
     pub listen: String,
+    /// What seals a second factor's secret, as sixty-four hexadecimal
+    /// characters.
+    ///
+    /// **Optional, and an installation without it simply has no second step.**
+    /// The alternative arrangements are both worse: refusing to start would
+    /// take second factors away from everybody who does not want them, and a
+    /// key baked into the source would be the appearance of sealing without
+    /// the thing.
+    pub sealing_key: Option<String>,
     pub worker: Worker,
 }
 
@@ -45,12 +54,16 @@ impl Config {
     /// Read once, at the edge.
     pub fn from_the_environment() -> Result<Self> {
         let database = told("DATABASE_URL")?;
+        let sealing_key = std::env::var("SEALING_KEY")
+            .ok()
+            .filter(|key| !key.is_empty());
 
         Ok(Self {
             database,
             at_most_connections: number("DATABASE_CONNECTIONS", 10)?,
             files: std::env::var("FILES").unwrap_or_else(|_| "./files".to_owned()),
             listen: std::env::var("LISTEN").unwrap_or_else(|_| "0.0.0.0:8080".to_owned()),
+            sealing_key,
             worker: Worker {
                 named: std::env::var("WORKER").unwrap_or_else(|_| named_after_the_machine()),
                 when_there_is_nothing: Duration::from_millis(

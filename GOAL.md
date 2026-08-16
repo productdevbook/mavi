@@ -79,9 +79,10 @@ description with no route is a feature that does not exist.
 
 `old/` is still what runs, and moving to the new tree is its own decision with
 its own migration of data behind it. What is left before that is named in
-`old/README.md` rather than implied: a binary — nothing in `server/` opens a
-socket yet — the worker loop that takes the queue's work, the scheduler, the
-edge and publishing and the assistant protocol, and the panel.
+`old/README.md` rather than implied. One of it is done: `server/mavi` is a
+process — it opens the socket, migrates, and works through the queue beside
+itself. What is not: the scheduler, the edge, publishing, the assistant
+protocol, and the panel.
 
 What that is *for* is worth stating, because "a rewrite" on its own is a bad
 reason. Every crate in `server/` exists to make one measured failure

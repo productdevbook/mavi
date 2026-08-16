@@ -23,9 +23,11 @@ working the moment this does.
 
 ## What has to be true before this goes
 
-1. `server/` produces a binary — nothing in it opens a socket yet, so no image
-   can be made from it.
-2. The queue has a worker loop, and the scheduler exists.
+1. ~~`server/` produces a binary.~~ It does: `server/mavi` opens the socket,
+   applies the migrations, and runs the worker beside itself.
+   `server/Dockerfile` makes an image of it.
+2. The scheduler exists — nothing yet queues work on a timer, so a post given
+   a date does not go out on it.
 3. The edge, publishing and the assistant protocol are written in the rewrite,
    or a decision is written down that they are not coming back.
 4. `client/` is rewritten against the new API.

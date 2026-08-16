@@ -56,6 +56,7 @@ pub fn is_a_capability(name: &str) -> bool {
 pub fn endpoints() -> Vec<Endpoint> {
     let mut all = the_ways_in();
     all.extend(the_accounts());
+    all.extend(the_keys());
     all.extend(the_roles());
 
     all
@@ -190,6 +191,50 @@ fn the_accounts() -> Vec<Endpoint> {
             takes: None,
             answers: Answers::Nothing,
             refuses: &[Code::NotFound, Code::Conflict],
+            changes: true,
+        },
+    ]
+}
+
+/// What a script or an assistant signs in with.
+fn the_keys() -> Vec<Endpoint> {
+    vec![
+        Endpoint {
+            method: Method::Get,
+            path: "/api/keys",
+            named: "keys.list",
+            about: "The keys whoever is asking has made. Never the keys \
+                    themselves — one is handed over once, when it is made.",
+            who: Who::AnAccount,
+            parameters: Vec::new(),
+            takes: None,
+            answers: Answers::With("KeyList"),
+            refuses: &[],
+            changes: false,
+        },
+        Endpoint {
+            method: Method::Post,
+            path: "/api/keys",
+            named: "keys.make",
+            about: "Makes one, and hands it over. It is not kept and cannot be \
+                    read back.",
+            who: Who::AnAccount,
+            parameters: Vec::new(),
+            takes: Some("NewKey"),
+            answers: Answers::Made("MadeKey"),
+            refuses: &[Code::Invalid],
+            changes: true,
+        },
+        Endpoint {
+            method: Method::Delete,
+            path: "/api/keys/{id}",
+            named: "keys.end",
+            about: "Stops one working.",
+            who: Who::AnAccount,
+            parameters: vec![Parameter::path("id", Is::Id, "Which one.")],
+            takes: None,
+            answers: Answers::Nothing,
+            refuses: &[Code::NotFound],
             changes: true,
         },
     ]

@@ -11,6 +11,7 @@ const A_TOKEN: &str = "The token that signs them in. Sent as \
 #[must_use]
 pub fn shapes() -> Vec<Shape> {
     let mut all = the_accounts();
+    all.extend(the_keys());
     all.extend(the_roles());
 
     all
@@ -99,6 +100,68 @@ fn the_accounts() -> Vec<Shape> {
         ),
     ]
 }
+
+fn the_keys() -> Vec<Shape> {
+    vec![
+        Shape::new(
+            "Key",
+            "A key a script or an assistant signs in with. A session expires, \
+             because somebody walking away from a machine should stop being \
+             signed in; a script has nobody to walk away, so a session is the \
+             wrong shape for one.",
+            vec![
+                Field::new("id", Of::One(Is::Id), "Which one."),
+                Field::new(
+                    "name",
+                    Of::One(Is::Text),
+                    "What somebody calls it, so the one to stop is the one they \
+                     meant. \"the deploy script\" and \"my laptop\" are the \
+                     difference between revoking confidently and revoking \
+                     everything.",
+                ),
+                Field::new("grants", Of::Many(Is::Text), NARROWED),
+                Field::new(
+                    "last_seen_at",
+                    Of::One(Is::Moment),
+                    "Null until it has been used once. What tells somebody \
+                     which key nobody uses any more, which is the one worth \
+                     stopping.",
+                )
+                .or_null(),
+                Field::new("created_at", Of::One(Is::Moment), "When it was made."),
+            ],
+        ),
+        Shape::list_of("KeyList", "Key", "The keys whoever is asking has made."),
+        Shape::new(
+            "NewKey",
+            "One to make.",
+            vec![
+                Field::new("name", Of::One(Is::Text), "What to call it."),
+                Field::new("grants", Of::Many(Is::Text), NARROWED).maybe(),
+            ],
+        ),
+        Shape::new(
+            "MadeKey",
+            "The key, once. It is not kept and cannot be read back — losing one \
+             means making another.",
+            vec![
+                Field::new("key", Of::Another("Key"), "The row, from now on."),
+                Field::new(
+                    "token",
+                    Of::One(Is::Text),
+                    "Send it as `Authorization: Bearer`. This is the only time \
+                     it is answered.",
+                ),
+            ],
+        ),
+    ]
+}
+
+const NARROWED: &str = "What it may do, as a narrowing of what the account may \
+                        do. Empty means everything the account can. **Worked \
+                        out when it is used, not when it was made** — so a role \
+                        that loses something loses it for every key made \
+                        against it, in the same moment.";
 
 fn the_roles() -> Vec<Shape> {
     vec![
@@ -210,6 +273,7 @@ mod tests {
     use super::*;
     use crate::role::{NewRole, Role, RoleChanges, WhichRole};
     use crate::store::{Invitation, Person, Setup};
+    use crate::store::{Key, Made, NewKey};
     use std::collections::BTreeSet;
 
     fn fields_of(named: &str) -> BTreeSet<&'static str> {
@@ -295,6 +359,43 @@ mod tests {
                 .expect("which role")
             ),
             fields_of("WhichRole")
+        );
+    }
+
+    #[test]
+    fn what_a_key_is_is_what_is_described() {
+        let key = Key {
+            id: uuid::Uuid::nil(),
+            name: "the deploy script".to_owned(),
+            grants: vec!["content:write".to_owned()],
+            last_seen_at: None,
+            created_at: chrono::Utc::now(),
+        };
+
+        assert_eq!(
+            keys(&serde_json::to_value(&key).expect("a key")),
+            fields_of("Key")
+        );
+
+        let made = Made {
+            key,
+            token: "not a real one".to_owned(),
+        };
+
+        assert_eq!(
+            keys(&serde_json::to_value(&made).expect("a made key")),
+            fields_of("MadeKey")
+        );
+
+        assert_eq!(
+            keys(
+                &serde_json::to_value(NewKey {
+                    name: "the deploy script".to_owned(),
+                    grants: Vec::new(),
+                })
+                .expect("a new key")
+            ),
+            fields_of("NewKey")
         );
     }
 

@@ -42,6 +42,14 @@ pub const fn to_write() -> Needs {
 /// Everything this domain answers, said completely enough to describe.
 #[must_use]
 pub fn endpoints() -> Vec<Endpoint> {
+    let mut all = the_kinds();
+    all.extend(what_it_wrote());
+
+    all
+}
+
+/// What a site decided its kinds of writing are.
+fn the_kinds() -> Vec<Endpoint> {
     vec![
         Endpoint {
             method: Method::Get,
@@ -82,6 +90,12 @@ pub fn endpoints() -> Vec<Endpoint> {
             refuses: &[Code::NotFound],
             changes: true,
         },
+    ]
+}
+
+/// What a site wrote.
+fn what_it_wrote() -> Vec<Endpoint> {
+    vec![
         Endpoint {
             method: Method::Get,
             path: "/api/writings",

@@ -35,11 +35,26 @@ pub fn whoever_holds(db: Db) -> WhoIsAsking {
                 return Caller::Nobody;
             };
 
+            // A session first, because that is what nearly every request
+            // carries: a person at a screen. A key is asked about only when
+            // the token was not a session, so the common way in stays one
+            // query.
             match mavi_people::store::whoever_holds(&mut tx, &token).await {
                 Ok(Some((person, session))) => Caller::AnAccount {
                     id: person.id.to_string(),
                     grants: Grants::of(person.grants),
                     session: Some(session.to_string()),
+                },
+                // A key a script or an assistant was given. No session, so
+                // signing out does not apply to it — what stops one is being
+                // ended, which is its own endpoint.
+                Ok(None) => match mavi_people::store::whoever_holds_a_key(&mut tx, &token).await {
+                    Ok(Some(person)) => Caller::AnAccount {
+                        id: person.id.to_string(),
+                        grants: Grants::of(person.grants),
+                        session: None,
+                    },
+                    _ => Caller::Nobody,
                 },
                 // A token that is not one of ours, a session that has ended,
                 // an account that was stopped — all of them are nobody, and

@@ -998,6 +998,15 @@ fn the_way_in(mut site: Site, db: &Db) -> Site {
             "people.remove" => Some(handling(db, |db, asked| {
                 Box::pin(async move { took_an_account_away(&db, &asked).await })
             })),
+            "keys.list" => Some(handling(db, |db, asked| {
+                Box::pin(async move { the_keys(&db, &asked).await })
+            })),
+            "keys.make" => Some(handling(db, |db, asked| {
+                Box::pin(async move { made_a_key(&db, &asked).await })
+            })),
+            "keys.end" => Some(handling(db, |db, asked| {
+                Box::pin(async move { ended_a_key(&db, &asked).await })
+            })),
             "roles.list" => Some(handling(db, |db, _| {
                 Box::pin(async move { roles(&db).await })
             })),
@@ -1034,6 +1043,12 @@ fn the_way_in(mut site: Site, db: &Db) -> Site {
                 // role can give themselves anything.
                 "people.invite" | "people.move" | "people.remove" | "roles.make"
                 | "roles.change" | "roles.remove" => Some(mavi_people::to_write()),
+                // Nothing, for two different reasons that happen to arrive at
+                // the same answer. The ways in are reached by somebody who is
+                // holding nothing yet. And a key is whoever is asking giving
+                // themselves another way in that is never more than they
+                // already have — a grant on that would be a grant somebody
+                // needs in order to use a script as themselves.
                 _ => None,
             };
 
@@ -1825,6 +1840,77 @@ async fn took_a_coupon_away(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
         "coupons.remove",
         "coupon",
         Some(&code),
+        &serde_json::json!({}),
+    )
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(Answered::Changed(Value::Null, receipt))
+}
+
+/// Whoever is asking, as an id. Every key endpoint is about their own keys and
+/// nobody else's, which is what makes them need no grant.
+fn themselves(asked: &Asked) -> Result<Uuid> {
+    asked
+        .caller
+        .id()
+        .and_then(|id| Uuid::parse_str(id).ok())
+        .ok_or_else(|| Error::invalid(Say::of(THAT_IS_NOT_AN_ID)))
+}
+
+async fn the_keys(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
+    let mut tx = db.begin().await?;
+    let keys = mavi_people::store::keys(&mut tx, themselves(asked)?).await?;
+
+    Ok(Answered::Read(
+        serde_json::to_value(keys).map_err(Error::internal)?,
+    ))
+}
+
+async fn made_a_key(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
+    let new: mavi_people::store::NewKey = serde_json::from_value(asked.body.clone())
+        .map_err(|_| Error::invalid(Say::of("that_is_not_a_key")))?;
+
+    let person = themselves(asked)?;
+
+    let mut tx = db.begin().await?;
+    let made = mavi_people::store::make_a_key(&mut tx, person, &new).await?;
+
+    // The name and what it may do, and never the key. A receipt carrying it
+    // would be the copy that outlives handing it over once.
+    let receipt = wrote_about(
+        &mut tx,
+        asked,
+        "keys.make",
+        "key",
+        Some(&made.key.id.to_string()),
+        &serde_json::json!({ "name": made.key.name, "grants": made.key.grants }),
+    )
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(Answered::Changed(
+        serde_json::to_value(made).map_err(Error::internal)?,
+        receipt,
+    ))
+}
+
+async fn ended_a_key(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
+    let id = a_uuid(asked)?;
+    let person = themselves(asked)?;
+
+    let mut tx = db.begin().await?;
+
+    mavi_people::store::end_a_key(&mut tx, person, id).await?;
+
+    let receipt = wrote_about(
+        &mut tx,
+        asked,
+        "keys.end",
+        "key",
+        Some(&id.to_string()),
         &serde_json::json!({}),
     )
     .await?;

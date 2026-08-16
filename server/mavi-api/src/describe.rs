@@ -39,7 +39,8 @@ pub fn openapi(api: &Api, version: &str) -> Value {
                     "type": "http",
                     "scheme": "bearer",
                     "description":
-                        "A key made in the panel. What an assistant or a script uses.",
+                        "A key made in the panel, or the token signing in answers with. What \
+                         an assistant or a script uses.",
                 },
                 "session": {
                     "type": "apiKey",

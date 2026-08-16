@@ -26,6 +26,7 @@ pub const THIS_SITE_IS_ALREADY_SET_UP: &str = "this_site_is_already_set_up";
 pub const THAT_IS_NOT_AN_ADDRESS_AND_A_PASSWORD: &str = "that_is_not_an_address_and_a_password";
 pub const SOMEBODY_ALREADY_HAS_THAT_ADDRESS: &str = "somebody_already_has_that_address";
 pub const THAT_ACCOUNT_IS_STOPPED: &str = "that_account_is_stopped";
+pub const THERE_IS_NO_KEY_LIKE_THAT: &str = "there_is_no_key_like_that";
 pub const NOBODY_HERE_HAS_THAT_ADDRESS: &str = "nobody_here_has_that_address";
 
 /// How long a session is good for without being used again.
@@ -736,4 +737,167 @@ pub async fn one(tx: &mut Tx, id: Uuid) -> Result<Person> {
         .map(a_person)
         .transpose()?
         .ok_or_else(|| Error::not_found(Say::of(NOBODY_HERE_HAS_THAT_ADDRESS)))
+}
+
+/// One key, as somebody managing them sees it.
+///
+/// Never the key itself. It is handed over once, when it is made, and after
+/// that this is all there is — which is what makes losing one mean making a
+/// new one rather than looking the old one up.
+#[derive(Clone, Debug, Serialize)]
+pub struct Key {
+    pub id: Uuid,
+    pub name: String,
+    pub grants: Vec<String>,
+    /// Null until it has been used once. What tells somebody which key nobody
+    /// uses any more, which is the one worth revoking.
+    pub last_seen_at: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
+}
+
+/// What making one asks for.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct NewKey {
+    pub name: String,
+    /// A narrowing of what the account may do. Left out means everything the
+    /// account can — a key made without thinking about it is exactly its
+    /// account, which is what somebody expects.
+    #[serde(default)]
+    pub grants: Vec<String>,
+}
+
+/// The key, once, and the row from now on.
+#[derive(Clone, Debug, Serialize)]
+pub struct Made {
+    pub key: Key,
+    /// Handed over here and kept nowhere. What is stored is its hash.
+    pub token: String,
+}
+
+fn a_key(row: &PgRow) -> Result<Key> {
+    Ok(Key {
+        id: row.try_get("id").map_err(Error::internal)?,
+        name: row.try_get("name").map_err(Error::internal)?,
+        grants: row.try_get("grants").map_err(Error::internal)?,
+        last_seen_at: row.try_get("last_seen_at").map_err(Error::internal)?,
+        created_at: row.try_get("created_at").map_err(Error::internal)?,
+    })
+}
+
+/// The keys one account has, still working.
+pub async fn keys(tx: &mut Tx, person: Uuid) -> Result<Vec<Key>> {
+    let rows = sqlx::query(
+        "select id, name, grants, last_seen_at, created_at from keys
+          where person_id = $1 and ended_at is null order by created_at desc",
+    )
+    .bind(person)
+    .fetch_all(tx.conn())
+    .await
+    .map_err(Error::internal)?;
+
+    rows.iter().map(a_key).collect()
+}
+
+/// Makes one.
+///
+/// Its grants are checked the same way a role's are, and against the same
+/// list — a key asking for something that is not a capability is the same
+/// mistake as a role doing it, and it is refused in the same words.
+pub async fn make_a_key(tx: &mut Tx, person: Uuid, new: &NewKey) -> Result<Made> {
+    let name = role::a_name(&new.name)?;
+    let grants = role::grants(&new.grants)?;
+    let minted = token::mint();
+
+    let row = sqlx::query(
+        "insert into keys (id, person_id, name, token, grants) values ($1, $2, $3, $4, $5)
+         returning id, name, grants, last_seen_at, created_at",
+    )
+    .bind(Uuid::now_v7())
+    .bind(person)
+    .bind(&name)
+    .bind(minted.hash.as_slice())
+    .bind(&grants)
+    .fetch_one(tx.conn())
+    .await
+    .map_err(Error::internal)?;
+
+    Ok(Made {
+        key: a_key(&row)?,
+        token: minted.token,
+    })
+}
+
+/// Stops one working.
+///
+/// Ended rather than deleted, like a session: "when did this stop working" is
+/// a question somebody asks after the fact, and a row that is gone answers
+/// nothing.
+pub async fn end_a_key(tx: &mut Tx, person: Uuid, id: Uuid) -> Result<()> {
+    let ended = sqlx::query(
+        "update keys set ended_at = now()
+          where id = $1 and person_id = $2 and ended_at is null",
+    )
+    .bind(id)
+    .bind(person)
+    // Held against whose it is, not only against its id. A key somebody else
+    // made is not something to end by guessing at an id.
+    .execute(tx.conn())
+    .await
+    .map_err(Error::internal)?;
+
+    if ended.rows_affected() == 0 {
+        return Err(Error::not_found(Say::of(THERE_IS_NO_KEY_LIKE_THAT)));
+    }
+
+    Ok(())
+}
+
+/// Whoever holds this key, and what it may do.
+///
+/// **What a key may do is worked out here rather than copied when it was
+/// made.** A key's own grants narrow its account's; the account's come from
+/// its role as they are now. So a role that loses something loses it for every
+/// key made against it, in the same moment, without anything having to go and
+/// find them.
+///
+/// The empty narrowing means the account's own, which is what a key made
+/// without thinking about it should be.
+pub async fn whoever_holds_a_key(tx: &mut Tx, token: &str) -> Result<Option<Person>> {
+    let row = sqlx::query(&format!(
+        "select {COLUMNS}, k.id as key, k.grants as narrowed from keys k
+           join people p on p.id = k.person_id
+           join roles r on r.id = p.role_id
+          where k.token = $1
+            and k.ended_at is null
+            and p.deleted_at is null
+            and p.standing = 'here'"
+    ))
+    .bind(token::hash(token).as_slice())
+    .fetch_optional(tx.conn())
+    .await
+    .map_err(Error::internal)?;
+
+    let Some(row) = row else {
+        return Ok(None);
+    };
+
+    let key: Uuid = row.try_get("key").map_err(Error::internal)?;
+    let narrowed: Vec<String> = row.try_get("narrowed").map_err(Error::internal)?;
+
+    let mut person = a_person(&row)?;
+
+    if !narrowed.is_empty() {
+        person.grants.retain(|held| narrowed.contains(held));
+    }
+
+    // What tells somebody which key nobody uses any more. Written every time
+    // rather than once a day: this is one row by primary key, and a key nobody
+    // can tell the age of is a key nobody revokes.
+    sqlx::query("update keys set last_seen_at = now() where id = $1")
+        .bind(key)
+        .execute(tx.conn())
+        .await
+        .map_err(Error::internal)?;
+
+    Ok(Some(person))
 }

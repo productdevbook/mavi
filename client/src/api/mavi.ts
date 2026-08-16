@@ -104,6 +104,87 @@ export interface Board {
 /** Every board. A handful, with nothing to page through. */
 export type BoardList = Board[];
 
+/**
+ * A whole site as a file. Its own shapes rather than the ones the API answers
+ * with elsewhere, on purpose: what a listing answers may gain a field
+ * tomorrow, and a file somebody wrote out last year still has to read.
+ * Uploaded files, accounts, what people sent, what they bought, and how the
+ * site looks are all deliberately not in it.
+ */
+export interface Bundle {
+  /**
+   * Which shape this file is. One from a later version is refused rather than
+   * half read.
+   */
+  version: number;
+  /** What it writes in. */
+  languages?: BundledLanguage[];
+  /** What it files things under. */
+  terms?: BundledTerm[];
+  /** Everything it wrote. */
+  writings?: BundledWriting[];
+}
+
+/**
+ * One language, in a file. Read back in it is never made the site's own —
+ * which language a site writes in is a decision it has already made, and a
+ * file does not get to change that from underneath whoever made it.
+ */
+export interface BundledLanguage {
+  /** `en`, `tr`, `pt-BR`. */
+  tag: string;
+  /** What it is called, in itself. */
+  name: string;
+  /** What it was in the site this came from. Written out and not acted on. */
+  is_the_sites_own: boolean;
+}
+
+/** One term, in a file. */
+export interface BundledTerm {
+  /**
+   * Its own id **within this file** — what a writing here points at. Nothing
+   * outside the file means anything by it, and reading it in gives it a new
+   * one.
+   */
+  id: string;
+  /** A category or a tag. */
+  sort: string;
+  /** Which language. */
+  language: string;
+  /** Where it answers. */
+  slug: string;
+  /** What it is called. */
+  name: string;
+  /** Which category it is under, by the ids in this file. */
+  parent?: string | null;
+}
+
+/** One writing, in a file. */
+export interface BundledWriting {
+  /** Its own id within this file. */
+  id: string;
+  /** What the site decided it is. */
+  kind: string;
+  /** Which language. */
+  language: string;
+  /** Where it answers. */
+  slug: string;
+  /** What it is called. */
+  title: string;
+  /** A line about it. */
+  excerpt?: string | null;
+  /** What it says. */
+  body?: string;
+  /** Whatever the site kept beside it. */
+  fields?: unknown;
+  /** Whether it was out. */
+  state: string;
+  /** When it went out. */
+  published_at?: string | null;
+  /** What it is filed under, by the ids **in this file**. */
+  terms?: string[];
+}
+
 /** One thing on a board. */
 export interface Card {
   /** Which one. */
@@ -1573,6 +1654,26 @@ export interface Wanted {
 export type WhatItWouldDo = WouldDo[];
 
 /**
+ * What reading a file in did. Both halves, always — a number that only said
+ * what was added would let somebody read a file into the wrong site, see
+ * nothing added, and conclude the file was empty rather than that everything
+ * in it was already there.
+ */
+export interface WhatWasRead {
+  /** How many were added. */
+  languages: number;
+  /** How many were added. */
+  terms: number;
+  /** How many were added. */
+  writings: number;
+  /**
+   * How many were already answering at the same address. Nothing is ever
+   * overwritten, so reading a file in can only add.
+   */
+  left_alone: number;
+}
+
+/**
  * Where an order goes next. Which moves are allowed is the order's own rule
  * rather than the caller's — one that has gone out does not go back to
  * waiting.
@@ -1781,6 +1882,8 @@ export const operations = {
   "passwords.choose": { method: "post", path: "/api/passwords", takes: "ChosenPassword", answers: null, status: 204 },
   "people.invite": { method: "post", path: "/api/people", takes: "Invitation", answers: "Person", status: 201 },
   "people.list": { method: "get", path: "/api/people", takes: null, answers: "PersonPage", status: 200 },
+  "portable.read-in": { method: "post", path: "/api/portable", takes: "Bundle", answers: "WhatWasRead", status: 200 },
+  "portable.take": { method: "get", path: "/api/portable", takes: null, answers: "Bundle", status: 200 },
   "products.change": { method: "patch", path: "/api/products/{id}", takes: "ProductChanges", answers: "Product", status: 200 },
   "products.list": { method: "get", path: "/api/products", takes: null, answers: "ProductPage", status: 200 },
   "products.make": { method: "post", path: "/api/products", takes: "NewProduct", answers: "Product", status: 201 },
@@ -1902,6 +2005,8 @@ export interface Calls {
   "passwords.choose": { takes: ChosenPassword; gives: void };
   "people.invite": { takes: Invitation; gives: Person };
   "people.list": { takes: never; gives: PersonPage };
+  "portable.read-in": { takes: Bundle; gives: WhatWasRead };
+  "portable.take": { takes: never; gives: Bundle };
   "products.change": { takes: ProductChanges; gives: Product };
   "products.list": { takes: never; gives: ProductPage };
   "products.make": { takes: NewProduct; gives: Product };

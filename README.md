@@ -277,6 +277,7 @@ writes in.
 
 | | |
 |---|---|
+| [ports.md](docs/ports.md) | what this software asks a host for, and why there is no plugins table |
 | [describing.md](docs/describing.md) | how the API describes itself, and what the panel is generated from |
 | [assistant.md](docs/assistant.md) | what an assistant can do here, and why there is no list of tools |
 | [serving.md](docs/serving.md) | what a visitor sees, and why a build is a folder and going live is a row |

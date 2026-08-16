@@ -23,6 +23,7 @@ mavi-health = { path = "../mavi-health" }
 mavi-mail = { path = "../mavi-mail" }
 mavi-media = { path = "../mavi-media" }
 mavi-people = { path = "../mavi-people" }
+mavi-portable = { path = "../mavi-portable" }
 mavi-settings = { path = "../mavi-settings" }
 mavi-shop = { path = "../mavi-shop" }
 mavi-taxonomy = { path = "../mavi-taxonomy" }

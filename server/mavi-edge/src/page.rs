@@ -40,6 +40,18 @@ pub fn file_for(path: &str) -> Option<String> {
     }
 }
 
+/// What a file is called after the last dot, in one case.
+///
+/// A design that wrote `LOGO.PNG` meant a picture, and an address asking for
+/// `/About/Index.HTML` is asking for a page. Neither is a second kind of file
+/// because of how somebody held the shift key.
+fn ends_in(path: &str) -> String {
+    std::path::Path::new(path)
+        .extension()
+        .map(|end| end.to_string_lossy().to_ascii_lowercase())
+        .unwrap_or_default()
+}
+
 /// What a browser should be told a file is.
 ///
 /// A list rather than a guess, and everything not on it is bytes. A file whose
@@ -48,7 +60,7 @@ pub fn file_for(path: &str) -> Option<String> {
 /// called is the only thing this decides from.
 #[must_use]
 pub fn kind_of(path: &str) -> &'static str {
-    match path.rsplit('.').next().unwrap_or_default() {
+    match ends_in(path).as_str() {
         "html" | "htm" => "text/html; charset=utf-8",
         "css" => "text/css; charset=utf-8",
         "js" | "mjs" => "text/javascript; charset=utf-8",
@@ -87,7 +99,7 @@ pub enum Kind {
 impl Kind {
     #[must_use]
     pub fn of(file: &str) -> Self {
-        if file.ends_with(".html") {
+        if ends_in(file) == "html" {
             Kind::Page
         } else {
             Kind::Something
@@ -147,6 +159,13 @@ mod tests {
         // is a file a browser can be talked into running.
         assert_eq!(kind_of("something.wat"), "application/octet-stream");
         assert_eq!(kind_of("no-extension"), "application/octet-stream");
+    }
+
+    #[test]
+    fn how_somebody_held_the_shift_key_is_not_a_kind_of_file() {
+        assert_eq!(kind_of("LOGO.PNG"), "image/png");
+        assert_eq!(kind_of("About/Index.HTML"), "text/html; charset=utf-8");
+        assert_eq!(Kind::of("About/Index.HTML"), Kind::Page);
     }
 
     #[test]

@@ -65,5 +65,7 @@ typed_id!(FileId);
 typed_id!(ApiKeyId);
 typed_id!(JobId);
 typed_id!(PersonId);
+typed_id!(RoleId);
 typed_id!(RequestId);
+typed_id!(SessionId);
 typed_id!(StudentId);

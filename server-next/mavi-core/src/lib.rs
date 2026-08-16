@@ -14,6 +14,8 @@ pub mod ports;
 pub use context::{Caller, SiteContext};
 pub use error::{ErrorCode, MaviError, Result};
 pub use grants::{Action, Capability, Grant, Grants};
-pub use ids::{ApiKeyId, ContentId, FileId, JobId, PersonId, RequestId, SiteId, StudentId};
+pub use ids::{
+    ApiKeyId, ContentId, FileId, JobId, PersonId, RequestId, RoleId, SessionId, SiteId, StudentId,
+};
 pub use money::{Currency, Money};
 pub use pagination::{Cursor, Page, PageRequest};

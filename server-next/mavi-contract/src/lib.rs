@@ -17,6 +17,19 @@ pub enum Method {
     Delete,
 }
 
+impl Method {
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Get => "get",
+            Self::Post => "post",
+            Self::Put => "put",
+            Self::Patch => "patch",
+            Self::Delete => "delete",
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Authentication {
@@ -30,6 +43,22 @@ pub enum Authentication {
 pub struct Permission {
     pub capability: Capability,
     pub action: Action,
+}
+
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Mutation {
+    #[default]
+    None,
+    Permissioned {
+        idempotent: bool,
+    },
+    Public {
+        idempotent: bool,
+    },
+    SelfOnly {
+        idempotent: bool,
+    },
 }
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
@@ -53,8 +82,7 @@ pub struct Endpoint {
     pub response: Option<String>,
     pub status: u16,
     pub errors: Vec<ErrorCode>,
-    pub changes: bool,
-    pub idempotent: bool,
+    pub mutation: Mutation,
 }
 
 impl Endpoint {
@@ -77,14 +105,26 @@ impl Endpoint {
             response: None,
             status: 200,
             errors: vec![ErrorCode::Internal],
-            changes: false,
-            idempotent: false,
+            mutation: Mutation::None,
         }
     }
 
     #[must_use]
     pub const fn public(mut self) -> Self {
         self.authentication = Authentication::Public;
+        self
+    }
+
+    #[must_use]
+    pub const fn public_mutation(mut self) -> Self {
+        self.authentication = Authentication::Public;
+        self.mutation = Mutation::Public { idempotent: false };
+        self
+    }
+
+    #[must_use]
+    pub const fn self_only(mut self) -> Self {
+        self.mutation = Mutation::SelfOnly { idempotent: false };
         self
     }
 
@@ -121,8 +161,7 @@ impl Endpoint {
 
     #[must_use]
     pub const fn changes(mut self, idempotent: bool) -> Self {
-        self.changes = true;
-        self.idempotent = idempotent;
+        self.mutation = Mutation::Permissioned { idempotent };
         self
     }
 }
@@ -155,7 +194,9 @@ impl Api {
                 errors.push(format!("duplicate route: {route}"));
             }
 
-            if endpoint.changes && endpoint.permission.is_none() {
+            if matches!(endpoint.mutation, Mutation::Permissioned { .. })
+                && endpoint.permission.is_none()
+            {
                 errors.push(format!(
                     "mutation has no permission: {}",
                     endpoint.operation_id
@@ -188,6 +229,85 @@ impl Api {
 
     pub fn as_json(&self) -> Result<serde_json::Value, serde_json::Error> {
         serde_json::to_value(self)
+    }
+
+    pub fn openapi(
+        &self,
+        title: impl Into<String>,
+        version: impl Into<String>,
+    ) -> Result<serde_json::Value, Vec<String>> {
+        self.validate()?;
+
+        let mut paths = serde_json::Map::new();
+        for endpoint in &self.endpoints {
+            let path = paths
+                .entry(endpoint.path.clone())
+                .or_insert_with(|| serde_json::Value::Object(serde_json::Map::new()));
+            let Some(path_item) = path.as_object_mut() else {
+                return Err(vec![format!("invalid generated path: {}", endpoint.path)]);
+            };
+
+            let mut operation = serde_json::Map::new();
+            operation.insert(
+                "operationId".to_owned(),
+                serde_json::Value::String(endpoint.operation_id.clone()),
+            );
+            operation.insert(
+                "summary".to_owned(),
+                serde_json::Value::String(endpoint.summary.clone()),
+            );
+            operation.insert(
+                "responses".to_owned(),
+                serde_json::json!({
+                    endpoint.status.to_string(): {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {
+                                "schema": endpoint.response.as_ref().map_or_else(
+                                    || serde_json::json!({}),
+                                    |shape| serde_json::json!({"$ref": format!("#/components/schemas/{shape}")}),
+                                )
+                            }
+                        }
+                    }
+                }),
+            );
+            if let Some(shape) = &endpoint.request {
+                operation.insert(
+                    "requestBody".to_owned(),
+                    serde_json::json!({
+                        "required": true,
+                        "content": {"application/json": {"schema": {"$ref": format!("#/components/schemas/{shape}")}}}
+                    }),
+                );
+            }
+            if endpoint.authentication != Authentication::Public {
+                operation.insert(
+                    "security".to_owned(),
+                    serde_json::json!([{ "bearerAuth": [] }]),
+                );
+            }
+            operation.insert(
+                "x-mavi".to_owned(),
+                serde_json::json!({
+                    "scope": endpoint.scope,
+                    "mutation": endpoint.mutation,
+                    "permission": endpoint.permission,
+                    "errors": endpoint.errors,
+                }),
+            );
+            path_item.insert(
+                endpoint.method.as_str().to_owned(),
+                serde_json::Value::Object(operation),
+            );
+        }
+
+        Ok(serde_json::json!({
+            "openapi": "3.1.0",
+            "info": {"title": title.into(), "version": version.into()},
+            "paths": paths,
+            "components": {"securitySchemes": {"bearerAuth": {"type": "http", "scheme": "bearer"}}}
+        }))
     }
 }
 
@@ -246,5 +366,34 @@ mod tests {
         .control_plane()]);
 
         assert!(api.validate().is_err());
+    }
+
+    #[test]
+    fn public_mutations_are_explicit() {
+        let api = Api::new([Endpoint::new(
+            Method::Post,
+            "/api/v1/auth/sessions",
+            "auth.session.create",
+            "Create a session",
+        )
+        .public_mutation()]);
+
+        assert!(api.validate().is_ok());
+    }
+
+    #[test]
+    fn openapi_is_generated_from_the_same_endpoint_declaration() {
+        let api = Api::new([
+            Endpoint::new(Method::Get, "/api/v1/health", "health.read", "Health")
+                .public()
+                .returns(200, "Health"),
+        ]);
+        let document = api.openapi("Mavi", "0.1.0").expect("OpenAPI");
+
+        assert_eq!(document["openapi"], "3.1.0");
+        assert_eq!(
+            document["paths"]["/api/v1/health"]["get"]["operationId"],
+            "health.read"
+        );
     }
 }

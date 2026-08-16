@@ -28,10 +28,13 @@ The same Mavi application runs in both modes:
 | `mavi-storage` | PostgreSQL pool, migrations and scoped transactions |
 | `mavi-contract` | canonical endpoint declarations and contract validation |
 | `mavi-runtime` | self-host/cloud runtime composition and site resolution |
+| `mavi-identity` | setup, people, roles and password identity primitives |
+| `mavi-authz` | embedded Cedar policy evaluation with site-scope enforcement |
 | `mavi` | executable composition root |
 
 Domains are added only after the foundation is stable. Each domain owns its
-application service, repository, migration, API declarations and tests.
+application service, repository, migration, API declarations, Cedar action
+mapping and tests.
 
 ## Dependency policy
 

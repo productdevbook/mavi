@@ -1,0 +1,20 @@
+[package]
+name = "mavi-identity"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+description = "Site setup, people, roles and password identity primitives."
+
+[dependencies]
+argon2.workspace = true
+chrono.workspace = true
+mavi-contract = { path = "../mavi-contract" }
+mavi-core = { path = "../mavi-core" }
+mavi-storage = { path = "../mavi-storage" }
+serde.workspace = true
+sqlx.workspace = true
+uuid.workspace = true
+
+[lints]
+workspace = true

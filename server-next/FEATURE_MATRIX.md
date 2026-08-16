@@ -13,6 +13,8 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
 - [x] Grant/capability model, pagination, money and adapter ports.
 - [x] Site catalog, site-scoped transaction and first migration.
 - [x] Canonical endpoint declaration with auth, permission, scope and mutation validation.
+- [x] Embedded Cedar authorizer with principal/resource/site-scope tests.
+- [x] OpenAPI 3.1 document generation from canonical endpoint declarations.
 - [x] Fixed-site runtime composition for self-host.
 - [x] Request admission middleware creates and validates `SiteContext`.
 - [ ] Cloud shard runtime resolves a site without a per-site router/process.
@@ -22,9 +24,9 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
 
 ## Setup, identity and access
 
-- [ ] First-run setup and site bootstrap.
-- [ ] People, account sessions, password recovery and API keys.
-- [ ] Roles, grants, assistant delegation and revocation.
+- [-] First-run setup and site bootstrap.
+- [-] People, account sessions, password recovery and API keys.
+- [-] Roles, Cedar-backed grants, assistant delegation and revocation.
 - [ ] Student identity isolated from panel accounts.
 - [ ] Rate limits, request audit identity and security events.
 

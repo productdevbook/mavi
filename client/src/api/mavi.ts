@@ -2211,6 +2211,7 @@ export const operations = {
   "passwords.choose": { method: "post", path: "/api/passwords", takes: "ChosenPassword", answers: null, status: 204 },
   "people.invite": { method: "post", path: "/api/people", takes: "Invitation", answers: "Person", status: 201 },
   "people.list": { method: "get", path: "/api/people", takes: null, answers: "PersonPage", status: 200 },
+  "people.me": { method: "get", path: "/api/me", takes: null, answers: "Person", status: 200 },
   "people.move": { method: "patch", path: "/api/people/{id}", takes: "WhichRole", answers: "Person", status: 200 },
   "people.remove": { method: "delete", path: "/api/people/{id}", takes: null, answers: null, status: 204 },
   "portable.read-in": { method: "post", path: "/api/portable", takes: "Bundle", answers: "WhatWasRead", status: 200 },
@@ -2360,6 +2361,7 @@ export interface Calls {
   "passwords.choose": { takes: ChosenPassword; gives: void };
   "people.invite": { takes: Invitation; gives: Person };
   "people.list": { takes: never; gives: PersonPage };
+  "people.me": { takes: never; gives: Person };
   "people.move": { takes: WhichRole; gives: Person };
   "people.remove": { takes: never; gives: void };
   "portable.read-in": { takes: Bundle; gives: WhatWasRead };

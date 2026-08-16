@@ -10,7 +10,7 @@ use mavi_serve::{Asked, Handler, Site};
 use serde_json::Value;
 use uuid::Uuid;
 
-use super::helpers::{THAT_IS_NOT_AN_ID, a_uuid, handling, wrote_about};
+use super::helpers::{THAT_IS_NOT_AN_ID, a_uuid, handling, themselves, wrote_about};
 
 /// Setting up, signing in, and who has an account.
 #[must_use]
@@ -24,6 +24,9 @@ pub fn the_way_in(mut site: Site, db: &Db) -> Site {
             })),
             "sessions.begin" => Some(handling(db, |db, asked| {
                 Box::pin(async move { signed_in(&db, &asked).await })
+            })),
+            "people.me" => Some(handling(db, |db, asked| {
+                Box::pin(async move { me(&db, &asked).await })
             })),
             "people.list" => Some(handling(db, |db, asked| {
                 Box::pin(async move { people(&db, &asked).await })
@@ -73,21 +76,18 @@ pub fn the_way_in(mut site: Site, db: &Db) -> Site {
         if let Some(handler) = handler {
             // The two ways in ask for nothing held, because whoever is using
             // them is holding nothing yet. What they answer is what the guard
-            // has to work with afterwards.
-            // The ways in ask for nothing held, because whoever is using them
-            // is holding nothing yet. Everything else here is about accounts,
-            // which is what `people` is.
+            // puts in the session.
             let needs = match endpoint.named {
-                "people.list" | "roles.list" => Some(mavi_people::to_read()),
                 // What a role holds is what an account may do, so changing one
                 // is the same grant as changing who has an account. There is
                 // no lesser thing it could ask for: somebody who can edit a
                 // role can give themselves anything.
                 "people.invite" | "people.move" | "people.remove" | "roles.make"
                 | "roles.change" | "roles.remove" => Some(mavi_people::to_write()),
+                "people.list" | "roles.list" => Some(mavi_people::to_read()),
                 // Nothing, for two different reasons that happen to arrive at
                 // the same answer. The ways in are reached by somebody who is
-                // holding nothing yet. And a key is whoever is asking giving
+                // holding nothing yet. And a key / me is whoever is asking giving
                 // themselves another way in that is never more than they
                 // already have — a grant on that would be a grant somebody
                 // needs in order to use a script as themselves.
@@ -99,6 +99,16 @@ pub fn the_way_in(mut site: Site, db: &Db) -> Site {
     }
 
     site
+}
+
+async fn me(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
+    let id = themselves(asked)?;
+    let mut tx = db.begin().await?;
+    let person = mavi_people::store::one(&mut tx, id).await?;
+
+    Ok(Answered::Read(
+        serde_json::to_value(person).map_err(Error::internal)?,
+    ))
 }
 
 /// The site's own name, and what it writes in.
@@ -247,22 +257,6 @@ async fn invited(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
 /// and turned out to want removals nothing answered — a card could be taken
 /// off a board and the board could not be taken away. Written as one shape so
 /// the fifth is a line rather than a new idea.
-/// Taking one thing away, written down the same way every time.
-///
-/// Four of these arrived at once when the panel was measured against the API
-/// and turned out to want removals nothing answered — a card could be taken
-/// off a board and the board could not be taken away. Written as one shape so
-/// the fifth is a line rather than a new idea.
-/// Whoever is asking, as an id. Every key endpoint is about their own keys and
-/// nobody else's, which is what makes them need no grant.
-fn themselves(asked: &Asked) -> Result<Uuid> {
-    asked
-        .caller
-        .id()
-        .and_then(|id| Uuid::parse_str(id).ok())
-        .ok_or_else(|| Error::invalid(Say::of(THAT_IS_NOT_AN_ID)))
-}
-
 async fn the_keys(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
     let mut tx = db.begin().await?;
     let keys = mavi_people::store::keys(&mut tx, themselves(asked)?).await?;

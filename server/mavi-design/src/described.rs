@@ -49,8 +49,11 @@ pub fn shapes() -> Vec<Shape> {
             vec![Field::new("name", Of::One(Is::Text), "What to call it.").maybe()],
         ),
         Shape::new(
-            "File",
-            "One file in a site's own project.",
+            "ProjectFile",
+            "One file in a site's own project. Not a `File`, which is something \
+             somebody uploaded: one is what a site is built from and the other \
+             is what a page puts on the screen, and a client with one type for \
+             both has a type that is wrong for one of them.",
             vec![
                 Field::new(
                     "path",
@@ -68,8 +71,8 @@ pub fn shapes() -> Vec<Shape> {
             ],
         ),
         Shape::list_of(
-            "FileList",
-            "File",
+            "ProjectFileList",
+            "ProjectFile",
             "Every file in a project. The paths, without what is in them.",
         ),
         Shape::new(
@@ -139,7 +142,7 @@ mod tests {
 
         assert_eq!(
             keys(&serde_json::to_value(&file).expect("a file")),
-            fields_of("File")
+            fields_of("ProjectFile")
         );
     }
 }

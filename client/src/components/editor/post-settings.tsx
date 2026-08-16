@@ -12,7 +12,7 @@ import { api, every, Refused } from "@/lib/v1"
 import { said } from "@/lib/v1-said"
 import type { Term } from "@api"
 import { toCategoryTree } from "@/lib/category-tree"
-import type { ContentType } from "@api"
+import type { ContentType } from "@/lib/use-content-types"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useContentTypes } from "@/lib/use-content-types"
@@ -45,81 +45,28 @@ interface PostSettingsProps {
   plainText: string
 }
 
-/**
- * What a kind declares, in the shape the field editor draws.
- *
- * The API keeps a field as `{name, label, kind, choices}`; the editor was
- * written against a richer shape from the build before this one, and the
- * difference is a name and two spellings rather than anything real.
- */
 function declared(kind: ContentType): Field[] {
-  const fields =
-    (kind.fields as
-      | {
-          name: string
-          label?: string | null
-          kind: string
-          required?: boolean
-          choices?: string[]
-        }[]
-      | null) ?? []
+  const fields = kind.fields ?? []
 
   return fields.map((field) => ({
-    name: field.name,
-    label: field.label || field.name,
+    name: field.key,
+    label: field.label || field.key,
     type:
-      field.kind === "moment"
-        ? "date"
-        : field.kind === "choice"
-          ? "select"
-          : field.kind === "boolean"
-            ? "checkbox"
-            : field.kind,
+      field.kind === "choice"
+        ? "select"
+        : field.kind === "boolean"
+          ? "checkbox"
+          : field.kind,
     required: field.required ?? false,
-    options: field.choices ?? [],
+    options: field.options ?? [],
     fields: [],
     role: "",
   }))
 }
 
-/**
- * What is wrong with this one, as the machine already worked out.
- *
- * Looked at when a post is written rather than asked for now, so this is a
- * read of something already known rather than a check that runs while somebody
- * is typing.
- */
-function Issues({ postId }: { postId: string }) {
-  const { t } = useLingui()
-  const [issues, setIssues] = React.useState<
-    { kind: string; weight: string }[] | null
-  >(null)
-
-  React.useEffect(() => {
-    api("GET /api/posts/{id}/issues", { path: { id: postId } })
-      .then(setIssues)
-      .catch(() => setIssues([]))
-  }, [postId])
-
-  if (!issues || issues.length === 0) {
-    return null
-  }
-
-  return (
-    <div className="flex flex-col gap-1 rounded-xl border border-border px-4 py-3">
-      <p className="text-sm font-medium">{t`Worth looking at`}</p>
-      {issues.map((issue) => (
-        <p key={issue.kind} className="text-xs text-muted-foreground">
-          {issue.kind}
-        </p>
-      ))}
-    </div>
-  )
-}
-
 export function PostSettings({
   meta,
-  postId,
+  postId: _postId,
   onChange,
   locale,
   plainText,
@@ -139,12 +86,12 @@ export function PostSettings({
 
   React.useEffect(() => {
     if (!locale) return
-    every("GET /api/terms", { query: { kind: "category", language: locale } })
-      .then(setCategories)
+    every("GET /api/terms", { query: { sort: "category", language: locale } })
+      .then((terms) => setCategories(terms.filter((t) => t.sort === "category")))
       .catch(() => setCategories([]))
 
-    every("GET /api/terms", { query: { kind: "tag", language: locale } })
-      .then(setTags)
+    every("GET /api/terms", { query: { sort: "tag", language: locale } })
+      .then((terms) => setTags(terms.filter((t) => t.sort === "tag")))
       .catch(() => setTags([]))
   }, [locale])
 
@@ -153,7 +100,12 @@ export function PostSettings({
     if (!name) return
     try {
       const created = await api("POST /api/terms", {
-        body: { kind: "category", language: locale, name },
+        body: {
+          sort: "category",
+          language: locale,
+          slug: slugify(name),
+          name,
+        },
       })
 
       setCategories((held) =>
@@ -175,7 +127,12 @@ export function PostSettings({
     onChange({ tags: [...meta.tags, value] })
     try {
       const created = await api("POST /api/terms", {
-        body: { kind: "tag", language: locale, name: value },
+        body: {
+          sort: "tag",
+          language: locale,
+          slug: slugify(value),
+          name: value,
+        },
       })
 
       setTags((held) =>
@@ -209,7 +166,6 @@ export function PostSettings({
 
   return (
     <div className="flex flex-col gap-5">
-      {postId && <Issues postId={postId} />}
       {of_kind && declared(of_kind).length > 0 && (
         <div className="flex flex-col gap-5 rounded-xl border border-border px-4 py-4">
           <p className="text-sm font-medium">
@@ -434,7 +390,7 @@ export function PostSettings({
               event.target.value = ""
               if (!file) return
               const response = await fetch(
-                `/api/media?name=${encodeURIComponent(file.name)}`,
+                `/api/files?name=${encodeURIComponent(file.name)}`,
                 { method: "POST", body: file },
               )
 

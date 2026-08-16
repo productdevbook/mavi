@@ -1,14 +1,13 @@
 /* eslint-disable react-refresh/only-export-components -- file-based route convention */
 import * as React from "react"
-import { Link, createFileRoute } from "@tanstack/react-router"
+import { createFileRoute } from "@tanstack/react-router"
 import { useLingui } from "@lingui/react/macro"
-import { Loader2, Mails, Plus, Send, Users } from "lucide-react"
+import { Loader2, Plus, Send, Users } from "lucide-react"
 import { toast } from "sonner"
 
 import { api, every } from "@/lib/v1"
 import { said } from "@/lib/v1-said"
-import type { Campaign, MailList, Subscriber } from "@api"
-import { Badge } from "@/components/ui/badge"
+import type { List as MailList, Reader as Subscriber } from "@api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -28,25 +27,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export const Route = createFileRoute("/dashboard/mail")({
   component: MailRoute,
 })
 
-/**
- * Who a site writes to, and what it has written.
- *
- * Two things rather than one screen with a mode: a list is people, a campaign
- * is one letter to one list. What a site sends to one person — an invitation,
- * a receipt — is under Letters, because that is written once and sent by the
- * machine rather than by somebody pressing send.
- */
 function MailRoute() {
   const { t } = useLingui()
 
   const [lists, setLists] = React.useState<MailList[] | null>(null)
-  const [campaigns, setCampaigns] = React.useState<Campaign[] | null>(null)
   const [people, setPeople] = React.useState<Record<string, Subscriber[]>>({})
   const [openList, setOpenList] = React.useState<string | null>(null)
 
@@ -67,13 +56,6 @@ function MailRoute() {
         toast.error(said(why))
         setLists([])
       })
-
-    every("GET /api/mail/campaigns")
-      .then(setCampaigns)
-      .catch((why: unknown) => {
-        toast.error(said(why))
-        setCampaigns([])
-      })
   }, [])
 
   React.useEffect(load, [load])
@@ -84,7 +66,7 @@ function MailRoute() {
     if (people[id]) return
 
     try {
-      const found = await every("GET /api/mail/lists/{id}/subscribers", {
+      const found = await every("GET /api/mail/lists/{id}/readers", {
         path: { id },
       })
 
@@ -97,12 +79,12 @@ function MailRoute() {
   const [joining, setJoining] = React.useState<string | null>(null)
   const [joinEmail, setJoinEmail] = React.useState("")
 
-  const join = async (listId: string) => {
+  const join = async (targetListId: string) => {
     setBusy(true)
 
     try {
-      await api("POST /api/mail/lists/{id}/subscribers", {
-        path: { id: listId },
+      await api("POST /api/mail/lists/{id}/readers", {
+        path: { id: targetListId },
         body: { email: joinEmail.trim() },
       })
 
@@ -110,12 +92,10 @@ function MailRoute() {
       setJoining(null)
       setPeople((held) => {
         const rest = { ...held }
-
-        delete rest[listId]
-
+        delete rest[targetListId]
         return rest
       })
-      void look(listId)
+      void look(targetListId)
     } catch (why) {
       toast.error(said(why))
     } finally {
@@ -142,12 +122,14 @@ function MailRoute() {
     setBusy(true)
 
     try {
-      await api("POST /api/mail/campaigns", {
-        body: { list_id: listId, subject: subject.trim(), body },
+      await api("POST /api/mail/lists/{id}/sendings", {
+        path: { id: listId },
+        body: { subject: subject.trim(), body },
       })
       setWriting(false)
       setSubject("")
       setBody("")
+      toast.success(t`Sent to the list.`)
       load()
     } catch (why) {
       toast.error(said(why))
@@ -156,194 +138,112 @@ function MailRoute() {
     }
   }
 
-  const send = async (campaign: Campaign) => {
-    try {
-      await api("POST /api/mail/campaigns/{id}/send", {
-        path: { id: campaign.id },
-      })
-      toast.success(t`On its way. Sending happens in the background.`)
-      load()
-    } catch (why) {
-      toast.error(said(why))
-    }
-  }
-
-  const states: Record<string, string> = {
-    draft: t`Not sent`,
-    sending: t`Sending`,
-    sent: t`Sent`,
-  }
-
   return (
     <>
-      <div className="mb-6">
-        <h1 className="text-lg font-semibold">{t`Mail`}</h1>
-        <p className="text-sm text-muted-foreground">
-          {t`The lists this site writes to, and what it has written to them.`}
-        </p>
-      </div>
-
-      <Tabs defaultValue="campaigns">
-        <TabsList>
-          <TabsTrigger value="campaigns">{t`Campaigns`}</TabsTrigger>
-          <TabsTrigger value="lists">{t`Lists`}</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="campaigns" className="flex flex-col gap-4 pt-4">
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-lg font-semibold">{t`Mail`}</h1>
+          <p className="text-sm text-muted-foreground">
+            {t`The lists this site writes to, and messages sent to them.`}
+          </p>
+        </div>
+        <div className="flex gap-2">
           <Button
-            className="self-start"
+            variant="outline"
             disabled={(lists ?? []).length === 0}
             onClick={() => {
               setListId(lists?.[0]?.id ?? "")
               setWriting(true)
             }}
           >
-            <Plus /> {t`Write one`}
+            <Send /> {t`Send message`}
           </Button>
-
-          {campaigns === null ? (
-            <div className="flex justify-center py-16">
-              <Loader2 className="size-6 animate-spin text-muted-foreground" />
-            </div>
-          ) : campaigns.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-border py-16 text-center">
-              <Mails className="mx-auto mb-3 size-8 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">
-                {t`Nothing written yet.`}
-              </p>
-            </div>
-          ) : (
-            <div className="flex max-w-3xl flex-col divide-y divide-border rounded-xl border border-border">
-              {campaigns.map((campaign) => (
-                <div
-                  key={campaign.id}
-                  className="flex flex-wrap items-center gap-3 px-4 py-3"
-                >
-                  <Link
-                    to="/dashboard/mail/campaigns/$campaignId"
-                    params={{ campaignId: campaign.id }}
-                    className="min-w-0 flex-1"
-                  >
-                    <p className="truncate text-sm font-medium hover:underline">
-                      {campaign.subject}
-                    </p>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {new Date(campaign.created_at).toLocaleString()}
-                      {campaign.sent_count > 0
-                        ? ` · ${t`${campaign.sent_count} sent`}`
-                        : ""}
-                    </p>
-                  </Link>
-
-                  <Badge
-                    variant={campaign.state === "sent" ? "default" : "secondary"}
-                  >
-                    {states[campaign.state] ?? campaign.state}
-                  </Badge>
-
-                  {campaign.state === "draft" && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => void send(campaign)}
-                    >
-                      <Send /> {t`Send it`}
-                    </Button>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </TabsContent>
-
-        <TabsContent value="lists" className="flex flex-col gap-4 pt-4">
-          <Button className="self-start" onClick={() => setMakingList(true)}>
+          <Button onClick={() => setMakingList(true)}>
             <Plus /> {t`New list`}
           </Button>
+        </div>
+      </div>
 
-          {lists === null ? (
-            <div className="flex justify-center py-16">
-              <Loader2 className="size-6 animate-spin text-muted-foreground" />
-            </div>
-          ) : lists.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-border py-16 text-center">
-              <Users className="mx-auto mb-3 size-8 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">{t`No lists yet.`}</p>
-            </div>
-          ) : (
-            <div className="flex max-w-3xl flex-col divide-y divide-border rounded-xl border border-border">
-              {lists.map((list) => (
-                <div key={list.id} className="px-4 py-3">
-                  <button
-                    type="button"
-                    className="flex w-full items-center gap-3 text-left"
-                    onClick={() => void look(list.id)}
-                  >
-                    <Users className="size-4 shrink-0 text-muted-foreground" />
-                    <span className="min-w-0 flex-1 truncate text-sm font-medium">
-                      {list.name}
-                    </span>
-                    {people[list.id] && (
-                      <span className="text-xs text-muted-foreground">
-                        {t`${people[list.id].length} on it`}
-                      </span>
-                    )}
-                  </button>
+      {lists === null ? (
+        <div className="flex justify-center py-16">
+          <Loader2 className="size-6 animate-spin text-muted-foreground" />
+        </div>
+      ) : lists.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-border py-16 text-center">
+          <Users className="mx-auto mb-3 size-8 text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">{t`No lists yet.`}</p>
+        </div>
+      ) : (
+        <div className="flex max-w-3xl flex-col divide-y divide-border rounded-xl border border-border">
+          {lists.map((list) => (
+            <div key={list.id} className="px-4 py-3">
+              <button
+                type="button"
+                className="flex w-full items-center gap-3 text-left"
+                onClick={() => void look(list.id)}
+              >
+                <Users className="size-4 shrink-0 text-muted-foreground" />
+                <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                  {list.name}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {people[list.id]
+                    ? `${people[list.id].length} on it`
+                    : `${list.reading ?? 0} reading`}
+                </span>
+              </button>
 
-                  {openList === list.id && (
-                    <div className="mt-2 flex flex-col gap-1">
-                      {joining === list.id ? (
-                        <form
-                          className="flex gap-2"
-                          onSubmit={(event) => {
-                            event.preventDefault()
-                            void join(list.id)
-                          }}
-                        >
-                          <Input
-                            type="email"
-                            value={joinEmail}
-                            placeholder={t`somebody@example.test`}
-                            onChange={(event) => setJoinEmail(event.target.value)}
-                          />
-                          <Button type="submit" size="sm" disabled={busy}>
-                            {t`Add`}
-                          </Button>
-                        </form>
-                      ) : (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="self-start"
-                          onClick={() => setJoining(list.id)}
-                        >
-                          <Plus /> {t`Add somebody`}
-                        </Button>
-                      )}
+              {openList === list.id && (
+                <div className="mt-2 flex flex-col gap-1">
+                  {joining === list.id ? (
+                    <form
+                      className="flex gap-2"
+                      onSubmit={(event) => {
+                        event.preventDefault()
+                        void join(list.id)
+                      }}
+                    >
+                      <Input
+                        type="email"
+                        value={joinEmail}
+                        placeholder={t`somebody@example.test`}
+                        onChange={(event) => setJoinEmail(event.target.value)}
+                      />
+                      <Button type="submit" size="sm" disabled={busy}>
+                        {t`Add`}
+                      </Button>
+                    </form>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="self-start"
+                      onClick={() => setJoining(list.id)}
+                    >
+                      <Plus /> {t`Add somebody`}
+                    </Button>
+                  )}
 
-                      {(people[list.id] ?? []).length === 0 ? (
-                        <p className="text-xs text-muted-foreground">
-                          {t`Nobody on it yet.`}
-                        </p>
-                      ) : (
-                        (people[list.id] ?? []).map((one) => (
-                          <p
-                            key={one.id}
-                            className="truncate text-xs text-muted-foreground"
-                          >
-                            {one.email}
-                            {one.state !== "subscribed" ? ` · ${one.state}` : ""}
-                          </p>
-                        ))
-                      )}
-                    </div>
+                  {(people[list.id] ?? []).length === 0 ? (
+                    <p className="text-xs text-muted-foreground">
+                      {t`Nobody on it yet.`}
+                    </p>
+                  ) : (
+                    (people[list.id] ?? []).map((one) => (
+                      <p
+                        key={one.id}
+                        className="truncate text-xs text-muted-foreground"
+                      >
+                        {one.email}
+                      </p>
+                    ))
                   )}
                 </div>
-              ))}
+              )}
             </div>
-          )}
-        </TabsContent>
-      </Tabs>
+          ))}
+        </div>
+      )}
 
       <Dialog open={makingList} onOpenChange={setMakingList}>
         <DialogContent>
@@ -381,9 +281,9 @@ function MailRoute() {
       <Dialog open={writing} onOpenChange={setWriting}>
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>{t`A campaign`}</DialogTitle>
+            <DialogTitle>{t`Send message`}</DialogTitle>
             <DialogDescription>
-              {t`Written now, sent when you press send. Everybody on the list gets it once.`}
+              {t`Written now, sent to everyone on the list.`}
             </DialogDescription>
           </DialogHeader>
 
@@ -436,7 +336,7 @@ function MailRoute() {
               onClick={() => void write()}
             >
               {busy && <Loader2 className="animate-spin" />}
-              {t`Save it`}
+              {t`Send`}
             </Button>
           </DialogFooter>
         </DialogContent>

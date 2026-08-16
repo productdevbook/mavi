@@ -7,34 +7,23 @@ import { toast } from "sonner"
 
 import { api, every, Refused } from "@/lib/v1"
 import { said } from "@/lib/v1-said"
-import type { Video } from "@api"
-import { Badge } from "@/components/ui/badge"
+import type { File as VideoFile } from "@api"
 import { Button } from "@/components/ui/button"
 
 export const Route = createFileRoute("/dashboard/videos")({
   component: VideosRoute,
 })
 
-/** How often to look again while something is still being made ready. */
-const WATCH_INTERVAL = 5000
-
-/**
- * The videos a site teaches with.
- *
- * A video is uploaded like anything else and then handed to whatever turns it
- * into something a browser can play — which may be this machine doing nothing
- * at all, in which case what was uploaded is what is played.
- */
 function VideosRoute() {
   const { t } = useLingui()
 
-  const [videos, setVideos] = React.useState<Video[] | null>(null)
+  const [videos, setVideos] = React.useState<VideoFile[] | null>(null)
   const [uploading, setUploading] = React.useState(false)
   const chooser = React.useRef<HTMLInputElement>(null)
 
   const load = React.useCallback(() => {
-    every("GET /api/videos")
-      .then(setVideos)
+    every("GET /api/files")
+      .then((files) => setVideos(files.filter((f) => f.kind === "video" || f.mime.startsWith("video/"))))
       .catch((why: unknown) => {
         toast.error(said(why))
         setVideos((held) => held ?? [])
@@ -42,16 +31,6 @@ function VideosRoute() {
   }, [])
 
   React.useEffect(load, [load])
-
-  const working = (videos ?? []).some((one) => one.state === "working")
-
-  React.useEffect(() => {
-    if (!working) return
-
-    const timer = window.setInterval(load, WATCH_INTERVAL)
-
-    return () => window.clearInterval(timer)
-  }, [working, load])
 
   const upload = async (files: FileList | null) => {
     const file = files?.[0]
@@ -61,10 +40,8 @@ function VideosRoute() {
     setUploading(true)
 
     try {
-      // The bytes first, as any other upload, and then the video that points
-      // at them: what is being watched is a file this site holds.
       const response = await fetch(
-        `/api/media?name=${encodeURIComponent(file.name)}`,
+        `/api/files?name=${encodeURIComponent(file.name)}`,
         { method: "POST", body: file },
       )
 
@@ -80,12 +57,6 @@ function VideosRoute() {
         )
       }
 
-      const media = (await response.json()) as { id: string }
-
-      await api("POST /api/videos", {
-        body: { media_id: media.id, title: file.name },
-      })
-
       load()
     } catch (why) {
       toast.error(said(why))
@@ -98,20 +69,13 @@ function VideosRoute() {
     }
   }
 
-  const remove = async (video: Video) => {
+  const remove = async (video: VideoFile) => {
     try {
-      await api("DELETE /api/videos/{id}", { path: { id: video.id } })
+      await api("DELETE /api/files/{id}", { path: { id: video.id } })
       load()
     } catch (why) {
       toast.error(said(why))
     }
-  }
-
-  const states: Record<string, string> = {
-    waiting: t`Waiting`,
-    working: t`Being made ready`,
-    ready: t`Ready`,
-    failed: t`Did not work`,
   }
 
   return (
@@ -157,18 +121,11 @@ function VideosRoute() {
               <Film className="size-4 shrink-0 text-muted-foreground" />
 
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">{video.title}</p>
+                <p className="truncate text-sm font-medium">{video.name}</p>
                 <p className="truncate text-xs text-muted-foreground">
-                  {video.seconds
-                    ? t`${Math.round(video.seconds / 60)} minutes`
-                    : t`length not known yet`}
-                  {video.note ? ` · ${video.note}` : ""}
+                  {new Date(video.created_at).toLocaleString()}
                 </p>
               </div>
-
-              <Badge variant={video.state === "ready" ? "default" : "secondary"}>
-                {states[video.state] ?? video.state}
-              </Badge>
 
               <Button
                 variant="ghost"

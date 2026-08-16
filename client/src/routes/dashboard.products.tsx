@@ -8,7 +8,7 @@ import { toast } from "sonner"
 import { api, every } from "@/lib/v1"
 import { said } from "@/lib/v1-said"
 import { money } from "@/lib/money"
-import type { Currency, Product } from "@api"
+import type { Product, ProductChanges } from "@api"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -34,6 +34,7 @@ export const Route = createFileRoute("/dashboard/products")({
   component: ProductsRoute,
 })
 
+type Currency = "TRY" | "EUR" | "USD" | "GBP"
 const CURRENCIES: Currency[] = ["TRY", "EUR", "USD", "GBP"]
 
 /** An address out of a name: lower-case, dashes for gaps. */
@@ -90,7 +91,7 @@ function ProductsRoute() {
           name: name.trim(),
           price_minor: minor(price),
           currency,
-          stock: Number(stock) || 0,
+          on_the_shelf: Number(stock) || 0,
         },
       })
 
@@ -106,7 +107,7 @@ function ProductsRoute() {
     }
   }
 
-  const change = async (product: Product, changes: Record<string, unknown>) => {
+  const change = async (product: Product, changes: ProductChanges) => {
     try {
       await api("PATCH /api/products/{id}", {
         path: { id: product.id },
@@ -170,24 +171,24 @@ function ProductsRoute() {
                   id={`stock-${product.id}`}
                   inputMode="numeric"
                   className="h-8 w-20"
-                  defaultValue={String(product.stock)}
+                  defaultValue={String(product.on_the_shelf)}
                   onBlur={(event) => {
                     const wanted = Number(event.target.value)
 
-                    if (wanted !== product.stock) {
-                      void change(product, { stock: wanted })
+                    if (wanted !== product.on_the_shelf) {
+                      void change(product, { on_the_shelf: wanted })
                     }
                   }}
                 />
               </div>
 
-              <Badge variant={product.active ? "default" : "secondary"}>
-                {product.active ? t`For sale` : t`Not for sale`}
+              <Badge variant={product.for_sale ? "default" : "secondary"}>
+                {product.for_sale ? t`For sale` : t`Not for sale`}
               </Badge>
 
               <Switch
-                checked={product.active}
-                onCheckedChange={(value) => void change(product, { active: value })}
+                checked={product.for_sale}
+                onCheckedChange={(value) => void change(product, { for_sale: value })}
               />
             </div>
           ))}

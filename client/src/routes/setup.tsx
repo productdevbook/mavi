@@ -13,13 +13,13 @@ import { Label } from "@/components/ui/label"
 
 export const Route = createFileRoute("/setup")({
   loader: async () => {
-    const setup = await api("GET /api/setup").catch(() => ({ needed: true }))
+    const site = await api("GET /api/open/site").catch(() => null)
 
-    if (!setup.needed) {
+    if (site) {
       throw redirect({ to: "/dashboard" })
     }
 
-    return setup
+    return null
   },
   component: SetupRoute,
 })
@@ -37,6 +37,7 @@ function SetupRoute() {
   const { t } = useLingui()
   const navigate = useNavigate()
 
+  const [siteName, setSiteName] = React.useState("")
   const [name, setName] = React.useState("")
   const [email, setEmail] = React.useState("")
   const [password, setPassword] = React.useState("")
@@ -55,7 +56,12 @@ function SetupRoute() {
 
     try {
       await api("POST /api/setup", {
-        body: { email: email.trim(), name: name.trim(), password },
+        body: {
+          site: siteName.trim() || "Mavi CMS",
+          email: email.trim(),
+          name: name.trim(),
+          password,
+        },
       })
       await navigate({ to: "/login" })
     } catch (why) {
@@ -100,6 +106,18 @@ function SetupRoute() {
                   {refused}
                 </p>
               )}
+
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="setup-site">
+                  <Trans>Site name</Trans>
+                </Label>
+                <Input
+                  id="setup-site"
+                  placeholder="My Site"
+                  value={siteName}
+                  onChange={(event) => setSiteName(event.target.value)}
+                />
+              </div>
 
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="setup-name">

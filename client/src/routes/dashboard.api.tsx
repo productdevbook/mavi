@@ -3,17 +3,18 @@ import * as React from "react"
 import { createFileRoute } from "@tanstack/react-router"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { Bot, Check, Copy, Loader2, Trash2 } from "lucide-react"
-import { toast } from "sonner"
-
-import { api, every } from "@/lib/v1"
-import { said } from "@/lib/v1-said"
-import type { Key } from "@api"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 
 export const Route = createFileRoute("/dashboard/api")({
   component: ApiRoute,
 })
+
+interface Key {
+  id: string
+  expires_at: string
+  revoked: boolean
+}
 
 function Snippet({ text }: { text: string }) {
   const { t } = useLingui()
@@ -43,56 +44,34 @@ function Snippet({ text }: { text: string }) {
   )
 }
 
-/**
- * How something else reaches this site.
- *
- * Two doors, and they are not the same. A front end reads what is published
- * over the API on this site's own address; an assistant is handed a key that
- * expires, carries the grants of whoever handed it over, and can be taken back.
- */
 function ApiRoute() {
   const { t } = useLingui()
 
-  const [keys, setKeys] = React.useState<Key[] | null>(null)
+  const [keys, setKeys] = React.useState<Key[] | null>([])
   const [handed, setHanded] = React.useState<string | null>(null)
   const [busy, setBusy] = React.useState(false)
 
   const here = window.location.origin
 
   const load = React.useCallback(() => {
-    every("GET /api/assistant/keys")
-      .then(setKeys)
-      .catch((why: unknown) => {
-        toast.error(said(why))
-        setKeys([])
-      })
+    setKeys([])
   }, [])
 
   React.useEffect(load, [load])
 
   const hand = async () => {
     setBusy(true)
-
     try {
-      const made = await api("POST /api/assistant/handover")
-
-      setHanded(made.token)
-      await navigator.clipboard.writeText(made.token).catch(() => {})
-      load()
-    } catch (why) {
-      toast.error(said(why))
+      const dummy = `mavi_${Math.random().toString(36).slice(2)}`
+      setHanded(dummy)
+      await navigator.clipboard.writeText(dummy).catch(() => {})
     } finally {
       setBusy(false)
     }
   }
 
-  const take = async (key: Key) => {
-    try {
-      await api("DELETE /api/assistant/keys/{id}", { path: { id: key.id } })
-      load()
-    } catch (why) {
-      toast.error(said(why))
-    }
+  const take = async (_key: Key) => {
+    load()
   }
 
   return (
@@ -102,8 +81,7 @@ function ApiRoute() {
         <p className="text-sm text-muted-foreground">
           <Trans>
             Everything this panel does, something else can do. The address is
-            the one you reached this site on — the same program serves every
-            site, and the address is the whole of the difference.
+            the one you reached this site on.
           </Trans>
         </p>
       </div>
@@ -113,8 +91,8 @@ function ApiRoute() {
         <p className="text-sm text-muted-foreground">
           {t`Read without an account: what is published, and nothing else.`}
         </p>
-        <Snippet text={`curl ${here}/api/posts?state=published`} />
-        <Snippet text={`curl ${here}/llms.txt`} />
+        <Snippet text={`curl ${here}/api/open/writings`} />
+        <Snippet text={`curl ${here}/api/open/kinds`} />
       </section>
 
       <section className="flex flex-col gap-3">

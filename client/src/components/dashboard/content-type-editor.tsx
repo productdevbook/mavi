@@ -5,8 +5,7 @@ import { toast } from "sonner"
 
 import { api } from "@/lib/v1"
 import { said } from "@/lib/v1-said"
-import { useLanguages } from "@/lib/use-languages"
-import type { ContentType, FieldKind } from "@api"
+import type { AKind as ContentType, FormField } from "@api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -19,20 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-/** One field a kind declares, as the API keeps it. */
-interface Declared {
-  name: string
-  label?: string | null
-  kind: FieldKind
-  required: boolean
-  choices: string[]
-}
-
-/** What a kind is called in one language. */
-interface Called {
-  name?: string
-  plural?: string
-}
+type FieldKind = FormField["kind"]
 
 /** A key out of a name: lower-case, underscores for gaps. */
 function keyed(name: string): string {
@@ -57,23 +43,19 @@ export function ContentTypeEditor({
   onDone: (saved?: ContentType) => void
 }) {
   const { t } = useLingui()
-  const { languages } = useLanguages()
 
   const [name, setName] = React.useState(kind?.name ?? "")
-  const [plural, setPlural] = React.useState(kind?.plural ?? "")
-  const [names, setNames] = React.useState<Record<string, Called>>(
-    (kind?.names as Record<string, Called> | null) ?? {},
-  )
-  const [fields, setFields] = React.useState<Declared[]>(
-    (kind?.fields as Declared[] | null) ?? [],
+  const [fields, setFields] = React.useState<FormField[]>(
+    kind?.fields ?? [],
   )
   const [saving, setSaving] = React.useState(false)
 
   const kinds: { value: FieldKind; label: string }[] = [
     { value: "text", label: t`Text` },
+    { value: "long", label: t`Long text` },
     { value: "number", label: t`A number` },
     { value: "boolean", label: t`Yes or no` },
-    { value: "moment", label: t`A date` },
+    { value: "email", label: t`Email` },
     { value: "choice", label: t`One of a few` },
   ]
 
@@ -81,30 +63,20 @@ export function ContentTypeEditor({
     setSaving(true)
 
     try {
-      const body = {
-        name,
-        plural: plural || null,
-        names,
-        fields,
-      }
+      const kindName = kind ? kind.kind : keyed(name)
+      const saved = await api("PUT /api/kinds/{kind}", {
+        path: { kind: kindName },
+        body: { name, fields },
+      })
 
-      const saved = kind
-        ? await api("PUT /api/content-types/{key}", {
-            path: { key: kind.key },
-            body,
-          })
-        : await api("POST /api/content-types", {
-            body: { ...body, key: keyed(name) },
-          })
-
-      onDone(saved as ContentType)
+      onDone(saved)
     } catch (why) {
       toast.error(said(why))
       setSaving(false)
     }
   }
 
-  const change = (at: number, field: Partial<Declared>) =>
+  const change = (at: number, field: Partial<FormField>) =>
     setFields(
       fields.map((one, index) => (index === at ? { ...one, ...field } : one)),
     )
@@ -113,7 +85,7 @@ export function ContentTypeEditor({
     <div className="flex max-w-3xl flex-col gap-6">
       <div>
         <h1 className="text-lg font-semibold">
-          {kind ? (kind.plural ?? kind.name) : t`A new kind`}
+          {kind ? kind.name : t`A new kind`}
         </h1>
         <p className="text-sm text-muted-foreground">
           {kind
@@ -124,7 +96,7 @@ export function ContentTypeEditor({
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="kind-name">{t`One of them is called`}</Label>
+          <Label htmlFor="kind-name">{t`What it is called`}</Label>
           <Input
             id="kind-name"
             value={name}
@@ -132,72 +104,11 @@ export function ContentTypeEditor({
             placeholder={t`Course`}
           />
         </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="kind-plural">{t`Several are called`}</Label>
-          <Input
-            id="kind-plural"
-            value={plural}
-            onChange={(event) => setPlural(event.target.value)}
-            placeholder={t`Courses`}
-          />
-        </div>
       </div>
-
-      {/* Only worth asking about on a site that writes in more than one: with
-          one language the two boxes above are the whole answer. */}
-      {languages.length > 1 && (
-        <div className="flex flex-col gap-3 rounded-xl border border-border p-3">
-          <div>
-            <p className="text-sm font-medium">{t`In each language`}</p>
-            <p className="text-xs text-muted-foreground">
-              {t`What the panel calls this for somebody reading it in that language. Left empty, it is called what it is called above.`}
-            </p>
-          </div>
-
-          {languages.map((language) => (
-            <div
-              key={language.code}
-              className="grid gap-2 sm:grid-cols-[4rem_1fr_1fr]"
-            >
-              <span className="self-center text-xs text-muted-foreground">
-                {language.name}
-              </span>
-              <Input
-                aria-label={t`One of them, in ${language.code}`}
-                value={names[language.code]?.name ?? ""}
-                placeholder={name}
-                onChange={(event) =>
-                  setNames({
-                    ...names,
-                    [language.code]: {
-                      ...names[language.code],
-                      name: event.target.value,
-                    },
-                  })
-                }
-              />
-              <Input
-                aria-label={t`Several, in ${language.code}`}
-                value={names[language.code]?.plural ?? ""}
-                placeholder={plural || name}
-                onChange={(event) =>
-                  setNames({
-                    ...names,
-                    [language.code]: {
-                      ...names[language.code],
-                      plural: event.target.value,
-                    },
-                  })
-                }
-              />
-            </div>
-          ))}
-        </div>
-      )}
 
       {kind && (
         <p className="text-sm text-muted-foreground">
-          {t`A front end asks for these with ?type=${kind.key}`}
+          {t`A front end asks for these with ?kind=${kind.kind}`}
         </p>
       )}
 
@@ -211,11 +122,11 @@ export function ContentTypeEditor({
               setFields([
                 ...fields,
                 {
-                  name: "",
+                  key: "",
                   label: "",
                   kind: "text",
                   required: false,
-                  choices: [],
+                  options: [],
                 },
               ])
             }
@@ -239,15 +150,15 @@ export function ContentTypeEditor({
 
                   change(index, {
                     label,
-                    name: field.name || keyed(label),
+                    key: field.key || keyed(label),
                   })
                 }}
               />
               <Input
-                value={field.name}
+                value={field.key}
                 placeholder={t`Its key`}
                 className="w-40 font-mono"
-                onChange={(event) => change(index, { name: event.target.value })}
+                onChange={(event) => change(index, { key: event.target.value })}
               />
               <Select
                 value={field.kind}
@@ -270,11 +181,11 @@ export function ContentTypeEditor({
 
             {field.kind === "choice" && (
               <Input
-                value={field.choices.join(", ")}
+                value={field.options.join(", ")}
                 placeholder={t`The choices, separated by commas`}
                 onChange={(event) =>
                   change(index, {
-                    choices: event.target.value
+                    options: event.target.value
                       .split(",")
                       .map((one) => one.trim())
                       .filter(Boolean),

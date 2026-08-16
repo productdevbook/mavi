@@ -38,8 +38,8 @@ function AuditRoute() {
   const load = React.useCallback(
     (after?: string) => {
       record({
-        action: action || undefined,
-        subject: subject || undefined,
+        did: action || undefined,
+        about: subject || undefined,
         after,
         limit: PAGE,
       })

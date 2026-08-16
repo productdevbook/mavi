@@ -43,11 +43,11 @@ function OrdersRoute() {
   React.useEffect(load, [load])
 
   const states: Record<string, string> = {
-    pending: t`Waiting for payment`,
+    waiting: t`Waiting for payment`,
     paid: t`Paid`,
-    fulfilled: t`Sent`,
-    cancelled: t`Cancelled`,
-    refunded: t`Refunded`,
+    sent: t`Sent`,
+    called_off: t`Cancelled`,
+    given_back: t`Refunded`,
   }
 
   const paid = async (id: string) => {
@@ -62,7 +62,10 @@ function OrdersRoute() {
     setBusy(id)
 
     try {
-      await api("POST /api/orders/{id}/paid", { path: { id } })
+      await api("POST /api/orders/{id}/moves", {
+        path: { id },
+        body: { to: "paid" },
+      })
       load()
     } catch (why) {
       toast.error(said(why))
@@ -75,7 +78,10 @@ function OrdersRoute() {
     setBusy(id)
 
     try {
-      await api("POST /api/orders/{id}/refund", { path: { id } })
+      await api("POST /api/orders/{id}/moves", {
+        path: { id },
+        body: { to: "given_back" },
+      })
       load()
       toast.success(t`Refunded. What the provider does with it is theirs.`)
     } catch (why) {
@@ -89,7 +95,10 @@ function OrdersRoute() {
     setBusy(id)
 
     try {
-      await api("POST /api/orders/{id}/fulfilled", { path: { id } })
+      await api("POST /api/orders/{id}/moves", {
+        path: { id },
+        body: { to: "sent" },
+      })
       load()
       toast.success(t`Marked as sent`)
     } catch (why) {
@@ -114,7 +123,7 @@ function OrdersRoute() {
       setItems((held) => ({
         ...held,
         [id]: whole.lines
-          .map((line) => `${line.quantity}× ${line.name}`)
+          .map((line) => `${line.how_many}× ${line.name}`)
           .join(", "),
       }))
     } catch (why) {
@@ -170,7 +179,7 @@ function OrdersRoute() {
                   {money(row.total.minor, row.total.currency)}
                 </span>
 
-                {row.state === "pending" && (
+                {row.state === "waiting" && (
                   <Button
                     variant="ghost"
                     size="sm"
@@ -181,7 +190,7 @@ function OrdersRoute() {
                   </Button>
                 )}
 
-                {(row.state === "paid" || row.state === "fulfilled") && (
+                {(row.state === "paid" || row.state === "sent") && (
                   <Button
                     variant="ghost"
                     size="sm"

@@ -9,9 +9,9 @@ import { Refused } from "@/lib/v1"
  */
 export async function upload(
   file: File,
-): Promise<{ id: string; url: string; original_name: string }> {
+): Promise<{ id: string; url: string; name: string }> {
   const response = await fetch(
-    `/api/media?name=${encodeURIComponent(file.name)}`,
+    `/api/files?name=${encodeURIComponent(file.name)}`,
     { method: "POST", body: file },
   )
 
@@ -27,7 +27,7 @@ export async function upload(
     )
   }
 
-  const media = (await response.json()) as { id: string; original_name: string }
+  const media = (await response.json()) as { id: string; name?: string; original_name?: string }
 
-  return { ...media, url: `/uploads/${media.id}` }
+  return { id: media.id, name: media.name ?? media.original_name ?? file.name, url: `/uploads/${media.id}` }
 }

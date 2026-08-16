@@ -10,7 +10,7 @@ import { said } from "@/lib/v1-said"
 import type {
   Form,
   FormField,
-  Submission,
+  Sent as Submission,
 } from "@api"
 import { Button } from "@/components/ui/button"
 
@@ -65,12 +65,11 @@ function FormSubmissionsRoute() {
 
   const [form, setForm] = React.useState<Form | null>(null)
   const [rows, setRows] = React.useState<Submission[] | null>(null)
-  const [busy, setBusy] = React.useState(false)
 
   const load = React.useCallback(() => {
     Promise.all([
       api("GET /api/forms/{id}", { path: { id: formId } }),
-      every("GET /api/forms/{id}/submissions", { path: { id: formId } }),
+      every("GET /api/forms/{id}/filled", { path: { id: formId } }),
     ])
       .then(([one, submissions]) => {
         setForm(one as Form)
@@ -81,22 +80,10 @@ function FormSubmissionsRoute() {
 
   React.useEffect(load, [load])
 
-  const markRead = async () => {
-    setBusy(true)
-    try {
-      await api("POST /api/forms/{id}/seen", { path: { id: formId } })
-      load()
-    } catch (why) {
-      toast.error(said(why))
-    } finally {
-      setBusy(false)
-    }
-  }
-
   const remove = async (submission: Submission) => {
     try {
-      await api("DELETE /api/forms/{id}/submissions/{submission_id}", {
-        path: { id: formId, submission_id: submission.id },
+      await api("DELETE /api/filled/{id}", {
+        path: { id: submission.id },
       })
       setRows((held) => (held ?? []).filter((row) => row.id !== submission.id))
     } catch (why) {
@@ -114,7 +101,7 @@ function FormSubmissionsRoute() {
 
   const fields = (form.fields as FormField[] | null) ?? []
 
-  const endpoint = `${window.location.origin}/api/sites/forms/${form.slug}/submissions`
+  const endpoint = `${window.location.origin}/api/open/forms/${form.slug}`
 
   const example = JSON.stringify(
     {
@@ -152,19 +139,12 @@ function FormSubmissionsRoute() {
         <div>
           <h1 className="text-lg font-semibold">{form.name}</h1>
           <p className="text-sm text-muted-foreground">
-            {t`${form.submissions} received, ${form.unseen} not yet opened.`}
+            {t`${rows.length} received.`}
           </p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={load}>
             <RefreshCw /> {t`Refresh`}
-          </Button>
-          <Button
-            size="sm"
-            disabled={busy || form.unseen === 0}
-            onClick={() => void markRead()}
-          >
-            <Check /> {t`Mark all read`}
           </Button>
         </div>
       </div>

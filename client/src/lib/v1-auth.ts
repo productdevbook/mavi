@@ -5,11 +5,19 @@
  * ask for them and none of them should know what a session cookie is called.
  */
 
-import { api, Refused } from "./v1"
-import type { Gives } from "./v1"
+import { api } from "./v1"
+import type { Person, Session, WayIn } from "@api"
 
-export type Me = Gives<"GET /api/auth/me">
-export type Session = Gives<"POST /api/auth/session">
+export type { Person, Session }
+
+export interface Me {
+  id?: string
+  email?: string
+  name?: string
+  role?: string
+  grants: string[]
+  site: string | null
+}
 
 /**
  * What a sign-in can want next.
@@ -20,38 +28,63 @@ export type Session = Gives<"POST /api/auth/session">
  */
 export type SigningIn =
   | { done: true; session: Session }
-  | { done: false; wants: "second-factor" }
+  | { done: false; wants: "second-factor"; moment: string }
 
 export async function signIn(
   email: string,
   password: string,
   secondFactor?: string,
+  moment?: string,
 ): Promise<SigningIn> {
-  try {
-    const session = await api("POST /api/auth/session", {
+  if (moment && secondFactor) {
+    const session = await api("POST /api/sessions/finish", {
       body: {
-        email,
-        password,
-        code: secondFactor?.trim() || undefined,
+        moment,
+        code: secondFactor.trim(),
       },
     })
 
     return { done: true, session }
-  } catch (why) {
-    if (why instanceof Refused && why.code === "second_factor_required") {
-      return { done: false, wants: "second-factor" }
-    }
+  }
 
-    throw why
+  const wayIn: WayIn = await api("POST /api/sessions", {
+    body: {
+      email,
+      password,
+    },
+  })
+
+  if (wayIn.finished && wayIn.token && wayIn.person) {
+    return {
+      done: true,
+      session: {
+        token: wayIn.token,
+        person: wayIn.person,
+      },
+    }
+  }
+
+  if (wayIn.moment) {
+    return {
+      done: false,
+      wants: "second-factor",
+      moment: wayIn.moment,
+    }
+  }
+
+  throw new Error("Invalid sign-in response")
+}
+
+export async function whoAmI(): Promise<Me> {
+  const settings = await api("GET /api/settings")
+  return {
+    grants: [],
+    site: settings.name,
   }
 }
 
-export function whoAmI(): Promise<Me> {
-  return api("GET /api/auth/me")
-}
-
-export function signOut(): Promise<void> {
-  return api("DELETE /api/auth/session")
+export async function signOut(): Promise<void> {
+  await api("DELETE /api/sessions")
 }
 
 /** Whether somebody holds a grant, for a screen deciding what to show. */

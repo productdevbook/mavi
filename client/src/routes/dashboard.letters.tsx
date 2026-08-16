@@ -122,7 +122,7 @@ function LettersRoute() {
             </SelectTrigger>
             <SelectContent>
               {languages.map((one) => (
-                <SelectItem key={one.code} value={one.code}>
+                <SelectItem key={one.tag} value={one.tag}>
                   {one.name}
                 </SelectItem>
               ))}

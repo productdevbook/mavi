@@ -59,7 +59,8 @@ import {
 } from "@/components/ui/sheet"
 import { api } from "@/lib/v1"
 import { said } from "@/lib/v1-said"
-import type { Kind, Post, State, Translation } from "@api"
+import { signOut as authSignOut } from "@/lib/v1-auth"
+import type { Writing as Post } from "@api"
 import { slugify } from "@/lib/editor-utils"
 import { useLanguages } from "@/lib/use-languages"
 import { useNarrowerThan } from "@/hooks/use-mobile"
@@ -88,10 +89,6 @@ import { Toolbar } from "@/components/editor/toolbar"
 import { useStatusLabels, type PostMeta } from "@/components/editor/types"
 
 const SCROLL_CONTAINER_ID = "mavi-editor-scroll"
-// No cap. Posts are as long as they are, and a limit here does not merely
-// refuse new typing: Tiptap rejects the whole transaction, so a post over the
-// limit opens empty — and the next keystroke would autosave that emptiness
-// over the real thing.
 const CHARACTER_LIMIT = null
 const BLANK_CONTENT = "<p></p>"
 
@@ -119,12 +116,6 @@ function toLocalDateTimeInput(iso: string): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
 
-/**
- * A post as the API keeps it, in the shape this screen edits.
- *
- * `publish_at` is not on a post that came back — a scheduled one carries it,
- * and what a screen shows for the rest is the moment it went out.
- */
 function postToMeta(post: Post, termIds: string[]): PostMeta {
   return {
     title: post.title,
@@ -135,46 +126,36 @@ function postToMeta(post: Post, termIds: string[]): PostMeta {
     language: post.language,
     categoryIds: termIds,
     tags: [],
-    coverId: post.cover_media_id ?? null,
-    coverUrl: post.cover_media_id ? `/uploads/${post.cover_media_id}` : "",
-    seoTitle: post.seo_title ?? "",
-    seoDescription: post.seo_description ?? "",
-    canonical: post.canonical ?? "",
-    kind: post.type ?? post.kind,
+    coverId: null,
+    coverUrl: "",
+    seoTitle: "",
+    seoDescription: "",
+    canonical: "",
+    kind: post.kind,
     fields: (post.fields as Record<string, unknown> | null) ?? {},
   }
 }
 
-/**
- * What is sent when a post changes.
- *
- * The address is left out until somebody types one: the API makes it from the
- * title, and a guess from here would be a second opinion about what an address
- * looks like — which is how "Başlık" became "ba_l_k".
- */
 function changes(meta: PostMeta, body: string) {
   return {
     title: meta.title,
-    slug: meta.slug.trim() || null,
-    excerpt: meta.excerpt,
+    slug: meta.slug.trim() || undefined,
+    excerpt: meta.excerpt || undefined,
     body,
-    state: meta.status as State,
-    publish_at:
-      meta.status === "scheduled" && meta.publishAt
-        ? new Date(meta.publishAt).toISOString()
-        : null,
-    cover_media_id: meta.coverId,
-    seo_title: meta.seoTitle || null,
-    seo_description: meta.seoDescription || null,
-    canonical: meta.canonical || null,
     fields: meta.fields,
+    publish_at:
+      meta.status === "published"
+        ? new Date().toISOString()
+        : meta.status === "scheduled" && meta.publishAt
+          ? new Date(meta.publishAt).toISOString()
+          : null,
   }
 }
 
 export function MaviEditor({
   postId,
   locale: initialLocale,
-  translationOf,
+  translationOf: _translationOf,
   kind,
 }: {
   postId: string | null
@@ -193,20 +174,13 @@ export function MaviEditor({
     postId
   )
   const { languages, defaultCode, label: languageLabel } = useLanguages()
-  // Fixed for the lifetime of the post: a saved post's language never changes,
-  // and a new one takes it from the URL so autosave can't guess wrong. Derived
-  // so the default arriving from the API doesn't trigger a cascading render.
   const [loadedLocale, setLoadedLocale] = React.useState<string | null>(null)
   const locale = loadedLocale ?? initialLocale ?? defaultCode
-  const [translations, setTranslations] = React.useState<Translation[]>([])
+  const [translations] = React.useState<Post[]>([])
   const [loading, setLoading] = React.useState(postId !== null)
   const [toc, setToc] = React.useState<TableOfContentData>([])
   const [saveState, setSaveState] = React.useState<SaveState>("idle")
   const [savedAt, setSavedAt] = React.useState<Date | null>(null)
-  // Both panels are an aside where there is room beside the writing and a
-  // drawer over it where there is not, and the two are asked for separately:
-  // an aside sitting there quietly is not a request for a drawer, so dragging
-  // the window narrow does not open one.
   const tocFits = !useNarrowerThan(1024)
   const settingsFit = !useNarrowerThan(1280)
   const [tocAside, setTocAside] = React.useState(true)
@@ -250,24 +224,18 @@ export function MaviEditor({
   React.useEffect(() => {
     if (!postId || !editor) return
     let cancelled = false
-    api("GET /api/posts/{id}", { path: { id: postId } })
-      .then((whole) => {
+    api("GET /api/writings/{id}", { path: { id: postId } })
+      .then((post) => {
         if (cancelled) return
 
-        setMeta(postToMeta(whole.post, whole.term_ids))
+        setMeta(postToMeta(post, []))
 
-        // Loading is not an edit: an update event here would schedule an
-        // autosave against the still-empty initial meta and write a blank
-        // title over the real one.
-        editor.commands.setContent(whole.post.body, {
+        editor.commands.setContent(post.body, {
           emitUpdate: false,
           contentType: "markdown",
         })
 
-        // If the post had something in it and the editor ended up empty,
-        // something refused it. Autosaving from here would write that
-        // emptiness over the real thing, so the editor stays shut instead.
-        if (whole.post.body.trim() !== "" && editor.isEmpty) {
+        if (post.body.trim() !== "" && editor.isEmpty) {
           toast.error(
             t`This post could not be opened, so it has been left untouched.`,
           )
@@ -275,9 +243,8 @@ export function MaviEditor({
           return
         }
 
-        setSavedAt(new Date(whole.post.created_at))
-        setLoadedLocale(whole.post.language)
-        setTranslations(whole.translations)
+        setSavedAt(new Date(post.created_at))
+        setLoadedLocale(post.language)
         setLoading(false)
       })
       .catch((why: unknown) => {
@@ -288,23 +255,15 @@ export function MaviEditor({
     return () => {
       cancelled = true
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once per postId once the editor instance is ready
-  }, [postId, editor])
+  }, [postId, editor, t, navigate])
 
   const persist = React.useCallback(
     async (nextMeta: PostMeta, options?: { notify?: boolean }) => {
       if (!editor) return false
-      // A brand-new, untitled post has nothing worth saving yet (and the
-      // backend rejects an empty title) — wait for the user to type one
-      // instead of surfacing a validation error on every keystroke-free tick.
       if (!currentPostId && !nextMeta.title.trim()) {
         if (options?.notify) toast.error(t`Give your post a title first`)
         return false
       }
-      // The status is chosen above the date it needs, so an autosave in
-      // between would refuse the post for a gap the writer is two seconds from
-      // filling. The server refuses it either way: a post scheduled for no
-      // time never goes out.
       if (nextMeta.status === "scheduled" && !nextMeta.publishAt) {
         if (options?.notify) {
           toast.error(t`A scheduled post needs a publish date`)
@@ -312,42 +271,31 @@ export function MaviEditor({
         return false
       }
       setSaveState("saving")
-      // Both forms, from the one place that can produce either: Markdown is
-      // canonical, and the HTML is what consumers that want HTML are given
-      // without anyone having to render directives on the server.
       const written = changes(nextMeta, editor.getMarkdown())
 
       try {
         const id = currentPostId
-          ? (await api("PATCH /api/posts/{id}", {
+          ? (await api("PATCH /api/writings/{id}", {
               path: { id: currentPostId },
               body: written,
             })).id
           : (
-              await api("POST /api/posts", {
+              await api("POST /api/writings", {
                 body: {
                   ...written,
+                  slug: written.slug || slugify(nextMeta.title),
                   language: locale,
-                  // A post and a page are what a post is; anything else is a
-                  // kind the site added, which is a type on one of those.
-                  kind:
-                    nextMeta.kind === "page" ? ("page" as Kind) : ("post" as Kind),
-                  type:
-                    nextMeta.kind === "post" || nextMeta.kind === "page"
-                      ? null
-                      : nextMeta.kind,
-                  translation_of: translationOf ?? null,
+                  kind: nextMeta.kind || "post",
                 },
               })
             ).id
 
-        // What it is filed under is its own call: the joining table is written
-        // whole, so sending it with the post would mean sending it on every
-        // keystroke's autosave.
-        await api("PUT /api/posts/{id}/terms", {
-          path: { id },
-          body: { term_ids: nextMeta.categoryIds },
-        })
+        if (nextMeta.categoryIds.length > 0) {
+          await api("PUT /api/writings/{id}/terms", {
+            path: { id },
+            body: { terms: nextMeta.categoryIds },
+          })
+        }
 
         setSavedAt(new Date())
 
@@ -369,7 +317,7 @@ export function MaviEditor({
         return false
       }
     },
-    [editor, currentPostId, navigate, t, locale, translationOf]
+    [editor, currentPostId, navigate, t, locale]
   )
 
   const scheduleSave = React.useCallback(
@@ -564,7 +512,7 @@ export function MaviEditor({
 
   const otherLanguages =
     locale && languages.length > 1
-      ? languages.filter((language) => language.code !== locale)
+      ? languages.filter((language) => language.tag !== locale)
       : []
 
   const goToTranslation = (code: string) => {
@@ -578,7 +526,7 @@ export function MaviEditor({
   }
 
   const signOut = () => {
-    void api("DELETE /api/auth/session").finally(() =>
+    void authSignOut().finally(() =>
       navigate({ to: "/login" }),
     )
   }
@@ -654,20 +602,20 @@ export function MaviEditor({
                 <DropdownMenuLabel>{t`Translations`}</DropdownMenuLabel>
                 {otherLanguages.map((language) => (
                   <DropdownMenuItem
-                    key={language.code}
+                    key={language.tag}
                     // A translation can only be started once the post itself
                     // exists — otherwise there is nothing to link it to.
                     disabled={
                       !translations.some(
-                        (item) => item.language === language.code
+                        (item) => item.language === language.tag
                       ) && !currentPostId
                     }
-                    onClick={() => void goToTranslation(language.code)}
+                    onClick={() => void goToTranslation(language.tag)}
                   >
                     <span className="flex-1">{language.name}</span>
                     <span className="text-xs text-muted-foreground">
                       {translations.some(
-                        (item) => item.language === language.code
+                        (item) => item.language === language.tag
                       )
                         ? t`Edit`
                         : t`Create`}
@@ -704,9 +652,9 @@ export function MaviEditor({
         <EditorMenu
           views={views}
           languages={otherLanguages.map((language) => ({
-            code: language.code,
+            code: language.tag,
             name: language.name,
-            started: translations.some((item) => item.language === language.code),
+            started: translations.some((item) => item.language === language.tag),
           }))}
           canTranslate={Boolean(currentPostId)}
           onTranslate={(code) => void goToTranslation(code)}

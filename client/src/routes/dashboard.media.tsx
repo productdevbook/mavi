@@ -7,7 +7,7 @@ import { toast } from "sonner"
 
 import { api, every, Refused } from "@/lib/v1"
 import { said } from "@/lib/v1-said"
-import type { Media, Settings } from "@api"
+import type { File as Media } from "@api"
 import { formatBytes } from "@/lib/editor-utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -40,22 +40,14 @@ function MediaRoute() {
   const [media, setMedia] = React.useState<Media[] | null>(null)
   const [going, setGoing] = React.useState<Media | null>(null)
   const [uploading, setUploading] = React.useState(false)
-  const [room, setRoom] = React.useState<Settings | null>(null)
   const chooser = React.useRef<HTMLInputElement>(null)
 
   const load = React.useCallback(() => {
-    every("GET /api/media")
+    every("GET /api/files")
       .then(setMedia)
       .catch((why: unknown) => {
         toast.error(said(why))
         setMedia((held) => held ?? [])
-      })
-
-    api("GET /api/site")
-      .then(setRoom)
-      .catch((why: unknown) => {
-        toast.error(said(why))
-        setRoom(null)
       })
   }, [])
 
@@ -71,7 +63,7 @@ function MediaRoute() {
       // The bytes as they are, with the name alongside: what kind of file it
       // is comes from the bytes at the far end rather than from the name.
       const response = await fetch(
-        `/api/media?name=${encodeURIComponent(file.name)}`,
+        `/api/files?name=${encodeURIComponent(file.name)}`,
         { method: "POST", body: file },
       )
 
@@ -109,7 +101,7 @@ function MediaRoute() {
     if (!going) return
 
     try {
-      await api("DELETE /api/media/{id}", { path: { id: going.id } })
+      await api("DELETE /api/files/{id}", { path: { id: going.id } })
       setMedia((held) => held?.filter((one) => one.id !== going.id) ?? null)
     } catch (why) {
       toast.error(said(why))
@@ -123,13 +115,6 @@ function MediaRoute() {
       <div className="mb-6 flex items-center justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold">{t`Media library`}</h1>
-          {room && (
-            <p className="text-sm text-muted-foreground">
-              {room.storage_limit_bytes
-                ? t`${formatBytes(room.storage_used_bytes)} of ${formatBytes(room.storage_limit_bytes)} used`
-                : t`${formatBytes(room.storage_used_bytes)} used`}
-            </p>
-          )}
         </div>
 
         <Button
@@ -169,7 +154,7 @@ function MediaRoute() {
               {item.mime.startsWith("image/") ? (
                 <img
                   src={at(item.id)}
-                  alt={item.original_name}
+                  alt={item.name}
                   loading="lazy"
                   className="aspect-square w-full object-cover"
                 />
@@ -182,7 +167,7 @@ function MediaRoute() {
               <figcaption className="flex items-center gap-2 px-3 py-2">
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-xs font-medium">
-                    {item.original_name}
+                    {item.name}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {formatBytes(item.bytes)}

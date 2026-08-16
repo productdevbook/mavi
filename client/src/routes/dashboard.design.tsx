@@ -5,9 +5,9 @@ import { useLingui } from "@lingui/react/macro"
 import { ExternalLink, Loader2, Palette } from "lucide-react"
 import { toast } from "sonner"
 
-import { api } from "@/lib/v1"
+import { api, every } from "@/lib/v1"
 import { said } from "@/lib/v1-said"
-import type { Design } from "@api"
+import type { Change, ProjectFile } from "@api"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 
@@ -15,49 +15,29 @@ export const Route = createFileRoute("/dashboard/design")({
   component: DesignRoute,
 })
 
-/** How often to look again while something is building. */
-const WATCH_INTERVAL = 3000
-
-/**
- * What has been written to the design, and whether it goes live.
- *
- * The changes are on a draft and none of it is the site until somebody presses
- * the button — which is the whole point of the screen. Publishing asks for the
- * Publish permission rather than the Design one, so an account that may ask for
- * changes need not be the one that agrees to them.
- */
 function DesignRoute() {
   const { t } = useLingui()
-  const [design, setDesign] = React.useState<Design | null>(null)
+  const [changes, setChanges] = React.useState<Change[] | null>(null)
   const [previewing, setPreviewing] = React.useState(false)
   const [publishing, setPublishing] = React.useState(false)
 
   const load = React.useCallback(() => {
-    api("GET /api/design")
-      .then(setDesign)
+    every("GET /api/design/changes")
+      .then(setChanges)
       .catch((why: unknown) => toast.error(said(why)))
   }, [])
 
   React.useEffect(load, [load])
 
-  // Only while something is running, and stopped as soon as it is not: a
-  // screen left open overnight should not be asking every three seconds.
-  const running = design?.building != null
-
-  React.useEffect(() => {
-    if (!running) return
-
-    const timer = window.setInterval(load, WATCH_INTERVAL)
-
-    return () => window.clearInterval(timer)
-  }, [running, load])
+  const latest = changes?.[0]
 
   const preview = () => {
+    if (!latest) return
     setPreviewing(true)
 
-    api("POST /api/design/previews")
+    api("POST /api/design/changes/{id}/builds", { path: { id: latest.id } })
       .then(() => {
-        toast.success(t`Building. The address appears when it is done.`)
+        toast.success(t`Building preview.`)
         load()
       })
       .catch((why: unknown) => toast.error(said(why)))
@@ -65,9 +45,10 @@ function DesignRoute() {
   }
 
   const publish = () => {
+    if (!latest) return
     setPublishing(true)
 
-    api("POST /api/design/publishes")
+    api("POST /api/design/changes/{id}/published", { path: { id: latest.id } })
       .then(() => {
         toast.success(t`Publishing.`)
         load()
@@ -75,18 +56,6 @@ function DesignRoute() {
       .catch((why: unknown) => toast.error(said(why)))
       .finally(() => setPublishing(false))
   }
-
-  if (!design) {
-    return (
-      <div className="flex items-center justify-center py-24">
-        <Loader2 className="text-muted-foreground size-5 animate-spin" />
-      </div>
-    )
-  }
-
-  const nothing = design.changed.length === 0
-  const failed =
-    design.preview?.state === "failed" ? design.preview : null
 
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-8 py-6">
@@ -97,16 +66,14 @@ function DesignRoute() {
             {t`Design`}
           </h1>
           <p className="text-muted-foreground text-sm">
-            {nothing
-              ? t`Nothing is waiting. What is published and what is being worked on are the same.`
-              : t`${design.changed.length} files changed. None of it is live yet.`}
+            {t`Edit site templates and static files.`}
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          {design.preview_at && (
+          {latest?.look_at && (
             <a
-              href={design.preview_at}
+              href={latest.look_at}
               target="_blank"
               rel="noreferrer"
               className="border-input bg-background hover:bg-accent inline-flex h-9 items-center gap-2 rounded-md border px-4 text-sm font-medium"
@@ -115,80 +82,43 @@ function DesignRoute() {
               <ExternalLink className="size-4" />
             </a>
           )}
-          <Button
-            variant="outline"
-            onClick={preview}
-            disabled={previewing || nothing || running}
-          >
-            {(previewing || running) && (
-              <Loader2 className="size-4 animate-spin" />
-            )}
-            {running ? t`Building…` : t`Build a preview`}
-          </Button>
-          <Button onClick={publish} disabled={publishing || nothing || running}>
-            {publishing && <Loader2 className="size-4 animate-spin" />}
-            {t`Publish`}
-          </Button>
+          {latest && (
+            <>
+              <Button
+                variant="outline"
+                onClick={preview}
+                disabled={previewing}
+              >
+                {previewing && <Loader2 className="size-4 animate-spin" />}
+                {t`Build a preview`}
+              </Button>
+              <Button onClick={publish} disabled={publishing}>
+                {publishing && <Loader2 className="size-4 animate-spin" />}
+                {t`Publish`}
+              </Button>
+            </>
+          )}
         </div>
       </header>
 
-      {failed?.log && (
+      {latest?.went_wrong && (
         <section className="border-destructive/40 bg-destructive/5 rounded-lg border p-4">
-          <h2 className="text-destructive text-sm font-medium">{t`The last preview did not build`}</h2>
+          <h2 className="text-destructive text-sm font-medium">{t`The last build did not work`}</h2>
           <pre className="text-muted-foreground mt-2 max-h-64 overflow-auto text-xs">
-            {failed.log.split("\n").slice(-40).join("\n")}
+            {latest.went_wrong}
           </pre>
         </section>
       )}
 
-      {!nothing && (
-        <section className="flex flex-col gap-3">
-          <h2 className="text-sm font-medium">{t`What changed`}</h2>
-          <ul className="flex flex-col gap-1 text-sm">
-            {design.changed.map((change) => (
-              <li
-                key={change.path}
-                className="flex items-center gap-2 font-mono text-xs"
-              >
-                <span className="text-muted-foreground w-16">{change.kind}</span>
-                <span>{change.path}</span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      <Files onWritten={load} />
-
-      <section className="flex flex-col gap-3">
-        <h2 className="text-sm font-medium">{t`What is live`}</h2>
-        {design.live ? (
-          <p className="text-muted-foreground text-sm">
-            {t`Published ${new Date(design.live.created_at).toLocaleString()}, from ${design.live.branch}, in ${design.live.seconds ?? 0} seconds.`}
-          </p>
-        ) : (
-          <p className="text-muted-foreground text-sm">
-            {t`Nothing has been published yet.`}
-          </p>
-        )}
-      </section>
+      <Files changeId={latest?.id} onWritten={load} />
     </div>
   )
 }
 
-/**
- * The files a site's design is made of.
- *
- * Only `src/` and `public/`: what decides how a site is built is not a thing a
- * site edits, and the API refuses it as well. Writing goes to the draft —
- * nothing here changes what is being served until somebody publishes.
- */
-function Files({ onWritten }: { onWritten: () => void }) {
+function Files({ changeId, onWritten }: { changeId?: string; onWritten: () => void }) {
   const { t } = useLingui()
 
-  const [files, setFiles] = React.useState<
-    { path: string; branch: string; updated_at: string }[] | null
-  >(null)
+  const [files, setFiles] = React.useState<ProjectFile[] | null>(null)
   const [open, setOpen] = React.useState<string | null>(null)
   const [body, setBody] = React.useState("")
   const [busy, setBusy] = React.useState(false)
@@ -196,7 +126,7 @@ function Files({ onWritten }: { onWritten: () => void }) {
   const [path, setPath] = React.useState("src/")
 
   const load = React.useCallback(() => {
-    api("GET /api/design/files", { query: { branch: "draft" } })
+    api("GET /api/design/files")
       .then(setFiles)
       .catch((why: unknown) => {
         toast.error(said(why))
@@ -211,11 +141,11 @@ function Files({ onWritten }: { onWritten: () => void }) {
     setBody("")
 
     try {
-      const read = await api("GET /api/design/file", {
-        query: { path: at, branch: "draft" },
+      const read = await api("GET /api/design/files/{path}", {
+        path: { path: at },
       })
 
-      setBody(read.body)
+      setBody(read.contents)
     } catch (why) {
       toast.error(said(why))
     }
@@ -225,12 +155,13 @@ function Files({ onWritten }: { onWritten: () => void }) {
     setBusy(true)
 
     try {
-      await api("PUT /api/design/files", {
-        body: { path: at, body, branch: "draft" },
+      await api("PUT /api/design/files/{path}", {
+        path: { path: at },
+        body: { change: changeId ?? "", contents: body },
       })
       load()
       onWritten()
-      toast.success(t`Saved to the draft.`)
+      toast.success(t`Saved.`)
     } catch (why) {
       toast.error(said(why))
     } finally {

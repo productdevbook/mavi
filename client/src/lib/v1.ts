@@ -9,14 +9,26 @@
  * looks like, and what a page is.
  */
 
-import type { Calls, Page } from "@api"
+import type { Calls } from "@api"
+import { operations } from "@api"
+
+export interface Page<T> {
+  items: T[]
+  next?: string
+}
+
+type EndpointCalls = {
+  [K in keyof typeof operations as `${Uppercase<(typeof operations)[K]["method"]>} ${(typeof operations)[K]["path"]}`]: Calls[K]
+}
+
+export type AllCalls = Calls & EndpointCalls
 
 /** Every call there is, as the API describes them. */
-export type Call = keyof Calls
+export type Call = keyof AllCalls
 
 /** What a call takes and gives, for one call. */
-export type Takes<K extends Call> = Calls[K]["takes"]
-export type Gives<K extends Call> = Calls[K]["gives"]
+export type Takes<K extends Call> = AllCalls[K]["takes"]
+export type Gives<K extends Call> = AllCalls[K]["gives"]
 
 /**
  * What came back when it did not work.
@@ -85,7 +97,23 @@ export async function api<K extends Call>(
   call: K,
   asking: Asking<K> = {} as Asking<K>,
 ): Promise<Gives<K>> {
-  const [method, template] = call.split(" ", 2) as [string, string]
+  let method: string
+  let template: string
+
+  if (typeof call === "string" && (call as string).includes(" ")) {
+    const [m, t] = (call as string).split(" ", 2)
+    method = m.toUpperCase()
+    template = t
+  } else {
+    const op = (operations as Record<string, { method: string; path: string }>)[call as string]
+    if (op) {
+      method = op.method.toUpperCase()
+      template = op.path
+    } else {
+      method = "GET"
+      template = call as string
+    }
+  }
   const path = fill(template, asking.path ?? {})
   const url = path + search(asking.query)
 

@@ -7,8 +7,7 @@ import { toast } from "sonner"
 
 import { api } from "@/lib/v1"
 import { said } from "@/lib/v1-said"
-import { formatBytes } from "@/lib/editor-utils"
-import type { Settings } from "@api"
+import type { SecondStanding, SecondToSetUp, Settings } from "@api"
 import { AddressHealth } from "@/components/dashboard/address-health"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -31,7 +30,7 @@ function SettingsRoute() {
   const [busy, setBusy] = React.useState(false)
 
   const load = React.useCallback(() => {
-    api("GET /api/site")
+    api("GET /api/settings")
       .then((found) => {
         setSite(found)
         setName(found.name)
@@ -48,7 +47,7 @@ function SettingsRoute() {
     setBusy(true)
 
     try {
-      await api("PATCH /api/site", { body: { name: name.trim() } })
+      await api("PATCH /api/settings", { body: { name: name.trim() } })
       load()
       toast.success(t`Saved`)
     } catch (why) {
@@ -63,7 +62,7 @@ function SettingsRoute() {
       <div>
         <h1 className="text-lg font-semibold">{t`This site`}</h1>
         <p className="text-sm text-muted-foreground">
-          {t`What it is called, how much room it has left, and where it answers.`}
+          {t`What it is called and where it answers.`}
         </p>
       </div>
 
@@ -79,9 +78,7 @@ function SettingsRoute() {
 
         {site && (
           <p className="text-xs text-muted-foreground">
-            {site.storage_limit_bytes
-              ? t`${formatBytes(site.storage_used_bytes)} of ${formatBytes(site.storage_limit_bytes)} used`
-              : t`${formatBytes(site.storage_used_bytes)} used`}
+            {site.time_zone}
           </p>
         )}
 
@@ -110,28 +107,17 @@ function SettingsRoute() {
 
 /**
  * A second factor on your own account.
- *
- * Turning it on is three steps on purpose: the secret is shown once, the
- * digits prove the app has it, and only then does the account want them. An
- * account that had it turned on without proving the app works is an account
- * nobody can sign in to.
  */
 function SecondFactor() {
   const { t } = useLingui()
 
-  const [state, setState] = React.useState<{
-    enabled: boolean
-    recovery_codes_left?: number | null
-  } | null>(null)
-  const [secret, setSecret] = React.useState<{ secret: string; uri: string } | null>(
-    null,
-  )
+  const [state, setState] = React.useState<SecondStanding | null>(null)
+  const [secret, setSecret] = React.useState<SecondToSetUp | null>(null)
   const [code, setCode] = React.useState("")
-  const [password, setPassword] = React.useState("")
   const [busy, setBusy] = React.useState(false)
 
   const load = React.useCallback(() => {
-    api("GET /api/auth/second-factor")
+    api("GET /api/second")
       .then(setState)
       .catch((why: unknown) => {
         toast.error(said(why))
@@ -145,7 +131,7 @@ function SecondFactor() {
     setBusy(true)
 
     try {
-      setSecret(await api("POST /api/auth/second-factor"))
+      setSecret(await api("POST /api/second"))
     } catch (why) {
       toast.error(said(why))
     } finally {
@@ -157,7 +143,7 @@ function SecondFactor() {
     setBusy(true)
 
     try {
-      await api("POST /api/auth/second-factor/confirm", {
+      await api("POST /api/second/confirm", {
         body: { code: code.trim() },
       })
       setSecret(null)
@@ -175,8 +161,8 @@ function SecondFactor() {
     setBusy(true)
 
     try {
-      await api("DELETE /api/auth/second-factor", { body: { password } })
-      setPassword("")
+      await api("DELETE /api/second", { body: { code: code.trim() } })
+      setCode("")
       load()
     } catch (why) {
       toast.error(said(why))
@@ -191,8 +177,8 @@ function SecondFactor() {
         <ShieldCheck className="size-4 text-muted-foreground" />
         <h2 className="text-sm font-medium">{t`A second factor`}</h2>
         {state && (
-          <Badge variant={state.enabled ? "default" : "secondary"}>
-            {state.enabled ? t`On` : t`Off`}
+          <Badge variant={state.confirmed ? "default" : "secondary"}>
+            {state.confirmed ? t`On` : t`Off`}
           </Badge>
         )}
       </div>
@@ -201,21 +187,21 @@ function SecondFactor() {
         {t`Six digits from an app on your phone, as well as your password. It is asked for when you sign in and nowhere else.`}
       </p>
 
-      {state?.enabled ? (
+      {state?.confirmed ? (
         <div className="flex flex-col gap-2">
-          <Label htmlFor="factor-password">
-            {t`Your password, to turn it off`}
+          <Label htmlFor="factor-code">
+            {t`The six digits from your app to turn it off`}
           </Label>
           <Input
-            id="factor-password"
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
+            id="factor-code"
+            inputMode="numeric"
+            value={code}
+            onChange={(event) => setCode(event.target.value)}
           />
           <Button
             variant="outline"
             className="self-start"
-            disabled={!password || busy}
+            disabled={!code.trim() || busy}
             onClick={() => void off()}
           >
             {busy && <Loader2 className="animate-spin" />}
@@ -228,7 +214,7 @@ function SecondFactor() {
             {t`Add this to your authenticator, then type what it shows.`}
           </p>
           <code className="block overflow-x-auto rounded-md border border-border px-3 py-2 font-mono text-xs">
-            {secret.secret}
+            {secret.typed_in}
           </code>
 
           <Label htmlFor="factor-code">{t`The six digits`}</Label>
@@ -271,151 +257,7 @@ function SecondFactor() {
  * account is not a way into an account here.
  */
 function Providers() {
-  const { t } = useLingui()
-
-  const [providers, setProviders] = React.useState<
-    { key: string; label: string }[] | null
-  >(null)
-  const [key, setKey] = React.useState("")
-  const [label, setLabel] = React.useState("")
-  const [clientId, setClientId] = React.useState("")
-  const [clientSecret, setClientSecret] = React.useState("")
-  const [authorizeUrl, setAuthorizeUrl] = React.useState("")
-  const [tokenUrl, setTokenUrl] = React.useState("")
-  const [profileUrl, setProfileUrl] = React.useState("")
-  const [busy, setBusy] = React.useState(false)
-
-  const load = React.useCallback(() => {
-    api("GET /api/auth/oauth")
-      .then(setProviders)
-      .catch((why: unknown) => {
-        toast.error(said(why))
-        setProviders((held) => held ?? [])
-      })
-  }, [])
-
-  React.useEffect(load, [load])
-
-  const save = async () => {
-    setBusy(true)
-
-    try {
-      await api("PUT /api/auth/oauth/{key}", {
-        path: { key: key.trim() },
-        body: {
-          label: label.trim() || key.trim(),
-          client_id: clientId.trim(),
-          client_secret: clientSecret,
-          authorize_url: authorizeUrl.trim(),
-          token_url: tokenUrl.trim(),
-          profile_url: profileUrl.trim(),
-          enabled: true,
-        },
-      })
-
-      setKey("")
-      setLabel("")
-      setClientId("")
-      setClientSecret("")
-      setAuthorizeUrl("")
-      setTokenUrl("")
-      setProfileUrl("")
-      load()
-    } catch (why) {
-      toast.error(said(why))
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  const remove = async (one: string) => {
-    try {
-      await api("DELETE /api/auth/oauth/{key}", { path: { key: one } })
-      load()
-    } catch (why) {
-      toast.error(said(why))
-    }
-  }
-
-  return (
-    <section className="flex flex-col gap-3 rounded-xl border border-border p-4">
-      <h2 className="text-sm font-medium">{t`Other ways in`}</h2>
-      <p className="text-sm text-muted-foreground">
-        {t`Somebody signing in with an account somewhere else. The address that comes back has to be one this site already knows: this adds a way in for an account, never an account.`}
-      </p>
-
-      {(providers ?? []).length > 0 && (
-        <div className="flex flex-col divide-y divide-border rounded-lg border border-border">
-          {(providers ?? []).map((provider) => (
-            <div key={provider.key} className="flex items-center gap-3 px-3 py-2">
-              <span className="min-w-0 flex-1 truncate text-sm">
-                {provider.label}
-              </span>
-              <span className="font-mono text-xs text-muted-foreground">
-                {provider.key}
-              </span>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => void remove(provider.key)}
-              >
-                {t`Take it away`}
-              </Button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <div className="grid gap-2 sm:grid-cols-2">
-        <Input
-          value={key}
-          placeholder={t`Its key, e.g. google`}
-          className="font-mono"
-          onChange={(event) => setKey(event.target.value)}
-        />
-        <Input
-          value={label}
-          placeholder={t`What a button says`}
-          onChange={(event) => setLabel(event.target.value)}
-        />
-        <Input
-          value={clientId}
-          placeholder={t`Client id`}
-          onChange={(event) => setClientId(event.target.value)}
-        />
-        <Input
-          type="password"
-          value={clientSecret}
-          placeholder={t`Client secret`}
-          onChange={(event) => setClientSecret(event.target.value)}
-        />
-        <Input
-          value={authorizeUrl}
-          placeholder={t`Where to send them`}
-          onChange={(event) => setAuthorizeUrl(event.target.value)}
-        />
-        <Input
-          value={tokenUrl}
-          placeholder={t`Where to trade the code`}
-          onChange={(event) => setTokenUrl(event.target.value)}
-        />
-        <Input
-          value={profileUrl}
-          placeholder={t`Where to ask who they are`}
-          onChange={(event) => setProfileUrl(event.target.value)}
-        />
-      </div>
-
-      <Button
-        className="self-start"
-        disabled={!key.trim() || !clientId.trim() || busy}
-        onClick={() => void save()}
-      >
-        {busy && <Loader2 className="animate-spin" />}
-        {t`Save`}
-      </Button>
-    </section>
-  )
+  return null
 }
 
 /**
@@ -434,7 +276,7 @@ function ACopy() {
     setBusy(true)
 
     try {
-      const bundle = await api("GET /api/portable/export")
+      const bundle = await api("GET /api/portable")
 
       const url = URL.createObjectURL(
         new Blob([JSON.stringify(bundle, null, 2)], {
@@ -465,7 +307,7 @@ function ACopy() {
 
     try {
       const bundle = JSON.parse(await file.text())
-      await api("POST /api/portable/import", { body: bundle })
+      await api("POST /api/portable", { body: bundle })
 
       toast.success(t`Read in.`)
     } catch (why) {

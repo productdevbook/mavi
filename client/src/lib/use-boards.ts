@@ -1,6 +1,6 @@
 import * as React from "react"
 
-import { every } from "@/lib/v1"
+import { api } from "@/lib/v1"
 import type { Board } from "@api"
 
 /**
@@ -15,7 +15,7 @@ export function useBoards() {
   React.useEffect(() => {
     let alive = true
 
-    every("GET /api/boards")
+    api("GET /api/boards")
       .then((all) => alive && setBoards(all))
       .catch(() => alive && setBoards([]))
 

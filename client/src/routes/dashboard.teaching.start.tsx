@@ -49,7 +49,7 @@ function StartTeachingRoute() {
         body: {
           slug: slug.trim() || slugged(title),
           title: title.trim(),
-          summary: summary.trim() || null,
+          about: summary.trim() || null,
         },
       })
 

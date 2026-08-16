@@ -9,15 +9,10 @@ import { toast } from "sonner"
 
 import { api } from "@/lib/v1"
 import { said } from "@/lib/v1-said"
-import type { ContentType } from "@api"
+import type { ContentType } from "@/lib/use-content-types"
 import { useContentTypes } from "@/lib/use-content-types"
 import { Button } from "@/components/ui/button"
 import { ContentTypeEditor } from "@/components/dashboard/content-type-editor"
-
-/** What a kind declares, as the API keeps it: a list on an untyped field. */
-function declared(kind: ContentType): { label: string }[] {
-  return (kind.fields as { label: string }[] | null) ?? []
-}
 
 export const Route = createFileRoute("/dashboard/content-types")({
   component: ContentTypesRoute,
@@ -39,7 +34,7 @@ function ContentTypesRoute() {
 
   const remove = async (kind: ContentType) => {
     try {
-      await api("DELETE /api/content-types/{key}", { path: { key: kind.key } })
+      await api("DELETE /api/kinds/{kind}", { path: { kind: kind.kind } })
       reload()
     } catch (why) {
       toast.error(said(why))
@@ -81,7 +76,7 @@ function ContentTypesRoute() {
         <div className="flex max-w-3xl flex-col divide-y divide-border rounded-xl border border-border">
           {types.map((kind) => (
             <div
-              key={kind.id}
+              key={kind.kind}
               className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3"
             >
               <Shapes className="size-4 shrink-0 text-muted-foreground" />
@@ -90,17 +85,14 @@ function ContentTypesRoute() {
                   {calledIn(kind, i18n.locale, true)}
                 </p>
                 <p className="truncate text-xs text-muted-foreground">
-                  {kind.key} ·{" "}
-                  {declared(kind).length === 0
+                  {kind.kind} ·{" "}
+                  {!kind.fields || kind.fields.length === 0
                     ? t`no fields of its own`
-                    : declared(kind)
+                    : kind.fields
                         .map((field) => field.label)
                         .join(", ")}
                 </p>
               </div>
-              <span className="ml-auto text-xs text-muted-foreground">
-                {t`${kind.posts} written`}
-              </span>
               <Button
                 variant="outline"
                 size="sm"
@@ -108,16 +100,14 @@ function ContentTypesRoute() {
               >
                 {t`Fields`}
               </Button>
-              {kind.posts === 0 && (
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label={t`Remove`}
-                  onClick={() => void remove(kind)}
-                >
-                  <Trash2 />
-                </Button>
-              )}
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label={t`Remove`}
+                onClick={() => void remove(kind)}
+              >
+                <Trash2 />
+              </Button>
             </div>
           ))}
         </div>

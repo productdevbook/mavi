@@ -62,8 +62,8 @@ function CategoriesRoute() {
 
   const load = React.useCallback(() => {
     if (!locale) return
-    every("GET /api/terms", { query: { kind: "category", language: locale } })
-      .then(setCategories)
+    every("GET /api/terms", { query: { sort: "category", language: locale } })
+      .then((terms) => setCategories(terms.filter((t) => t.sort === "category")))
       .catch((why: unknown) => {
         toast.error(said(why))
         setCategories((held) => held ?? [])
@@ -83,10 +83,11 @@ function CategoriesRoute() {
     try {
       await api("POST /api/terms", {
         body: {
-          kind: "category",
+          sort: "category",
           language: locale,
+          slug: value.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
           name: value,
-          parent_id: parentId === NO_PARENT ? null : parentId,
+          parent: parentId === NO_PARENT ? null : parentId,
         },
       })
       setName("")
@@ -99,7 +100,7 @@ function CategoriesRoute() {
   const startEditing = (category: Category) => {
     setEditing(category)
     setEditName(category.name)
-    setEditParent(category.parent_id ?? NO_PARENT)
+    setEditParent(category.parent ?? NO_PARENT)
   }
 
   const saveEdit = async () => {
@@ -111,12 +112,7 @@ function CategoriesRoute() {
         path: { id: editing.id },
         body: {
           name: value,
-          // The nil uuid is how the API is told "under nothing"; a missing
-          // field means "leave it alone".
-          parent_id:
-            editParent === NO_PARENT
-              ? "00000000-0000-0000-0000-000000000000"
-              : editParent,
+          parent: editParent === NO_PARENT ? null : editParent,
         },
       })
       setEditing(null)
@@ -167,7 +163,7 @@ function CategoriesRoute() {
             </SelectTrigger>
             <SelectContent>
               {languages.map((language) => (
-                <SelectItem key={language.code} value={language.code}>
+                <SelectItem key={language.tag} value={language.tag}>
                   {language.name}
                 </SelectItem>
               ))}

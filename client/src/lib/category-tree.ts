@@ -5,6 +5,7 @@
 export interface Category {
   id: string
   name: string
+  parent?: string | null
   parent_id?: string | null
 }
 
@@ -27,10 +28,8 @@ export function toCategoryTree<T extends Category>(
   const ids = new Set(categories.map((category) => category.id))
 
   for (const category of categories) {
-    const parent =
-      category.parent_id && ids.has(category.parent_id)
-        ? category.parent_id
-        : null
+    const p = category.parent ?? category.parent_id
+    const parent = p && ids.has(p) ? p : null
     const siblings = byParent.get(parent) ?? []
     siblings.push(category)
     byParent.set(parent, siblings)
@@ -60,11 +59,8 @@ export function descendantsOf(
   while (grew) {
     grew = false
     for (const category of categories) {
-      if (
-        category.parent_id &&
-        blocked.has(category.parent_id) &&
-        !blocked.has(category.id)
-      ) {
+      const p = category.parent ?? category.parent_id
+      if (p && blocked.has(p) && !blocked.has(category.id)) {
         blocked.add(category.id)
         grew = true
       }

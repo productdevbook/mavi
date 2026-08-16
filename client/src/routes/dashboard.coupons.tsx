@@ -9,7 +9,6 @@ import { api, every } from "@/lib/v1"
 import { said } from "@/lib/v1-said"
 import { money } from "@/lib/money"
 import type { Coupon } from "@api"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -45,14 +44,18 @@ function CouponsRoute() {
     try {
       await api("DELETE /api/coupons/{code}", { path: { code: row.code } })
       load()
-      toast.success(row.used > 0 ? t`Stopped` : t`Removed`)
+      toast.success(t`Removed`)
     } catch (why) {
       toast.error(said(why))
     }
   }
 
   const worth = (row: Coupon) =>
-    row.kind === "percent" ? `%${row.value}` : money(row.value, row.currency)
+    row.percent !== null && row.percent !== undefined
+      ? `%${row.percent}`
+      : row.amount
+        ? money(row.amount.minor, row.amount.currency)
+        : ""
 
   if (making) {
     return (
@@ -71,7 +74,7 @@ function CouponsRoute() {
         <div>
           <h1 className="text-lg font-semibold">{t`Discount codes`}</h1>
           <p className="text-sm text-muted-foreground">
-            {t`Checked twice: once when somebody types it into the basket, and again when the order is made — because a code with one use left can be used by somebody else in the minute in between.`}
+            {t`Checked twice: once when somebody types it into the basket, and again when the order is made.`}
           </p>
         </div>
         <Button className="shrink-0" onClick={() => setMaking(true)}>
@@ -92,26 +95,17 @@ function CouponsRoute() {
         <div className="flex max-w-3xl flex-col divide-y divide-border rounded-xl border border-border">
           {rows.map((row) => (
             <div
-              key={row.id}
+              key={row.code}
               className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3"
             >
               <div className="min-w-0 flex-1 basis-40">
                 <p className="font-mono text-sm font-medium">{row.code}</p>
                 <p className="truncate text-xs text-muted-foreground">
                   {worth(row)}
-                  {row.minimum_minor > 0 && (
-                    <> · {t`from ${money(row.minimum_minor, row.currency)}`}</>
-                  )}
-                  {row.uses_allowed !== null &&
-                    row.uses_allowed !== undefined && (
-                      <>
-                        {" · "}
-                        {t`${row.used} of ${row.uses_allowed} used`}
-                      </>
+                  {row.at_most_uses !== null &&
+                    row.at_most_uses !== undefined && (
+                      <> · {t`max ${row.at_most_uses} uses`}</>
                     )}
-                  {row.per_shopper !== null && row.per_shopper !== undefined && (
-                    <> · {t`${row.per_shopper} per person`}</>
-                  )}
                   {row.expires_at && (
                     <>
                       {" · "}
@@ -121,12 +115,10 @@ function CouponsRoute() {
                 </p>
               </div>
 
-              <Badge variant="secondary">{t`${row.used} used`}</Badge>
-
               <Button
                 variant="ghost"
                 size="icon-sm"
-                aria-label={row.used > 0 ? t`Stop it` : t`Remove`}
+                aria-label={t`Remove`}
                 onClick={() => void stop(row)}
               >
                 <Trash2 />
@@ -144,9 +136,7 @@ function NewCoupon({ onDone }: { onDone: () => void }) {
   const [code, setCode] = React.useState("")
   const [kind, setKind] = React.useState<"percent" | "amount">("percent")
   const [amount, setAmount] = React.useState("")
-  const [minimum, setMinimum] = React.useState("")
   const [usesAllowed, setUsesAllowed] = React.useState("")
-  const [perShopper, setPerShopper] = React.useState("")
   const [expires, setExpires] = React.useState("")
   const [busy, setBusy] = React.useState(false)
 
@@ -163,13 +153,11 @@ function NewCoupon({ onDone }: { onDone: () => void }) {
     try {
       await api("POST /api/coupons", {
         body: {
-          code,
-          kind,
-          // A percentage is a whole percent; an amount is in the smallest unit.
-          value: kind === "percent" ? Number(amount) : minor(amount),
-          minimum_minor: minor(minimum),
-          uses_allowed: usesAllowed.trim() ? Number(usesAllowed) : null,
-          per_shopper: perShopper.trim() ? Number(perShopper) : null,
+          code: code.trim().toUpperCase(),
+          percent: kind === "percent" ? Number(amount) : null,
+          amount_minor: kind === "amount" ? minor(amount) : null,
+          currency: kind === "amount" ? "TRY" : null,
+          at_most_uses: usesAllowed.trim() ? Number(usesAllowed) : null,
           expires_at: expires.trim() ? `${expires}T23:59:59Z` : null,
         },
       })
@@ -231,32 +219,12 @@ function NewCoupon({ onDone }: { onDone: () => void }) {
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="minimum">{t`Basket has to reach`}</Label>
-          <Input
-            id="minimum"
-            inputMode="decimal"
-            value={minimum}
-            onChange={(event) => setMinimum(event.target.value)}
-            placeholder={t`nothing`}
-          />
-        </div>
-        <div className="flex flex-col gap-1.5">
           <Label htmlFor="uses-allowed">{t`Times in total`}</Label>
           <Input
             id="uses-allowed"
             inputMode="numeric"
             value={usesAllowed}
             onChange={(event) => setUsesAllowed(event.target.value)}
-            placeholder={t`as often as they like`}
-          />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="per-shopper">{t`Times per person`}</Label>
-          <Input
-            id="per-shopper"
-            inputMode="numeric"
-            value={perShopper}
-            onChange={(event) => setPerShopper(event.target.value)}
             placeholder={t`as often as they like`}
           />
         </div>

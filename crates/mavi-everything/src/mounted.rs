@@ -349,9 +349,9 @@ fn what_it_does_by_itself(mut site: Site, db: &Db) -> Site {
             "flows.list" => Some(handling(db, |db, asked| {
                 Box::pin(async move { flows(&db, &asked).await })
             })),
-            "flows.triggers" => Some(handling(db, |_, _| {
-                Box::pin(async move { triggers().await })
-            })),
+            // The one answer in this whole file that is not a query: what can
+            // start a flow is a fact about the code.
+            "flows.triggers" => Some(handling(db, |_, _| Box::pin(async move { triggers() }))),
             "flows.make" => Some(handling(db, |db, asked| {
                 Box::pin(async move { arranged_a_flow(&db, &asked).await })
             })),
@@ -2489,7 +2489,7 @@ async fn flows(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
 ///
 /// Answered rather than written in a manual: a panel that has to know the list
 /// is a panel that goes out of date on its own.
-async fn triggers() -> Result<Answered<Value>> {
+fn triggers() -> Result<Answered<Value>> {
     let triggers: Vec<Value> = mavi_flows::step::TRIGGERS
         .iter()
         .map(|trigger| serde_json::json!({ "name": trigger.as_str() }))

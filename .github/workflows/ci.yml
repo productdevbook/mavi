@@ -105,17 +105,10 @@ jobs:
       - run: cargo test --workspace --doc
 
       # What the panel is written against is generated from the description
-      # and committed. Written again here and compared, so a shape that
-      # changed and a panel that has not caught up is red here rather than a
-      # screen that breaks in somebody's browser. The file goes up as an
-      # artifact when it differs, so whoever broke it can take the corrected
-      # one rather than work out how to run the generator.
-      - name: The panel has what the API says it is
-        run: |
-          UPDATE_TYPES=1 cargo test -p mavi-everything --test described
-          git -C .. add -N client/src/api/mavi.ts
-          git -C .. diff --exit-code -- client/src/api/mavi.ts
-
+      # and committed, and one of the tests above writes it and compares. When
+      # that one fails the corrected file is already in the tree, so it goes up
+      # here — whoever broke it takes it rather than working out how to produce
+      # it.
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

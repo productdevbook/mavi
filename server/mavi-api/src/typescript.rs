@@ -16,9 +16,9 @@ use std::fmt::Write;
 use crate::{Api, Is, Of, Shape, What};
 
 /// What is written at the top, so nobody edits the file by hand.
-const SAID_FIRST: &str = "// Written from the description of the API. Do not edit by hand:\n\
-                          // `UPDATE_TYPES=1 cargo test -p mavi-everything --test described`\n\
-                          // writes it, and the same test without that fails when it is stale.\n";
+const SAID_FIRST: &str = "// Written from the description of the API. Do not edit by hand —\n\
+                          // `cargo test -p mavi-everything --test described` writes it, and\n\
+                          // fails when what was here is not what it wrote.\n";
 
 /// Every shape and every operation, as TypeScript.
 #[must_use]

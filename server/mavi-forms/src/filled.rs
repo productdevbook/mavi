@@ -8,7 +8,7 @@ use mavi_core::error::Result;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
-use mavi_core::asked::Declared;
+use mavi_core::asked::{Declared, Kind};
 
 pub use mavi_core::asked::{
     AT_MOST_ALTOGETHER, IT_HAS_NO_SUCH_FIELD as THAT_FORM_HAS_NO_SUCH_FIELD,

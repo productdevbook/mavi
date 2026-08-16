@@ -13,6 +13,7 @@ use axum::http::{Request, StatusCode};
 use mavi_core::grant::Grants;
 use mavi_db::Db;
 use mavi_everything::mounted::site;
+use mavi_files::InADirectory;
 use mavi_http::Caller;
 use serde_json::{Value, json};
 use sqlx::{Connection, PgConnection, Row};
@@ -86,8 +87,15 @@ fn an_editor() -> mavi_serve::WhoIsAsking {
     })
 }
 
+/// Somewhere for files to go, of this test's own.
+fn somewhere_for_files() -> Arc<dyn mavi_core::ports::Files> {
+    Arc::new(InADirectory::at(
+        std::env::temp_dir().join(format!("mavi-{}", Uuid::now_v7())),
+    ))
+}
+
 async fn asked(db: &Db, request: Request<Body>) -> (StatusCode, Value) {
-    let answer = site(db, an_editor())
+    let answer = site(db, somewhere_for_files(), an_editor())
         .into_router()
         .oneshot(request)
         .await
@@ -322,7 +330,7 @@ async fn what_is_described_and_not_yet_served() {
     let db = fresh("left").await;
 
     let described = mavi_everything::api();
-    let serving = site(&db, an_editor());
+    let serving = site(&db, somewhere_for_files(), an_editor());
 
     let left = serving.not_reachable(&described);
 

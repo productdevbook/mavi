@@ -13,6 +13,7 @@ mavi-content = { path = "../mavi-content" }
 mavi-core = { path = "../mavi-core" }
 mavi-courses = { path = "../mavi-courses" }
 mavi-design = { path = "../mavi-design" }
+mavi-files = { path = "../mavi-files" }
 mavi-flows = { path = "../mavi-flows" }
 mavi-forms = { path = "../mavi-forms" }
 mavi-mail = { path = "../mavi-mail" }
@@ -35,7 +36,7 @@ axum = { workspace = true }
 mavi-settings = { path = "../mavi-settings" }
 mavi-core = { path = "../mavi-core" }
 sqlx = { workspace = true }
-tokio = { workspace = true, features = ["macros", "rt", "rt-multi-thread"] }
+tokio = { workspace = true, features = ["fs", "macros", "rt", "rt-multi-thread"] }
 tower = { workspace = true }
 
 [lints]

@@ -21,6 +21,7 @@ use mavi_content::store::{self, Changes};
 use mavi_content::writing::{New, WritingId};
 use mavi_core::error::{Error, Result};
 use mavi_core::page::Query;
+use mavi_core::ports::Files;
 use mavi_core::say::Say;
 use mavi_db::{Db, Tx};
 use mavi_http::{Answered, Caller};
@@ -35,7 +36,7 @@ pub const THAT_IS_NOT_AN_ID: &str = "that_is_not_an_id";
 /// It is not everything it describes, and that is measured rather than
 /// implied — see the test beside this, which prints what is still to do.
 #[must_use]
-pub fn site(db: &Db, who_is_asking: WhoIsAsking) -> Site {
+pub fn site(db: &Db, files: Arc<dyn Files>, who_is_asking: WhoIsAsking) -> Site {
     let site = Site::new(who_is_asking);
 
     // One function per domain, in the order somebody meets them: getting in,
@@ -52,6 +53,7 @@ pub fn site(db: &Db, who_is_asking: WhoIsAsking) -> Site {
     let site = what_it_writes_to_people(site, db);
     let site = what_it_does_by_itself(site, db);
     let site = how_it_looks(site, db);
+    let site = what_somebody_uploaded(site, db, files);
 
     what_has_been_done(site, db)
 }
@@ -436,6 +438,42 @@ fn how_it_looks(mut site: Site, db: &Db) -> Site {
     site
 }
 
+/// Uploads, which are the one place bytes and a row have to agree.
+fn what_somebody_uploaded(mut site: Site, db: &Db, files: Arc<dyn Files>) -> Site {
+    for endpoint in mavi_media::endpoints() {
+        let db = db.clone();
+        let files = Arc::clone(&files);
+
+        let handler: Option<Handler> = match endpoint.named {
+            "files.list" => Some(with_files(db, files, |db, _, asked| {
+                Box::pin(async move { uploaded(&db, &asked).await })
+            })),
+            "files.upload" => Some(with_files(db, files, |db, files, asked| {
+                Box::pin(async move { took_a_file(&db, files.as_ref(), &asked).await })
+            })),
+            "files.read" => Some(with_files(db, files, |db, _, asked| {
+                Box::pin(async move { one_file(&db, &asked).await })
+            })),
+            "files.remove" => Some(with_files(db, files, |db, files, asked| {
+                Box::pin(async move { removed_a_file(&db, files.as_ref(), &asked).await })
+            })),
+            _ => None,
+        };
+
+        if let Some(handler) = handler {
+            let needs = if endpoint.changes {
+                mavi_media::to_write()
+            } else {
+                mavi_media::to_read()
+            };
+
+            site = site.mount(endpoint, Some(needs), handler);
+        }
+    }
+
+    site
+}
+
 /// What was done here, which is read and never written through the API.
 fn what_has_been_done(mut site: Site, db: &Db) -> Site {
     for endpoint in mavi_audit::endpoints() {
@@ -636,6 +674,15 @@ type Answering = std::pin::Pin<Box<dyn Future<Output = Result<Answered<Value>>> 
 /// One handler, with the database it needs already in hand.
 fn handling(db: Db, what: fn(Db, Asked) -> Answering) -> Handler {
     Arc::new(move |asked| what(db.clone(), asked))
+}
+
+/// The same, for the handlers that also need somewhere to put files.
+fn with_files(
+    db: Db,
+    files: Arc<dyn Files>,
+    what: fn(Db, Arc<dyn Files>, Asked) -> Answering,
+) -> Handler {
+    Arc::new(move |asked| what(db.clone(), Arc::clone(&files), asked))
 }
 
 async fn listed(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
@@ -2794,4 +2841,78 @@ async fn published_it(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
         serde_json::to_value(change).map_err(Error::internal)?,
         receipt,
     ))
+}
+
+async fn uploaded(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
+    let mut tx = db.begin().await?;
+    let page = mavi_media::store::list(
+        &mut tx,
+        asked.query.get("kind").map(String::as_str),
+        &asking(asked),
+    )
+    .await?;
+
+    Ok(Answered::Read(
+        serde_json::to_value(page).map_err(Error::internal)?,
+    ))
+}
+
+async fn took_a_file(db: &Db, files: &dyn Files, asked: &Asked) -> Result<Answered<Value>> {
+    // The name is a query parameter and the body is the file itself. What it
+    // is comes from the bytes; the name is only what to call it on a screen.
+    let name = asked
+        .query
+        .get("name")
+        .cloned()
+        .unwrap_or_else(|| "A file".to_owned());
+
+    let mut tx = db.begin().await?;
+    let file = mavi_media::store::take(&mut tx, files, &name, asked.raw.clone()).await?;
+
+    let receipt = wrote_about(
+        &mut tx,
+        asked,
+        "files.upload",
+        "file",
+        Some(&file.id.to_string()),
+        &serde_json::json!({ "kind": file.kind.as_str(), "bytes": file.bytes }),
+    )
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(Answered::Changed(
+        serde_json::to_value(file).map_err(Error::internal)?,
+        receipt,
+    ))
+}
+
+async fn one_file(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
+    let mut tx = db.begin().await?;
+    let file = mavi_media::store::read(&mut tx, mavi_media::FileId(a_uuid(asked)?)).await?;
+
+    Ok(Answered::Read(
+        serde_json::to_value(file).map_err(Error::internal)?,
+    ))
+}
+
+async fn removed_a_file(db: &Db, files: &dyn Files, asked: &Asked) -> Result<Answered<Value>> {
+    let id = mavi_media::FileId(a_uuid(asked)?);
+
+    let mut tx = db.begin().await?;
+    mavi_media::store::remove(&mut tx, files, id).await?;
+
+    let receipt = wrote_about(
+        &mut tx,
+        asked,
+        "files.remove",
+        "file",
+        Some(&id.to_string()),
+        &serde_json::json!({}),
+    )
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(Answered::Changed(Value::Null, receipt))
 }

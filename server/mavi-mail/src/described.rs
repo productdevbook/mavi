@@ -4,6 +4,13 @@ use mavi_api::{Field, Is, Of, Shape};
 
 #[must_use]
 pub fn shapes() -> Vec<Shape> {
+    let mut all = the_letters();
+    all.extend(the_lists());
+
+    all
+}
+
+fn the_letters() -> Vec<Shape> {
     vec![
         Shape::new(
             "Letter",
@@ -68,6 +75,11 @@ pub fn shapes() -> Vec<Shape> {
                 Field::new("body", Of::One(Is::Text), "What it says."),
             ],
         ),
+    ]
+}
+
+fn the_lists() -> Vec<Shape> {
+    vec![
         Shape::new(
             "List",
             "One of a site's mailing lists.",

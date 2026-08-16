@@ -18,6 +18,7 @@ mavi-edge = { path = "../mavi-edge" }
 mavi-files = { path = "../mavi-files" }
 mavi-flows = { path = "../mavi-flows" }
 mavi-forms = { path = "../mavi-forms" }
+mavi-health = { path = "../mavi-health" }
 mavi-mail = { path = "../mavi-mail" }
 mavi-media = { path = "../mavi-media" }
 mavi-people = { path = "../mavi-people" }

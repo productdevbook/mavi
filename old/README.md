@@ -15,7 +15,7 @@ directory, and what of it the rewrite can do:
 | `src/analytics`, `src/reports` | 829 | nothing |
 | `src/portable` | 403 | nothing — how a site leaves |
 | `src/plugins` | 524 | nothing |
-| `src/health` | 325 | nothing |
+| `src/health` | 325 | ~~nothing~~ `server/mavi-health`, and two endpoints where there was one: what a container runtime asks is told the process is up and nothing else |
 
 And one thing that is not a directory: `client/` talks to **this** API. The
 rewrite's paths and names are different, so the panel that ships today stops

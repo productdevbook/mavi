@@ -7,128 +7,146 @@
 
 use mavi_api::{Field, Is, Of, Shape};
 
-/// A page of writings, and every writing on it.
+/// A kind, said the same way everywhere it appears.
 ///
-/// The page's shape is the same for every listing in this API, so it is made
-/// rather than written out: one `next` that means the same thing everywhere.
+/// **Not a list of two.** A kind is whatever a site decided a thing is — the
+/// type's own words are that a CMS whose kinds are fixed at compile time is a
+/// CMS for one site. Describing it as a choice between `post` and `page` would
+/// be a description that a generated client turns into a type refusing every
+/// other site's kinds.
+const A_KIND: &str = "What a site decided this is. Lowercase, at most \
+                      thirty-one characters. `post` and `page` are what an \
+                      installation starts with — a page is one that is not in \
+                      the feed — and a site may have as many others as it \
+                      likes.";
+
+/// Everything a writing is, going in and coming out.
 #[must_use]
 pub fn shapes() -> Vec<Shape> {
     vec![
-        Shape::new(
-            "Writing",
-            "Something a site wrote: a post, a page, or whatever else it decided a thing is.",
-            vec![
-                Field::new("id", Of::One(Is::Id), "Which one."),
-                Field::new(
-                    "kind",
-                    Of::OneOf(&["post", "page"]),
-                    "Whether it is in the feed. A page is not.",
-                ),
-                Field::new(
-                    "language",
-                    Of::One(Is::Text),
-                    "Which language it is written in.",
-                ),
-                Field::new("slug", Of::One(Is::Text), "Where it answers."),
-                Field::new("title", Of::One(Is::Text), "What it is called."),
-                Field::new("excerpt", Of::One(Is::Text), "A line about it.").or_null(),
-                Field::new("body", Of::One(Is::Text), "What it says."),
-                Field::new(
-                    "fields",
-                    Of::Whatever,
-                    "Whatever this site decided to keep beside it.",
-                ),
-                Field::new(
-                    "state",
-                    Of::OneOf(&["draft", "published"]),
-                    "Whether it is out.",
-                ),
-                Field::new(
-                    "published_at",
-                    Of::One(Is::Moment),
-                    "When it went out, or is going to. A date in the future is a \
-                     thing that goes out on it.",
-                )
-                .or_null(),
-                Field::new("created_at", Of::One(Is::Moment), "When it was written."),
-                Field::new("updated_at", Of::One(Is::Moment), "When it last changed."),
-            ],
-        ),
+        a_writing(),
         Shape::page_of("WritingPage", "Writing", "What a site has written."),
-        Shape::new(
-            "NewWriting",
-            "Something to write.",
-            vec![
-                Field::new("kind", Of::OneOf(&["post", "page"]), "Which of the two."),
-                Field::new(
-                    "language",
-                    Of::One(Is::Text),
-                    "Which language it is written in.",
-                ),
-                Field::new(
-                    "slug",
-                    Of::One(Is::Text),
-                    "Where it should answer. Taken by the database rather than \
-                     checked first, so two people writing at one address is one \
-                     of them told so.",
-                ),
-                Field::new(
-                    "title",
-                    Of::One(Is::Text),
-                    "What it is called. Between one and two hundred characters.",
-                ),
-                Field::new("excerpt", Of::One(Is::Text), "A line about it.")
-                    .maybe()
-                    .or_null(),
-                Field::new("body", Of::One(Is::Text), "What it says.").maybe(),
-                Field::new(
-                    "fields",
-                    Of::Whatever,
-                    "Whatever this site decided to keep beside it.",
-                )
-                .maybe(),
-                Field::new(
-                    "publish_at",
-                    Of::One(Is::Moment),
-                    "Left out means a draft. A date in the future is a thing \
-                     that goes out on it.",
-                )
-                .maybe()
-                .or_null(),
-            ],
-        ),
-        Shape::new(
-            "WritingChanges",
-            "What may be changed about one. Only what is sent is changed — a \
-             change that wrote every field would write back over whatever \
-             somebody else changed a second ago.",
-            vec![
-                Field::new(
-                    "slug",
-                    Of::One(Is::Text),
-                    "Where it answers. The old address keeps working.",
-                )
-                .maybe(),
-                Field::new("title", Of::One(Is::Text), "What it is called.").maybe(),
-                Field::new("excerpt", Of::One(Is::Text), "A line about it.").maybe(),
-                Field::new("body", Of::One(Is::Text), "What it says.").maybe(),
-                Field::new(
-                    "fields",
-                    Of::Whatever,
-                    "Whatever this site decided to keep beside it.",
-                )
-                .maybe(),
-                Field::new(
-                    "publish_at",
-                    Of::One(Is::Moment),
-                    "Left out leaves it where it is. Null takes it back off the \
-                     site; a date sends it out then.",
-                )
-                .maybe()
-                .or_null(),
-            ],
-        ),
+        something_to_write(),
+        what_may_change(),
     ]
+}
+
+fn a_writing() -> Shape {
+    Shape::new(
+        "Writing",
+        "Something a site wrote.",
+        vec![
+            Field::new("id", Of::One(Is::Id), "Which one."),
+            Field::new("kind", Of::One(Is::Text), A_KIND),
+            Field::new(
+                "language",
+                Of::One(Is::Text),
+                "Which language it is written in.",
+            ),
+            Field::new("slug", Of::One(Is::Text), "Where it answers."),
+            Field::new("title", Of::One(Is::Text), "What it is called."),
+            Field::new("excerpt", Of::One(Is::Text), "A line about it.").or_null(),
+            Field::new("body", Of::One(Is::Text), "What it says."),
+            Field::new(
+                "fields",
+                Of::Whatever,
+                "Whatever this site decided to keep beside it.",
+            ),
+            Field::new(
+                "state",
+                Of::OneOf(&["draft", "published"]),
+                "Whether it is out.",
+            ),
+            Field::new(
+                "published_at",
+                Of::One(Is::Moment),
+                "When it went out, or is going to. A date in the future is a \
+                 thing that goes out on it.",
+            )
+            .or_null(),
+            Field::new("created_at", Of::One(Is::Moment), "When it was written."),
+            Field::new("updated_at", Of::One(Is::Moment), "When it last changed."),
+        ],
+    )
+}
+
+fn something_to_write() -> Shape {
+    Shape::new(
+        "NewWriting",
+        "Something to write.",
+        vec![
+            Field::new("kind", Of::One(Is::Text), A_KIND),
+            Field::new(
+                "language",
+                Of::One(Is::Text),
+                "Which language it is written in.",
+            ),
+            Field::new(
+                "slug",
+                Of::One(Is::Text),
+                "Where it should answer. Taken by the database rather than \
+                 checked first, so two people writing at one address is one of \
+                 them told so.",
+            ),
+            Field::new(
+                "title",
+                Of::One(Is::Text),
+                "What it is called. Between one and two hundred characters.",
+            ),
+            Field::new("excerpt", Of::One(Is::Text), "A line about it.")
+                .maybe()
+                .or_null(),
+            Field::new("body", Of::One(Is::Text), "What it says.").maybe(),
+            Field::new(
+                "fields",
+                Of::Whatever,
+                "Whatever this site decided to keep beside it.",
+            )
+            .maybe(),
+            Field::new(
+                "publish_at",
+                Of::One(Is::Moment),
+                "Left out means a draft. A date in the future is a thing that \
+                 goes out on it.",
+            )
+            .maybe()
+            .or_null(),
+        ],
+    )
+}
+
+fn what_may_change() -> Shape {
+    Shape::new(
+        "WritingChanges",
+        "What may be changed about one. Only what is sent is changed — a change \
+         that wrote every field would write back over whatever somebody else \
+         changed a second ago.",
+        vec![
+            Field::new(
+                "slug",
+                Of::One(Is::Text),
+                "Where it answers. The old address keeps working.",
+            )
+            .maybe(),
+            Field::new("title", Of::One(Is::Text), "What it is called.").maybe(),
+            Field::new("excerpt", Of::One(Is::Text), "A line about it.").maybe(),
+            Field::new("body", Of::One(Is::Text), "What it says.").maybe(),
+            Field::new(
+                "fields",
+                Of::Whatever,
+                "Whatever this site decided to keep beside it.",
+            )
+            .maybe(),
+            Field::new(
+                "publish_at",
+                Of::One(Is::Moment),
+                "Left out leaves it where it is. Null takes it back off the \
+                 site; a date sends it out then.",
+            )
+            .maybe()
+            .or_null(),
+        ],
+    )
 }
 
 #[cfg(test)]
@@ -158,7 +176,7 @@ mod tests {
         // client.
         let writing = Writing {
             id: WritingId(uuid::Uuid::nil()),
-            kind: Kind::Post,
+            kind: Kind::parse("post").expect("a kind"),
             language: "en".to_owned(),
             slug: Slug::parse("hello").expect("a slug"),
             title: "A Title".to_owned(),

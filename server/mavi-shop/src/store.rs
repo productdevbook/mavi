@@ -24,6 +24,7 @@ use crate::stock::{HELD_FOR_MINUTES, Wanted, enough, reached_for};
 
 pub const THERE_IS_NO_SUCH_THING_FOR_SALE: &str = "there_is_no_such_thing_for_sale";
 pub const THERE_IS_NO_ORDER_LIKE_THAT: &str = "there_is_no_order_like_that";
+pub const THERE_IS_NO_CODE_LIKE_THAT: &str = "there_is_no_code_like_that";
 pub const SOMETHING_ELSE_IS_SOLD_AT_THAT_ADDRESS: &str = "something_else_is_sold_at_that_address";
 pub const THAT_IS_NOT_A_CODE_THIS_SHOP_HONOURS: &str = "that_is_not_a_code_this_shop_honours";
 pub const THAT_IS_NOT_WHERE_AN_ORDER_GOES: &str = "that_is_not_where_an_order_goes";
@@ -742,4 +743,27 @@ pub async fn holds_that_ran_out(tx: &mut Tx) -> Result<Vec<Uuid>> {
     .fetch_all(tx.conn())
     .await
     .map_err(Error::internal)
+}
+
+/// Takes a code away.
+///
+/// Gone rather than kept, unlike a product. Nothing on an order points at a
+/// coupon: what an order came to is a number copied into it when it was
+/// placed, so the arithmetic of what has already been sold does not move.
+///
+/// What it was used for goes with it — the rows exist to answer "how many
+/// times has this been used", which is a question about a code that no longer
+/// exists. The orders themselves are untouched.
+pub async fn remove_a_coupon(tx: &mut Tx, code: &str) -> Result<()> {
+    let gone = sqlx::query("delete from coupons where code = $1")
+        .bind(code.trim().to_uppercase())
+        .execute(tx.conn())
+        .await
+        .map_err(Error::internal)?;
+
+    if gone.rows_affected() == 0 {
+        return Err(Error::not_found(Say::of(THERE_IS_NO_CODE_LIKE_THAT)));
+    }
+
+    Ok(())
 }

@@ -152,6 +152,19 @@ fn the_shelf() -> Vec<Endpoint> {
 fn the_orders() -> Vec<Endpoint> {
     vec![
         Endpoint {
+            method: Method::Delete,
+            path: "/api/coupons/{code}",
+            named: "coupons.remove",
+            about: "Takes a code away. What it was used for goes with it; the \
+                    orders themselves are untouched.",
+            who: Who::AnAccount,
+            parameters: vec![Parameter::path("code", Is::Text, "Which code.")],
+            takes: None,
+            answers: Answers::Nothing,
+            refuses: &[Code::NotFound],
+            changes: true,
+        },
+        Endpoint {
             method: Method::Get,
             path: "/api/orders",
             named: "orders.list",

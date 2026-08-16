@@ -12,6 +12,7 @@
 //! was decided before it was reached, out of what the endpoint declared.
 
 use std::future::Future;
+use std::pin::Pin;
 use std::sync::Arc;
 
 use mavi_api::Who;
@@ -169,6 +170,9 @@ fn what_is_being_worked_on(mut site: Site, db: &Db) -> Site {
             "cards.move" => Some(handling(db, |db, asked| {
                 Box::pin(async move { moved_a_card(&db, &asked).await })
             })),
+            "boards.remove" => Some(handling(db, |db, asked| {
+                Box::pin(async move { took_a_board_away(&db, &asked).await })
+            })),
             "cards.remove" => Some(handling(db, |db, asked| {
                 Box::pin(async move { removed_a_card(&db, &asked).await })
             })),
@@ -218,6 +222,12 @@ fn what_it_teaches(mut site: Site, db: &Db) -> Site {
             })),
             "lessons.make" => Some(handling(db, |db, asked| {
                 Box::pin(async move { added_a_lesson(&db, &asked).await })
+            })),
+            "modules.remove" => Some(handling(db, |db, asked| {
+                Box::pin(async move { took_a_module_away(&db, &asked).await })
+            })),
+            "lessons.remove" => Some(handling(db, |db, asked| {
+                Box::pin(async move { took_a_lesson_away(&db, &asked).await })
             })),
             "lessons.change" => Some(handling(db, |db, asked| {
                 Box::pin(async move { changed_a_lesson(&db, &asked).await })
@@ -277,6 +287,9 @@ fn what_it_sells(mut site: Site, db: &Db) -> Site {
             })),
             "products.change" => Some(handling(db, |db, asked| {
                 Box::pin(async move { changed_a_product(&db, &asked).await })
+            })),
+            "coupons.remove" => Some(handling(db, |db, asked| {
+                Box::pin(async move { took_a_coupon_away(&db, &asked).await })
             })),
             "products.remove" => Some(handling(db, |db, asked| {
                 Box::pin(async move { removed_a_product(&db, &asked).await })
@@ -1562,6 +1575,91 @@ async fn invited(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
         serde_json::json!({ "person": person, "link": token }),
         receipt,
     ))
+}
+
+/// Taking one thing away, written down the same way every time.
+///
+/// Four of these arrived at once when the panel was measured against the API
+/// and turned out to want removals nothing answered — a card could be taken
+/// off a board and the board could not be taken away. Written as one shape so
+/// the fifth is a line rather than a new idea.
+async fn took_it_away<F>(
+    db: &Db,
+    asked: &Asked,
+    did: &'static str,
+    about: &'static str,
+    remove: F,
+) -> Result<Answered<Value>>
+where
+    F: for<'a> FnOnce(
+        &'a mut mavi_db::Tx,
+        Uuid,
+    ) -> Pin<Box<dyn Future<Output = Result<()>> + Send + 'a>>,
+{
+    let id = a_uuid(asked)?;
+
+    let mut tx = db.begin().await?;
+
+    remove(&mut tx, id).await?;
+
+    let receipt = wrote_about(
+        &mut tx,
+        asked,
+        did,
+        about,
+        Some(&id.to_string()),
+        &serde_json::json!({}),
+    )
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(Answered::Changed(Value::Null, receipt))
+}
+
+async fn took_a_board_away(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
+    took_it_away(db, asked, "boards.remove", "board", |tx, id| {
+        Box::pin(mavi_boards::store::remove_a_board(tx, id))
+    })
+    .await
+}
+
+async fn took_a_module_away(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
+    took_it_away(db, asked, "modules.remove", "module", |tx, id| {
+        Box::pin(mavi_courses::store::remove_module(tx, id))
+    })
+    .await
+}
+
+async fn took_a_lesson_away(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
+    took_it_away(db, asked, "lessons.remove", "lesson", |tx, id| {
+        Box::pin(mavi_courses::store::remove_lesson(tx, id))
+    })
+    .await
+}
+
+/// A coupon is reached by its code rather than by an id, because a code is
+/// what somebody typed off a poster and what every other coupon endpoint takes.
+async fn took_a_coupon_away(db: &Db, asked: &Asked) -> Result<Answered<Value>> {
+    let code = asked.path.get("code").cloned().unwrap_or_default();
+
+    let mut tx = db.begin().await?;
+
+    mavi_shop::store::remove_a_coupon(&mut tx, &code).await?;
+
+    let receipt = wrote_about(
+        &mut tx,
+        asked,
+        "coupons.remove",
+        "coupon",
+        Some(&code),
+        &serde_json::json!({}),
+    )
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(Answered::Changed(Value::Null, receipt))
 }
 
 async fn roles(db: &Db) -> Result<Answered<Value>> {

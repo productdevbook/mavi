@@ -22,6 +22,7 @@ use crate::{BY_RECENT, State};
 
 pub const THERE_IS_NO_COURSE_LIKE_THAT: &str = "there_is_no_course_like_that";
 pub const THERE_IS_NO_LESSON_LIKE_THAT: &str = "there_is_no_lesson_like_that";
+pub const THERE_IS_NO_MODULE_LIKE_THAT: &str = "there_is_no_module_like_that";
 pub const SOMETHING_ELSE_IS_TAUGHT_AT_THAT_ADDRESS: &str =
     "something_else_is_taught_at_that_address";
 pub const NOBODY_HERE_IS_LEARNING_UNDER_THAT: &str = "nobody_here_is_learning_under_that";
@@ -605,4 +606,42 @@ pub async fn done(tx: &mut Tx, student: Uuid, lesson: Uuid) -> Result<DateTime<U
     .map_err(Error::internal)?;
 
     Ok(at)
+}
+
+/// Takes a lesson away.
+///
+/// Gone, and what students had finished goes with it — `done` points at the
+/// lesson and a row saying somebody finished something that no longer exists
+/// is a row that makes a progress bar read wrong. The rest of what they
+/// finished is untouched.
+pub async fn remove_lesson(tx: &mut Tx, id: Uuid) -> Result<()> {
+    let gone = sqlx::query("delete from lessons where id = $1")
+        .bind(id)
+        .execute(tx.conn())
+        .await
+        .map_err(Error::internal)?;
+
+    if gone.rows_affected() == 0 {
+        return Err(Error::not_found(Say::of(THERE_IS_NO_LESSON_LIKE_THAT)));
+    }
+
+    Ok(())
+}
+
+/// Takes a part of a course away, and its lessons with it.
+///
+/// A lesson lives in a part the way a card lives on a board: not a thing on
+/// its own, so leaving them would leave lessons nothing can reach.
+pub async fn remove_module(tx: &mut Tx, id: Uuid) -> Result<()> {
+    let gone = sqlx::query("delete from modules where id = $1")
+        .bind(id)
+        .execute(tx.conn())
+        .await
+        .map_err(Error::internal)?;
+
+    if gone.rows_affected() == 0 {
+        return Err(Error::not_found(Say::of(THERE_IS_NO_MODULE_LIKE_THAT)));
+    }
+
+    Ok(())
 }

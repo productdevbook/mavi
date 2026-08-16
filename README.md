@@ -277,6 +277,7 @@ writes in.
 
 | | |
 |---|---|
+| [assistant.md](docs/assistant.md) | what an assistant can do here, and why there is no list of tools |
 | [serving.md](docs/serving.md) | what a visitor sees, and why a build is a folder and going live is a row |
 | [media.md](docs/media.md) | where uploaded pictures are kept |
 | [flows.md](docs/flows.md) | what a site does on its own when something happens |

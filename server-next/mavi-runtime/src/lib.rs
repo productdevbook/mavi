@@ -1,8 +1,8 @@
 //! Runtime composition without one router per cloud site.
 
-use std::{future::Future, pin::Pin, sync::Arc};
+use std::{collections::HashMap, future::Future, pin::Pin, sync::Arc};
 
-use axum::{Router, routing::get};
+use axum::{Router, http::header::HOST, routing::get};
 use mavi_core::{MaviError, RequestId, Result, SiteContext, SiteId};
 use mavi_storage::{Database, SiteTx};
 use uuid::Uuid;
@@ -36,6 +36,58 @@ impl SiteResolver for FixedSiteResolver {
             ))
         })
     }
+}
+
+/// Cloud edge resolution backed by an allowlisted host-to-site directory.
+///
+/// The request cannot choose an arbitrary site ID. The edge-facing host must
+/// already be present in the resolver's directory, after which the normal
+/// request-level `SiteContext` and scoped transaction path is used.
+#[derive(Clone, Debug)]
+pub struct HostSiteResolver {
+    sites: Arc<HashMap<String, SiteId>>,
+}
+
+impl HostSiteResolver {
+    #[must_use]
+    pub fn new(entries: impl IntoIterator<Item = (String, SiteId)>) -> Self {
+        let sites = entries
+            .into_iter()
+            .map(|(host, site_id)| (normalize_host(&host), site_id))
+            .collect();
+        Self {
+            sites: Arc::new(sites),
+        }
+    }
+}
+
+impl SiteResolver for HostSiteResolver {
+    fn resolve(&self, headers: axum::http::HeaderMap, request_id: RequestId) -> ResolveFuture {
+        let sites = Arc::clone(&self.sites);
+        Box::pin(async move {
+            let host = headers
+                .get(HOST)
+                .and_then(|value| value.to_str().ok())
+                .map(normalize_host)
+                .ok_or_else(|| MaviError::validation("site_host_required"))?;
+            let site_id = sites.get(&host).copied().ok_or(MaviError::NotFound {
+                resource: "site_host",
+            })?;
+            Ok(SiteContext::with_caller(
+                site_id,
+                mavi_core::Caller::Public,
+                request_id,
+            ))
+        })
+    }
+}
+
+fn normalize_host(value: &str) -> String {
+    value
+        .trim()
+        .split_once(':')
+        .map_or(value.trim(), |(host, _)| host)
+        .to_ascii_lowercase()
 }
 
 /// One router and one pool can serve many site scopes in a shard.
@@ -113,6 +165,29 @@ mod tests {
 
         assert_eq!(context.site_id, site_id);
         assert!(context.caller.is_public());
+    }
+
+    #[tokio::test]
+    async fn host_resolver_only_accepts_allowlisted_hosts() {
+        let site_id = SiteId::new();
+        let resolver = HostSiteResolver::new([("Example.com".to_owned(), site_id)]);
+        let mut headers = axum::http::HeaderMap::new();
+        headers.insert(HOST, "example.com:443".parse().expect("host"));
+
+        let context = resolver
+            .resolve(headers, RequestId::new())
+            .await
+            .expect("known host");
+        assert_eq!(context.site_id, site_id);
+
+        let mut unknown_headers = axum::http::HeaderMap::new();
+        unknown_headers.insert(HOST, "other.example.com".parse().expect("host"));
+        assert!(
+            resolver
+                .resolve(unknown_headers, RequestId::new())
+                .await
+                .is_err()
+        );
     }
 
     #[test]

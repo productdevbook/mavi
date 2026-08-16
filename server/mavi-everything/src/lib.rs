@@ -18,6 +18,7 @@
 pub mod assistant;
 pub mod building;
 pub mod mounted;
+pub mod overview;
 pub mod showing;
 
 use mavi_api::{Api, Endpoint};
@@ -35,6 +36,7 @@ pub fn endpoints() -> Vec<Endpoint> {
     all.extend(mavi_people::endpoints());
     all.extend(mavi_settings::endpoints());
     all.extend(mavi_health::endpoints());
+    all.extend(mavi_analytics::endpoints());
     all.extend(mavi_content::endpoints());
     all.extend(mavi_taxonomy::endpoints());
     all.extend(mavi_media::endpoints());
@@ -47,8 +49,9 @@ pub fn endpoints() -> Vec<Endpoint> {
     all.extend(mavi_boards::endpoints());
     all.extend(mavi_audit::endpoints());
 
-    // Last, because it is the only endpoint that is not a thing a site does.
-    // It is a way in to all the others.
+    // The two this crate owns rather than a domain, and each because no domain
+    // could: one asks across all of them, the other is a way in to all of them.
+    all.push(crate::overview::endpoint());
     all.push(crate::assistant::endpoint());
 
     all
@@ -67,6 +70,8 @@ pub fn shapes() -> Vec<mavi_api::Shape> {
     all.extend(mavi_taxonomy::described::shapes());
     all.extend(mavi_settings::described::shapes());
     all.extend(mavi_health::described::shapes());
+    all.extend(mavi_analytics::described::shapes());
+    all.extend(crate::overview::shapes());
     all.extend(mavi_media::described::shapes());
     all.extend(mavi_forms::described::shapes());
     all.extend(mavi_people::described::shapes());

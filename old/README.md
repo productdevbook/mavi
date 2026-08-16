@@ -12,7 +12,7 @@ directory, and what of it the rewrite can do:
 | `src/edge` | 343 | ~~nothing~~ `server/mavi-edge` and `mavi-everything/src/showing.rs` |
 | `src/mcp` | 726 | ~~nothing~~ `server/mavi-assistant` and `mavi-everything/src/assistant.rs`, and none of its seven hundred lines came with it: a tool is an endpoint |
 | `src/publishing` + `src/building` | 1377 | ~~nothing~~ publishing is one row, and how a site is built is the `Builds` port. What ships serves what a design put under `public/`; a host that runs each site's own generator hands in its own. |
-| `src/analytics`, `src/reports` | 829 | nothing |
+| `src/analytics`, `src/reports` | 829 | ~~nothing~~ `server/mavi-analytics` counts, and `mavi-everything/src/overview.rs` is the first screen. **`reports` is not coming back**: somebody telling whoever runs the machine that a screen is broken is the hosting business's, not the CMS's — its own table says so, with a column for whether an assistant said the same thing about forty sites. |
 | `src/portable` | 403 | nothing — how a site leaves |
 | `src/plugins` | 524 | nothing |
 | `src/health` | 325 | ~~nothing~~ `server/mavi-health`, and two endpoints where there was one: what a container runtime asks is told the process is up and nothing else |

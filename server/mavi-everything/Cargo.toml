@@ -6,6 +6,7 @@ publish = false
 description = "Everything this installation answers, and the questions no one domain can ask about itself."
 
 [dependencies]
+mavi-analytics = { path = "../mavi-analytics" }
 mavi-api = { path = "../mavi-api" }
 mavi-assistant = { path = "../mavi-assistant" }
 mavi-audit = { path = "../mavi-audit" }
@@ -33,6 +34,7 @@ mavi-work = { path = "../mavi-work" }
 axum = { workspace = true }
 chrono = { workspace = true }
 serde_json = { workspace = true }
+sqlx = { workspace = true }
 uuid = { workspace = true }
 
 [dev-dependencies]

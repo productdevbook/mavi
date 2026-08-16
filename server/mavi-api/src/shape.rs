@@ -187,13 +187,11 @@ fn described(field: &Field) -> Value {
     // that is another shape and may be nothing is said as a choice between the
     // two rather than as a reference with a note on it.
     if field.null {
-        said = match said.get("$ref") {
-            Some(_) => json!({ "oneOf": [said, { "type": "null" }] }),
-            None => {
-                said["nullable"] = json!(true);
-                said
-            }
-        };
+        if said.get("$ref").is_some() {
+            said = json!({ "oneOf": [said, { "type": "null" }] });
+        } else {
+            said["nullable"] = json!(true);
+        }
     }
 
     if let Some(object) = said.as_object_mut()

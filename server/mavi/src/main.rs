@@ -66,6 +66,7 @@ async fn main() -> Result<()> {
     let working = tokio::spawn(doing::keep_working(
         db.clone(),
         queue.clone(),
+        Arc::clone(&files),
         told.worker.clone(),
     ));
     let timing = tokio::spawn(doing::keep_time(db.clone(), queue, told.worker.clone()));

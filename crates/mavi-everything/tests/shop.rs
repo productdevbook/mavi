@@ -140,8 +140,12 @@ async fn how_many_left(db: &Db, id: &str) -> i32 {
 }
 
 fn a_basket(product: &str, how_many: u32, once: &str) -> Value {
+    basket_of("somebody@example.test", product, how_many, once)
+}
+
+fn basket_of(email: &str, product: &str, how_many: u32, once: &str) -> Value {
     json!({
-        "email": "somebody@example.test",
+        "email": email,
         "wanted": [{ "product": product, "how_many": how_many }],
         "said_once": once,
     })
@@ -383,4 +387,46 @@ async fn a_page_is_never_told_how_many_are_left() {
     // stock list. What a page needs is whether it can be bought.
     assert_eq!(keys, ["about", "can_be_bought", "name", "price", "slug"]);
     assert_eq!(first["can_be_bought"], true);
+}
+
+#[tokio::test]
+async fn one_persons_key_does_not_answer_with_another_persons_order() {
+    if postgres().is_none() {
+        return;
+    }
+
+    let db = fresh("guessed").await;
+    let thing = on_the_shelf(&db, "a-thing", 5).await;
+
+    // Anybody may place an order, and the key is theirs to choose — so a key
+    // is something a stranger can guess. What an order carries is the address
+    // somebody typed, what they bought and what they paid.
+    let (status, theirs) = asked(
+        &db,
+        posting(
+            "/api/open/orders",
+            &basket_of("somebody@example.test", &thing, 1, "abc123"),
+        ),
+    )
+    .await;
+    assert_eq!(status, StatusCode::CREATED);
+
+    let (status, guessed) = asked(
+        &db,
+        posting(
+            "/api/open/orders",
+            &basket_of("a-stranger@example.test", &thing, 1, "abc123"),
+        ),
+    )
+    .await;
+
+    assert_eq!(status, StatusCode::CREATED);
+    assert_ne!(
+        theirs["id"], guessed["id"],
+        "a guessed key answered with somebody else's order"
+    );
+
+    // And the shelf moved twice, because these are two orders rather than one
+    // read back.
+    assert_eq!(how_many_left(&db, &thing).await, 3);
 }

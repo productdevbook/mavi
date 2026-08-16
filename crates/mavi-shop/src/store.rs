@@ -378,19 +378,28 @@ pub struct Basket {
 /// deadlocking. Nothing is read and then trusted: the shelf is checked against
 /// the row that has been locked.
 pub async fn place(tx: &mut Tx, basket: &Basket) -> Result<Order> {
+    let email = mavi_core::email::Email::parse(&basket.email)?;
+
     // The same request twice is one order. Asked first, so a repeat costs one
     // query rather than a lock on everything in the basket.
-    let already: Option<Uuid> = sqlx::query_scalar("select id from orders where said_once = $1")
-        .bind(&basket.said_once)
-        .fetch_optional(tx.conn())
-        .await
-        .map_err(Error::internal)?;
+    //
+    // **Scoped to the address the order is for.** The key is chosen by whoever
+    // is placing the order and this endpoint is open to anybody, so a key on
+    // its own is something a stranger can guess — and an order read back
+    // carries the address somebody typed, what they bought and what they paid.
+    // Matching the address as well means a repeat still answers with the same
+    // order and a guess answers with nothing.
+    let already: Option<Uuid> =
+        sqlx::query_scalar("select id from orders where said_once = $1 and email = $2")
+            .bind(&basket.said_once)
+            .bind(email.as_str())
+            .fetch_optional(tx.conn())
+            .await
+            .map_err(Error::internal)?;
 
     if let Some(already) = already {
         return read(tx, already).await;
     }
-
-    let email = mavi_core::email::Email::parse(&basket.email)?;
     let in_order = reached_for(&basket.wanted)?;
 
     let mut lines = Vec::with_capacity(in_order.len());

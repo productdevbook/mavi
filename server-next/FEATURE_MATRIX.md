@@ -27,6 +27,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [-] Forms and submissions enforce RLS, composite foreign keys and site-aware keys.
   - [x] Mail templates, lists, readers, deliveries and delivery attempts enforce RLS, composite foreign keys and site-aware keys.
   - [x] Shop products, coupons, order counters, orders, lines, holds and coupon uses enforce RLS, composite foreign keys and site-aware keys.
+  - [x] Courses, modules, lessons, students, sessions, enrollments and progress enforce RLS, composite foreign keys and site-aware keys.
   - [ ] Remaining domain tables and a single reusable DB guard for every repository.
 - [-] Migration and schema integration tests against PostgreSQL.
   - [x] Storage, identity and settings migrations run against a non-superuser PostgreSQL role.
@@ -46,7 +47,9 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Site-scoped role list/create/grant replacement endpoints are canonicalized.
   - [x] Cedar authorizes HTTP resources and role/person grant delegation cannot escalate.
   - [ ] Role deletion, ownership invariants and full assistant lifecycle UI.
-- [ ] Student identity isolated from panel accounts.
+- [x] Student identity isolated from panel accounts.
+  - [x] Invitation tokens are single-use hashes; activation creates a separate expiring student session.
+  - [x] Student sessions carry no panel grants and are rejected by account/operator endpoints.
 - [ ] Rate limits, request audit identity and security events.
 
 ## Site configuration and content
@@ -116,8 +119,14 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Coupon percentage/amount rules, expiry/max-use locking and coupon-use audit boundaries.
   - [x] Payment remains a shared adapter boundary; HTTP only records an external receipt and never calls a provider inline.
   - [ ] Concrete payment providers, refund policy and payment webhook worker.
-- [ ] Courses, modules, lessons, video/file access and student enrollment.
-- [ ] Expiring access, progress, completion and instructor permissions.
+- [-] Courses, modules, lessons, video/file access and student enrollment.
+  - [x] Course lifecycle is monotonic (`draft` → `open` → `closed`); ordered module/lesson writes are atomic and closed courses reject content changes.
+  - [x] Student invitations, activation/login, enrollment and self-only learning routes use typed DTOs and opaque cursors.
+  - [x] Lesson media is served as protected bytes only after enrollment, standing and open-course checks.
+  - [x] Course tables use composite site keys, foreign keys and RLS; mutations emit audit receipts.
+- [-] Expiring access, progress, completion and instructor permissions.
+  - [x] Student sessions expire, stopped students lose access, and lesson completion is idempotent while retaining progress after unenrollment.
+  - [ ] Course-specific instructor assignments and per-course Cedar resource grants.
 
 ## Automation and collaboration
 
@@ -147,6 +156,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Forms declaration/submission PostgreSQL RLS isolation and HTTP validation/cursor/permission tests.
   - [x] Mail template/list/outbox PostgreSQL RLS state-machine tests and HTTP contract coverage.
   - [x] Shop catalog/checkout/stock/order PostgreSQL isolation tests and HTTP permission/contract coverage.
+  - [x] Courses authoring/order/student-session/enrollment/progress/media PostgreSQL isolation tests and HTTP permission/contract coverage.
   - [x] Identity HTTP integration covers setup, login, cursor, 401/403 and Cedar behavior.
   - [x] Generated OpenAPI/TypeScript/Rust/MCP artifacts have stale-contract tests.
   - [ ] Remaining domain HTTP suites.

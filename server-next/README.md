@@ -40,6 +40,7 @@ The same Mavi application runs in both modes:
 | `mavi-forms` | validated site form declarations, public submissions and cursor-based inbox management |
 | `mavi-mail` | strict templates, subscriber lists, unsubscribe tokens and provider-neutral outbox delivery |
 | `mavi-shop` | site-scoped products, money, stock holds, coupons, checkout and order state transitions |
+| `mavi-courses` | course authoring, ordered modules/lessons, isolated student sessions, enrollment, progress and protected lesson media |
 | `mavi` | executable composition root |
 
 Domains are added only after the foundation is stable. Each domain owns its
@@ -71,6 +72,13 @@ and delivery workers claim short leases before calling a provider adapter. Shop
 checkout uses site-local order numbers, immutable line snapshots and
 email-scoped idempotency keys; public product responses never reveal stock
 counts.
+
+Courses keep panel accounts and students as different principals. Panel course
+operations require the Cedar `courses` capability; students receive a
+single-use invitation, activate an expiring session, and can only read lessons
+and attached media for their own enrollment while the course is open. Course,
+student, enrollment and progress lists use the same opaque keyset cursor rule;
+offset/page-number pagination is not supported.
 
 Self-host stores binary objects outside PostgreSQL. Set `MAVI_FILES_DIR` to a
 persistent directory (default: `./mavi-files`); object keys are generated from

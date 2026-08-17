@@ -187,6 +187,8 @@ jobs:
       - run: cargo nextest run -p mavi-http --test mail --run-ignored all
       - run: cargo nextest run -p mavi-shop --test postgres --run-ignored all
       - run: cargo nextest run -p mavi-http --test shop --run-ignored all
+      - run: cargo nextest run -p mavi-courses --test postgres --run-ignored all
+      - run: cargo nextest run -p mavi-http --test courses --run-ignored all
       - run: cargo nextest run -p mavi-http --test audit_trash --run-ignored all
       - run: cargo test --workspace --doc
 

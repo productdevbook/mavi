@@ -211,6 +211,44 @@ pub struct CouponPage {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Course {
+    pub id: String,
+    pub slug: String,
+    pub title: String,
+    pub about: Option<String>,
+    pub state: CourseState,
+    pub modules: Vec<Module>,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct CourseListFilter {
+    pub after: Option<String>,
+    pub limit: Option<i64>,
+    pub state: Option<CourseState>,
+}
+
+pub type CourseState = String;
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct CourseSummary {
+    pub id: String,
+    pub slug: String,
+    pub title: String,
+    pub about: Option<String>,
+    pub state: CourseState,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct CourseSummaryPage {
+    pub items: Vec<CourseSummary>,
+    pub next_cursor: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct CreateApiKey {
     pub name: String,
     pub grants: Vec<Grant>,
@@ -240,6 +278,13 @@ pub struct CreateCoupon {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct CreateCourse {
+    pub slug: String,
+    pub title: String,
+    pub about: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct CreateForm {
     pub slug: String,
     pub name: String,
@@ -255,6 +300,13 @@ pub struct CreateLanguage {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct CreateLesson {
+    pub title: String,
+    pub body: Option<String>,
+    pub media_file_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct CreateMailList {
     pub slug: String,
     pub name: String,
@@ -267,6 +319,11 @@ pub struct CreateMailTemplate {
     pub subject: String,
     pub body: String,
     pub content_type: Option<MailContentType>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct CreateModule {
+    pub title: String,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -294,6 +351,12 @@ pub struct CreateRole {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct CreateStudent {
+    pub email: String,
+    pub name: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct CreateTerm {
     pub kind: TermKind,
     pub language: String,
@@ -315,7 +378,7 @@ pub struct DeliveryListFilter {
     pub status: Option<MailDeliveryStatus>,
 }
 
-pub type DesignAsset = String;
+pub type DesignAsset = Vec<u8>;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct DesignBuild {
@@ -423,6 +486,33 @@ pub struct EnqueueDelivery {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct EnrollStudent {
+    pub student_id: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Enrollment {
+    pub id: String,
+    pub course_id: String,
+    pub student_id: String,
+    pub started_at: String,
+    pub finished_at: Option<String>,
+    pub created_at: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct EnrollmentListFilter {
+    pub after: Option<String>,
+    pub limit: Option<i64>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct EnrollmentPage {
+    pub items: Vec<Enrollment>,
+    pub next_cursor: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ErrorBody {
     pub code: String,
     pub message: String,
@@ -445,7 +535,7 @@ pub struct File {
     pub created_at: String,
 }
 
-pub type FileBytes = String;
+pub type FileBytes = Vec<u8>;
 
 pub type FileKind = String;
 
@@ -531,6 +621,60 @@ pub struct LanguageListFilter {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct LanguagePage {
     pub items: Vec<Language>,
+    pub next_cursor: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct LearningCourse {
+    pub course_id: String,
+    pub slug: String,
+    pub title: String,
+    pub about: Option<String>,
+    pub state: CourseState,
+    pub completed_lessons: i64,
+    pub total_lessons: i64,
+    pub enrolled_at: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct LearningCourseListFilter {
+    pub after: Option<String>,
+    pub limit: Option<i64>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct LearningCoursePage {
+    pub items: Vec<LearningCourse>,
+    pub next_cursor: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct LearningLesson {
+    pub lesson: Lesson,
+    pub completed_at: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Lesson {
+    pub id: String,
+    pub module_id: String,
+    pub title: String,
+    pub body: String,
+    pub media_file_id: Option<String>,
+    pub position: i64,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct LessonListFilter {
+    pub after: Option<String>,
+    pub limit: Option<i64>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct LessonPage {
+    pub items: Vec<Lesson>,
     pub next_cursor: Option<String>,
 }
 
@@ -646,6 +790,17 @@ pub struct MailTemplatePage {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct MailTemplatePreview {
     pub variables: Option<Value>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Module {
+    pub id: String,
+    pub course_id: String,
+    pub title: String,
+    pub position: i64,
+    pub lessons: Vec<Lesson>,
+    pub created_at: String,
+    pub updated_at: String,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -782,6 +937,12 @@ pub struct ProductPrice {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Progress {
+    pub lesson_id: String,
+    pub completed_at: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct PublicForm {
     pub slug: String,
     pub name: String,
@@ -827,6 +988,16 @@ pub struct RenderedMail {
     pub subject: String,
     pub body: String,
     pub content_type: MailContentType,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ReorderLessons {
+    pub order: Vec<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ReorderModules {
+    pub order: Vec<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -916,6 +1087,58 @@ pub struct SiteSettings {
 pub struct StartDesignChange {
     pub name: String,
 }
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Student {
+    pub id: String,
+    pub email: String,
+    pub name: String,
+    pub standing: StudentStanding,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct StudentActivationInput {
+    pub email: String,
+    pub invitation_token: String,
+    pub password: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct StudentInvitation {
+    pub student: Student,
+    pub invitation_token: String,
+    pub invitation_expires_at: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct StudentListFilter {
+    pub after: Option<String>,
+    pub limit: Option<i64>,
+    pub standing: Option<StudentStanding>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct StudentLoginInput {
+    pub email: String,
+    pub password: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct StudentPage {
+    pub items: Vec<Student>,
+    pub next_cursor: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct StudentSessionCreated {
+    pub student: Student,
+    pub token: String,
+    pub expires_at: String,
+}
+
+pub type StudentStanding = String;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct SubmissionListFilter {
@@ -1012,6 +1235,13 @@ pub struct UpdateContent {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct UpdateCourse {
+    pub title: Option<String>,
+    pub about: Option<String>,
+    pub state: Option<Value>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct UpdateForm {
     pub name: Option<String>,
     pub fields: Option<Value>,
@@ -1026,6 +1256,13 @@ pub struct UpdateLanguage {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct UpdateLesson {
+    pub title: Option<String>,
+    pub body: Option<String>,
+    pub media_file_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct UpdateMailList {
     pub name: Option<String>,
 }
@@ -1035,6 +1272,11 @@ pub struct UpdateMailTemplate {
     pub subject: Option<String>,
     pub body: Option<String>,
     pub content_type: Option<Value>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct UpdateModule {
+    pub title: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -1058,6 +1300,12 @@ pub struct UpdateSiteSettings {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct UpdateStudent {
+    pub name: Option<String>,
+    pub standing: Option<Value>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct UpdateTerm {
     pub name: Option<String>,
     pub parent_id: Option<String>,
@@ -1077,6 +1325,7 @@ pub struct OperationDefinition {
     pub request_location: Option<&'static str>,
     pub query: Option<&'static str>,
     pub response: Option<&'static str>,
+    pub response_location: Option<&'static str>,
     pub status: u16,
     pub authentication: &'static str,
     pub capability: Option<&'static str>,
@@ -1084,110 +1333,138 @@ pub struct OperationDefinition {
 }
 
 pub const OPERATIONS: &[OperationDefinition] = &[
-    OperationDefinition { name: "setup.status", method: "get", path: "/api/v1/setup", request: None, request_location: None, query: None, response: Some("SetupStatus"), status: 200, authentication: "public", capability: None, action: None },
-    OperationDefinition { name: "setup.initialize", method: "post", path: "/api/v1/setup", request: Some("SetupInput"), request_location: Some("json"), query: None, response: Some("Person"), status: 201, authentication: "public", capability: None, action: None },
-    OperationDefinition { name: "auth.session.create", method: "post", path: "/api/v1/auth/sessions", request: Some("LoginInput"), request_location: Some("json"), query: None, response: Some("SessionCreated"), status: 201, authentication: "public", capability: None, action: None },
-    OperationDefinition { name: "auth.session.revoke", method: "delete", path: "/api/v1/auth/sessions/current", request: None, request_location: None, query: None, response: Some("Empty"), status: 204, authentication: "account", capability: None, action: None },
-    OperationDefinition { name: "auth.api_key.create", method: "post", path: "/api/v1/auth/api-keys", request: Some("CreateApiKey"), request_location: Some("json"), query: None, response: Some("ApiKeyCreated"), status: 201, authentication: "account", capability: Some("people"), action: Some("write") },
-    OperationDefinition { name: "auth.api_key.revoke", method: "delete", path: "/api/v1/auth/api-keys/{id}", request: None, request_location: None, query: None, response: Some("Empty"), status: 204, authentication: "account_or_assistant", capability: Some("people"), action: Some("delete") },
-    OperationDefinition { name: "people.list", method: "get", path: "/api/v1/people", request: Some("PeopleListFilter"), request_location: Some("query"), query: None, response: Some("PersonPage"), status: 200, authentication: "account_or_assistant", capability: Some("people"), action: Some("view") },
-    OperationDefinition { name: "people.create", method: "post", path: "/api/v1/people", request: Some("CreatePerson"), request_location: Some("json"), query: None, response: Some("PersonRecord"), status: 201, authentication: "account_or_assistant", capability: Some("people"), action: Some("write") },
-    OperationDefinition { name: "people.status.update", method: "patch", path: "/api/v1/people/{id}/status", request: Some("UpdatePersonStatus"), request_location: Some("json"), query: None, response: Some("PersonRecord"), status: 200, authentication: "account_or_assistant", capability: Some("people"), action: Some("write") },
-    OperationDefinition { name: "roles.list", method: "get", path: "/api/v1/roles", request: Some("RoleListFilter"), request_location: Some("query"), query: None, response: Some("RolePage"), status: 200, authentication: "account_or_assistant", capability: Some("people"), action: Some("view") },
-    OperationDefinition { name: "roles.create", method: "post", path: "/api/v1/roles", request: Some("CreateRole"), request_location: Some("json"), query: None, response: Some("Role"), status: 201, authentication: "account_or_assistant", capability: Some("people"), action: Some("write") },
-    OperationDefinition { name: "roles.grants.replace", method: "put", path: "/api/v1/roles/{id}/grants", request: Some("ReplaceRoleGrants"), request_location: Some("json"), query: None, response: Some("Role"), status: 200, authentication: "account_or_assistant", capability: Some("people"), action: Some("write") },
-    OperationDefinition { name: "content.list", method: "get", path: "/api/v1/content", request: Some("ContentListFilter"), request_location: Some("query"), query: None, response: Some("ContentPage"), status: 200, authentication: "account_or_assistant", capability: Some("content"), action: Some("view") },
-    OperationDefinition { name: "content.read", method: "get", path: "/api/v1/content/{id}", request: None, request_location: None, query: None, response: Some("Content"), status: 200, authentication: "account_or_assistant", capability: Some("content"), action: Some("view") },
-    OperationDefinition { name: "content.create", method: "post", path: "/api/v1/content", request: Some("CreateContent"), request_location: Some("json"), query: None, response: Some("Content"), status: 201, authentication: "account_or_assistant", capability: Some("content"), action: Some("write") },
-    OperationDefinition { name: "content.update", method: "patch", path: "/api/v1/content/{id}", request: Some("UpdateContent"), request_location: Some("json"), query: None, response: Some("Content"), status: 200, authentication: "account_or_assistant", capability: Some("content"), action: Some("write") },
-    OperationDefinition { name: "content.publish", method: "post", path: "/api/v1/content/{id}/publish", request: None, request_location: None, query: None, response: Some("Content"), status: 200, authentication: "account_or_assistant", capability: Some("publish"), action: Some("write") },
-    OperationDefinition { name: "content.schedule", method: "post", path: "/api/v1/content/{id}/schedule", request: Some("ScheduleContent"), request_location: Some("json"), query: None, response: Some("Content"), status: 200, authentication: "account_or_assistant", capability: Some("publish"), action: Some("write") },
-    OperationDefinition { name: "content.archive", method: "post", path: "/api/v1/content/{id}/archive", request: None, request_location: None, query: None, response: Some("Content"), status: 200, authentication: "account_or_assistant", capability: Some("publish"), action: Some("write") },
-    OperationDefinition { name: "content.trash", method: "delete", path: "/api/v1/content/{id}", request: None, request_location: None, query: None, response: Some("Empty"), status: 204, authentication: "account_or_assistant", capability: Some("trash"), action: Some("delete") },
-    OperationDefinition { name: "content.restore", method: "post", path: "/api/v1/content/{id}/restore", request: None, request_location: None, query: None, response: Some("Content"), status: 200, authentication: "account_or_assistant", capability: Some("trash"), action: Some("write") },
-    OperationDefinition { name: "content.public_read", method: "get", path: "/public/v1/content/{slug}", request: None, request_location: None, query: None, response: Some("Content"), status: 200, authentication: "public", capability: None, action: None },
-    OperationDefinition { name: "content_types.list", method: "get", path: "/api/v1/content-types", request: Some("ContentTypeListFilter"), request_location: Some("query"), query: None, response: Some("ContentTypePage"), status: 200, authentication: "account_or_assistant", capability: Some("content"), action: Some("view") },
-    OperationDefinition { name: "content_types.upsert", method: "put", path: "/api/v1/content-types/{kind}", request: Some("DeclareContentType"), request_location: Some("json"), query: None, response: Some("ContentType"), status: 200, authentication: "account_or_assistant", capability: Some("content"), action: Some("write") },
-    OperationDefinition { name: "content_types.delete", method: "delete", path: "/api/v1/content-types/{kind}", request: None, request_location: None, query: None, response: Some("Empty"), status: 204, authentication: "account_or_assistant", capability: Some("content"), action: Some("delete") },
-    OperationDefinition { name: "content.revisions.list", method: "get", path: "/api/v1/content/{id}/revisions", request: Some("ContentRevisionListFilter"), request_location: Some("query"), query: None, response: Some("ContentRevisionPage"), status: 200, authentication: "account_or_assistant", capability: Some("content"), action: Some("view") },
-    OperationDefinition { name: "content.revisions.read", method: "get", path: "/api/v1/content/{id}/revisions/{revision}", request: None, request_location: None, query: None, response: Some("ContentRevision"), status: 200, authentication: "account_or_assistant", capability: Some("content"), action: Some("view") },
-    OperationDefinition { name: "settings.read", method: "get", path: "/api/v1/settings", request: None, request_location: None, query: None, response: Some("SiteSettings"), status: 200, authentication: "account_or_assistant", capability: Some("settings"), action: Some("view") },
-    OperationDefinition { name: "settings.update", method: "patch", path: "/api/v1/settings", request: Some("UpdateSiteSettings"), request_location: Some("json"), query: None, response: Some("SiteSettings"), status: 200, authentication: "account_or_assistant", capability: Some("settings"), action: Some("write") },
-    OperationDefinition { name: "languages.list", method: "get", path: "/api/v1/languages", request: Some("LanguageListFilter"), request_location: Some("query"), query: None, response: Some("LanguagePage"), status: 200, authentication: "account_or_assistant", capability: Some("settings"), action: Some("view") },
-    OperationDefinition { name: "languages.create", method: "post", path: "/api/v1/languages", request: Some("CreateLanguage"), request_location: Some("json"), query: None, response: Some("Language"), status: 201, authentication: "account_or_assistant", capability: Some("settings"), action: Some("write") },
-    OperationDefinition { name: "languages.update", method: "patch", path: "/api/v1/languages/{tag}", request: Some("UpdateLanguage"), request_location: Some("json"), query: None, response: Some("Language"), status: 200, authentication: "account_or_assistant", capability: Some("settings"), action: Some("write") },
-    OperationDefinition { name: "languages.delete", method: "delete", path: "/api/v1/languages/{tag}", request: None, request_location: None, query: None, response: Some("Empty"), status: 204, authentication: "account_or_assistant", capability: Some("settings"), action: Some("delete") },
-    OperationDefinition { name: "taxonomy.terms.list", method: "get", path: "/api/v1/terms", request: Some("TermListFilter"), request_location: Some("query"), query: None, response: Some("TermPage"), status: 200, authentication: "account_or_assistant", capability: Some("taxonomy"), action: Some("view") },
-    OperationDefinition { name: "taxonomy.terms.create", method: "post", path: "/api/v1/terms", request: Some("CreateTerm"), request_location: Some("json"), query: None, response: Some("Term"), status: 201, authentication: "account_or_assistant", capability: Some("taxonomy"), action: Some("write") },
-    OperationDefinition { name: "taxonomy.terms.read", method: "get", path: "/api/v1/terms/{id}", request: None, request_location: None, query: None, response: Some("Term"), status: 200, authentication: "account_or_assistant", capability: Some("taxonomy"), action: Some("view") },
-    OperationDefinition { name: "taxonomy.terms.update", method: "patch", path: "/api/v1/terms/{id}", request: Some("UpdateTerm"), request_location: Some("json"), query: None, response: Some("Term"), status: 200, authentication: "account_or_assistant", capability: Some("taxonomy"), action: Some("write") },
-    OperationDefinition { name: "taxonomy.terms.trash", method: "delete", path: "/api/v1/terms/{id}", request: None, request_location: None, query: None, response: Some("Empty"), status: 204, authentication: "account_or_assistant", capability: Some("taxonomy"), action: Some("delete") },
-    OperationDefinition { name: "taxonomy.content_terms.list", method: "get", path: "/api/v1/content/{id}/terms", request: None, request_location: None, query: None, response: Some("TermList"), status: 200, authentication: "account_or_assistant", capability: Some("taxonomy"), action: Some("view") },
-    OperationDefinition { name: "taxonomy.content_terms.replace", method: "put", path: "/api/v1/content/{id}/terms", request: Some("ReplaceContentTerms"), request_location: Some("json"), query: None, response: Some("TermList"), status: 200, authentication: "account_or_assistant", capability: Some("taxonomy"), action: Some("write") },
-    OperationDefinition { name: "taxonomy.term_content.list", method: "get", path: "/api/v1/terms/{id}/content", request: Some("ContentTermAssignmentListFilter"), request_location: Some("query"), query: None, response: Some("ContentTermAssignmentPage"), status: 200, authentication: "account_or_assistant", capability: Some("taxonomy"), action: Some("view") },
-    OperationDefinition { name: "media.files.list", method: "get", path: "/api/v1/files", request: Some("FileListFilter"), request_location: Some("query"), query: None, response: Some("FilePage"), status: 200, authentication: "account_or_assistant", capability: Some("media"), action: Some("view") },
-    OperationDefinition { name: "media.files.upload", method: "post", path: "/api/v1/files", request: Some("FileBytes"), request_location: Some("raw"), query: Some("UploadFileQuery"), response: Some("File"), status: 201, authentication: "account_or_assistant", capability: Some("media"), action: Some("write") },
-    OperationDefinition { name: "media.files.read", method: "get", path: "/api/v1/files/{id}", request: None, request_location: None, query: None, response: Some("File"), status: 200, authentication: "account_or_assistant", capability: Some("media"), action: Some("view") },
-    OperationDefinition { name: "media.files.trash", method: "delete", path: "/api/v1/files/{id}", request: None, request_location: None, query: None, response: Some("Empty"), status: 204, authentication: "account_or_assistant", capability: Some("media"), action: Some("delete") },
-    OperationDefinition { name: "audit.events.list", method: "get", path: "/api/v1/audit", request: Some("AuditListFilter"), request_location: Some("query"), query: None, response: Some("AuditEventPage"), status: 200, authentication: "account_or_assistant", capability: Some("audit"), action: Some("view") },
-    OperationDefinition { name: "audit.events.read", method: "get", path: "/api/v1/audit/{id}", request: None, request_location: None, query: None, response: Some("AuditEvent"), status: 200, authentication: "account_or_assistant", capability: Some("audit"), action: Some("view") },
-    OperationDefinition { name: "trash.items.list", method: "get", path: "/api/v1/trash", request: Some("TrashListFilter"), request_location: Some("query"), query: None, response: Some("TrashPage"), status: 200, authentication: "account_or_assistant", capability: Some("trash"), action: Some("view") },
-    OperationDefinition { name: "trash.items.restore", method: "post", path: "/api/v1/trash/{kind}/{id}/restore", request: None, request_location: None, query: None, response: Some("Empty"), status: 204, authentication: "account_or_assistant", capability: Some("trash"), action: Some("write") },
-    OperationDefinition { name: "trash.items.delete_permanently", method: "delete", path: "/api/v1/trash/{kind}/{id}", request: None, request_location: None, query: None, response: Some("Empty"), status: 204, authentication: "account_or_assistant", capability: Some("trash"), action: Some("delete") },
-    OperationDefinition { name: "design.changes.list", method: "get", path: "/api/v1/design/changes", request: Some("DesignChangeListFilter"), request_location: Some("query"), query: None, response: Some("DesignChangePage"), status: 200, authentication: "account_or_assistant", capability: Some("design"), action: Some("view") },
-    OperationDefinition { name: "design.changes.start", method: "post", path: "/api/v1/design/changes", request: Some("StartDesignChange"), request_location: Some("json"), query: None, response: Some("DesignChange"), status: 201, authentication: "account_or_assistant", capability: Some("design"), action: Some("write") },
-    OperationDefinition { name: "design.changes.read", method: "get", path: "/api/v1/design/changes/{id}", request: None, request_location: None, query: None, response: Some("DesignChange"), status: 200, authentication: "account_or_assistant", capability: Some("design"), action: Some("view") },
-    OperationDefinition { name: "design.files.list", method: "get", path: "/api/v1/design/changes/{id}/files", request: Some("DesignFileListFilter"), request_location: Some("query"), query: None, response: Some("DesignFilePage"), status: 200, authentication: "account_or_assistant", capability: Some("design"), action: Some("view") },
-    OperationDefinition { name: "design.files.read", method: "get", path: "/api/v1/design/changes/{id}/file", request: None, request_location: None, query: Some("DesignFileQuery"), response: Some("DesignFile"), status: 200, authentication: "account_or_assistant", capability: Some("design"), action: Some("view") },
-    OperationDefinition { name: "design.files.write", method: "put", path: "/api/v1/design/changes/{id}/file", request: Some("DesignFileInput"), request_location: Some("json"), query: None, response: Some("DesignFile"), status: 200, authentication: "account_or_assistant", capability: Some("design"), action: Some("write") },
-    OperationDefinition { name: "design.files.remove", method: "delete", path: "/api/v1/design/changes/{id}/file", request: None, request_location: None, query: Some("DesignFileQuery"), response: Some("Empty"), status: 204, authentication: "account_or_assistant", capability: Some("design"), action: Some("delete") },
-    OperationDefinition { name: "design.builds.create", method: "post", path: "/api/v1/design/changes/{id}/builds", request: None, request_location: None, query: None, response: Some("DesignBuild"), status: 201, authentication: "account_or_assistant", capability: Some("design"), action: Some("write") },
-    OperationDefinition { name: "design.builds.list", method: "get", path: "/api/v1/design/changes/{id}/builds", request: Some("DesignBuildListFilter"), request_location: Some("query"), query: None, response: Some("DesignBuildPage"), status: 200, authentication: "account_or_assistant", capability: Some("design"), action: Some("view") },
-    OperationDefinition { name: "design.changes.publish", method: "post", path: "/api/v1/design/changes/{id}/publish", request: None, request_location: None, query: None, response: Some("DesignChange"), status: 200, authentication: "account_or_assistant", capability: Some("publish"), action: Some("write") },
-    OperationDefinition { name: "design.changes.rollback", method: "post", path: "/api/v1/design/changes/{id}/rollback", request: None, request_location: None, query: None, response: Some("DesignChange"), status: 200, authentication: "account_or_assistant", capability: Some("publish"), action: Some("write") },
-    OperationDefinition { name: "design.preview.asset", method: "get", path: "/preview/v1/design/{build_id}/{path}", request: None, request_location: None, query: None, response: Some("DesignAsset"), status: 200, authentication: "public", capability: None, action: None },
-    OperationDefinition { name: "design.public.asset", method: "get", path: "/public/v1/site/{path}", request: None, request_location: None, query: None, response: Some("DesignAsset"), status: 200, authentication: "public", capability: None, action: None },
-    OperationDefinition { name: "forms.list", method: "get", path: "/api/v1/forms", request: Some("FormListFilter"), request_location: Some("query"), query: None, response: Some("FormPage"), status: 200, authentication: "account_or_assistant", capability: Some("forms"), action: Some("view") },
-    OperationDefinition { name: "forms.create", method: "post", path: "/api/v1/forms", request: Some("CreateForm"), request_location: Some("json"), query: None, response: Some("Form"), status: 201, authentication: "account_or_assistant", capability: Some("forms"), action: Some("write") },
-    OperationDefinition { name: "forms.read", method: "get", path: "/api/v1/forms/{id}", request: None, request_location: None, query: None, response: Some("Form"), status: 200, authentication: "account_or_assistant", capability: Some("forms"), action: Some("view") },
-    OperationDefinition { name: "forms.update", method: "patch", path: "/api/v1/forms/{id}", request: Some("UpdateForm"), request_location: Some("json"), query: None, response: Some("Form"), status: 200, authentication: "account_or_assistant", capability: Some("forms"), action: Some("write") },
-    OperationDefinition { name: "forms.delete", method: "delete", path: "/api/v1/forms/{id}", request: None, request_location: None, query: None, response: Some("Empty"), status: 204, authentication: "account_or_assistant", capability: Some("forms"), action: Some("delete") },
-    OperationDefinition { name: "forms.submissions.list", method: "get", path: "/api/v1/forms/{id}/submissions", request: Some("SubmissionListFilter"), request_location: Some("query"), query: None, response: Some("SubmissionPage"), status: 200, authentication: "account_or_assistant", capability: Some("forms"), action: Some("view") },
-    OperationDefinition { name: "forms.submissions.mark_read", method: "post", path: "/api/v1/forms/{id}/submissions/mark-read", request: None, request_location: None, query: None, response: Some("SeenCount"), status: 200, authentication: "account_or_assistant", capability: Some("forms"), action: Some("write") },
-    OperationDefinition { name: "forms.submissions.delete", method: "delete", path: "/api/v1/form-submissions/{id}", request: None, request_location: None, query: None, response: Some("Empty"), status: 204, authentication: "account_or_assistant", capability: Some("forms"), action: Some("delete") },
-    OperationDefinition { name: "forms.public.read", method: "get", path: "/public/v1/forms/{slug}", request: None, request_location: None, query: None, response: Some("PublicForm"), status: 200, authentication: "public", capability: None, action: None },
-    OperationDefinition { name: "forms.public.submit", method: "post", path: "/public/v1/forms/{slug}/submissions", request: Some("SubmitForm"), request_location: Some("json"), query: None, response: Some("SubmissionReceipt"), status: 201, authentication: "public", capability: None, action: None },
-    OperationDefinition { name: "mail.templates.list", method: "get", path: "/api/v1/mail/templates", request: Some("MailTemplateListFilter"), request_location: Some("query"), query: None, response: Some("MailTemplatePage"), status: 200, authentication: "account_or_assistant", capability: Some("mail"), action: Some("view") },
-    OperationDefinition { name: "mail.templates.create", method: "post", path: "/api/v1/mail/templates", request: Some("CreateMailTemplate"), request_location: Some("json"), query: None, response: Some("MailTemplate"), status: 201, authentication: "account_or_assistant", capability: Some("mail"), action: Some("write") },
-    OperationDefinition { name: "mail.templates.read", method: "get", path: "/api/v1/mail/templates/{id}", request: None, request_location: None, query: None, response: Some("MailTemplate"), status: 200, authentication: "account_or_assistant", capability: Some("mail"), action: Some("view") },
-    OperationDefinition { name: "mail.templates.update", method: "patch", path: "/api/v1/mail/templates/{id}", request: Some("UpdateMailTemplate"), request_location: Some("json"), query: None, response: Some("MailTemplate"), status: 200, authentication: "account_or_assistant", capability: Some("mail"), action: Some("write") },
-    OperationDefinition { name: "mail.templates.delete", method: "delete", path: "/api/v1/mail/templates/{id}", request: None, request_location: None, query: None, response: Some("Empty"), status: 204, authentication: "account_or_assistant", capability: Some("mail"), action: Some("delete") },
-    OperationDefinition { name: "mail.templates.preview", method: "post", path: "/api/v1/mail/templates/{id}/preview", request: Some("MailTemplatePreview"), request_location: Some("json"), query: None, response: Some("RenderedMail"), status: 200, authentication: "account_or_assistant", capability: Some("mail"), action: Some("view") },
-    OperationDefinition { name: "mail.lists.list", method: "get", path: "/api/v1/mail/lists", request: Some("MailListListFilter"), request_location: Some("query"), query: None, response: Some("MailListPage"), status: 200, authentication: "account_or_assistant", capability: Some("mail"), action: Some("view") },
-    OperationDefinition { name: "mail.lists.create", method: "post", path: "/api/v1/mail/lists", request: Some("CreateMailList"), request_location: Some("json"), query: None, response: Some("MailList"), status: 201, authentication: "account_or_assistant", capability: Some("mail"), action: Some("write") },
-    OperationDefinition { name: "mail.lists.read", method: "get", path: "/api/v1/mail/lists/{id}", request: None, request_location: None, query: None, response: Some("MailList"), status: 200, authentication: "account_or_assistant", capability: Some("mail"), action: Some("view") },
-    OperationDefinition { name: "mail.lists.update", method: "patch", path: "/api/v1/mail/lists/{id}", request: Some("UpdateMailList"), request_location: Some("json"), query: None, response: Some("MailList"), status: 200, authentication: "account_or_assistant", capability: Some("mail"), action: Some("write") },
-    OperationDefinition { name: "mail.lists.delete", method: "delete", path: "/api/v1/mail/lists/{id}", request: None, request_location: None, query: None, response: Some("Empty"), status: 204, authentication: "account_or_assistant", capability: Some("mail"), action: Some("delete") },
-    OperationDefinition { name: "mail.readers.list", method: "get", path: "/api/v1/mail/lists/{id}/readers", request: Some("ReaderListFilter"), request_location: Some("query"), query: None, response: Some("MailReaderPage"), status: 200, authentication: "account_or_assistant", capability: Some("mail"), action: Some("view") },
-    OperationDefinition { name: "mail.readers.add", method: "post", path: "/api/v1/mail/lists/{id}/readers", request: Some("AddReader"), request_location: Some("json"), query: None, response: Some("MailReaderCreated"), status: 201, authentication: "account_or_assistant", capability: Some("mail"), action: Some("write") },
-    OperationDefinition { name: "mail.readers.delete", method: "delete", path: "/api/v1/mail/readers/{id}", request: None, request_location: None, query: None, response: Some("Empty"), status: 204, authentication: "account_or_assistant", capability: Some("mail"), action: Some("delete") },
-    OperationDefinition { name: "mail.public.unsubscribe", method: "post", path: "/public/v1/mail/unsubscribe/{token}", request: None, request_location: None, query: None, response: Some("UnsubscribeReceipt"), status: 200, authentication: "public", capability: None, action: None },
-    OperationDefinition { name: "mail.deliveries.list", method: "get", path: "/api/v1/mail/deliveries", request: Some("DeliveryListFilter"), request_location: Some("query"), query: None, response: Some("MailDeliveryPage"), status: 200, authentication: "account_or_assistant", capability: Some("mail"), action: Some("view") },
-    OperationDefinition { name: "mail.deliveries.enqueue", method: "post", path: "/api/v1/mail/deliveries", request: Some("EnqueueDelivery"), request_location: Some("json"), query: None, response: Some("MailDelivery"), status: 202, authentication: "account_or_assistant", capability: Some("mail"), action: Some("write") },
-    OperationDefinition { name: "mail.deliveries.read", method: "get", path: "/api/v1/mail/deliveries/{id}", request: None, request_location: None, query: None, response: Some("MailDelivery"), status: 200, authentication: "account_or_assistant", capability: Some("mail"), action: Some("view") },
-    OperationDefinition { name: "mail.deliveries.retry", method: "post", path: "/api/v1/mail/deliveries/{id}/retry", request: Some("RetryDelivery"), request_location: Some("json"), query: None, response: Some("MailDelivery"), status: 202, authentication: "account_or_assistant", capability: Some("mail"), action: Some("write") },
-    OperationDefinition { name: "mail.deliveries.campaign", method: "post", path: "/api/v1/mail/lists/{id}/deliveries", request: Some("SendCampaign"), request_location: Some("json"), query: None, response: Some("SendCount"), status: 202, authentication: "account_or_assistant", capability: Some("mail"), action: Some("write") },
-    OperationDefinition { name: "shop.products.list", method: "get", path: "/api/v1/shop/products", request: Some("ProductListFilter"), request_location: Some("query"), query: None, response: Some("ProductPage"), status: 200, authentication: "account_or_assistant", capability: Some("shop"), action: Some("view") },
-    OperationDefinition { name: "shop.products.create", method: "post", path: "/api/v1/shop/products", request: Some("CreateProduct"), request_location: Some("json"), query: None, response: Some("Product"), status: 201, authentication: "account_or_assistant", capability: Some("shop"), action: Some("write") },
-    OperationDefinition { name: "shop.products.read", method: "get", path: "/api/v1/shop/products/{id}", request: None, request_location: None, query: None, response: Some("Product"), status: 200, authentication: "account_or_assistant", capability: Some("shop"), action: Some("view") },
-    OperationDefinition { name: "shop.products.update", method: "patch", path: "/api/v1/shop/products/{id}", request: Some("UpdateProduct"), request_location: Some("json"), query: None, response: Some("Product"), status: 200, authentication: "account_or_assistant", capability: Some("shop"), action: Some("write") },
-    OperationDefinition { name: "shop.products.delete", method: "delete", path: "/api/v1/shop/products/{id}", request: None, request_location: None, query: None, response: Some("Empty"), status: 204, authentication: "account_or_assistant", capability: Some("shop"), action: Some("delete") },
-    OperationDefinition { name: "shop.public.products.list", method: "get", path: "/public/v1/shop/products", request: Some("PublicProductListFilter"), request_location: Some("query"), query: None, response: Some("PublicProductPage"), status: 200, authentication: "public", capability: None, action: None },
-    OperationDefinition { name: "shop.coupons.list", method: "get", path: "/api/v1/shop/coupons", request: Some("CouponListFilter"), request_location: Some("query"), query: None, response: Some("CouponPage"), status: 200, authentication: "account_or_assistant", capability: Some("shop"), action: Some("view") },
-    OperationDefinition { name: "shop.coupons.create", method: "post", path: "/api/v1/shop/coupons", request: Some("CreateCoupon"), request_location: Some("json"), query: None, response: Some("Coupon"), status: 201, authentication: "account_or_assistant", capability: Some("shop"), action: Some("write") },
-    OperationDefinition { name: "shop.coupons.delete", method: "delete", path: "/api/v1/shop/coupons/{id}", request: None, request_location: None, query: None, response: Some("Empty"), status: 204, authentication: "account_or_assistant", capability: Some("shop"), action: Some("delete") },
-    OperationDefinition { name: "shop.orders.list", method: "get", path: "/api/v1/shop/orders", request: Some("OrderListFilter"), request_location: Some("query"), query: None, response: Some("OrderSummaryPage"), status: 200, authentication: "account_or_assistant", capability: Some("shop"), action: Some("view") },
-    OperationDefinition { name: "shop.orders.read", method: "get", path: "/api/v1/shop/orders/{id}", request: None, request_location: None, query: None, response: Some("Order"), status: 200, authentication: "account_or_assistant", capability: Some("shop"), action: Some("view") },
-    OperationDefinition { name: "shop.orders.transition", method: "post", path: "/api/v1/shop/orders/{id}/transition", request: Some("OrderTransition"), request_location: Some("json"), query: None, response: Some("Order"), status: 200, authentication: "account_or_assistant", capability: Some("shop"), action: Some("write") },
-    OperationDefinition { name: "shop.public.orders.checkout", method: "post", path: "/public/v1/shop/orders", request: Some("CheckoutInput"), request_location: Some("json"), query: None, response: Some("CheckoutReceipt"), status: 201, authentication: "public", capability: None, action: None },
+    OperationDefinition { name: "setup.status", method: "get", path: "/api/v1/setup", request: None, request_location: None, query: None, response: Some("SetupStatus"), response_location: None, status: 200, authentication: "public", capability: None, action: None },
+    OperationDefinition { name: "setup.initialize", method: "post", path: "/api/v1/setup", request: Some("SetupInput"), request_location: Some("json"), query: None, response: Some("Person"), response_location: None, status: 201, authentication: "public", capability: None, action: None },
+    OperationDefinition { name: "auth.session.create", method: "post", path: "/api/v1/auth/sessions", request: Some("LoginInput"), request_location: Some("json"), query: None, response: Some("SessionCreated"), response_location: None, status: 201, authentication: "public", capability: None, action: None },
+    OperationDefinition { name: "auth.session.revoke", method: "delete", path: "/api/v1/auth/sessions/current", request: None, request_location: None, query: None, response: Some("Empty"), response_location: None, status: 204, authentication: "account", capability: None, action: None },
+    OperationDefinition { name: "auth.api_key.create", method: "post", path: "/api/v1/auth/api-keys", request: Some("CreateApiKey"), request_location: Some("json"), query: None, response: Some("ApiKeyCreated"), response_location: None, status: 201, authentication: "account", capability: Some("people"), action: Some("write") },
+    OperationDefinition { name: "auth.api_key.revoke", method: "delete", path: "/api/v1/auth/api-keys/{id}", request: None, request_location: None, query: None, response: Some("Empty"), response_location: None, status: 204, authentication: "account_or_assistant", capability: Some("people"), action: Some("delete") },
+    OperationDefinition { name: "people.list", method: "get", path: "/api/v1/people", request: Some("PeopleListFilter"), request_location: Some("query"), query: None, response: Some("PersonPage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("people"), action: Some("view") },
+    OperationDefinition { name: "people.create", method: "post", path: "/api/v1/people", request: Some("CreatePerson"), request_location: Some("json"), query: None, response: Some("PersonRecord"), response_location: None, status: 201, authentication: "account_or_assistant", capability: Some("people"), action: Some("write") },
+    OperationDefinition { name: "people.status.update", method: "patch", path: "/api/v1/people/{id}/status", request: Some("UpdatePersonStatus"), request_location: Some("json"), query: None, response: Some("PersonRecord"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("people"), action: Some("write") },
+    OperationDefinition { name: "roles.list", method: "get", path: "/api/v1/roles", request: Some("RoleListFilter"), request_location: Some("query"), query: None, response: Some("RolePage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("people"), action: Some("view") },
+    OperationDefinition { name: "roles.create", method: "post", path: "/api/v1/roles", request: Some("CreateRole"), request_location: Some("json"), query: None, response: Some("Role"), response_location: None, status: 201, authentication: "account_or_assistant", capability: Some("people"), action: Some("write") },
+    OperationDefinition { name: "roles.grants.replace", method: "put", path: "/api/v1/roles/{id}/grants", request: Some("ReplaceRoleGrants"), request_location: Some("json"), query: None, response: Some("Role"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("people"), action: Some("write") },
+    OperationDefinition { name: "content.list", method: "get", path: "/api/v1/content", request: Some("ContentListFilter"), request_location: Some("query"), query: None, response: Some("ContentPage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("content"), action: Some("view") },
+    OperationDefinition { name: "content.read", method: "get", path: "/api/v1/content/{id}", request: None, request_location: None, query: None, response: Some("Content"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("content"), action: Some("view") },
+    OperationDefinition { name: "content.create", method: "post", path: "/api/v1/content", request: Some("CreateContent"), request_location: Some("json"), query: None, response: Some("Content"), response_location: None, status: 201, authentication: "account_or_assistant", capability: Some("content"), action: Some("write") },
+    OperationDefinition { name: "content.update", method: "patch", path: "/api/v1/content/{id}", request: Some("UpdateContent"), request_location: Some("json"), query: None, response: Some("Content"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("content"), action: Some("write") },
+    OperationDefinition { name: "content.publish", method: "post", path: "/api/v1/content/{id}/publish", request: None, request_location: None, query: None, response: Some("Content"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("publish"), action: Some("write") },
+    OperationDefinition { name: "content.schedule", method: "post", path: "/api/v1/content/{id}/schedule", request: Some("ScheduleContent"), request_location: Some("json"), query: None, response: Some("Content"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("publish"), action: Some("write") },
+    OperationDefinition { name: "content.archive", method: "post", path: "/api/v1/content/{id}/archive", request: None, request_location: None, query: None, response: Some("Content"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("publish"), action: Some("write") },
+    OperationDefinition { name: "content.trash", method: "delete", path: "/api/v1/content/{id}", request: None, request_location: None, query: None, response: Some("Empty"), response_location: None, status: 204, authentication: "account_or_assistant", capability: Some("trash"), action: Some("delete") },
+    OperationDefinition { name: "content.restore", method: "post", path: "/api/v1/content/{id}/restore", request: None, request_location: None, query: None, response: Some("Content"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("trash"), action: Some("write") },
+    OperationDefinition { name: "content.public_read", method: "get", path: "/public/v1/content/{slug}", request: None, request_location: None, query: None, response: Some("Content"), response_location: None, status: 200, authentication: "public", capability: None, action: None },
+    OperationDefinition { name: "content_types.list", method: "get", path: "/api/v1/content-types", request: Some("ContentTypeListFilter"), request_location: Some("query"), query: None, response: Some("ContentTypePage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("content"), action: Some("view") },
+    OperationDefinition { name: "content_types.upsert", method: "put", path: "/api/v1/content-types/{kind}", request: Some("DeclareContentType"), request_location: Some("json"), query: None, response: Some("ContentType"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("content"), action: Some("write") },
+    OperationDefinition { name: "content_types.delete", method: "delete", path: "/api/v1/content-types/{kind}", request: None, request_location: None, query: None, response: Some("Empty"), response_location: None, status: 204, authentication: "account_or_assistant", capability: Some("content"), action: Some("delete") },
+    OperationDefinition { name: "content.revisions.list", method: "get", path: "/api/v1/content/{id}/revisions", request: Some("ContentRevisionListFilter"), request_location: Some("query"), query: None, response: Some("ContentRevisionPage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("content"), action: Some("view") },
+    OperationDefinition { name: "content.revisions.read", method: "get", path: "/api/v1/content/{id}/revisions/{revision}", request: None, request_location: None, query: None, response: Some("ContentRevision"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("content"), action: Some("view") },
+    OperationDefinition { name: "settings.read", method: "get", path: "/api/v1/settings", request: None, request_location: None, query: None, response: Some("SiteSettings"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("settings"), action: Some("view") },
+    OperationDefinition { name: "settings.update", method: "patch", path: "/api/v1/settings", request: Some("UpdateSiteSettings"), request_location: Some("json"), query: None, response: Some("SiteSettings"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("settings"), action: Some("write") },
+    OperationDefinition { name: "languages.list", method: "get", path: "/api/v1/languages", request: Some("LanguageListFilter"), request_location: Some("query"), query: None, response: Some("LanguagePage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("settings"), action: Some("view") },
+    OperationDefinition { name: "languages.create", method: "post", path: "/api/v1/languages", request: Some("CreateLanguage"), request_location: Some("json"), query: None, response: Some("Language"), response_location: None, status: 201, authentication: "account_or_assistant", capability: Some("settings"), action: Some("write") },
+    OperationDefinition { name: "languages.update", method: "patch", path: "/api/v1/languages/{tag}", request: Some("UpdateLanguage"), request_location: Some("json"), query: None, response: Some("Language"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("settings"), action: Some("write") },
+    OperationDefinition { name: "languages.delete", method: "delete", path: "/api/v1/languages/{tag}", request: None, request_location: None, query: None, response: Some("Empty"), response_location: None, status: 204, authentication: "account_or_assistant", capability: Some("settings"), action: Some("delete") },
+    OperationDefinition { name: "taxonomy.terms.list", method: "get", path: "/api/v1/terms", request: Some("TermListFilter"), request_location: Some("query"), query: None, response: Some("TermPage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("taxonomy"), action: Some("view") },
+    OperationDefinition { name: "taxonomy.terms.create", method: "post", path: "/api/v1/terms", request: Some("CreateTerm"), request_location: Some("json"), query: None, response: Some("Term"), response_location: None, status: 201, authentication: "account_or_assistant", capability: Some("taxonomy"), action: Some("write") },
+    OperationDefinition { name: "taxonomy.terms.read", method: "get", path: "/api/v1/terms/{id}", request: None, request_location: None, query: None, response: Some("Term"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("taxonomy"), action: Some("view") },
+    OperationDefinition { name: "taxonomy.terms.update", method: "patch", path: "/api/v1/terms/{id}", request: Some("UpdateTerm"), request_location: Some("json"), query: None, response: Some("Term"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("taxonomy"), action: Some("write") },
+    OperationDefinition { name: "taxonomy.terms.trash", method: "delete", path: "/api/v1/terms/{id}", request: None, request_location: None, query: None, response: Some("Empty"), response_location: None, status: 204, authentication: "account_or_assistant", capability: Some("taxonomy"), action: Some("delete") },
+    OperationDefinition { name: "taxonomy.content_terms.list", method: "get", path: "/api/v1/content/{id}/terms", request: None, request_location: None, query: None, response: Some("TermList"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("taxonomy"), action: Some("view") },
+    OperationDefinition { name: "taxonomy.content_terms.replace", method: "put", path: "/api/v1/content/{id}/terms", request: Some("ReplaceContentTerms"), request_location: Some("json"), query: None, response: Some("TermList"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("taxonomy"), action: Some("write") },
+    OperationDefinition { name: "taxonomy.term_content.list", method: "get", path: "/api/v1/terms/{id}/content", request: Some("ContentTermAssignmentListFilter"), request_location: Some("query"), query: None, response: Some("ContentTermAssignmentPage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("taxonomy"), action: Some("view") },
+    OperationDefinition { name: "media.files.list", method: "get", path: "/api/v1/files", request: Some("FileListFilter"), request_location: Some("query"), query: None, response: Some("FilePage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("media"), action: Some("view") },
+    OperationDefinition { name: "media.files.upload", method: "post", path: "/api/v1/files", request: Some("FileBytes"), request_location: Some("raw"), query: Some("UploadFileQuery"), response: Some("File"), response_location: None, status: 201, authentication: "account_or_assistant", capability: Some("media"), action: Some("write") },
+    OperationDefinition { name: "media.files.read", method: "get", path: "/api/v1/files/{id}", request: None, request_location: None, query: None, response: Some("File"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("media"), action: Some("view") },
+    OperationDefinition { name: "media.files.trash", method: "delete", path: "/api/v1/files/{id}", request: None, request_location: None, query: None, response: Some("Empty"), response_location: None, status: 204, authentication: "account_or_assistant", capability: Some("media"), action: Some("delete") },
+    OperationDefinition { name: "audit.events.list", method: "get", path: "/api/v1/audit", request: Some("AuditListFilter"), request_location: Some("query"), query: None, response: Some("AuditEventPage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("audit"), action: Some("view") },
+    OperationDefinition { name: "audit.events.read", method: "get", path: "/api/v1/audit/{id}", request: None, request_location: None, query: None, response: Some("AuditEvent"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("audit"), action: Some("view") },
+    OperationDefinition { name: "trash.items.list", method: "get", path: "/api/v1/trash", request: Some("TrashListFilter"), request_location: Some("query"), query: None, response: Some("TrashPage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("trash"), action: Some("view") },
+    OperationDefinition { name: "trash.items.restore", method: "post", path: "/api/v1/trash/{kind}/{id}/restore", request: None, request_location: None, query: None, response: Some("Empty"), response_location: None, status: 204, authentication: "account_or_assistant", capability: Some("trash"), action: Some("write") },
+    OperationDefinition { name: "trash.items.delete_permanently", method: "delete", path: "/api/v1/trash/{kind}/{id}", request: None, request_location: None, query: None, response: Some("Empty"), response_location: None, status: 204, authentication: "account_or_assistant", capability: Some("trash"), action: Some("delete") },
+    OperationDefinition { name: "design.changes.list", method: "get", path: "/api/v1/design/changes", request: Some("DesignChangeListFilter"), request_location: Some("query"), query: None, response: Some("DesignChangePage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("design"), action: Some("view") },
+    OperationDefinition { name: "design.changes.start", method: "post", path: "/api/v1/design/changes", request: Some("StartDesignChange"), request_location: Some("json"), query: None, response: Some("DesignChange"), response_location: None, status: 201, authentication: "account_or_assistant", capability: Some("design"), action: Some("write") },
+    OperationDefinition { name: "design.changes.read", method: "get", path: "/api/v1/design/changes/{id}", request: None, request_location: None, query: None, response: Some("DesignChange"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("design"), action: Some("view") },
+    OperationDefinition { name: "design.files.list", method: "get", path: "/api/v1/design/changes/{id}/files", request: Some("DesignFileListFilter"), request_location: Some("query"), query: None, response: Some("DesignFilePage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("design"), action: Some("view") },
+    OperationDefinition { name: "design.files.read", method: "get", path: "/api/v1/design/changes/{id}/file", request: None, request_location: None, query: Some("DesignFileQuery"), response: Some("DesignFile"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("design"), action: Some("view") },
+    OperationDefinition { name: "design.files.write", method: "put", path: "/api/v1/design/changes/{id}/file", request: Some("DesignFileInput"), request_location: Some("json"), query: None, response: Some("DesignFile"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("design"), action: Some("write") },
+    OperationDefinition { name: "design.files.remove", method: "delete", path: "/api/v1/design/changes/{id}/file", request: None, request_location: None, query: Some("DesignFileQuery"), response: Some("Empty"), response_location: None, status: 204, authentication: "account_or_assistant", capability: Some("design"), action: Some("delete") },
+    OperationDefinition { name: "design.builds.create", method: "post", path: "/api/v1/design/changes/{id}/builds", request: None, request_location: None, query: None, response: Some("DesignBuild"), response_location: None, status: 201, authentication: "account_or_assistant", capability: Some("design"), action: Some("write") },
+    OperationDefinition { name: "design.builds.list", method: "get", path: "/api/v1/design/changes/{id}/builds", request: Some("DesignBuildListFilter"), request_location: Some("query"), query: None, response: Some("DesignBuildPage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("design"), action: Some("view") },
+    OperationDefinition { name: "design.changes.publish", method: "post", path: "/api/v1/design/changes/{id}/publish", request: None, request_location: None, query: None, response: Some("DesignChange"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("publish"), action: Some("write") },
+    OperationDefinition { name: "design.changes.rollback", method: "post", path: "/api/v1/design/changes/{id}/rollback", request: None, request_location: None, query: None, response: Some("DesignChange"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("publish"), action: Some("write") },
+    OperationDefinition { name: "design.preview.asset", method: "get", path: "/preview/v1/design/{build_id}/{path}", request: None, request_location: None, query: None, response: Some("DesignAsset"), response_location: None, status: 200, authentication: "public", capability: None, action: None },
+    OperationDefinition { name: "design.public.asset", method: "get", path: "/public/v1/site/{path}", request: None, request_location: None, query: None, response: Some("DesignAsset"), response_location: None, status: 200, authentication: "public", capability: None, action: None },
+    OperationDefinition { name: "forms.list", method: "get", path: "/api/v1/forms", request: Some("FormListFilter"), request_location: Some("query"), query: None, response: Some("FormPage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("forms"), action: Some("view") },
+    OperationDefinition { name: "forms.create", method: "post", path: "/api/v1/forms", request: Some("CreateForm"), request_location: Some("json"), query: None, response: Some("Form"), response_location: None, status: 201, authentication: "account_or_assistant", capability: Some("forms"), action: Some("write") },
+    OperationDefinition { name: "forms.read", method: "get", path: "/api/v1/forms/{id}", request: None, request_location: None, query: None, response: Some("Form"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("forms"), action: Some("view") },
+    OperationDefinition { name: "forms.update", method: "patch", path: "/api/v1/forms/{id}", request: Some("UpdateForm"), request_location: Some("json"), query: None, response: Some("Form"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("forms"), action: Some("write") },
+    OperationDefinition { name: "forms.delete", method: "delete", path: "/api/v1/forms/{id}", request: None, request_location: None, query: None, response: Some("Empty"), response_location: None, status: 204, authentication: "account_or_assistant", capability: Some("forms"), action: Some("delete") },
+    OperationDefinition { name: "forms.submissions.list", method: "get", path: "/api/v1/forms/{id}/submissions", request: Some("SubmissionListFilter"), request_location: Some("query"), query: None, response: Some("SubmissionPage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("forms"), action: Some("view") },
+    OperationDefinition { name: "forms.submissions.mark_read", method: "post", path: "/api/v1/forms/{id}/submissions/mark-read", request: None, request_location: None, query: None, response: Some("SeenCount"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("forms"), action: Some("write") },
+    OperationDefinition { name: "forms.submissions.delete", method: "delete", path: "/api/v1/form-submissions/{id}", request: None, request_location: None, query: None, response: Some("Empty"), response_location: None, status: 204, authentication: "account_or_assistant", capability: Some("forms"), action: Some("delete") },
+    OperationDefinition { name: "forms.public.read", method: "get", path: "/public/v1/forms/{slug}", request: None, request_location: None, query: None, response: Some("PublicForm"), response_location: None, status: 200, authentication: "public", capability: None, action: None },
+    OperationDefinition { name: "forms.public.submit", method: "post", path: "/public/v1/forms/{slug}/submissions", request: Some("SubmitForm"), request_location: Some("json"), query: None, response: Some("SubmissionReceipt"), response_location: None, status: 201, authentication: "public", capability: None, action: None },
+    OperationDefinition { name: "mail.templates.list", method: "get", path: "/api/v1/mail/templates", request: Some("MailTemplateListFilter"), request_location: Some("query"), query: None, response: Some("MailTemplatePage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("mail"), action: Some("view") },
+    OperationDefinition { name: "mail.templates.create", method: "post", path: "/api/v1/mail/templates", request: Some("CreateMailTemplate"), request_location: Some("json"), query: None, response: Some("MailTemplate"), response_location: None, status: 201, authentication: "account_or_assistant", capability: Some("mail"), action: Some("write") },
+    OperationDefinition { name: "mail.templates.read", method: "get", path: "/api/v1/mail/templates/{id}", request: None, request_location: None, query: None, response: Some("MailTemplate"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("mail"), action: Some("view") },
+    OperationDefinition { name: "mail.templates.update", method: "patch", path: "/api/v1/mail/templates/{id}", request: Some("UpdateMailTemplate"), request_location: Some("json"), query: None, response: Some("MailTemplate"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("mail"), action: Some("write") },
+    OperationDefinition { name: "mail.templates.delete", method: "delete", path: "/api/v1/mail/templates/{id}", request: None, request_location: None, query: None, response: Some("Empty"), response_location: None, status: 204, authentication: "account_or_assistant", capability: Some("mail"), action: Some("delete") },
+    OperationDefinition { name: "mail.templates.preview", method: "post", path: "/api/v1/mail/templates/{id}/preview", request: Some("MailTemplatePreview"), request_location: Some("json"), query: None, response: Some("RenderedMail"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("mail"), action: Some("view") },
+    OperationDefinition { name: "mail.lists.list", method: "get", path: "/api/v1/mail/lists", request: Some("MailListListFilter"), request_location: Some("query"), query: None, response: Some("MailListPage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("mail"), action: Some("view") },
+    OperationDefinition { name: "mail.lists.create", method: "post", path: "/api/v1/mail/lists", request: Some("CreateMailList"), request_location: Some("json"), query: None, response: Some("MailList"), response_location: None, status: 201, authentication: "account_or_assistant", capability: Some("mail"), action: Some("write") },
+    OperationDefinition { name: "mail.lists.read", method: "get", path: "/api/v1/mail/lists/{id}", request: None, request_location: None, query: None, response: Some("MailList"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("mail"), action: Some("view") },
+    OperationDefinition { name: "mail.lists.update", method: "patch", path: "/api/v1/mail/lists/{id}", request: Some("UpdateMailList"), request_location: Some("json"), query: None, response: Some("MailList"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("mail"), action: Some("write") },
+    OperationDefinition { name: "mail.lists.delete", method: "delete", path: "/api/v1/mail/lists/{id}", request: None, request_location: None, query: None, response: Some("Empty"), response_location: None, status: 204, authentication: "account_or_assistant", capability: Some("mail"), action: Some("delete") },
+    OperationDefinition { name: "mail.readers.list", method: "get", path: "/api/v1/mail/lists/{id}/readers", request: Some("ReaderListFilter"), request_location: Some("query"), query: None, response: Some("MailReaderPage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("mail"), action: Some("view") },
+    OperationDefinition { name: "mail.readers.add", method: "post", path: "/api/v1/mail/lists/{id}/readers", request: Some("AddReader"), request_location: Some("json"), query: None, response: Some("MailReaderCreated"), response_location: None, status: 201, authentication: "account_or_assistant", capability: Some("mail"), action: Some("write") },
+    OperationDefinition { name: "mail.readers.delete", method: "delete", path: "/api/v1/mail/readers/{id}", request: None, request_location: None, query: None, response: Some("Empty"), response_location: None, status: 204, authentication: "account_or_assistant", capability: Some("mail"), action: Some("delete") },
+    OperationDefinition { name: "mail.public.unsubscribe", method: "post", path: "/public/v1/mail/unsubscribe/{token}", request: None, request_location: None, query: None, response: Some("UnsubscribeReceipt"), response_location: None, status: 200, authentication: "public", capability: None, action: None },
+    OperationDefinition { name: "mail.deliveries.list", method: "get", path: "/api/v1/mail/deliveries", request: Some("DeliveryListFilter"), request_location: Some("query"), query: None, response: Some("MailDeliveryPage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("mail"), action: Some("view") },
+    OperationDefinition { name: "mail.deliveries.enqueue", method: "post", path: "/api/v1/mail/deliveries", request: Some("EnqueueDelivery"), request_location: Some("json"), query: None, response: Some("MailDelivery"), response_location: None, status: 202, authentication: "account_or_assistant", capability: Some("mail"), action: Some("write") },
+    OperationDefinition { name: "mail.deliveries.read", method: "get", path: "/api/v1/mail/deliveries/{id}", request: None, request_location: None, query: None, response: Some("MailDelivery"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("mail"), action: Some("view") },
+    OperationDefinition { name: "mail.deliveries.retry", method: "post", path: "/api/v1/mail/deliveries/{id}/retry", request: Some("RetryDelivery"), request_location: Some("json"), query: None, response: Some("MailDelivery"), response_location: None, status: 202, authentication: "account_or_assistant", capability: Some("mail"), action: Some("write") },
+    OperationDefinition { name: "mail.deliveries.campaign", method: "post", path: "/api/v1/mail/lists/{id}/deliveries", request: Some("SendCampaign"), request_location: Some("json"), query: None, response: Some("SendCount"), response_location: None, status: 202, authentication: "account_or_assistant", capability: Some("mail"), action: Some("write") },
+    OperationDefinition { name: "shop.products.list", method: "get", path: "/api/v1/shop/products", request: Some("ProductListFilter"), request_location: Some("query"), query: None, response: Some("ProductPage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("shop"), action: Some("view") },
+    OperationDefinition { name: "shop.products.create", method: "post", path: "/api/v1/shop/products", request: Some("CreateProduct"), request_location: Some("json"), query: None, response: Some("Product"), response_location: None, status: 201, authentication: "account_or_assistant", capability: Some("shop"), action: Some("write") },
+    OperationDefinition { name: "shop.products.read", method: "get", path: "/api/v1/shop/products/{id}", request: None, request_location: None, query: None, response: Some("Product"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("shop"), action: Some("view") },
+    OperationDefinition { name: "shop.products.update", method: "patch", path: "/api/v1/shop/products/{id}", request: Some("UpdateProduct"), request_location: Some("json"), query: None, response: Some("Product"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("shop"), action: Some("write") },
+    OperationDefinition { name: "shop.products.delete", method: "delete", path: "/api/v1/shop/products/{id}", request: None, request_location: None, query: None, response: Some("Empty"), response_location: None, status: 204, authentication: "account_or_assistant", capability: Some("shop"), action: Some("delete") },
+    OperationDefinition { name: "shop.public.products.list", method: "get", path: "/public/v1/shop/products", request: Some("PublicProductListFilter"), request_location: Some("query"), query: None, response: Some("PublicProductPage"), response_location: None, status: 200, authentication: "public", capability: None, action: None },
+    OperationDefinition { name: "shop.coupons.list", method: "get", path: "/api/v1/shop/coupons", request: Some("CouponListFilter"), request_location: Some("query"), query: None, response: Some("CouponPage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("shop"), action: Some("view") },
+    OperationDefinition { name: "shop.coupons.create", method: "post", path: "/api/v1/shop/coupons", request: Some("CreateCoupon"), request_location: Some("json"), query: None, response: Some("Coupon"), response_location: None, status: 201, authentication: "account_or_assistant", capability: Some("shop"), action: Some("write") },
+    OperationDefinition { name: "shop.coupons.delete", method: "delete", path: "/api/v1/shop/coupons/{id}", request: None, request_location: None, query: None, response: Some("Empty"), response_location: None, status: 204, authentication: "account_or_assistant", capability: Some("shop"), action: Some("delete") },
+    OperationDefinition { name: "shop.orders.list", method: "get", path: "/api/v1/shop/orders", request: Some("OrderListFilter"), request_location: Some("query"), query: None, response: Some("OrderSummaryPage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("shop"), action: Some("view") },
+    OperationDefinition { name: "shop.orders.read", method: "get", path: "/api/v1/shop/orders/{id}", request: None, request_location: None, query: None, response: Some("Order"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("shop"), action: Some("view") },
+    OperationDefinition { name: "shop.orders.transition", method: "post", path: "/api/v1/shop/orders/{id}/transition", request: Some("OrderTransition"), request_location: Some("json"), query: None, response: Some("Order"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("shop"), action: Some("write") },
+    OperationDefinition { name: "shop.public.orders.checkout", method: "post", path: "/public/v1/shop/orders", request: Some("CheckoutInput"), request_location: Some("json"), query: None, response: Some("CheckoutReceipt"), response_location: None, status: 201, authentication: "public", capability: None, action: None },
+    OperationDefinition { name: "courses.list", method: "get", path: "/api/v1/courses", request: Some("CourseListFilter"), request_location: Some("query"), query: None, response: Some("CourseSummaryPage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("courses"), action: Some("view") },
+    OperationDefinition { name: "courses.create", method: "post", path: "/api/v1/courses", request: Some("CreateCourse"), request_location: Some("json"), query: None, response: Some("Course"), response_location: None, status: 201, authentication: "account_or_assistant", capability: Some("courses"), action: Some("write") },
+    OperationDefinition { name: "courses.read", method: "get", path: "/api/v1/courses/{id}", request: None, request_location: None, query: None, response: Some("Course"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("courses"), action: Some("view") },
+    OperationDefinition { name: "courses.update", method: "patch", path: "/api/v1/courses/{id}", request: Some("UpdateCourse"), request_location: Some("json"), query: None, response: Some("Course"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("courses"), action: Some("write") },
+    OperationDefinition { name: "courses.modules.reorder", method: "put", path: "/api/v1/courses/{id}/modules/order", request: Some("ReorderModules"), request_location: Some("json"), query: None, response: Some("Course"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("courses"), action: Some("write") },
+    OperationDefinition { name: "courses.modules.create", method: "post", path: "/api/v1/courses/{id}/modules", request: Some("CreateModule"), request_location: Some("json"), query: None, response: Some("Module"), response_location: None, status: 201, authentication: "account_or_assistant", capability: Some("courses"), action: Some("write") },
+    OperationDefinition { name: "courses.modules.read", method: "get", path: "/api/v1/courses/modules/{id}", request: None, request_location: None, query: None, response: Some("Module"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("courses"), action: Some("view") },
+    OperationDefinition { name: "courses.modules.update", method: "patch", path: "/api/v1/courses/modules/{id}", request: Some("UpdateModule"), request_location: Some("json"), query: None, response: Some("Module"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("courses"), action: Some("write") },
+    OperationDefinition { name: "courses.modules.delete", method: "delete", path: "/api/v1/courses/modules/{id}", request: None, request_location: None, query: None, response: Some("Empty"), response_location: None, status: 204, authentication: "account_or_assistant", capability: Some("courses"), action: Some("delete") },
+    OperationDefinition { name: "courses.lessons.list", method: "get", path: "/api/v1/courses/modules/{id}/lessons", request: Some("LessonListFilter"), request_location: Some("query"), query: None, response: Some("LessonPage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("courses"), action: Some("view") },
+    OperationDefinition { name: "courses.lessons.reorder", method: "put", path: "/api/v1/courses/modules/{id}/lessons/order", request: Some("ReorderLessons"), request_location: Some("json"), query: None, response: Some("Module"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("courses"), action: Some("write") },
+    OperationDefinition { name: "courses.lessons.create", method: "post", path: "/api/v1/courses/modules/{id}/lessons", request: Some("CreateLesson"), request_location: Some("json"), query: None, response: Some("Lesson"), response_location: None, status: 201, authentication: "account_or_assistant", capability: Some("courses"), action: Some("write") },
+    OperationDefinition { name: "courses.lessons.update", method: "patch", path: "/api/v1/courses/lessons/{id}", request: Some("UpdateLesson"), request_location: Some("json"), query: None, response: Some("Lesson"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("courses"), action: Some("write") },
+    OperationDefinition { name: "courses.lessons.delete", method: "delete", path: "/api/v1/courses/lessons/{id}", request: None, request_location: None, query: None, response: Some("Empty"), response_location: None, status: 204, authentication: "account_or_assistant", capability: Some("courses"), action: Some("delete") },
+    OperationDefinition { name: "courses.students.list", method: "get", path: "/api/v1/courses/students", request: Some("StudentListFilter"), request_location: Some("query"), query: None, response: Some("StudentPage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("courses"), action: Some("view") },
+    OperationDefinition { name: "courses.students.create", method: "post", path: "/api/v1/courses/students", request: Some("CreateStudent"), request_location: Some("json"), query: None, response: Some("StudentInvitation"), response_location: None, status: 201, authentication: "account_or_assistant", capability: Some("courses"), action: Some("write") },
+    OperationDefinition { name: "courses.students.invite", method: "post", path: "/api/v1/courses/students/{id}/invite", request: None, request_location: None, query: None, response: Some("StudentInvitation"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("courses"), action: Some("write") },
+    OperationDefinition { name: "courses.students.update", method: "patch", path: "/api/v1/courses/students/{id}", request: Some("UpdateStudent"), request_location: Some("json"), query: None, response: Some("Student"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("courses"), action: Some("write") },
+    OperationDefinition { name: "courses.enrollments.list", method: "get", path: "/api/v1/courses/{course_id}/enrollments", request: Some("EnrollmentListFilter"), request_location: Some("query"), query: None, response: Some("EnrollmentPage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("courses"), action: Some("view") },
+    OperationDefinition { name: "courses.enrollments.create", method: "post", path: "/api/v1/courses/{course_id}/enrollments", request: Some("EnrollStudent"), request_location: Some("json"), query: None, response: Some("Enrollment"), response_location: None, status: 201, authentication: "account_or_assistant", capability: Some("courses"), action: Some("write") },
+    OperationDefinition { name: "courses.enrollments.delete", method: "delete", path: "/api/v1/courses/enrollments/{id}", request: None, request_location: None, query: None, response: Some("Empty"), response_location: None, status: 204, authentication: "account_or_assistant", capability: Some("courses"), action: Some("delete") },
+    OperationDefinition { name: "courses.students.activate", method: "post", path: "/public/v1/courses/students/activate", request: Some("StudentActivationInput"), request_location: Some("json"), query: None, response: Some("StudentSessionCreated"), response_location: None, status: 201, authentication: "public", capability: None, action: None },
+    OperationDefinition { name: "courses.students.session.create", method: "post", path: "/public/v1/courses/students/sessions", request: Some("StudentLoginInput"), request_location: Some("json"), query: None, response: Some("StudentSessionCreated"), response_location: None, status: 201, authentication: "public", capability: None, action: None },
+    OperationDefinition { name: "courses.students.session.revoke", method: "delete", path: "/student/v1/auth/session", request: None, request_location: None, query: None, response: Some("Empty"), response_location: None, status: 204, authentication: "student", capability: None, action: None },
+    OperationDefinition { name: "learning.courses.list", method: "get", path: "/student/v1/learning/courses", request: Some("LearningCourseListFilter"), request_location: Some("query"), query: None, response: Some("LearningCoursePage"), response_location: None, status: 200, authentication: "student", capability: None, action: None },
+    OperationDefinition { name: "learning.lesson.read", method: "get", path: "/student/v1/learning/lessons/{id}", request: None, request_location: None, query: None, response: Some("LearningLesson"), response_location: None, status: 200, authentication: "student", capability: None, action: None },
+    OperationDefinition { name: "learning.lesson.media.read", method: "get", path: "/student/v1/learning/lessons/{id}/media", request: None, request_location: None, query: None, response: Some("FileBytes"), response_location: Some("raw"), status: 200, authentication: "student", capability: None, action: None },
+    OperationDefinition { name: "learning.lesson.done", method: "put", path: "/student/v1/learning/lessons/{id}/done", request: None, request_location: None, query: None, response: Some("Progress"), response_location: None, status: 200, authentication: "student", capability: None, action: None },
 ];

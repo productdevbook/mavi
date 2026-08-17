@@ -80,6 +80,7 @@ impl SiteTx {
 #[cfg(test)]
 mod tests {
     #[test]
+    #[allow(clippy::too_many_lines)]
     fn content_schema_is_site_scoped_and_has_composite_revision_links() {
         let migration = include_str!("../migrations/0002_content.sql");
 
@@ -187,5 +188,20 @@ mod tests {
         );
         assert!(shop_migration.contains("shop_stock_holds_site_expired"));
         assert!(shop_migration.contains("force row level security"));
+
+        let courses_migration = include_str!("../migrations/0016_courses.sql");
+        assert!(courses_migration.contains("primary key (site_id, id)"));
+        assert!(courses_migration.contains("courses_site_slug_active"));
+        assert!(courses_migration.contains("course_modules_site_position"));
+        assert!(courses_migration.contains("course_lessons_site_position"));
+        assert!(courses_migration.contains("course_student_sessions"));
+        assert!(courses_migration.contains("course_enrollments"));
+        assert!(courses_migration.contains("course_progress"));
+        assert!(
+            courses_migration.contains(
+                "foreign key (site_id, media_file_id) references media_files(site_id, id)"
+            )
+        );
+        assert!(courses_migration.contains("force row level security"));
     }
 }

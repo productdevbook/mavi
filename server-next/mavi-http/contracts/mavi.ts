@@ -185,6 +185,40 @@ export interface CouponPage {
   next_cursor: string | null;
 }
 
+export interface Course {
+  id: string;
+  slug: string;
+  title: string;
+  about: string | null;
+  state: CourseState;
+  modules: Module[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CourseListFilter {
+  after?: string | null;
+  limit?: number;
+  state?: CourseState;
+}
+
+export type CourseState = "draft" | "open" | "closed";
+
+export interface CourseSummary {
+  id: string;
+  slug: string;
+  title: string;
+  about: string | null;
+  state: CourseState;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CourseSummaryPage {
+  items: CourseSummary[];
+  next_cursor: string | null;
+}
+
 export interface CreateApiKey {
   name: string;
   grants: Grant[];
@@ -211,6 +245,12 @@ export interface CreateCoupon {
   expires_at?: string | null;
 }
 
+export interface CreateCourse {
+  slug: string;
+  title: string;
+  about?: string | null;
+}
+
 export interface CreateForm {
   slug: string;
   name: string;
@@ -224,6 +264,12 @@ export interface CreateLanguage {
   is_default?: boolean;
 }
 
+export interface CreateLesson {
+  title: string;
+  body?: string;
+  media_file_id?: string | null;
+}
+
 export interface CreateMailList {
   slug: string;
   name: string;
@@ -235,6 +281,10 @@ export interface CreateMailTemplate {
   subject: string;
   body: string;
   content_type?: MailContentType;
+}
+
+export interface CreateModule {
+  title: string;
 }
 
 export interface CreatePerson {
@@ -258,6 +308,11 @@ export interface CreateRole {
   grants?: Grant[];
 }
 
+export interface CreateStudent {
+  email: string;
+  name: string;
+}
+
 export interface CreateTerm {
   kind: TermKind;
   language: string;
@@ -277,7 +332,7 @@ export interface DeliveryListFilter {
   status?: MailDeliveryStatus;
 }
 
-export type DesignAsset = string;
+export type DesignAsset = Blob;
 
 export interface DesignBuild {
   id: string;
@@ -371,6 +426,29 @@ export interface EnqueueDelivery {
   idempotency_key?: string | null;
 }
 
+export interface EnrollStudent {
+  student_id: string;
+}
+
+export interface Enrollment {
+  id: string;
+  course_id: string;
+  student_id: string;
+  started_at: string;
+  finished_at: string | null;
+  created_at: string;
+}
+
+export interface EnrollmentListFilter {
+  after?: string | null;
+  limit?: number;
+}
+
+export interface EnrollmentPage {
+  items: Enrollment[];
+  next_cursor: string | null;
+}
+
 export interface ErrorBody {
   code: string;
   message: string;
@@ -391,7 +469,7 @@ export interface File {
   created_at: string;
 }
 
-export type FileBytes = string;
+export type FileBytes = Blob;
 
 export type FileKind = "image" | "video" | "audio" | "document";
 
@@ -466,6 +544,53 @@ export interface LanguageListFilter {
 
 export interface LanguagePage {
   items: Language[];
+  next_cursor: string | null;
+}
+
+export interface LearningCourse {
+  course_id: string;
+  slug: string;
+  title: string;
+  about: string | null;
+  state: CourseState;
+  completed_lessons: number;
+  total_lessons: number;
+  enrolled_at: string;
+}
+
+export interface LearningCourseListFilter {
+  after?: string | null;
+  limit?: number;
+}
+
+export interface LearningCoursePage {
+  items: LearningCourse[];
+  next_cursor: string | null;
+}
+
+export interface LearningLesson {
+  lesson: Lesson;
+  completed_at: string | null;
+}
+
+export interface Lesson {
+  id: string;
+  module_id: string;
+  title: string;
+  body: string;
+  media_file_id: string | null;
+  position: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LessonListFilter {
+  after?: string | null;
+  limit?: number;
+}
+
+export interface LessonPage {
+  items: Lesson[];
   next_cursor: string | null;
 }
 
@@ -568,6 +693,16 @@ export interface MailTemplatePage {
 
 export interface MailTemplatePreview {
   variables?: Record<string, unknown>;
+}
+
+export interface Module {
+  id: string;
+  course_id: string;
+  title: string;
+  position: number;
+  lessons: Lesson[];
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Money {
@@ -687,6 +822,11 @@ export interface ProductPrice {
   currency: string;
 }
 
+export interface Progress {
+  lesson_id: string;
+  completed_at: string;
+}
+
 export interface PublicForm {
   slug: string;
   name: string;
@@ -727,6 +867,14 @@ export interface RenderedMail {
   subject: string;
   body: string;
   content_type: MailContentType;
+}
+
+export interface ReorderLessons {
+  order: string[];
+}
+
+export interface ReorderModules {
+  order: string[];
 }
 
 export interface ReplaceContentTerms {
@@ -802,6 +950,51 @@ export interface SiteSettings {
 export interface StartDesignChange {
   name: string;
 }
+
+export interface Student {
+  id: string;
+  email: string;
+  name: string;
+  standing: StudentStanding;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface StudentActivationInput {
+  email: string;
+  invitation_token: string;
+  password: string;
+}
+
+export interface StudentInvitation {
+  student: Student;
+  invitation_token: string;
+  invitation_expires_at: string;
+}
+
+export interface StudentListFilter {
+  after?: string | null;
+  limit?: number;
+  standing?: StudentStanding;
+}
+
+export interface StudentLoginInput {
+  email: string;
+  password: string;
+}
+
+export interface StudentPage {
+  items: Student[];
+  next_cursor: string | null;
+}
+
+export interface StudentSessionCreated {
+  student: Student;
+  token: string;
+  expires_at: string;
+}
+
+export type StudentStanding = "asked" | "learning" | "stopped";
 
 export interface SubmissionListFilter {
   after?: string | null;
@@ -885,6 +1078,12 @@ export interface UpdateContent {
   publication?: PublicationInput;
 }
 
+export interface UpdateCourse {
+  title?: string | null;
+  about?: string | null;
+  state?: CourseState | unknown;
+}
+
 export interface UpdateForm {
   name?: string | null;
   fields?: unknown[] | null;
@@ -897,6 +1096,12 @@ export interface UpdateLanguage {
   is_default?: boolean | null;
 }
 
+export interface UpdateLesson {
+  title?: string | null;
+  body?: string | null;
+  media_file_id?: string | null;
+}
+
 export interface UpdateMailList {
   name?: string | null;
 }
@@ -905,6 +1110,10 @@ export interface UpdateMailTemplate {
   subject?: string | null;
   body?: string | null;
   content_type?: MailContentType | unknown;
+}
+
+export interface UpdateModule {
+  title?: string | null;
 }
 
 export interface UpdatePersonStatus {
@@ -924,6 +1133,11 @@ export interface UpdateSiteSettings {
   timezone?: string | null;
 }
 
+export interface UpdateStudent {
+  name?: string | null;
+  standing?: StudentStanding | unknown;
+}
+
 export interface UpdateTerm {
   name?: string | null;
   parent_id?: string | null;
@@ -939,6 +1153,7 @@ export interface MaviOperation {
   input: { location: "json" | "query" | "raw"; shape: string } | null;
   query: string | null;
   output: string | null;
+  outputLocation?: "json" | "raw";
   status: number;
   authentication: string;
   permission: { capability: string; action: string } | null;
@@ -1051,6 +1266,34 @@ export const operations = {
   "shop.orders.read": { method: "get", path: "/api/v1/shop/orders/{id}", input: null, query: null, output: "Order", status: 200, authentication: "account_or_assistant", permission: { capability: "shop", action: "view" } },
   "shop.orders.transition": { method: "post", path: "/api/v1/shop/orders/{id}/transition", input: { location: "json", shape: "OrderTransition" }, query: null, output: "Order", status: 200, authentication: "account_or_assistant", permission: { capability: "shop", action: "write" } },
   "shop.public.orders.checkout": { method: "post", path: "/public/v1/shop/orders", input: { location: "json", shape: "CheckoutInput" }, query: null, output: "CheckoutReceipt", status: 201, authentication: "public", permission: null },
+  "courses.list": { method: "get", path: "/api/v1/courses", input: { location: "query", shape: "CourseListFilter" }, query: null, output: "CourseSummaryPage", status: 200, authentication: "account_or_assistant", permission: { capability: "courses", action: "view" } },
+  "courses.create": { method: "post", path: "/api/v1/courses", input: { location: "json", shape: "CreateCourse" }, query: null, output: "Course", status: 201, authentication: "account_or_assistant", permission: { capability: "courses", action: "write" } },
+  "courses.read": { method: "get", path: "/api/v1/courses/{id}", input: null, query: null, output: "Course", status: 200, authentication: "account_or_assistant", permission: { capability: "courses", action: "view" } },
+  "courses.update": { method: "patch", path: "/api/v1/courses/{id}", input: { location: "json", shape: "UpdateCourse" }, query: null, output: "Course", status: 200, authentication: "account_or_assistant", permission: { capability: "courses", action: "write" } },
+  "courses.modules.reorder": { method: "put", path: "/api/v1/courses/{id}/modules/order", input: { location: "json", shape: "ReorderModules" }, query: null, output: "Course", status: 200, authentication: "account_or_assistant", permission: { capability: "courses", action: "write" } },
+  "courses.modules.create": { method: "post", path: "/api/v1/courses/{id}/modules", input: { location: "json", shape: "CreateModule" }, query: null, output: "Module", status: 201, authentication: "account_or_assistant", permission: { capability: "courses", action: "write" } },
+  "courses.modules.read": { method: "get", path: "/api/v1/courses/modules/{id}", input: null, query: null, output: "Module", status: 200, authentication: "account_or_assistant", permission: { capability: "courses", action: "view" } },
+  "courses.modules.update": { method: "patch", path: "/api/v1/courses/modules/{id}", input: { location: "json", shape: "UpdateModule" }, query: null, output: "Module", status: 200, authentication: "account_or_assistant", permission: { capability: "courses", action: "write" } },
+  "courses.modules.delete": { method: "delete", path: "/api/v1/courses/modules/{id}", input: null, query: null, output: "Empty", status: 204, authentication: "account_or_assistant", permission: { capability: "courses", action: "delete" } },
+  "courses.lessons.list": { method: "get", path: "/api/v1/courses/modules/{id}/lessons", input: { location: "query", shape: "LessonListFilter" }, query: null, output: "LessonPage", status: 200, authentication: "account_or_assistant", permission: { capability: "courses", action: "view" } },
+  "courses.lessons.reorder": { method: "put", path: "/api/v1/courses/modules/{id}/lessons/order", input: { location: "json", shape: "ReorderLessons" }, query: null, output: "Module", status: 200, authentication: "account_or_assistant", permission: { capability: "courses", action: "write" } },
+  "courses.lessons.create": { method: "post", path: "/api/v1/courses/modules/{id}/lessons", input: { location: "json", shape: "CreateLesson" }, query: null, output: "Lesson", status: 201, authentication: "account_or_assistant", permission: { capability: "courses", action: "write" } },
+  "courses.lessons.update": { method: "patch", path: "/api/v1/courses/lessons/{id}", input: { location: "json", shape: "UpdateLesson" }, query: null, output: "Lesson", status: 200, authentication: "account_or_assistant", permission: { capability: "courses", action: "write" } },
+  "courses.lessons.delete": { method: "delete", path: "/api/v1/courses/lessons/{id}", input: null, query: null, output: "Empty", status: 204, authentication: "account_or_assistant", permission: { capability: "courses", action: "delete" } },
+  "courses.students.list": { method: "get", path: "/api/v1/courses/students", input: { location: "query", shape: "StudentListFilter" }, query: null, output: "StudentPage", status: 200, authentication: "account_or_assistant", permission: { capability: "courses", action: "view" } },
+  "courses.students.create": { method: "post", path: "/api/v1/courses/students", input: { location: "json", shape: "CreateStudent" }, query: null, output: "StudentInvitation", status: 201, authentication: "account_or_assistant", permission: { capability: "courses", action: "write" } },
+  "courses.students.invite": { method: "post", path: "/api/v1/courses/students/{id}/invite", input: null, query: null, output: "StudentInvitation", status: 200, authentication: "account_or_assistant", permission: { capability: "courses", action: "write" } },
+  "courses.students.update": { method: "patch", path: "/api/v1/courses/students/{id}", input: { location: "json", shape: "UpdateStudent" }, query: null, output: "Student", status: 200, authentication: "account_or_assistant", permission: { capability: "courses", action: "write" } },
+  "courses.enrollments.list": { method: "get", path: "/api/v1/courses/{course_id}/enrollments", input: { location: "query", shape: "EnrollmentListFilter" }, query: null, output: "EnrollmentPage", status: 200, authentication: "account_or_assistant", permission: { capability: "courses", action: "view" } },
+  "courses.enrollments.create": { method: "post", path: "/api/v1/courses/{course_id}/enrollments", input: { location: "json", shape: "EnrollStudent" }, query: null, output: "Enrollment", status: 201, authentication: "account_or_assistant", permission: { capability: "courses", action: "write" } },
+  "courses.enrollments.delete": { method: "delete", path: "/api/v1/courses/enrollments/{id}", input: null, query: null, output: "Empty", status: 204, authentication: "account_or_assistant", permission: { capability: "courses", action: "delete" } },
+  "courses.students.activate": { method: "post", path: "/public/v1/courses/students/activate", input: { location: "json", shape: "StudentActivationInput" }, query: null, output: "StudentSessionCreated", status: 201, authentication: "public", permission: null },
+  "courses.students.session.create": { method: "post", path: "/public/v1/courses/students/sessions", input: { location: "json", shape: "StudentLoginInput" }, query: null, output: "StudentSessionCreated", status: 201, authentication: "public", permission: null },
+  "courses.students.session.revoke": { method: "delete", path: "/student/v1/auth/session", input: null, query: null, output: "Empty", status: 204, authentication: "student", permission: null },
+  "learning.courses.list": { method: "get", path: "/student/v1/learning/courses", input: { location: "query", shape: "LearningCourseListFilter" }, query: null, output: "LearningCoursePage", status: 200, authentication: "student", permission: null },
+  "learning.lesson.read": { method: "get", path: "/student/v1/learning/lessons/{id}", input: null, query: null, output: "LearningLesson", status: 200, authentication: "student", permission: null },
+  "learning.lesson.media.read": { method: "get", path: "/student/v1/learning/lessons/{id}/media", input: null, query: null, output: "FileBytes", outputLocation: "raw", status: 200, authentication: "student", permission: null },
+  "learning.lesson.done": { method: "put", path: "/student/v1/learning/lessons/{id}/done", input: null, query: null, output: "Progress", status: 200, authentication: "student", permission: null },
 } as const satisfies Record<string, MaviOperation>;
 
 export type OperationName = keyof typeof operations;
@@ -1162,6 +1405,34 @@ export interface OperationArguments {
   "shop.orders.read": { path: { id: string }; query?: never; body?: never; }
   "shop.orders.transition": { path: { id: string }; query?: never; body: OrderTransition; }
   "shop.public.orders.checkout": { path?: never; query?: never; body: CheckoutInput; }
+  "courses.list": { path?: never; query: CourseListFilter; body?: never; }
+  "courses.create": { path?: never; query?: never; body: CreateCourse; }
+  "courses.read": { path: { id: string }; query?: never; body?: never; }
+  "courses.update": { path: { id: string }; query?: never; body: UpdateCourse; }
+  "courses.modules.reorder": { path: { id: string }; query?: never; body: ReorderModules; }
+  "courses.modules.create": { path: { id: string }; query?: never; body: CreateModule; }
+  "courses.modules.read": { path: { id: string }; query?: never; body?: never; }
+  "courses.modules.update": { path: { id: string }; query?: never; body: UpdateModule; }
+  "courses.modules.delete": { path: { id: string }; query?: never; body?: never; }
+  "courses.lessons.list": { path: { id: string }; query: LessonListFilter; body?: never; }
+  "courses.lessons.reorder": { path: { id: string }; query?: never; body: ReorderLessons; }
+  "courses.lessons.create": { path: { id: string }; query?: never; body: CreateLesson; }
+  "courses.lessons.update": { path: { id: string }; query?: never; body: UpdateLesson; }
+  "courses.lessons.delete": { path: { id: string }; query?: never; body?: never; }
+  "courses.students.list": { path?: never; query: StudentListFilter; body?: never; }
+  "courses.students.create": { path?: never; query?: never; body: CreateStudent; }
+  "courses.students.invite": { path: { id: string }; query?: never; body?: never; }
+  "courses.students.update": { path: { id: string }; query?: never; body: UpdateStudent; }
+  "courses.enrollments.list": { path: { course_id: string }; query: EnrollmentListFilter; body?: never; }
+  "courses.enrollments.create": { path: { course_id: string }; query?: never; body: EnrollStudent; }
+  "courses.enrollments.delete": { path: { id: string }; query?: never; body?: never; }
+  "courses.students.activate": { path?: never; query?: never; body: StudentActivationInput; }
+  "courses.students.session.create": { path?: never; query?: never; body: StudentLoginInput; }
+  "courses.students.session.revoke": { path?: never; query?: never; body?: never; }
+  "learning.courses.list": { path?: never; query: LearningCourseListFilter; body?: never; }
+  "learning.lesson.read": { path: { id: string }; query?: never; body?: never; }
+  "learning.lesson.media.read": { path: { id: string }; query?: never; body?: never; }
+  "learning.lesson.done": { path: { id: string }; query?: never; body?: never; }
 }
 
 export interface OperationResponses {
@@ -1271,6 +1542,34 @@ export interface OperationResponses {
   "shop.orders.read": Order;
   "shop.orders.transition": Order;
   "shop.public.orders.checkout": CheckoutReceipt;
+  "courses.list": CourseSummaryPage;
+  "courses.create": Course;
+  "courses.read": Course;
+  "courses.update": Course;
+  "courses.modules.reorder": Course;
+  "courses.modules.create": Module;
+  "courses.modules.read": Module;
+  "courses.modules.update": Module;
+  "courses.modules.delete": void;
+  "courses.lessons.list": LessonPage;
+  "courses.lessons.reorder": Module;
+  "courses.lessons.create": Lesson;
+  "courses.lessons.update": Lesson;
+  "courses.lessons.delete": void;
+  "courses.students.list": StudentPage;
+  "courses.students.create": StudentInvitation;
+  "courses.students.invite": StudentInvitation;
+  "courses.students.update": Student;
+  "courses.enrollments.list": EnrollmentPage;
+  "courses.enrollments.create": Enrollment;
+  "courses.enrollments.delete": void;
+  "courses.students.activate": StudentSessionCreated;
+  "courses.students.session.create": StudentSessionCreated;
+  "courses.students.session.revoke": void;
+  "learning.courses.list": LearningCoursePage;
+  "learning.lesson.read": LearningLesson;
+  "learning.lesson.media.read": FileBytes;
+  "learning.lesson.done": Progress;
 }
 
 export interface MaviClientOptions {
@@ -1317,7 +1616,10 @@ export class MaviClient {
         url.searchParams.set(name, String(value));
       }
     }
-    const headers: Record<string, string> = { Accept: "application/json" };
+    const rawResponse = definition.outputLocation === "raw";
+    const headers: Record<string, string> = {
+      Accept: rawResponse ? "application/octet-stream" : "application/json",
+    };
     if (this.options.token) {
       headers.Authorization = `Bearer ${this.options.token}`;
     }
@@ -1348,6 +1650,8 @@ export class MaviClient {
     if (response.status === 204) {
       return undefined as OperationResponses[Name];
     }
-    return (await response.json()) as OperationResponses[Name];
+    return (rawResponse
+      ? await response.blob()
+      : await response.json()) as OperationResponses[Name];
   }
 }

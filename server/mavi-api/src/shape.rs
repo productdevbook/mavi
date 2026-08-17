@@ -226,6 +226,11 @@ impl Shape {
     }
 }
 
+/// A type that declares its own `OpenAPI` / Mavi API shape.
+pub trait MaviSchema {
+    fn shape() -> Shape;
+}
+
 fn one(is: Is) -> Value {
     let mut said = json!({ "type": is.json() });
 

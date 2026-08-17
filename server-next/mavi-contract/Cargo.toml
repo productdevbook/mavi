@@ -1,0 +1,15 @@
+[package]
+name = "mavi-contract"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+description = "The single source of truth for Mavi's API contract."
+
+[dependencies]
+mavi-core = { path = "../mavi-core" }
+serde.workspace = true
+serde_json.workspace = true
+
+[lints]
+workspace = true

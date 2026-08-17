@@ -1,0 +1,17 @@
+[package]
+name = "mavi-audit"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+description = "Site-scoped audit receipts written atomically with domain transactions."
+
+[dependencies]
+mavi-core = { path = "../mavi-core" }
+mavi-storage = { path = "../mavi-storage" }
+serde_json.workspace = true
+sqlx.workspace = true
+uuid.workspace = true
+
+[lints]
+workspace = true

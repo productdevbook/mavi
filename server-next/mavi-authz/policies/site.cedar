@@ -1,0 +1,6 @@
+permit (principal, action, resource)
+when {
+    principal.site_id == resource.site_id &&
+    principal.site_id == context.site_id &&
+    principal.grants.contains(context.grant)
+};

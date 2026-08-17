@@ -142,6 +142,18 @@ fn the_accounts() -> Vec<Endpoint> {
     vec![
         Endpoint {
             method: Method::Get,
+            path: "/api/me",
+            named: "people.me",
+            about: "Who is asking: the account and role of whoever is signed in.",
+            who: Who::AnAccount,
+            parameters: Vec::new(),
+            takes: None,
+            answers: Answers::With("Person"),
+            refuses: &[Code::NotFound],
+            changes: false,
+        },
+        Endpoint {
+            method: Method::Get,
             path: "/api/people",
             named: "people.list",
             about: "Who has an account here.",

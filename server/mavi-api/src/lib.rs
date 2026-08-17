@@ -27,7 +27,7 @@ use std::collections::BTreeSet;
 use mavi_core::error::Code;
 
 pub use describe::openapi;
-pub use shape::{Field, Of, Shape, What};
+pub use shape::{Field, MaviSchema, Of, Shape, What};
 pub use typescript::typescript;
 
 /// The name an endpoint uses when what it takes is the bytes themselves.

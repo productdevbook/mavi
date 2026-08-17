@@ -1,0 +1,15 @@
+[package]
+name = "mavi-authz"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+description = "Embedded Cedar authorization boundary for Mavi site operations."
+
+[dependencies]
+cedar-policy = "4.12.0"
+mavi-core = { path = "../mavi-core" }
+serde_json.workspace = true
+
+[lints]
+workspace = true

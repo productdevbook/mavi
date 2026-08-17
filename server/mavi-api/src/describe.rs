@@ -105,9 +105,12 @@ fn operation(endpoint: &Endpoint) -> Value {
         );
     }
 
+    let tag = endpoint.named.split('.').next().unwrap_or("general");
+
     let mut operation = json!({
         "operationId": endpoint.named,
         "summary": endpoint.about,
+        "tags": [tag],
         "responses": responses,
     });
 

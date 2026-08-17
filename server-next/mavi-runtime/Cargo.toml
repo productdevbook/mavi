@@ -1,0 +1,17 @@
+[package]
+name = "mavi-runtime"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+description = "A shared router with an explicit site context resolver."
+
+[dependencies]
+axum.workspace = true
+mavi-core = { path = "../mavi-core" }
+mavi-storage = { path = "../mavi-storage" }
+tokio.workspace = true
+uuid.workspace = true
+
+[lints]
+workspace = true

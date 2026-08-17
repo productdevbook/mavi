@@ -1,0 +1,22 @@
+[package]
+name = "mavi-content"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+description = "Content domain, application commands and site-scoped repository."
+
+[dependencies]
+base64.workspace = true
+chrono.workspace = true
+mavi-audit = { path = "../mavi-audit" }
+mavi-core = { path = "../mavi-core" }
+mavi-contract = { path = "../mavi-contract" }
+mavi-storage = { path = "../mavi-storage" }
+serde.workspace = true
+serde_json.workspace = true
+sqlx.workspace = true
+uuid.workspace = true
+
+[lints]
+workspace = true

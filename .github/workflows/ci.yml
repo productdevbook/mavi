@@ -42,6 +42,10 @@ jobs:
               paths:
                 - 'server/**'
                 - '.github/workflows/ci.yml'
+            server-next:
+              paths:
+                - 'server-next/**'
+                - '.github/workflows/ci.yml'
             client:
               paths:
                 - 'client/**'
@@ -110,6 +114,57 @@ jobs:
         with:
           name: the-panels-types
           path: client/src/api/mavi.ts
+
+  # The clean rewrite has its own workspace and must not inherit the legacy
+  # server job's working directory, cache or superuser database assumptions.
+  server-next:
+    needs: what
+    if: needs.what.outputs.skip != 'true' && !fromJSON(needs.what.outputs.paths)['server-next'].should_skip
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: server-next
+    env:
+      TEST_DATABASE_URL: postgres://mavi_test:mavi_test@localhost:5435/mavi_next
+      CARGO_PROFILE_DEV_DEBUG: 0
+      CARGO_PROFILE_TEST_DEBUG: 0
+      CARGO_INCREMENTAL: 0
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: A non-superuser Postgres for RLS tests
+        run: |
+          docker run -d --name pg-next \
+            --tmpfs /var/lib/postgresql/data:rw,size=2g \
+            -p 5435:5432 \
+            -e POSTGRES_PASSWORD=postgres \
+            -e POSTGRES_DB=postgres \
+            -e PGDATA=/var/lib/postgresql/data/pgdata \
+            postgres:18-alpine \
+            -c fsync=off \
+            -c synchronous_commit=off \
+            -c full_page_writes=off
+          until docker exec pg-next pg_isready -U postgres >/dev/null 2>&1; do sleep 1; done
+          docker exec pg-next psql -v ON_ERROR_STOP=1 -U postgres -d postgres \
+            -c "create role mavi_test login password 'mavi_test' nocreatedb nosuperuser nobypassrls;" \
+            -c "create database mavi_next owner mavi_test;"
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: server-next
+          cache-on-failure: true
+
+      - uses: taiki-e/install-action@nextest
+
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+      - run: cargo nextest run --workspace
+      - run: cargo test --workspace --doc
 
   client:
     needs: what

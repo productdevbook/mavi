@@ -1420,6 +1420,7 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "serde",
+ "serde_json",
  "thiserror",
  "uuid",
 ]
@@ -1488,6 +1489,7 @@ dependencies = [
  "mavi-media",
  "mavi-runtime",
  "mavi-settings",
+ "mavi-shop",
  "mavi-storage",
  "mavi-taxonomy",
  "mavi-trash",
@@ -1569,6 +1571,23 @@ dependencies = [
 
 [[package]]
 name = "mavi-settings"
+version = "0.1.0"
+dependencies = [
+ "base64 0.23.1",
+ "chrono",
+ "mavi-audit",
+ "mavi-contract",
+ "mavi-core",
+ "mavi-storage",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
+name = "mavi-shop"
 version = "0.1.0"
 dependencies = [
  "base64 0.23.1",

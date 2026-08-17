@@ -52,6 +52,28 @@ pub struct AuditListFilter {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct BasketItem {
+    pub product_id: String,
+    pub quantity: i64,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct CheckoutInput {
+    pub email: String,
+    pub items: Vec<BasketItem>,
+    pub coupon_code: Option<String>,
+    pub idempotency_key: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct CheckoutReceipt {
+    pub id: String,
+    pub number: i64,
+    pub state: OrderState,
+    pub total: Money,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Content {
     pub id: String,
     pub site_id: String,
@@ -162,6 +184,33 @@ pub struct ContentTypePage {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Coupon {
+    pub id: String,
+    pub code: String,
+    pub kind: CouponKind,
+    pub percent: Option<i64>,
+    pub amount: Value,
+    pub max_uses: Option<i64>,
+    pub expires_at: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+pub type CouponKind = String;
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct CouponListFilter {
+    pub after: Option<String>,
+    pub limit: Option<i64>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct CouponPage {
+    pub items: Vec<Coupon>,
+    pub next_cursor: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct CreateApiKey {
     pub name: String,
     pub grants: Vec<Grant>,
@@ -178,6 +227,16 @@ pub struct CreateContent {
     pub body: Option<String>,
     pub fields: Option<Value>,
     pub publication: Option<PublicationInput>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct CreateCoupon {
+    pub code: String,
+    pub percent: Option<i64>,
+    pub amount_minor: Option<i64>,
+    pub currency: Option<String>,
+    pub max_uses: Option<i64>,
+    pub expires_at: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -216,6 +275,16 @@ pub struct CreatePerson {
     pub name: String,
     pub password: String,
     pub role_ids: Option<Vec<String>>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct CreateProduct {
+    pub slug: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub price: ProductPrice,
+    pub stock: i64,
+    pub on_sale: Option<bool>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -580,6 +649,73 @@ pub struct MailTemplatePreview {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Money {
+    pub minor: i64,
+    pub currency: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Order {
+    pub id: String,
+    pub number: i64,
+    pub state: OrderState,
+    pub email: String,
+    pub total: Money,
+    pub lines: Vec<OrderLine>,
+    pub payment_provider: Option<String>,
+    pub payment_reference: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct OrderLine {
+    pub id: String,
+    pub product_id: Option<String>,
+    pub name: String,
+    pub each: Money,
+    pub quantity: i64,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct OrderListFilter {
+    pub after: Option<String>,
+    pub limit: Option<i64>,
+    pub state: Option<OrderState>,
+}
+
+pub type OrderState = String;
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct OrderSummary {
+    pub id: String,
+    pub number: i64,
+    pub state: OrderState,
+    pub email: String,
+    pub total: Money,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct OrderSummaryPage {
+    pub items: Vec<OrderSummary>,
+    pub next_cursor: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct OrderTransition {
+    pub to: OrderState,
+    pub payment: Option<Value>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct PaymentReceiptInput {
+    pub provider: String,
+    pub reference: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct PeopleListFilter {
     pub after: Option<String>,
     pub limit: Option<i64>,
@@ -615,10 +751,62 @@ pub struct PersonRecord {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Product {
+    pub id: String,
+    pub slug: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub price: Money,
+    pub stock: i64,
+    pub on_sale: bool,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ProductListFilter {
+    pub after: Option<String>,
+    pub limit: Option<i64>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ProductPage {
+    pub items: Vec<Product>,
+    pub next_cursor: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ProductPrice {
+    pub minor: i64,
+    pub currency: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct PublicForm {
     pub slug: String,
     pub name: String,
     pub fields: Vec<FormField>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct PublicProduct {
+    pub slug: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub price: Money,
+    pub can_be_bought: bool,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct PublicProductListFilter {
+    pub after: Option<String>,
+    pub limit: Option<i64>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct PublicProductPage {
+    pub items: Vec<PublicProduct>,
+    pub next_cursor: Option<String>,
 }
 
 pub type Publication = Value;
@@ -855,6 +1043,15 @@ pub struct UpdatePersonStatus {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct UpdateProduct {
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub price_minor: Option<i64>,
+    pub stock: Option<i64>,
+    pub on_sale: Option<bool>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct UpdateSiteSettings {
     pub name: Option<String>,
     pub timezone: Option<String>,
@@ -980,4 +1177,17 @@ pub const OPERATIONS: &[OperationDefinition] = &[
     OperationDefinition { name: "mail.deliveries.read", method: "get", path: "/api/v1/mail/deliveries/{id}", request: None, request_location: None, query: None, response: Some("MailDelivery"), status: 200, authentication: "account_or_assistant", capability: Some("mail"), action: Some("view") },
     OperationDefinition { name: "mail.deliveries.retry", method: "post", path: "/api/v1/mail/deliveries/{id}/retry", request: Some("RetryDelivery"), request_location: Some("json"), query: None, response: Some("MailDelivery"), status: 202, authentication: "account_or_assistant", capability: Some("mail"), action: Some("write") },
     OperationDefinition { name: "mail.deliveries.campaign", method: "post", path: "/api/v1/mail/lists/{id}/deliveries", request: Some("SendCampaign"), request_location: Some("json"), query: None, response: Some("SendCount"), status: 202, authentication: "account_or_assistant", capability: Some("mail"), action: Some("write") },
+    OperationDefinition { name: "shop.products.list", method: "get", path: "/api/v1/shop/products", request: Some("ProductListFilter"), request_location: Some("query"), query: None, response: Some("ProductPage"), status: 200, authentication: "account_or_assistant", capability: Some("shop"), action: Some("view") },
+    OperationDefinition { name: "shop.products.create", method: "post", path: "/api/v1/shop/products", request: Some("CreateProduct"), request_location: Some("json"), query: None, response: Some("Product"), status: 201, authentication: "account_or_assistant", capability: Some("shop"), action: Some("write") },
+    OperationDefinition { name: "shop.products.read", method: "get", path: "/api/v1/shop/products/{id}", request: None, request_location: None, query: None, response: Some("Product"), status: 200, authentication: "account_or_assistant", capability: Some("shop"), action: Some("view") },
+    OperationDefinition { name: "shop.products.update", method: "patch", path: "/api/v1/shop/products/{id}", request: Some("UpdateProduct"), request_location: Some("json"), query: None, response: Some("Product"), status: 200, authentication: "account_or_assistant", capability: Some("shop"), action: Some("write") },
+    OperationDefinition { name: "shop.products.delete", method: "delete", path: "/api/v1/shop/products/{id}", request: None, request_location: None, query: None, response: Some("Empty"), status: 204, authentication: "account_or_assistant", capability: Some("shop"), action: Some("delete") },
+    OperationDefinition { name: "shop.public.products.list", method: "get", path: "/public/v1/shop/products", request: Some("PublicProductListFilter"), request_location: Some("query"), query: None, response: Some("PublicProductPage"), status: 200, authentication: "public", capability: None, action: None },
+    OperationDefinition { name: "shop.coupons.list", method: "get", path: "/api/v1/shop/coupons", request: Some("CouponListFilter"), request_location: Some("query"), query: None, response: Some("CouponPage"), status: 200, authentication: "account_or_assistant", capability: Some("shop"), action: Some("view") },
+    OperationDefinition { name: "shop.coupons.create", method: "post", path: "/api/v1/shop/coupons", request: Some("CreateCoupon"), request_location: Some("json"), query: None, response: Some("Coupon"), status: 201, authentication: "account_or_assistant", capability: Some("shop"), action: Some("write") },
+    OperationDefinition { name: "shop.coupons.delete", method: "delete", path: "/api/v1/shop/coupons/{id}", request: None, request_location: None, query: None, response: Some("Empty"), status: 204, authentication: "account_or_assistant", capability: Some("shop"), action: Some("delete") },
+    OperationDefinition { name: "shop.orders.list", method: "get", path: "/api/v1/shop/orders", request: Some("OrderListFilter"), request_location: Some("query"), query: None, response: Some("OrderSummaryPage"), status: 200, authentication: "account_or_assistant", capability: Some("shop"), action: Some("view") },
+    OperationDefinition { name: "shop.orders.read", method: "get", path: "/api/v1/shop/orders/{id}", request: None, request_location: None, query: None, response: Some("Order"), status: 200, authentication: "account_or_assistant", capability: Some("shop"), action: Some("view") },
+    OperationDefinition { name: "shop.orders.transition", method: "post", path: "/api/v1/shop/orders/{id}/transition", request: Some("OrderTransition"), request_location: Some("json"), query: None, response: Some("Order"), status: 200, authentication: "account_or_assistant", capability: Some("shop"), action: Some("write") },
+    OperationDefinition { name: "shop.public.orders.checkout", method: "post", path: "/public/v1/shop/orders", request: Some("CheckoutInput"), request_location: Some("json"), query: None, response: Some("CheckoutReceipt"), status: 201, authentication: "public", capability: None, action: None },
 ];

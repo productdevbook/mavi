@@ -28,9 +28,10 @@ use mavi_content::{
 };
 use mavi_contract::Api;
 use mavi_core::{
-    Action, AuditEventId, Caller, Capability, ContentId, DesignBuildId, DesignChangeId, ErrorCode,
-    FileId, FormSubmissionId, Grant, MailDeliveryId, MailListId, MailReaderId, MailTemplateId,
-    MaviError, Page, PersonId, RequestId, RoleId, SiteContext, TermId, ports::FileStore,
+    Action, AuditEventId, Caller, Capability, ContentId, CouponId, DesignBuildId, DesignChangeId,
+    ErrorCode, FileId, FormSubmissionId, Grant, MailDeliveryId, MailListId, MailReaderId,
+    MailTemplateId, MaviError, OrderId, Page, PersonId, ProductId, RequestId, RoleId, SiteContext,
+    TermId, ports::FileStore,
 };
 use mavi_design::{
     BuildEngine, DESIGN_BUILD_FAILED, DesignBuild, DesignBuildListFilter, DesignChange,
@@ -57,6 +58,11 @@ use mavi_runtime::{Runtime, SiteResolver};
 use mavi_settings::{
     CreateLanguage, Language, LanguageListFilter, SettingsService, SiteSettings, UpdateLanguage,
     UpdateSiteSettings,
+};
+use mavi_shop::{
+    CheckoutInput, CheckoutReceipt, Coupon, CouponListFilter, CreateCoupon, CreateProduct, Order,
+    OrderListFilter, OrderSummary, OrderTransition, Product, ProductListFilter, PublicProduct,
+    PublicProductListFilter, ShopService, UpdateProduct,
 };
 use mavi_taxonomy::{
     ContentTermAssignment, ContentTermAssignmentListFilter, CreateTerm, ReplaceContentTerms,
@@ -133,6 +139,7 @@ pub fn api() -> Api {
     api.extend(mavi_design::api());
     api.extend(mavi_forms::api());
     api.extend(mavi_mail::api());
+    api.extend(mavi_shop::api());
     api
 }
 
@@ -164,6 +171,7 @@ where
         design: DesignService,
         forms: FormService,
         mail: MailService,
+        shop: ShopService,
         file_store,
         builder,
         authorizer: CedarAuthorizer::new()?,
@@ -194,6 +202,7 @@ where
         .merge(design_routes::<R>())
         .merge(form_routes::<R>())
         .merge(mail_routes::<R>())
+        .merge(shop_routes::<R>())
 }
 
 fn identity_routes<R>() -> Router<HttpState<R>>
@@ -440,6 +449,39 @@ where
         )
 }
 
+fn shop_routes<R>() -> Router<HttpState<R>>
+where
+    R: SiteResolver,
+{
+    Router::new()
+        .route(
+            "/api/v1/shop/products",
+            get(list_shop_products::<R>).post(create_shop_product::<R>),
+        )
+        .route(
+            "/api/v1/shop/products/{id}",
+            get(read_shop_product::<R>)
+                .patch(update_shop_product::<R>)
+                .delete(delete_shop_product::<R>),
+        )
+        .route(
+            "/public/v1/shop/products",
+            get(list_public_shop_products::<R>),
+        )
+        .route(
+            "/api/v1/shop/coupons",
+            get(list_shop_coupons::<R>).post(create_shop_coupon::<R>),
+        )
+        .route("/api/v1/shop/coupons/{id}", delete(delete_shop_coupon::<R>))
+        .route("/api/v1/shop/orders", get(list_shop_orders::<R>))
+        .route("/api/v1/shop/orders/{id}", get(read_shop_order::<R>))
+        .route(
+            "/api/v1/shop/orders/{id}/transition",
+            post(transition_shop_order::<R>),
+        )
+        .route("/public/v1/shop/orders", post(checkout_shop_order::<R>))
+}
+
 struct HttpState<R> {
     runtime: Runtime<R>,
     identity: IdentityService,
@@ -452,6 +494,7 @@ struct HttpState<R> {
     design: DesignService,
     forms: FormService,
     mail: MailService,
+    shop: ShopService,
     file_store: Arc<dyn FileStore>,
     builder: Arc<dyn BuildEngine>,
     authorizer: CedarAuthorizer,
@@ -471,6 +514,7 @@ impl<R> Clone for HttpState<R> {
             design: self.design,
             forms: self.forms,
             mail: self.mail,
+            shop: self.shop,
             file_store: Arc::clone(&self.file_store),
             builder: Arc::clone(&self.builder),
             authorizer: self.authorizer.clone(),
@@ -3030,6 +3074,319 @@ where
         .map_err(HttpError)?;
     transaction.commit().await.map_err(HttpError)?;
     Ok((StatusCode::ACCEPTED, Json(count)))
+}
+
+async fn list_shop_products<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Query(filter): Query<ProductListFilter>,
+) -> Result<Json<Page<Product>>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Shop, Action::View),
+        "ShopProduct",
+        "shop_products",
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let products = state
+        .shop
+        .list_products(&mut transaction, &context, &filter)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(products))
+}
+
+async fn create_shop_product<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Json(input): Json<CreateProduct>,
+) -> Result<(StatusCode, Json<Product>), HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Shop, Action::Write),
+        "ShopProduct",
+        "shop_products",
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let product = state
+        .shop
+        .create_product(&mut transaction, &context, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok((StatusCode::CREATED, Json(product)))
+}
+
+async fn read_shop_product<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<ProductId>,
+) -> Result<Json<Product>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Shop, Action::View),
+        "ShopProduct",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let product = state
+        .shop
+        .get_product(&mut transaction, &context, id)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(product))
+}
+
+async fn update_shop_product<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<ProductId>,
+    Json(input): Json<UpdateProduct>,
+) -> Result<Json<Product>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Shop, Action::Write),
+        "ShopProduct",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let product = state
+        .shop
+        .update_product(&mut transaction, &context, id, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(product))
+}
+
+async fn delete_shop_product<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<ProductId>,
+) -> Result<StatusCode, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Shop, Action::Delete),
+        "ShopProduct",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    state
+        .shop
+        .delete_product(&mut transaction, &context, id)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+async fn list_public_shop_products<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Query(filter): Query<PublicProductListFilter>,
+) -> Result<Json<Page<PublicProduct>>, HttpError>
+where
+    R: SiteResolver,
+{
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let products = state
+        .shop
+        .list_public_products(&mut transaction, &context, &filter)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(products))
+}
+
+async fn list_shop_coupons<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Query(filter): Query<CouponListFilter>,
+) -> Result<Json<Page<Coupon>>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Shop, Action::View),
+        "ShopCoupon",
+        "shop_coupons",
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let coupons = state
+        .shop
+        .list_coupons(&mut transaction, &context, &filter)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(coupons))
+}
+
+async fn create_shop_coupon<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Json(input): Json<CreateCoupon>,
+) -> Result<(StatusCode, Json<Coupon>), HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Shop, Action::Write),
+        "ShopCoupon",
+        "shop_coupons",
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let coupon = state
+        .shop
+        .create_coupon(&mut transaction, &context, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok((StatusCode::CREATED, Json(coupon)))
+}
+
+async fn delete_shop_coupon<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<CouponId>,
+) -> Result<StatusCode, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Shop, Action::Delete),
+        "ShopCoupon",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    state
+        .shop
+        .delete_coupon(&mut transaction, &context, id)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+async fn list_shop_orders<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Query(filter): Query<OrderListFilter>,
+) -> Result<Json<Page<OrderSummary>>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Shop, Action::View),
+        "ShopOrder",
+        "shop_orders",
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let orders = state
+        .shop
+        .list_orders(&mut transaction, &context, &filter)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(orders))
+}
+
+async fn read_shop_order<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<OrderId>,
+) -> Result<Json<Order>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Shop, Action::View),
+        "ShopOrder",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let order = state
+        .shop
+        .get_order(&mut transaction, &context, id)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(order))
+}
+
+async fn transition_shop_order<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<OrderId>,
+    Json(input): Json<OrderTransition>,
+) -> Result<Json<Order>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Shop, Action::Write),
+        "ShopOrder",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let order = state
+        .shop
+        .transition_order(&mut transaction, &context, id, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(order))
+}
+
+async fn checkout_shop_order<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Json(input): Json<CheckoutInput>,
+) -> Result<(StatusCode, Json<CheckoutReceipt>), HttpError>
+where
+    R: SiteResolver,
+{
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let receipt = state
+        .shop
+        .checkout(&mut transaction, &context, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok((StatusCode::CREATED, Json(receipt)))
 }
 
 fn require_grant<R>(

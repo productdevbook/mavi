@@ -18,6 +18,7 @@ members = [
   "mavi-design",
   "mavi-forms",
   "mavi-mail",
+  "mavi-shop",
   "mavi",
 ]
 

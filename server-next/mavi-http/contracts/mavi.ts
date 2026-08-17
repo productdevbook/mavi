@@ -45,6 +45,25 @@ export interface AuditListFilter {
   actor_id?: string | null;
 }
 
+export interface BasketItem {
+  product_id: string;
+  quantity: number;
+}
+
+export interface CheckoutInput {
+  email: string;
+  items: BasketItem[];
+  coupon_code?: string | null;
+  idempotency_key: string;
+}
+
+export interface CheckoutReceipt {
+  id: string;
+  number: number;
+  state: OrderState;
+  total: Money;
+}
+
 export interface Content {
   id: string;
   site_id: string;
@@ -142,6 +161,30 @@ export interface ContentTypePage {
   next_cursor: string | null;
 }
 
+export interface Coupon {
+  id: string;
+  code: string;
+  kind: CouponKind;
+  percent: number | null;
+  amount: Money | unknown;
+  max_uses: number | null;
+  expires_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type CouponKind = "percent" | "amount";
+
+export interface CouponListFilter {
+  after?: string | null;
+  limit?: number;
+}
+
+export interface CouponPage {
+  items: Coupon[];
+  next_cursor: string | null;
+}
+
 export interface CreateApiKey {
   name: string;
   grants: Grant[];
@@ -157,6 +200,15 @@ export interface CreateContent {
   body?: string;
   fields?: Record<string, unknown>;
   publication?: PublicationInput;
+}
+
+export interface CreateCoupon {
+  code: string;
+  percent?: number | null;
+  amount_minor?: number | null;
+  currency?: string | null;
+  max_uses?: number | null;
+  expires_at?: string | null;
 }
 
 export interface CreateForm {
@@ -190,6 +242,15 @@ export interface CreatePerson {
   name: string;
   password: string;
   role_ids?: string[];
+}
+
+export interface CreateProduct {
+  slug: string;
+  name: string;
+  description?: string | null;
+  price: ProductPrice;
+  stock: number;
+  on_sale?: boolean;
 }
 
 export interface CreateRole {
@@ -509,6 +570,65 @@ export interface MailTemplatePreview {
   variables?: Record<string, unknown>;
 }
 
+export interface Money {
+  minor: number;
+  currency: string;
+}
+
+export interface Order {
+  id: string;
+  number: number;
+  state: OrderState;
+  email: string;
+  total: Money;
+  lines: OrderLine[];
+  payment_provider: string | null;
+  payment_reference: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OrderLine {
+  id: string;
+  product_id: string | null;
+  name: string;
+  each: Money;
+  quantity: number;
+}
+
+export interface OrderListFilter {
+  after?: string | null;
+  limit?: number;
+  state?: OrderState;
+}
+
+export type OrderState = "waiting" | "paid" | "sent" | "called_off" | "given_back";
+
+export interface OrderSummary {
+  id: string;
+  number: number;
+  state: OrderState;
+  email: string;
+  total: Money;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OrderSummaryPage {
+  items: OrderSummary[];
+  next_cursor: string | null;
+}
+
+export interface OrderTransition {
+  to: OrderState;
+  payment?: PaymentReceiptInput | unknown;
+}
+
+export interface PaymentReceiptInput {
+  provider: string;
+  reference: string;
+}
+
 export interface PeopleListFilter {
   after?: string | null;
   limit?: number;
@@ -540,10 +660,55 @@ export interface PersonRecord {
   updated_at: string;
 }
 
+export interface Product {
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  price: Money;
+  stock: number;
+  on_sale: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProductListFilter {
+  after?: string | null;
+  limit?: number;
+}
+
+export interface ProductPage {
+  items: Product[];
+  next_cursor: string | null;
+}
+
+export interface ProductPrice {
+  minor: number;
+  currency: string;
+}
+
 export interface PublicForm {
   slug: string;
   name: string;
   fields: FormField[];
+}
+
+export interface PublicProduct {
+  slug: string;
+  name: string;
+  description: string | null;
+  price: Money;
+  can_be_bought: boolean;
+}
+
+export interface PublicProductListFilter {
+  after?: string | null;
+  limit?: number;
+}
+
+export interface PublicProductPage {
+  items: PublicProduct[];
+  next_cursor: string | null;
 }
 
 export type Publication = "draft" | "archived" | Record<string, unknown> | Record<string, unknown>;
@@ -746,6 +911,14 @@ export interface UpdatePersonStatus {
   status: PersonListFilterStatus;
 }
 
+export interface UpdateProduct {
+  name?: string | null;
+  description?: string | null;
+  price_minor?: number | null;
+  stock?: number | null;
+  on_sale?: boolean | null;
+}
+
 export interface UpdateSiteSettings {
   name?: string | null;
   timezone?: string | null;
@@ -865,6 +1038,19 @@ export const operations = {
   "mail.deliveries.read": { method: "get", path: "/api/v1/mail/deliveries/{id}", input: null, query: null, output: "MailDelivery", status: 200, authentication: "account_or_assistant", permission: { capability: "mail", action: "view" } },
   "mail.deliveries.retry": { method: "post", path: "/api/v1/mail/deliveries/{id}/retry", input: { location: "json", shape: "RetryDelivery" }, query: null, output: "MailDelivery", status: 202, authentication: "account_or_assistant", permission: { capability: "mail", action: "write" } },
   "mail.deliveries.campaign": { method: "post", path: "/api/v1/mail/lists/{id}/deliveries", input: { location: "json", shape: "SendCampaign" }, query: null, output: "SendCount", status: 202, authentication: "account_or_assistant", permission: { capability: "mail", action: "write" } },
+  "shop.products.list": { method: "get", path: "/api/v1/shop/products", input: { location: "query", shape: "ProductListFilter" }, query: null, output: "ProductPage", status: 200, authentication: "account_or_assistant", permission: { capability: "shop", action: "view" } },
+  "shop.products.create": { method: "post", path: "/api/v1/shop/products", input: { location: "json", shape: "CreateProduct" }, query: null, output: "Product", status: 201, authentication: "account_or_assistant", permission: { capability: "shop", action: "write" } },
+  "shop.products.read": { method: "get", path: "/api/v1/shop/products/{id}", input: null, query: null, output: "Product", status: 200, authentication: "account_or_assistant", permission: { capability: "shop", action: "view" } },
+  "shop.products.update": { method: "patch", path: "/api/v1/shop/products/{id}", input: { location: "json", shape: "UpdateProduct" }, query: null, output: "Product", status: 200, authentication: "account_or_assistant", permission: { capability: "shop", action: "write" } },
+  "shop.products.delete": { method: "delete", path: "/api/v1/shop/products/{id}", input: null, query: null, output: "Empty", status: 204, authentication: "account_or_assistant", permission: { capability: "shop", action: "delete" } },
+  "shop.public.products.list": { method: "get", path: "/public/v1/shop/products", input: { location: "query", shape: "PublicProductListFilter" }, query: null, output: "PublicProductPage", status: 200, authentication: "public", permission: null },
+  "shop.coupons.list": { method: "get", path: "/api/v1/shop/coupons", input: { location: "query", shape: "CouponListFilter" }, query: null, output: "CouponPage", status: 200, authentication: "account_or_assistant", permission: { capability: "shop", action: "view" } },
+  "shop.coupons.create": { method: "post", path: "/api/v1/shop/coupons", input: { location: "json", shape: "CreateCoupon" }, query: null, output: "Coupon", status: 201, authentication: "account_or_assistant", permission: { capability: "shop", action: "write" } },
+  "shop.coupons.delete": { method: "delete", path: "/api/v1/shop/coupons/{id}", input: null, query: null, output: "Empty", status: 204, authentication: "account_or_assistant", permission: { capability: "shop", action: "delete" } },
+  "shop.orders.list": { method: "get", path: "/api/v1/shop/orders", input: { location: "query", shape: "OrderListFilter" }, query: null, output: "OrderSummaryPage", status: 200, authentication: "account_or_assistant", permission: { capability: "shop", action: "view" } },
+  "shop.orders.read": { method: "get", path: "/api/v1/shop/orders/{id}", input: null, query: null, output: "Order", status: 200, authentication: "account_or_assistant", permission: { capability: "shop", action: "view" } },
+  "shop.orders.transition": { method: "post", path: "/api/v1/shop/orders/{id}/transition", input: { location: "json", shape: "OrderTransition" }, query: null, output: "Order", status: 200, authentication: "account_or_assistant", permission: { capability: "shop", action: "write" } },
+  "shop.public.orders.checkout": { method: "post", path: "/public/v1/shop/orders", input: { location: "json", shape: "CheckoutInput" }, query: null, output: "CheckoutReceipt", status: 201, authentication: "public", permission: null },
 } as const satisfies Record<string, MaviOperation>;
 
 export type OperationName = keyof typeof operations;
@@ -963,6 +1149,19 @@ export interface OperationArguments {
   "mail.deliveries.read": { path: { id: string }; query?: never; body?: never; }
   "mail.deliveries.retry": { path: { id: string }; query?: never; body: RetryDelivery; }
   "mail.deliveries.campaign": { path: { id: string }; query?: never; body: SendCampaign; }
+  "shop.products.list": { path?: never; query: ProductListFilter; body?: never; }
+  "shop.products.create": { path?: never; query?: never; body: CreateProduct; }
+  "shop.products.read": { path: { id: string }; query?: never; body?: never; }
+  "shop.products.update": { path: { id: string }; query?: never; body: UpdateProduct; }
+  "shop.products.delete": { path: { id: string }; query?: never; body?: never; }
+  "shop.public.products.list": { path?: never; query: PublicProductListFilter; body?: never; }
+  "shop.coupons.list": { path?: never; query: CouponListFilter; body?: never; }
+  "shop.coupons.create": { path?: never; query?: never; body: CreateCoupon; }
+  "shop.coupons.delete": { path: { id: string }; query?: never; body?: never; }
+  "shop.orders.list": { path?: never; query: OrderListFilter; body?: never; }
+  "shop.orders.read": { path: { id: string }; query?: never; body?: never; }
+  "shop.orders.transition": { path: { id: string }; query?: never; body: OrderTransition; }
+  "shop.public.orders.checkout": { path?: never; query?: never; body: CheckoutInput; }
 }
 
 export interface OperationResponses {
@@ -1059,6 +1258,19 @@ export interface OperationResponses {
   "mail.deliveries.read": MailDelivery;
   "mail.deliveries.retry": MailDelivery;
   "mail.deliveries.campaign": SendCount;
+  "shop.products.list": ProductPage;
+  "shop.products.create": Product;
+  "shop.products.read": Product;
+  "shop.products.update": Product;
+  "shop.products.delete": void;
+  "shop.public.products.list": PublicProductPage;
+  "shop.coupons.list": CouponPage;
+  "shop.coupons.create": Coupon;
+  "shop.coupons.delete": void;
+  "shop.orders.list": OrderSummaryPage;
+  "shop.orders.read": Order;
+  "shop.orders.transition": Order;
+  "shop.public.orders.checkout": CheckoutReceipt;
 }
 
 export interface MaviClientOptions {

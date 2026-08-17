@@ -18,6 +18,7 @@ mavi-design = { path = "../mavi-design" }
 mavi-forms = { path = "../mavi-forms" }
 mavi-mail = { path = "../mavi-mail" }
 mavi-media = { path = "../mavi-media" }
+mavi-shop = { path = "../mavi-shop" }
 mavi-identity = { path = "../mavi-identity" }
 mavi-runtime = { path = "../mavi-runtime" }
 mavi-settings = { path = "../mavi-settings" }

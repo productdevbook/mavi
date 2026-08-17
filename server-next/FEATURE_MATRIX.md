@@ -26,6 +26,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Design changes, files, builds and artifacts enforce RLS, composite foreign keys and site-aware keys.
   - [-] Forms and submissions enforce RLS, composite foreign keys and site-aware keys.
   - [x] Mail templates, lists, readers, deliveries and delivery attempts enforce RLS, composite foreign keys and site-aware keys.
+  - [x] Shop products, coupons, order counters, orders, lines, holds and coupon uses enforce RLS, composite foreign keys and site-aware keys.
   - [ ] Remaining domain tables and a single reusable DB guard for every repository.
 - [-] Migration and schema integration tests against PostgreSQL.
   - [x] Storage, identity and settings migrations run against a non-superuser PostgreSQL role.
@@ -106,8 +107,15 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
 
 ## Commerce and learning
 
-- [ ] Products, variants, prices, stock and site-local order numbering.
-- [ ] Checkout, payment adapter, refunds, discounts and order audit.
+- [-] Products, variants, prices, stock and site-local order numbering.
+  - [x] Site-scoped product catalog uses Money value objects, immutable currency, soft deletion and cursor-only management/public lists.
+  - [x] Checkout sorts product locks, snapshots names/prices, holds available stock and uses email-scoped idempotency keys.
+  - [x] Site-local order counters and explicit waiting/paid/sent/called-off/given-back state transitions are transactional and audited.
+  - [ ] Product variants and digital/physical fulfillment policy.
+- [-] Checkout, payment adapter, refunds, discounts and order audit.
+  - [x] Coupon percentage/amount rules, expiry/max-use locking and coupon-use audit boundaries.
+  - [x] Payment remains a shared adapter boundary; HTTP only records an external receipt and never calls a provider inline.
+  - [ ] Concrete payment providers, refund policy and payment webhook worker.
 - [ ] Courses, modules, lessons, video/file access and student enrollment.
 - [ ] Expiring access, progress, completion and instructor permissions.
 
@@ -138,6 +146,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Design source/build PostgreSQL isolation, immutable artifact, publish/rollback and HTTP serving tests.
   - [x] Forms declaration/submission PostgreSQL RLS isolation and HTTP validation/cursor/permission tests.
   - [x] Mail template/list/outbox PostgreSQL RLS state-machine tests and HTTP contract coverage.
+  - [x] Shop catalog/checkout/stock/order PostgreSQL isolation tests and HTTP permission/contract coverage.
   - [x] Identity HTTP integration covers setup, login, cursor, 401/403 and Cedar behavior.
   - [x] Generated OpenAPI/TypeScript/Rust/MCP artifacts have stale-contract tests.
   - [ ] Remaining domain HTTP suites.

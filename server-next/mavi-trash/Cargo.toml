@@ -1,16 +1,17 @@
 [package]
-name = "mavi-audit"
+name = "mavi-trash"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 publish = false
-description = "Site-scoped audit receipts written atomically with domain transactions."
+description = "Site-scoped trash listing, restore and permanent deletion policy."
 
 [dependencies]
 base64.workspace = true
 chrono.workspace = true
-mavi-core = { path = "../mavi-core" }
+mavi-audit = { path = "../mavi-audit" }
 mavi-contract = { path = "../mavi-contract" }
+mavi-core = { path = "../mavi-core" }
 mavi-storage = { path = "../mavi-storage" }
 serde.workspace = true
 serde_json.workspace = true
@@ -21,4 +22,8 @@ uuid.workspace = true
 workspace = true
 
 [dev-dependencies]
+mavi-content = { path = "../mavi-content" }
+mavi-files = { path = "../mavi-files" }
+mavi-media = { path = "../mavi-media" }
+mavi-taxonomy = { path = "../mavi-taxonomy" }
 tokio.workspace = true

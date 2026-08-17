@@ -67,13 +67,19 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
 - [-] Media metadata, uploads, image variants, file storage and cleanup.
   - [x] Site-scoped file metadata, byte-sniffed allowlist, SHA-256 receipt and opaque cursor listing.
   - [x] Raw binary upload contract, local atomic file adapter and in-memory test adapter.
-  - [x] RLS/composite keys, Cedar media grants, upload/delete audit receipts and retryable binary removal.
+  - [x] RLS/composite keys, Cedar media grants, upload/trash audit receipts and durable cleanup tasks.
   - [ ] Image variants, authenticated/public binary download and orphan cleanup worker.
 
 ## Operations and publishing
 
-- [ ] Audit receipts for every mutation and auditable actor attribution.
-- [ ] Trash, restore and permanent deletion policy.
+- [-] Audit receipts for every mutation and auditable actor attribution.
+  - [x] Immutable site-scoped receipts with typed actor/resource fields and atomic writes.
+  - [x] Cursor-filtered audit list/read API with Cedar grants and generated contracts.
+  - [ ] Export/download retention policy and security-event coverage for future domains.
+- [-] Trash, restore and permanent deletion policy.
+  - [x] Shared cursor list, typed content/file/term restore and permanent-delete API.
+  - [x] Media trash retains bytes; permanent deletion queues and confirms adapter cleanup.
+  - [ ] Forms, shop, courses, boards and flow-specific trash kinds plus scheduled retention worker.
 - [ ] Design files, preview builds, publish, rollback and public serving.
 - [ ] Forms, submissions, exports, spam controls and retention policy.
 - [ ] Mail templates, delivery queue, retries and provider adapters.
@@ -107,6 +113,8 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Content type unit, PostgreSQL scope/audit/field validation and HTTP tests.
   - [x] Content lifecycle revision/slug/public HTTP and PostgreSQL tests.
   - [x] Taxonomy tree, assignment, RLS and HTTP permission/cursor tests.
+  - [x] Audit receipt PostgreSQL isolation/cursor tests and audit/trash HTTP acceptance tests.
+  - [x] Trash restore/permanent-delete PostgreSQL tests, including media cleanup receipts.
   - [x] Identity HTTP integration covers setup, login, cursor, 401/403 and Cedar behavior.
   - [x] Generated OpenAPI/TypeScript/Rust/MCP artifacts have stale-contract tests.
   - [ ] Remaining domain HTTP suites.

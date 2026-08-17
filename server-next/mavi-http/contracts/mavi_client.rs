@@ -12,6 +12,38 @@ pub struct ApiKeyCreated {
     pub expires_at: Option<String>,
 }
 
+pub type AuditActorKind = String;
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct AuditEvent {
+    pub id: String,
+    pub request_id: String,
+    pub actor_kind: AuditActorKind,
+    pub actor_id: Option<String>,
+    pub action: String,
+    pub resource_type: String,
+    pub resource_id: Option<String>,
+    pub payload: Value,
+    pub created_at: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct AuditEventPage {
+    pub items: Vec<AuditEvent>,
+    pub next_cursor: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct AuditListFilter {
+    pub after: Option<String>,
+    pub limit: Option<i64>,
+    pub action: Option<String>,
+    pub resource_type: Option<String>,
+    pub resource_id: Option<String>,
+    pub actor_kind: Option<AuditActorKind>,
+    pub actor_id: Option<String>,
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Content {
     pub id: String,
@@ -392,6 +424,29 @@ pub struct TermPage {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct TrashItem {
+    pub kind: TrashKind,
+    pub id: String,
+    pub label: String,
+    pub deleted_at: String,
+}
+
+pub type TrashKind = String;
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct TrashListFilter {
+    pub after: Option<String>,
+    pub limit: Option<i64>,
+    pub kind: Option<TrashKind>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct TrashPage {
+    pub items: Vec<TrashItem>,
+    pub next_cursor: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct UpdateContent {
     pub slug: Option<String>,
     pub title: Option<String>,
@@ -482,12 +537,17 @@ pub const OPERATIONS: &[OperationDefinition] = &[
     OperationDefinition { name: "taxonomy.terms.create", method: "post", path: "/api/v1/terms", request: Some("CreateTerm"), request_location: Some("json"), query: None, response: Some("Term"), status: 201, authentication: "account_or_assistant", capability: Some("taxonomy"), action: Some("write") },
     OperationDefinition { name: "taxonomy.terms.read", method: "get", path: "/api/v1/terms/{id}", request: None, request_location: None, query: None, response: Some("Term"), status: 200, authentication: "account_or_assistant", capability: Some("taxonomy"), action: Some("view") },
     OperationDefinition { name: "taxonomy.terms.update", method: "patch", path: "/api/v1/terms/{id}", request: Some("UpdateTerm"), request_location: Some("json"), query: None, response: Some("Term"), status: 200, authentication: "account_or_assistant", capability: Some("taxonomy"), action: Some("write") },
-    OperationDefinition { name: "taxonomy.terms.delete", method: "delete", path: "/api/v1/terms/{id}", request: None, request_location: None, query: None, response: Some("Empty"), status: 204, authentication: "account_or_assistant", capability: Some("taxonomy"), action: Some("delete") },
+    OperationDefinition { name: "taxonomy.terms.trash", method: "delete", path: "/api/v1/terms/{id}", request: None, request_location: None, query: None, response: Some("Empty"), status: 204, authentication: "account_or_assistant", capability: Some("taxonomy"), action: Some("delete") },
     OperationDefinition { name: "taxonomy.content_terms.list", method: "get", path: "/api/v1/content/{id}/terms", request: None, request_location: None, query: None, response: Some("TermList"), status: 200, authentication: "account_or_assistant", capability: Some("taxonomy"), action: Some("view") },
     OperationDefinition { name: "taxonomy.content_terms.replace", method: "put", path: "/api/v1/content/{id}/terms", request: Some("ReplaceContentTerms"), request_location: Some("json"), query: None, response: Some("TermList"), status: 200, authentication: "account_or_assistant", capability: Some("taxonomy"), action: Some("write") },
     OperationDefinition { name: "taxonomy.term_content.list", method: "get", path: "/api/v1/terms/{id}/content", request: Some("ContentTermAssignmentListFilter"), request_location: Some("query"), query: None, response: Some("ContentTermAssignmentPage"), status: 200, authentication: "account_or_assistant", capability: Some("taxonomy"), action: Some("view") },
     OperationDefinition { name: "media.files.list", method: "get", path: "/api/v1/files", request: Some("FileListFilter"), request_location: Some("query"), query: None, response: Some("FilePage"), status: 200, authentication: "account_or_assistant", capability: Some("media"), action: Some("view") },
     OperationDefinition { name: "media.files.upload", method: "post", path: "/api/v1/files", request: Some("FileBytes"), request_location: Some("raw"), query: Some("UploadFileQuery"), response: Some("File"), status: 201, authentication: "account_or_assistant", capability: Some("media"), action: Some("write") },
     OperationDefinition { name: "media.files.read", method: "get", path: "/api/v1/files/{id}", request: None, request_location: None, query: None, response: Some("File"), status: 200, authentication: "account_or_assistant", capability: Some("media"), action: Some("view") },
-    OperationDefinition { name: "media.files.delete", method: "delete", path: "/api/v1/files/{id}", request: None, request_location: None, query: None, response: Some("Empty"), status: 204, authentication: "account_or_assistant", capability: Some("media"), action: Some("delete") },
+    OperationDefinition { name: "media.files.trash", method: "delete", path: "/api/v1/files/{id}", request: None, request_location: None, query: None, response: Some("Empty"), status: 204, authentication: "account_or_assistant", capability: Some("media"), action: Some("delete") },
+    OperationDefinition { name: "audit.events.list", method: "get", path: "/api/v1/audit", request: Some("AuditListFilter"), request_location: Some("query"), query: None, response: Some("AuditEventPage"), status: 200, authentication: "account_or_assistant", capability: Some("audit"), action: Some("view") },
+    OperationDefinition { name: "audit.events.read", method: "get", path: "/api/v1/audit/{id}", request: None, request_location: None, query: None, response: Some("AuditEvent"), status: 200, authentication: "account_or_assistant", capability: Some("audit"), action: Some("view") },
+    OperationDefinition { name: "trash.items.list", method: "get", path: "/api/v1/trash", request: Some("TrashListFilter"), request_location: Some("query"), query: None, response: Some("TrashPage"), status: 200, authentication: "account_or_assistant", capability: Some("trash"), action: Some("view") },
+    OperationDefinition { name: "trash.items.restore", method: "post", path: "/api/v1/trash/{kind}/{id}/restore", request: None, request_location: None, query: None, response: Some("Empty"), status: 204, authentication: "account_or_assistant", capability: Some("trash"), action: Some("write") },
+    OperationDefinition { name: "trash.items.delete_permanently", method: "delete", path: "/api/v1/trash/{kind}/{id}", request: None, request_location: None, query: None, response: Some("Empty"), status: 204, authentication: "account_or_assistant", capability: Some("trash"), action: Some("delete") },
 ];

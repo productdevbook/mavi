@@ -116,7 +116,7 @@ pub fn endpoints() -> Vec<Endpoint> {
         Endpoint::new(
             Method::Delete,
             "/api/v1/terms/{id}",
-            "taxonomy.terms.delete",
+            "taxonomy.terms.trash",
             "Move a site taxonomy term to trash",
         )
         .account_or_assistant()
@@ -662,7 +662,7 @@ pub(super) async fn delete(tx: &mut SiteTx, context: &SiteContext, id: TermId) -
             tx,
             context,
             &AuditEntry {
-                action: "taxonomy.term.deleted".to_owned(),
+                action: "taxonomy.term.trashed".to_owned(),
                 resource_type: "TaxonomyTerm".to_owned(),
                 resource_id: Some(id.into_uuid()),
                 payload: json!({}),

@@ -10,6 +10,7 @@ description = "HTTP admission, site context propagation and canonical errors."
 axum.workspace = true
 chrono.workspace = true
 mavi-authz = { path = "../mavi-authz" }
+mavi-audit = { path = "../mavi-audit" }
 mavi-content = { path = "../mavi-content" }
 mavi-contract = { path = "../mavi-contract" }
 mavi-core = { path = "../mavi-core" }
@@ -18,8 +19,10 @@ mavi-identity = { path = "../mavi-identity" }
 mavi-runtime = { path = "../mavi-runtime" }
 mavi-settings = { path = "../mavi-settings" }
 mavi-taxonomy = { path = "../mavi-taxonomy" }
+mavi-trash = { path = "../mavi-trash" }
 serde.workspace = true
 serde_json.workspace = true
+uuid.workspace = true
 
 [lints]
 workspace = true

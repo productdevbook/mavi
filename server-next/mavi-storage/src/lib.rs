@@ -138,5 +138,16 @@ mod tests {
         assert!(media_migration.contains("unique (site_id, storage_key)"));
         assert!(media_migration.contains("media_files_site_kind_recent"));
         assert!(media_migration.contains("alter table media_files force row level security"));
+
+        let cleanup_migration = include_str!("../migrations/0010_media_cleanup.sql");
+        assert!(cleanup_migration.contains("primary key (site_id, file_id)"));
+        assert!(cleanup_migration.contains("media_cleanup_tasks_pending"));
+        assert!(
+            cleanup_migration.contains("alter table media_cleanup_tasks force row level security")
+        );
+
+        let audit_immutable_migration = include_str!("../migrations/0011_audit_immutable.sql");
+        assert!(audit_immutable_migration.contains("audit_events_append_only"));
+        assert!(audit_immutable_migration.contains("revoke update, delete on audit_events"));
     }
 }

@@ -33,7 +33,9 @@ The same Mavi application runs in both modes:
 | `mavi-settings` | site settings, timezone and site language configuration |
 | `mavi-authz` | embedded Cedar policy evaluation with site-scope enforcement |
 | `mavi-files` | atomic local and in-memory site-scoped binary storage adapters |
-| `mavi-media` | file metadata, byte detection, upload/delete orchestration and media API |
+| `mavi-media` | file metadata, byte detection, upload/trash orchestration and media API |
+| `mavi-audit` | immutable site-scoped mutation receipts and cursor-filtered audit reads |
+| `mavi-trash` | shared trash listing, restore, permanent deletion and media cleanup policy |
 | `mavi` | executable composition root |
 
 Domains are added only after the foundation is stable. Each domain owns its

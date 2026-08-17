@@ -1536,7 +1536,7 @@
       }
     },
     {
-      "name": "taxonomy.terms.delete",
+      "name": "taxonomy.terms.trash",
       "description": "Move a site taxonomy term to trash",
       "inputSchema": {
         "type": "object",
@@ -1838,8 +1838,8 @@
       }
     },
     {
-      "name": "media.files.delete",
-      "description": "Remove a file and schedule its binary for cleanup",
+      "name": "media.files.trash",
+      "description": "Move a file to trash while retaining its binary for restore",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -1868,6 +1868,246 @@
         "scope": "site",
         "permission": {
           "capability": "media",
+          "action": "delete"
+        }
+      }
+    },
+    {
+      "name": "audit.events.list",
+      "description": "List immutable site audit events with an opaque cursor",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "object",
+            "properties": {
+              "after": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 512
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100
+              },
+              "action": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 160
+              },
+              "resource_type": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 80
+              },
+              "resource_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uuid"
+              },
+              "actor_kind": {
+                "type": "string",
+                "enum": [
+                  "public",
+                  "account",
+                  "student",
+                  "assistant"
+                ]
+              },
+              "actor_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 255
+              }
+            }
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true
+      },
+      "x-mavi": {
+        "authentication": "account_or_assistant",
+        "scope": "site",
+        "permission": {
+          "capability": "audit",
+          "action": "view"
+        }
+      }
+    },
+    {
+      "name": "audit.events.read",
+      "description": "Read one immutable audit event",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ]
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true
+      },
+      "x-mavi": {
+        "authentication": "account_or_assistant",
+        "scope": "site",
+        "permission": {
+          "capability": "audit",
+          "action": "view"
+        }
+      }
+    },
+    {
+      "name": "trash.items.list",
+      "description": "List restorable site trash items with an opaque cursor",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "object",
+            "properties": {
+              "after": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 512
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "content",
+                  "file",
+                  "term"
+                ]
+              }
+            }
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true
+      },
+      "x-mavi": {
+        "authentication": "account_or_assistant",
+        "scope": "site",
+        "permission": {
+          "capability": "trash",
+          "action": "view"
+        }
+      }
+    },
+    {
+      "name": "trash.items.restore",
+      "description": "Restore one item from site trash",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string"
+              },
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "kind",
+              "id"
+            ]
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false
+      },
+      "x-mavi": {
+        "authentication": "account_or_assistant",
+        "scope": "site",
+        "permission": {
+          "capability": "trash",
+          "action": "write"
+        }
+      }
+    },
+    {
+      "name": "trash.items.delete_permanently",
+      "description": "Permanently delete one item from site trash",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string"
+              },
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "kind",
+              "id"
+            ]
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false
+      },
+      "x-mavi": {
+        "authentication": "account_or_assistant",
+        "scope": "site",
+        "permission": {
+          "capability": "trash",
           "action": "delete"
         }
       }

@@ -87,20 +87,19 @@ async fn media_metadata_and_audit_are_site_scoped_and_binary_cleanup_is_retryabl
     transaction.commit().await.expect("commit");
 
     let mut transaction = database.begin(&first_context).await.expect("transaction");
-    let storage_key = service
-        .delete(&mut transaction, &first_context, first.id)
+    let storage_key: String =
+        sqlx::query_scalar("select storage_key from media_files where site_id = $1 and id = $2")
+            .bind(first_site.into_uuid())
+            .bind(first.id.into_uuid())
+            .fetch_one(transaction.conn())
+            .await
+            .expect("storage key");
+    service
+        .trash(&mut transaction, &first_context, first.id)
         .await
-        .expect("delete metadata");
+        .expect("trash metadata");
     transaction.commit().await.expect("commit");
     assert!(store.get(&first_context, &storage_key).await.is_ok());
-    store
-        .remove(&first_context, &storage_key)
-        .await
-        .expect("remove bytes");
-    store
-        .remove(&first_context, &storage_key)
-        .await
-        .expect("retry remove");
 
     let mut transaction = database.begin(&first_context).await.expect("transaction");
     let missing = service
@@ -115,7 +114,7 @@ async fn media_metadata_and_audit_are_site_scoped_and_binary_cleanup_is_retryabl
     .fetch_all(transaction.conn())
     .await
     .expect("audit actions");
-    assert_eq!(audit_actions, ["media.file.deleted", "media.file.uploaded"]);
+    assert_eq!(audit_actions, ["media.file.trashed", "media.file.uploaded"]);
     transaction.commit().await.expect("commit");
 
     let mut transaction = database.begin(&first_context).await.expect("transaction");

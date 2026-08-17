@@ -29,9 +29,10 @@ use mavi_content::{
 use mavi_contract::Api;
 use mavi_core::{
     Action, AuditEventId, Caller, Capability, ContentId, CouponId, CourseId, DesignBuildId,
-    DesignChangeId, EnrollmentId, ErrorCode, FileId, FormSubmissionId, Grant, LessonId,
-    MailDeliveryId, MailListId, MailReaderId, MailTemplateId, MaviError, ModuleId, OrderId, Page,
-    PersonId, ProductId, RequestId, RoleId, SiteContext, StudentId, TermId, ports::FileStore,
+    DesignChangeId, EnrollmentId, ErrorCode, FileId, FlowId, FlowRunId, FormSubmissionId, Grant,
+    JobId, LessonId, MailDeliveryId, MailListId, MailReaderId, MailTemplateId, MaviError, ModuleId,
+    OrderId, Page, PersonId, ProductId, RequestId, RoleId, SiteContext, StudentId, TermId,
+    ports::FileStore,
 };
 use mavi_courses::{
     Course, CourseListFilter, CourseSummary, CoursesService, CreateCourse, CreateLesson,
@@ -46,6 +47,10 @@ use mavi_design::{
     DesignChangeListFilter, DesignFile, DesignFileInput, DesignFileListFilter, DesignFileQuery,
     DesignService, StartDesignChange,
 };
+use mavi_flows::{
+    CreateFlow, Flow, FlowListFilter, FlowRun, FlowService, RunListFilter, SimulateFlow,
+    SimulationStep, TriggerDescription, UpdateFlow,
+};
 use mavi_forms::{
     CreateForm, Form, FormListFilter, FormService, FormSubmission, PublicForm, SeenCount,
     SubmissionListFilter, SubmissionReceipt, SubmitForm, UpdateForm,
@@ -55,6 +60,7 @@ use mavi_identity::{
     PeopleListFilter, Person, PersonRecord, ReplaceRoleGrants, Role, RoleListFilter,
     SessionCreated, SetupInput, SetupStatus, UpdatePersonStatus,
 };
+use mavi_jobs::{Job, JobListFilter, JobsService};
 use mavi_mail::{
     AddReader, CreateMailList, CreateMailTemplate, DeliveryListFilter, EnqueueDelivery,
     MailDelivery, MailList, MailListListFilter, MailReader, MailReaderCreated, MailService,
@@ -149,6 +155,8 @@ pub fn api() -> Api {
     api.extend(mavi_mail::api());
     api.extend(mavi_shop::api());
     api.extend(mavi_courses::api());
+    api.extend(mavi_jobs::api());
+    api.extend(mavi_flows::api());
     api
 }
 
@@ -182,6 +190,8 @@ where
         mail: MailService,
         shop: ShopService,
         courses: CoursesService,
+        jobs: JobsService::new(mavi_flows::job_kinds()),
+        flows: FlowService,
         file_store,
         builder,
         authorizer: CedarAuthorizer::new()?,
@@ -214,6 +224,7 @@ where
         .merge(mail_routes::<R>())
         .merge(course_routes::<R>())
         .merge(shop_routes::<R>())
+        .merge(automation_routes::<R>())
 }
 
 fn identity_routes<R>() -> Router<HttpState<R>>
@@ -582,6 +593,39 @@ where
         .route("/public/v1/shop/orders", post(checkout_shop_order::<R>))
 }
 
+fn automation_routes<R>() -> Router<HttpState<R>>
+where
+    R: SiteResolver,
+{
+    Router::new()
+        .route("/api/v1/jobs", get(list_jobs::<R>))
+        .route("/api/v1/jobs/{id}", get(read_job::<R>))
+        .route("/api/v1/jobs/{id}/retry", post(retry_job::<R>))
+        .route(
+            "/api/v1/automation/triggers",
+            get(list_automation_triggers::<R>),
+        )
+        .route(
+            "/api/v1/automation/flows",
+            get(list_flows::<R>).post(create_flow::<R>),
+        )
+        .route(
+            "/api/v1/automation/flows/{id}",
+            get(read_flow::<R>)
+                .patch(update_flow::<R>)
+                .delete(delete_flow::<R>),
+        )
+        .route(
+            "/api/v1/automation/flows/{id}/simulate",
+            post(simulate_flow::<R>),
+        )
+        .route(
+            "/api/v1/automation/flows/{id}/runs",
+            get(list_flow_runs::<R>),
+        )
+        .route("/api/v1/automation/runs/{id}", get(read_flow_run::<R>))
+}
+
 struct HttpState<R> {
     runtime: Runtime<R>,
     identity: IdentityService,
@@ -596,6 +640,8 @@ struct HttpState<R> {
     mail: MailService,
     shop: ShopService,
     courses: CoursesService,
+    jobs: JobsService,
+    flows: FlowService,
     file_store: Arc<dyn FileStore>,
     builder: Arc<dyn BuildEngine>,
     authorizer: CedarAuthorizer,
@@ -617,6 +663,8 @@ impl<R> Clone for HttpState<R> {
             mail: self.mail,
             shop: self.shop,
             courses: self.courses,
+            jobs: self.jobs.clone(),
+            flows: self.flows,
             file_store: Arc::clone(&self.file_store),
             builder: Arc::clone(&self.builder),
             authorizer: self.authorizer.clone(),
@@ -4131,6 +4179,307 @@ where
         .map_err(HttpError)?;
     transaction.commit().await.map_err(HttpError)?;
     Ok(Json(progress))
+}
+
+async fn list_jobs<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Query(filter): Query<JobListFilter>,
+) -> Result<Json<Page<Job>>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_automation_grant(&state, &context, Action::View, "Job", "job_collection")?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let page = state
+        .jobs
+        .list(&mut transaction, &filter)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(page))
+}
+
+async fn read_job<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<JobId>,
+) -> Result<Json<Job>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_automation_grant(&state, &context, Action::View, "Job", id.to_string())?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let job = state
+        .jobs
+        .get(&mut transaction, id)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(job))
+}
+
+async fn retry_job<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<JobId>,
+) -> Result<Json<Job>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_automation_grant(&state, &context, Action::Write, "Job", id.to_string())?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let job = state
+        .jobs
+        .retry(&mut transaction, &context, id)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(job))
+}
+
+async fn list_automation_triggers<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+) -> Result<Json<Vec<TriggerDescription>>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_automation_grant(
+        &state,
+        &context,
+        Action::View,
+        "AutomationTrigger",
+        "trigger_collection",
+    )?;
+    Ok(Json(mavi_flows::trigger_descriptions()))
+}
+
+async fn list_flows<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Query(filter): Query<FlowListFilter>,
+) -> Result<Json<Page<Flow>>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_automation_grant(
+        &state,
+        &context,
+        Action::View,
+        "AutomationFlow",
+        "flow_collection",
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let page = state
+        .flows
+        .list(&mut transaction, &filter)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(page))
+}
+
+async fn create_flow<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Json(input): Json<CreateFlow>,
+) -> Result<(StatusCode, Json<Flow>), HttpError>
+where
+    R: SiteResolver,
+{
+    require_automation_grant(
+        &state,
+        &context,
+        Action::Write,
+        "AutomationFlow",
+        "flow_collection",
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let flow = state
+        .flows
+        .create(&mut transaction, &context, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok((StatusCode::CREATED, Json(flow)))
+}
+
+async fn read_flow<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<FlowId>,
+) -> Result<Json<Flow>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_automation_grant(
+        &state,
+        &context,
+        Action::View,
+        "AutomationFlow",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let flow = state
+        .flows
+        .get(&mut transaction, id)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(flow))
+}
+
+async fn update_flow<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<FlowId>,
+    Json(input): Json<UpdateFlow>,
+) -> Result<Json<Flow>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_automation_grant(
+        &state,
+        &context,
+        Action::Write,
+        "AutomationFlow",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let flow = state
+        .flows
+        .update(&mut transaction, &context, id, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(flow))
+}
+
+async fn delete_flow<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<FlowId>,
+) -> Result<StatusCode, HttpError>
+where
+    R: SiteResolver,
+{
+    require_automation_grant(
+        &state,
+        &context,
+        Action::Write,
+        "AutomationFlow",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    state
+        .flows
+        .delete(&mut transaction, &context, id)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+async fn simulate_flow<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<FlowId>,
+    Json(input): Json<SimulateFlow>,
+) -> Result<Json<Simulation>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_automation_grant(
+        &state,
+        &context,
+        Action::View,
+        "AutomationFlow",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let steps = state
+        .flows
+        .simulate(&mut transaction, id, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(Simulation { steps }))
+}
+
+#[derive(Clone, Debug, Serialize)]
+struct Simulation {
+    steps: Vec<SimulationStep>,
+}
+
+async fn list_flow_runs<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<FlowId>,
+    Query(filter): Query<RunListFilter>,
+) -> Result<Json<Page<FlowRun>>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_automation_grant(
+        &state,
+        &context,
+        Action::View,
+        "AutomationFlow",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let page = state
+        .flows
+        .list_runs(&mut transaction, id, &filter)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(page))
+}
+
+async fn read_flow_run<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<FlowRunId>,
+) -> Result<Json<FlowRun>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_automation_grant(
+        &state,
+        &context,
+        Action::View,
+        "AutomationRun",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let run = state
+        .flows
+        .get_run(&mut transaction, id)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(run))
+}
+
+fn require_automation_grant<R>(
+    state: &HttpState<R>,
+    context: &SiteContext,
+    action: Action,
+    resource_type: impl Into<String>,
+    resource_id: impl Into<String>,
+) -> Result<(), HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        state,
+        context,
+        Grant::new(Capability::Automation, action),
+        resource_type,
+        resource_id,
+    )
 }
 
 fn require_courses_grant<R>(

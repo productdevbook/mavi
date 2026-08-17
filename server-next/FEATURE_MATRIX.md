@@ -28,6 +28,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Mail templates, lists, readers, deliveries and delivery attempts enforce RLS, composite foreign keys and site-aware keys.
   - [x] Shop products, coupons, order counters, orders, lines, holds and coupon uses enforce RLS, composite foreign keys and site-aware keys.
   - [x] Courses, modules, lessons, students, sessions, enrollments and progress enforce RLS, composite foreign keys and site-aware keys.
+  - [x] Jobs, automation flows and run history enforce RLS, composite foreign keys and site-aware idempotency/order keys.
   - [ ] Remaining domain tables and a single reusable DB guard for every repository.
 - [-] Migration and schema integration tests against PostgreSQL.
   - [x] Storage, identity and settings migrations run against a non-superuser PostgreSQL role.
@@ -130,8 +131,15 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
 
 ## Automation and collaboration
 
-- [ ] Flows, triggers, steps, retries, idempotency and dead-letter handling.
-- [ ] Jobs, site-scoped queue leases and worker execution.
+- [-] Flows, triggers, steps, retries, idempotency and dead-letter handling.
+  - [x] Flow definitions validate a bounded trigger/step vocabulary and step configuration before persistence.
+  - [x] Event fan-out is transactional, source-key idempotent and connected to registered durable jobs.
+  - [x] Runs snapshot their definition, record every step attempt and expose simulation/run history APIs.
+  - [ ] Concrete mail, webhook and list-mutating executors plus event emission from every producer domain.
+- [-] Jobs, site-scoped queue leases and worker execution.
+  - [x] Registered job kinds, site-scoped queue rows, composite idempotency and cursor-only admin lists.
+  - [x] `FOR UPDATE SKIP LOCKED` claims, lease heartbeat, stale-worker protection, bounded backoff and dead-letter retry.
+  - [ ] Shared worker supervisor/metrics and concrete self-host/cloud adapter wiring.
 - [ ] Boards, lists, cards, assignments, comments and activity history.
 - [ ] Analytics events, aggregation, retention and export.
 - [ ] Portable export/import with versioned manifests and validation.
@@ -157,6 +165,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Mail template/list/outbox PostgreSQL RLS state-machine tests and HTTP contract coverage.
   - [x] Shop catalog/checkout/stock/order PostgreSQL isolation tests and HTTP permission/contract coverage.
   - [x] Courses authoring/order/student-session/enrollment/progress/media PostgreSQL isolation tests and HTTP permission/contract coverage.
+  - [x] Jobs lease/idempotency/dead-letter PostgreSQL isolation and automation flow snapshot/event/run HTTP coverage.
   - [x] Identity HTTP integration covers setup, login, cursor, 401/403 and Cedar behavior.
   - [x] Generated OpenAPI/TypeScript/Rust/MCP artifacts have stale-contract tests.
   - [ ] Remaining domain HTTP suites.

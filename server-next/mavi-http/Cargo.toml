@@ -16,7 +16,9 @@ mavi-courses = { path = "../mavi-courses" }
 mavi-contract = { path = "../mavi-contract" }
 mavi-core = { path = "../mavi-core" }
 mavi-design = { path = "../mavi-design" }
+mavi-flows = { path = "../mavi-flows" }
 mavi-forms = { path = "../mavi-forms" }
+ mavi-jobs = { path = "../mavi-jobs" }
 mavi-mail = { path = "../mavi-mail" }
 mavi-media = { path = "../mavi-media" }
 mavi-shop = { path = "../mavi-shop" }

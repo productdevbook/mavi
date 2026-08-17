@@ -285,6 +285,13 @@ pub struct CreateCourse {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct CreateFlow {
+    pub name: String,
+    pub trigger: Trigger,
+    pub steps: Vec<FlowStepInput>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct CreateForm {
     pub slug: String,
     pub name: String,
@@ -553,6 +560,81 @@ pub struct FilePage {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Flow {
+    pub id: String,
+    pub name: String,
+    pub trigger: Trigger,
+    pub enabled: bool,
+    pub version: i64,
+    pub steps: Vec<FlowStep>,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct FlowListFilter {
+    pub after: Option<String>,
+    pub limit: Option<i64>,
+    pub trigger: Option<Value>,
+    pub enabled: Option<bool>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct FlowPage {
+    pub items: Vec<Flow>,
+    pub next_cursor: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct FlowRun {
+    pub id: String,
+    pub flow_id: String,
+    pub trigger: Trigger,
+    pub event: Value,
+    pub definition: Vec<FlowStepInput>,
+    pub state: RunState,
+    pub current_position: i64,
+    pub retry_count: i64,
+    pub last_error: Option<String>,
+    pub steps: Vec<FlowRunStep>,
+    pub started_at: String,
+    pub finished_at: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct FlowRunPage {
+    pub items: Vec<FlowRun>,
+    pub next_cursor: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct FlowRunStep {
+    pub id: String,
+    pub position: i64,
+    pub attempt: i64,
+    pub kind: StepKind,
+    pub outcome: String,
+    pub detail: Value,
+    pub error: Option<String>,
+    pub started_at: String,
+    pub finished_at: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct FlowStep {
+    pub id: String,
+    pub position: i64,
+    pub kind: StepKind,
+    pub config: Value,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct FlowStepInput {
+    pub kind: StepKind,
+    pub config: Value,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Form {
     pub id: String,
     pub slug: String,
@@ -601,6 +683,38 @@ pub struct Grant {
     pub capability: String,
     pub action: String,
 }
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Job {
+    pub id: String,
+    pub kind: String,
+    pub payload: Value,
+    pub state: JobState,
+    pub run_at: String,
+    pub claimed_until: Option<String>,
+    pub claimed_by: Option<String>,
+    pub attempts: i64,
+    pub last_error: Option<String>,
+    pub idempotency_key: Option<String>,
+    pub created_at: String,
+    pub finished_at: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct JobListFilter {
+    pub after: Option<String>,
+    pub limit: Option<i64>,
+    pub state: Option<JobState>,
+    pub kind: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct JobPage {
+    pub items: Vec<Job>,
+    pub next_cursor: Option<String>,
+}
+
+pub type JobState = String;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Language {
@@ -1034,6 +1148,15 @@ pub struct RolePage {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct RunListFilter {
+    pub after: Option<String>,
+    pub limit: Option<i64>,
+    pub state: Option<Value>,
+}
+
+pub type RunState = String;
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ScheduleContent {
     pub at: String,
 }
@@ -1076,6 +1199,24 @@ pub struct SetupStatus {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct SimulateFlow {
+    pub event: Option<Value>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Simulation {
+    pub steps: Vec<SimulationStep>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct SimulationStep {
+    pub position: i64,
+    pub kind: StepKind,
+    pub config: Value,
+    pub event: Value,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct SiteSettings {
     pub site_id: String,
     pub name: String,
@@ -1087,6 +1228,8 @@ pub struct SiteSettings {
 pub struct StartDesignChange {
     pub name: String,
 }
+
+pub type StepKind = String;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Student {
@@ -1219,6 +1362,16 @@ pub struct TrashPage {
     pub next_cursor: Option<String>,
 }
 
+pub type Trigger = String;
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct TriggerDescription {
+    pub trigger: Trigger,
+    pub emitted_by: String,
+}
+
+pub type TriggerList = Vec<TriggerDescription>;
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct UnsubscribeReceipt {
     pub unsubscribed: bool,
@@ -1239,6 +1392,14 @@ pub struct UpdateCourse {
     pub title: Option<String>,
     pub about: Option<String>,
     pub state: Option<Value>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct UpdateFlow {
+    pub name: Option<String>,
+    pub enabled: Option<bool>,
+    pub trigger: Option<Value>,
+    pub steps: Option<Value>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -1467,4 +1628,16 @@ pub const OPERATIONS: &[OperationDefinition] = &[
     OperationDefinition { name: "learning.lesson.read", method: "get", path: "/student/v1/learning/lessons/{id}", request: None, request_location: None, query: None, response: Some("LearningLesson"), response_location: None, status: 200, authentication: "student", capability: None, action: None },
     OperationDefinition { name: "learning.lesson.media.read", method: "get", path: "/student/v1/learning/lessons/{id}/media", request: None, request_location: None, query: None, response: Some("FileBytes"), response_location: Some("raw"), status: 200, authentication: "student", capability: None, action: None },
     OperationDefinition { name: "learning.lesson.done", method: "put", path: "/student/v1/learning/lessons/{id}/done", request: None, request_location: None, query: None, response: Some("Progress"), response_location: None, status: 200, authentication: "student", capability: None, action: None },
+    OperationDefinition { name: "jobs.list", method: "get", path: "/api/v1/jobs", request: Some("JobListFilter"), request_location: Some("query"), query: None, response: Some("JobPage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("automation"), action: Some("view") },
+    OperationDefinition { name: "jobs.read", method: "get", path: "/api/v1/jobs/{id}", request: None, request_location: None, query: None, response: Some("Job"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("automation"), action: Some("view") },
+    OperationDefinition { name: "jobs.retry", method: "post", path: "/api/v1/jobs/{id}/retry", request: None, request_location: None, query: None, response: Some("Job"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("automation"), action: Some("write") },
+    OperationDefinition { name: "automation.triggers.list", method: "get", path: "/api/v1/automation/triggers", request: None, request_location: None, query: None, response: Some("TriggerList"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("automation"), action: Some("view") },
+    OperationDefinition { name: "automation.flows.list", method: "get", path: "/api/v1/automation/flows", request: Some("FlowListFilter"), request_location: Some("query"), query: None, response: Some("FlowPage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("automation"), action: Some("view") },
+    OperationDefinition { name: "automation.flows.create", method: "post", path: "/api/v1/automation/flows", request: Some("CreateFlow"), request_location: Some("json"), query: None, response: Some("Flow"), response_location: None, status: 201, authentication: "account_or_assistant", capability: Some("automation"), action: Some("write") },
+    OperationDefinition { name: "automation.flows.read", method: "get", path: "/api/v1/automation/flows/{id}", request: None, request_location: None, query: None, response: Some("Flow"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("automation"), action: Some("view") },
+    OperationDefinition { name: "automation.flows.update", method: "patch", path: "/api/v1/automation/flows/{id}", request: Some("UpdateFlow"), request_location: Some("json"), query: None, response: Some("Flow"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("automation"), action: Some("write") },
+    OperationDefinition { name: "automation.flows.delete", method: "delete", path: "/api/v1/automation/flows/{id}", request: None, request_location: None, query: None, response: Some("Empty"), response_location: None, status: 204, authentication: "account_or_assistant", capability: Some("automation"), action: Some("write") },
+    OperationDefinition { name: "automation.flows.simulate", method: "post", path: "/api/v1/automation/flows/{id}/simulate", request: Some("SimulateFlow"), request_location: Some("json"), query: None, response: Some("Simulation"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("automation"), action: Some("view") },
+    OperationDefinition { name: "automation.runs.list", method: "get", path: "/api/v1/automation/flows/{id}/runs", request: Some("RunListFilter"), request_location: Some("query"), query: None, response: Some("FlowRunPage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("automation"), action: Some("view") },
+    OperationDefinition { name: "automation.runs.read", method: "get", path: "/api/v1/automation/runs/{id}", request: None, request_location: None, query: None, response: Some("FlowRun"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("automation"), action: Some("view") },
 ];

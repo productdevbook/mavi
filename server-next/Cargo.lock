@@ -1474,6 +1474,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "mavi-flows"
+version = "0.1.0"
+dependencies = [
+ "base64 0.23.1",
+ "chrono",
+ "mavi-audit",
+ "mavi-contract",
+ "mavi-core",
+ "mavi-jobs",
+ "mavi-storage",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
 name = "mavi-forms"
 version = "0.1.0"
 dependencies = [
@@ -1504,8 +1522,10 @@ dependencies = [
  "mavi-courses",
  "mavi-design",
  "mavi-files",
+ "mavi-flows",
  "mavi-forms",
  "mavi-identity",
+ "mavi-jobs",
  "mavi-mail",
  "mavi-media",
  "mavi-runtime",
@@ -1536,6 +1556,23 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2 0.11.0",
+ "sqlx",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
+name = "mavi-jobs"
+version = "0.1.0"
+dependencies = [
+ "base64 0.23.1",
+ "chrono",
+ "mavi-audit",
+ "mavi-contract",
+ "mavi-core",
+ "mavi-storage",
+ "serde",
+ "serde_json",
  "sqlx",
  "tokio",
  "uuid",

@@ -41,6 +41,8 @@ The same Mavi application runs in both modes:
 | `mavi-mail` | strict templates, subscriber lists, unsubscribe tokens and provider-neutral outbox delivery |
 | `mavi-shop` | site-scoped products, money, stock holds, coupons, checkout and order state transitions |
 | `mavi-courses` | course authoring, ordered modules/lessons, isolated student sessions, enrollment, progress and protected lesson media |
+| `mavi-jobs` | site-scoped durable queue leases, idempotency keys, retry backoff and dead-letter state |
+| `mavi-flows` | validated trigger/step definitions, event fan-out, run snapshots and step history |
 | `mavi` | executable composition root |
 
 Domains are added only after the foundation is stable. Each domain owns its
@@ -79,6 +81,14 @@ single-use invitation, activate an expiring session, and can only read lessons
 and attached media for their own enrollment while the course is open. Course,
 student, enrollment and progress lists use the same opaque keyset cursor rule;
 offset/page-number pagination is not supported.
+
+Automation keeps panel definitions separate from worker execution. Flow events
+enqueue registered site jobs in the producer transaction; workers claim a
+short lease, execute outside the database transaction, and finish or fail only
+while that lease is still theirs. Repeated source events use an idempotency key,
+run definitions are snapshotted, and exhausted attempts remain visible as dead
+letters. The canonical automation and job management APIs expose only opaque
+keyset cursors.
 
 Self-host stores binary objects outside PostgreSQL. Set `MAVI_FILES_DIR` to a
 persistent directory (default: `./mavi-files`); object keys are generated from

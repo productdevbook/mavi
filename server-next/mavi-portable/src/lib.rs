@@ -323,6 +323,24 @@ pub fn shapes() -> Vec<Shape> {
 
 impl PortableBundle {
     pub fn validate_for_site(&self, target_site: SiteId) -> Result<()> {
+        self.validate_for_target(target_site, false)
+    }
+
+    /// Validate a bundle for an internal shard relocation.
+    ///
+    /// A relocation keeps the logical `SiteId` stable, so it is intentionally
+    /// different from a user-requested import. The caller must still provide
+    /// the same source and target site, and the service only exposes this
+    /// path as an internal application port; there is no public HTTP endpoint
+    /// for it.
+    pub fn validate_for_relocation(&self, target_site: SiteId) -> Result<()> {
+        if self.manifest.source_site_id != target_site {
+            return Err(MaviError::conflict("portable_relocation_site_mismatch"));
+        }
+        self.validate_for_target(target_site, true)
+    }
+
+    fn validate_for_target(&self, target_site: SiteId, allow_same_site: bool) -> Result<()> {
         if self.manifest.format != FORMAT {
             return Err(MaviError::validation("portable_format_invalid"));
         }
@@ -335,7 +353,7 @@ impl PortableBundle {
         if self.manifest.source_site_id.into_uuid().is_nil() {
             return Err(MaviError::validation("portable_source_site_invalid"));
         }
-        if self.manifest.source_site_id == target_site {
+        if self.manifest.source_site_id == target_site && !allow_same_site {
             return Err(MaviError::conflict("portable_self_import_forbidden"));
         }
 
@@ -579,6 +597,40 @@ impl PortableService {
         request: &PortableImportRequest,
     ) -> Result<ImportReceipt> {
         request.bundle.validate_for_site(context.site_id)?;
+        self.import_validated(tx, context, request, "portable.bundle.imported")
+            .await
+    }
+
+    /// Relocate a site bundle into its existing logical site on another shard.
+    ///
+    /// This is deliberately restricted to an upsert because relocation is a
+    /// retryable worker operation and must be safe after a partial network
+    /// failure. The caller owns the transaction and must commit it only after
+    /// this method succeeds.
+    pub async fn relocate(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        request: &PortableImportRequest,
+    ) -> Result<ImportReceipt> {
+        if request.strategy != ImportStrategy::Upsert {
+            return Err(MaviError::validation(
+                "portable_relocation_strategy_invalid",
+            ));
+        }
+        request.bundle.validate_for_relocation(context.site_id)?;
+        self.import_validated(tx, context, request, "portable.bundle.relocated")
+            .await
+    }
+
+    #[allow(clippy::too_many_lines)]
+    async fn import_validated(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        request: &PortableImportRequest,
+        audit_action: &str,
+    ) -> Result<ImportReceipt> {
         let receipt = receipt_for(request.strategy, &request.bundle)?;
         if !request.strategy.writes() {
             return Ok(receipt);
@@ -840,7 +892,7 @@ impl PortableService {
                 tx,
                 context,
                 &AuditEntry {
-                    action: "portable.bundle.imported".to_owned(),
+                    action: audit_action.to_owned(),
                     resource_type: "PortableBundle".to_owned(),
                     resource_id: None,
                     payload: json!({
@@ -1440,6 +1492,12 @@ mod tests {
                 .validate_for_site(bundle.manifest.source_site_id)
                 .is_err()
         );
+        assert!(
+            bundle
+                .validate_for_relocation(bundle.manifest.source_site_id)
+                .is_ok()
+        );
+        assert!(bundle.validate_for_relocation(SiteId::new()).is_err());
         assert!(bundle.validate_for_site(SiteId::new()).is_ok());
         bundle.manifest.schema_hash = "bad".to_owned();
         assert!(bundle.validate_for_site(SiteId::new()).is_err());

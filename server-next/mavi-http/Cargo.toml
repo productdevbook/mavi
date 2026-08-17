@@ -8,6 +8,7 @@ description = "HTTP admission, site context propagation and canonical errors."
 
 [dependencies]
 axum.workspace = true
+base64.workspace = true
 chrono.workspace = true
 mavi-analytics = { path = "../mavi-analytics" }
 mavi-authz = { path = "../mavi-authz" }
@@ -32,6 +33,7 @@ mavi-taxonomy = { path = "../mavi-taxonomy" }
 mavi-trash = { path = "../mavi-trash" }
 serde.workspace = true
 serde_json.workspace = true
+tower.workspace = true
 uuid.workspace = true
 
 [lints]

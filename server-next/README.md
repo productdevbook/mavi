@@ -124,11 +124,13 @@ only `public/` source files through the static build engine; `src/` remains
 non-executable source. Preview and live assets are immutable build artifacts,
 and publish/rollback changes one site-scoped database pointer atomically.
 
-MCP follows the current stateless `2026-07-28` transport shape: the server will
-advertise its supported protocol through `server/discover`, every request is
+MCP follows the current stateless `2026-07-28` transport shape: the server
+advertises its supported protocol through `server/discover`, every request is
 self-contained, and no session or `initialize` handshake is part of the new
-runtime contract. Tool descriptors remain generated from the same API catalog;
-tool execution is still subject to the endpoint's Cedar grant.
+runtime contract. `tools/list` uses MCP's opaque cursor, while `tools/call`
+routes back through the canonical HTTP handlers. Tool descriptors remain
+generated from the same API catalog and execution is subject to the endpoint's
+Cedar grant.
 
 ## Dependency policy
 

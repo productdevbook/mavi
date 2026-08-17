@@ -1549,6 +1549,7 @@ name = "mavi-http"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "base64 0.23.1",
  "chrono",
  "mavi-analytics",
  "mavi-audit",

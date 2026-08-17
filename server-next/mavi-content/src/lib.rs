@@ -46,6 +46,7 @@ pub fn api() -> Api {
             "content.list",
             "List site content",
         )
+        .account_or_assistant()
         .requires(Permission {
             capability: Capability::Content,
             action: Action::View,
@@ -58,6 +59,7 @@ pub fn api() -> Api {
             "content.read",
             "Read site content",
         )
+        .account_or_assistant()
         .requires(Permission {
             capability: Capability::Content,
             action: Action::View,
@@ -69,6 +71,7 @@ pub fn api() -> Api {
             "content.create",
             "Create site content",
         )
+        .account_or_assistant()
         .requires(Permission {
             capability: Capability::Content,
             action: Action::Write,
@@ -82,6 +85,7 @@ pub fn api() -> Api {
             "content.update",
             "Update site content",
         )
+        .account_or_assistant()
         .requires(Permission {
             capability: Capability::Content,
             action: Action::Write,
@@ -95,6 +99,7 @@ pub fn api() -> Api {
             "content.publish",
             "Publish site content",
         )
+        .account_or_assistant()
         .requires(Permission {
             capability: Capability::Publish,
             action: Action::Write,
@@ -107,6 +112,7 @@ pub fn api() -> Api {
             "content.schedule",
             "Schedule site content",
         )
+        .account_or_assistant()
         .requires(Permission {
             capability: Capability::Publish,
             action: Action::Write,
@@ -120,6 +126,7 @@ pub fn api() -> Api {
             "content.archive",
             "Archive site content",
         )
+        .account_or_assistant()
         .requires(Permission {
             capability: Capability::Publish,
             action: Action::Write,
@@ -132,6 +139,7 @@ pub fn api() -> Api {
             "content.trash",
             "Move site content to trash",
         )
+        .account_or_assistant()
         .requires(Permission {
             capability: Capability::Trash,
             action: Action::Delete,
@@ -144,6 +152,7 @@ pub fn api() -> Api {
             "content.restore",
             "Restore site content from trash",
         )
+        .account_or_assistant()
         .requires(Permission {
             capability: Capability::Trash,
             action: Action::Write,

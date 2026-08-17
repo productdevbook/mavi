@@ -35,6 +35,7 @@ impl Method {
 pub enum Authentication {
     Public,
     Account,
+    AccountOrAssistant,
     Student,
     Assistant,
 }
@@ -125,6 +126,12 @@ impl Endpoint {
     #[must_use]
     pub const fn self_only(mut self) -> Self {
         self.mutation = Mutation::SelfOnly { idempotent: false };
+        self
+    }
+
+    #[must_use]
+    pub const fn account_or_assistant(mut self) -> Self {
+        self.authentication = Authentication::AccountOrAssistant;
         self
     }
 
@@ -378,6 +385,23 @@ mod tests {
         )
         .public_mutation()]);
 
+        assert!(api.validate().is_ok());
+    }
+
+    #[test]
+    fn assistant_capable_endpoints_are_explicit() {
+        let api = Api::new([Endpoint::new(
+            Method::Get,
+            "/api/v1/content",
+            "content.list",
+            "List content",
+        )
+        .account_or_assistant()]);
+
+        assert_eq!(
+            api.endpoints[0].authentication,
+            Authentication::AccountOrAssistant
+        );
         assert!(api.validate().is_ok());
     }
 

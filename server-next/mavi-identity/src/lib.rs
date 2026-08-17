@@ -15,13 +15,14 @@ use chrono::{DateTime, Duration, Utc};
 use mavi_audit::{AuditEntry, AuditService};
 use mavi_contract::{Api, Endpoint, Method, Permission};
 use mavi_core::{
-    Action, ApiKeyId, Caller, Capability, Grant, Grants, MaviError, PersonId, Result, RoleId,
-    SessionId, SiteContext,
+    Action, ApiKeyId, Caller, Capability, Cursor, ErrorCode, Grant, Grants, MaviError, Page,
+    PageRequest, PersonId, Result, RoleId, SessionId, SiteContext, SiteId,
 };
 use mavi_storage::SiteTx;
 use rand::RngExt;
 use serde::{Deserialize, Serialize};
 use sqlx::Row;
+use uuid::Uuid;
 
 pub const SETUP_ALREADY_COMPLETE: &str = "setup_already_complete";
 pub const EMAIL_INVALID: &str = "email_invalid";
@@ -29,9 +30,14 @@ pub const PERSON_NAME_INVALID: &str = "person_name_invalid";
 pub const PASSWORD_INVALID: &str = "password_invalid";
 pub const API_KEY_NAME_INVALID: &str = "api_key_name_invalid";
 pub const API_KEY_GRANTS_INVALID: &str = "api_key_grants_invalid";
+pub const SITE_NOT_FOUND: &str = "site_not_found";
+pub const PERSON_NOT_FOUND: &str = "person_not_found";
+pub const ROLE_NAME_INVALID: &str = "role_name_invalid";
+pub const ROLE_NOT_FOUND: &str = "role_not_found";
 
 /// Setup and authentication routes are public by design, but every mutation
 /// is explicitly marked in the canonical contract.
+#[allow(clippy::too_many_lines)]
 #[must_use]
 pub fn api() -> Api {
     Api::new([
@@ -88,12 +94,130 @@ pub fn api() -> Api {
             "auth.api_key.revoke",
             "Revoke an assistant API key",
         )
+        .account_or_assistant()
         .requires(Permission {
             capability: Capability::People,
             action: Action::Delete,
         })
         .returns(204, "Empty")
         .changes(false),
+        Endpoint::new(
+            Method::Get,
+            "/api/v1/people",
+            "people.list",
+            "List site people",
+        )
+        .account_or_assistant()
+        .requires(Permission {
+            capability: Capability::People,
+            action: Action::View,
+        })
+        .takes("PeopleListFilter")
+        .returns(200, "Page<PersonRecord>")
+        .refuses([
+            ErrorCode::Forbidden,
+            ErrorCode::Validation,
+            ErrorCode::Internal,
+        ]),
+        Endpoint::new(
+            Method::Post,
+            "/api/v1/people",
+            "people.create",
+            "Create a site person",
+        )
+        .account_or_assistant()
+        .requires(Permission {
+            capability: Capability::People,
+            action: Action::Write,
+        })
+        .takes("CreatePerson")
+        .returns(201, "PersonRecord")
+        .changes(false)
+        .refuses([
+            ErrorCode::Forbidden,
+            ErrorCode::Validation,
+            ErrorCode::Conflict,
+            ErrorCode::NotFound,
+            ErrorCode::Internal,
+        ]),
+        Endpoint::new(
+            Method::Patch,
+            "/api/v1/people/{id}/status",
+            "people.status.update",
+            "Update a person's status",
+        )
+        .account_or_assistant()
+        .requires(Permission {
+            capability: Capability::People,
+            action: Action::Write,
+        })
+        .takes("UpdatePersonStatus")
+        .returns(200, "PersonRecord")
+        .changes(true)
+        .refuses([
+            ErrorCode::Forbidden,
+            ErrorCode::Validation,
+            ErrorCode::Conflict,
+            ErrorCode::NotFound,
+            ErrorCode::Internal,
+        ]),
+        Endpoint::new(
+            Method::Get,
+            "/api/v1/roles",
+            "roles.list",
+            "List site roles",
+        )
+        .account_or_assistant()
+        .requires(Permission {
+            capability: Capability::People,
+            action: Action::View,
+        })
+        .takes("RoleListFilter")
+        .returns(200, "Page<Role>")
+        .refuses([
+            ErrorCode::Forbidden,
+            ErrorCode::Validation,
+            ErrorCode::Internal,
+        ]),
+        Endpoint::new(
+            Method::Post,
+            "/api/v1/roles",
+            "roles.create",
+            "Create a site role",
+        )
+        .account_or_assistant()
+        .requires(Permission {
+            capability: Capability::People,
+            action: Action::Write,
+        })
+        .takes("CreateRole")
+        .returns(201, "Role")
+        .changes(false)
+        .refuses([
+            ErrorCode::Forbidden,
+            ErrorCode::Validation,
+            ErrorCode::Conflict,
+            ErrorCode::Internal,
+        ]),
+        Endpoint::new(
+            Method::Put,
+            "/api/v1/roles/{id}/grants",
+            "roles.grants.replace",
+            "Replace a role grants set",
+        )
+        .account_or_assistant()
+        .requires(Permission {
+            capability: Capability::People,
+            action: Action::Write,
+        })
+        .takes("ReplaceRoleGrants")
+        .returns(200, "Role")
+        .changes(true)
+        .refuses([
+            ErrorCode::Forbidden,
+            ErrorCode::NotFound,
+            ErrorCode::Internal,
+        ]),
     ])
 }
 
@@ -104,16 +228,30 @@ pub struct Email(String);
 impl Email {
     pub fn parse(value: &str) -> Result<Self> {
         let value = value.trim().to_ascii_lowercase();
-        let Some((local, domain)) = value.split_once('@') else {
+        let mut parts = value.split('@');
+        let Some(local) = parts.next() else {
             return Err(MaviError::validation(EMAIL_INVALID));
         };
+        let Some(domain) = parts.next() else {
+            return Err(MaviError::validation(EMAIL_INVALID));
+        };
+        if parts.next().is_some() {
+            return Err(MaviError::validation(EMAIL_INVALID));
+        }
+        let valid_domain = domain.split('.').all(|label| {
+            !label.is_empty()
+                && !label.starts_with('-')
+                && !label.ends_with('-')
+                && label
+                    .chars()
+                    .all(|character| character.is_ascii_alphanumeric() || character == '-')
+        });
         let valid = value.len() <= 254
             && !local.is_empty()
             && local.len() <= 64
             && !domain.is_empty()
             && domain.contains('.')
-            && !domain.starts_with('.')
-            && !domain.ends_with('.')
+            && valid_domain
             && !value.chars().any(char::is_whitespace);
 
         if !valid {
@@ -183,12 +321,24 @@ impl PasswordDigest {
     }
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct SetupInput {
     pub site_name: String,
     pub email: String,
     pub name: String,
     pub password: String,
+}
+
+impl fmt::Debug for SetupInput {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("SetupInput")
+            .field("site_name", &self.site_name)
+            .field("email", &self.email)
+            .field("name", &self.name)
+            .field("password", &"<redacted>")
+            .finish()
+    }
 }
 
 #[derive(Clone, Deserialize)]
@@ -218,6 +368,120 @@ pub struct Person {
     pub site_id: mavi_core::SiteId,
     pub email: Email,
     pub name: PersonName,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PersonStatus {
+    Active,
+    Suspended,
+    Removed,
+}
+
+impl PersonStatus {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Active => "active",
+            Self::Suspended => "suspended",
+            Self::Removed => "removed",
+        }
+    }
+
+    fn parse(value: &str) -> Result<Self> {
+        match value {
+            "active" => Ok(Self::Active),
+            "suspended" => Ok(Self::Suspended),
+            "removed" => Ok(Self::Removed),
+            _ => Err(MaviError::Internal),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct PersonRecord {
+    pub id: PersonId,
+    pub site_id: SiteId,
+    pub email: Email,
+    pub name: PersonName,
+    pub status: PersonStatus,
+    pub role_ids: Vec<RoleId>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct CreatePerson {
+    pub email: String,
+    pub name: String,
+    pub password: String,
+    #[serde(default)]
+    pub role_ids: Vec<RoleId>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct UpdatePersonStatus {
+    pub status: PersonStatus,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+pub struct PeopleListFilter {
+    pub status: Option<PersonStatus>,
+    #[serde(flatten)]
+    pub page: PageRequest,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+pub struct RoleListFilter {
+    #[serde(flatten)]
+    pub page: PageRequest,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(transparent)]
+pub struct RoleName(String);
+
+impl RoleName {
+    pub fn parse(value: &str) -> Result<Self> {
+        let valid = !value.is_empty()
+            && value.len() <= 64
+            && value.starts_with(|character: char| character.is_ascii_lowercase())
+            && value.chars().all(|character| {
+                character.is_ascii_lowercase()
+                    || character.is_ascii_digit()
+                    || character == '_'
+                    || character == '-'
+            });
+        if !valid {
+            return Err(MaviError::validation(ROLE_NAME_INVALID));
+        }
+        Ok(Self(value.to_owned()))
+    }
+
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct Role {
+    pub id: RoleId,
+    pub site_id: SiteId,
+    pub name: RoleName,
+    pub grants: Grants,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct CreateRole {
+    pub name: String,
+    #[serde(default)]
+    pub grants: Vec<Grant>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct ReplaceRoleGrants {
+    pub grants: Vec<Grant>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -270,6 +534,8 @@ impl IdentityService {
         if !context.caller.is_public() {
             return Err(MaviError::Forbidden);
         }
+
+        lock_site(tx, context.site_id).await?;
 
         let name = input.site_name.trim();
         if name.is_empty() || name.chars().count() > 200 {
@@ -346,6 +612,19 @@ impl IdentityService {
             .await
             .map_err(|_| MaviError::Internal)?;
 
+        AuditService
+            .record(
+                tx,
+                context,
+                &AuditEntry {
+                    action: "auth.setup.initialized".to_owned(),
+                    resource_type: "Site".to_owned(),
+                    resource_id: Some(context.site_id.into_uuid()),
+                    payload: serde_json::json!({"owner_person_id": person_id}),
+                },
+            )
+            .await?;
+
         Ok(Person {
             id: person_id,
             site_id: context.site_id,
@@ -396,6 +675,19 @@ impl IdentityService {
         .execute(tx.conn())
         .await
         .map_err(|_| MaviError::Internal)?;
+
+        AuditService
+            .record(
+                tx,
+                context,
+                &AuditEntry {
+                    action: "auth.session.created".to_owned(),
+                    resource_type: "Session".to_owned(),
+                    resource_id: Some(session_id.into_uuid()),
+                    payload: serde_json::json!({"person_id": person_id, "expires_at": expires_at}),
+                },
+            )
+            .await?;
 
         Ok(SessionCreated {
             id: session_id,
@@ -490,7 +782,376 @@ impl IdentityService {
         .execute(tx.conn())
         .await
         .map_err(|_| MaviError::Internal)?;
+
+        AuditService
+            .record(
+                tx,
+                context,
+                &AuditEntry {
+                    action: "auth.session.revoked".to_owned(),
+                    resource_type: "Session".to_owned(),
+                    resource_id: Some(session_id.into_uuid()),
+                    payload: serde_json::json!({}),
+                },
+            )
+            .await?;
         Ok(())
+    }
+
+    async fn get_person(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        person_id: PersonId,
+    ) -> Result<PersonRecord> {
+        let row = sqlx::query(
+            "select p.id, p.site_id, p.email, p.name, p.status, p.created_at, p.updated_at,
+                    coalesce(array_agg(pr.role_id) filter (where pr.role_id is not null), '{}'::uuid[]) as role_ids
+               from people p
+               left join person_roles pr on pr.site_id = p.site_id and pr.person_id = p.id
+              where p.site_id = $1 and p.id = $2
+              group by p.id, p.site_id, p.email, p.name, p.status, p.created_at, p.updated_at",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(person_id.into_uuid())
+        .fetch_optional(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?
+        .ok_or(MaviError::NotFound {
+            resource: PERSON_NOT_FOUND,
+        })?;
+        person_from_row(&row)
+    }
+
+    pub async fn list_people(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        filter: &PeopleListFilter,
+    ) -> Result<Page<PersonRecord>> {
+        require_context_grant(context, Grant::new(Capability::People, Action::View))?;
+        let after = filter
+            .page
+            .after
+            .as_ref()
+            .map(decode_identity_cursor)
+            .transpose()?;
+        let limit = i64::from(filter.page.effective_limit());
+        let mut query = sqlx::QueryBuilder::<sqlx::Postgres>::new(
+            "select p.id, p.site_id, p.email, p.name, p.status, p.created_at, p.updated_at,
+                    coalesce(array_agg(pr.role_id) filter (where pr.role_id is not null), '{}'::uuid[]) as role_ids
+               from people p
+               left join person_roles pr on pr.site_id = p.site_id and pr.person_id = p.id
+              where p.site_id = ",
+        );
+        query.push_bind(context.site_id.into_uuid());
+        if let Some(status) = filter.status {
+            query.push(" and p.status = ").push_bind(status.as_str());
+        }
+        if let Some(after) = after {
+            query
+                .push(" and (p.created_at, p.id) < (")
+                .push_bind(after.created_at)
+                .push(", ")
+                .push_bind(after.id)
+                .push(")");
+        }
+        let rows = query
+            .push(
+                " group by p.id, p.site_id, p.email, p.name, p.status, p.created_at, p.updated_at",
+            )
+            .push(" order by p.created_at desc, p.id desc limit ")
+            .push_bind(limit + 1)
+            .build()
+            .fetch_all(tx.conn())
+            .await
+            .map_err(|_| MaviError::Internal)?;
+
+        let limit_usize = usize::try_from(limit).map_err(|_| MaviError::Internal)?;
+        let next_cursor = if rows.len() > limit_usize {
+            let row = rows
+                .get(limit_usize.saturating_sub(1))
+                .ok_or(MaviError::Internal)?;
+            Some(encode_identity_cursor(
+                row.try_get("created_at").map_err(|_| MaviError::Internal)?,
+                row.try_get("id").map_err(|_| MaviError::Internal)?,
+            )?)
+        } else {
+            None
+        };
+        let items = rows
+            .into_iter()
+            .take(limit_usize)
+            .map(|row| person_from_row(&row))
+            .collect::<Result<Vec<_>>>()?;
+        Ok(Page::new(items, next_cursor))
+    }
+
+    pub async fn create_person(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        input: &CreatePerson,
+    ) -> Result<PersonRecord> {
+        require_context_grant(context, Grant::new(Capability::People, Action::Write))?;
+        let email = Email::parse(&input.email)?;
+        let name = PersonName::parse(&input.name)?;
+        let password = Password::parse(input.password.clone())?;
+        let digest = PasswordDigest::from_password(&password)?;
+        let role_ids = unique_role_ids(&input.role_ids);
+        ensure_roles_are_delegable(tx, context, &role_ids).await?;
+
+        let person_id = PersonId::new();
+        sqlx::query(
+            "insert into people (site_id, id, email, name, password_hash)
+             values ($1, $2, $3, $4, $5)",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(person_id.into_uuid())
+        .bind(email.as_str())
+        .bind(name.as_str())
+        .bind(&digest.0)
+        .execute(tx.conn())
+        .await
+        .map_err(map_identity_write_error)?;
+
+        for role_id in &role_ids {
+            sqlx::query(
+                "insert into person_roles (site_id, person_id, role_id)
+                 values ($1, $2, $3)",
+            )
+            .bind(context.site_id.into_uuid())
+            .bind(person_id.into_uuid())
+            .bind(role_id.into_uuid())
+            .execute(tx.conn())
+            .await
+            .map_err(|_| MaviError::Internal)?;
+        }
+
+        let person = self.get_person(tx, context, person_id).await?;
+        AuditService
+            .record(
+                tx,
+                context,
+                &AuditEntry {
+                    action: "people.person.created".to_owned(),
+                    resource_type: "Person".to_owned(),
+                    resource_id: Some(person_id.into_uuid()),
+                    payload: serde_json::json!({"role_count": role_ids.len()}),
+                },
+            )
+            .await?;
+        Ok(person)
+    }
+
+    pub async fn update_person_status(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        person_id: PersonId,
+        input: &UpdatePersonStatus,
+        now: DateTime<Utc>,
+    ) -> Result<PersonRecord> {
+        require_context_grant(context, Grant::new(Capability::People, Action::Write))?;
+        if matches!(
+            context.caller,
+            Caller::Account {
+                person_id: current_id,
+                ..
+            } if current_id == person_id && input.status != PersonStatus::Active
+        ) {
+            return Err(MaviError::conflict("cannot_deactivate_current_person"));
+        }
+
+        let affected = sqlx::query(
+            "update people set status = $3, updated_at = $4
+               where site_id = $1 and id = $2",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(person_id.into_uuid())
+        .bind(input.status.as_str())
+        .bind(now)
+        .execute(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?
+        .rows_affected();
+        if affected == 0 {
+            return Err(MaviError::NotFound {
+                resource: PERSON_NOT_FOUND,
+            });
+        }
+        if input.status != PersonStatus::Active {
+            sqlx::query(
+                "update sessions set revoked_at = $3
+                   where site_id = $1 and person_id = $2 and revoked_at is null",
+            )
+            .bind(context.site_id.into_uuid())
+            .bind(person_id.into_uuid())
+            .bind(now)
+            .execute(tx.conn())
+            .await
+            .map_err(|_| MaviError::Internal)?;
+            sqlx::query(
+                "update api_keys set revoked_at = $3
+                   where site_id = $1 and person_id = $2 and revoked_at is null",
+            )
+            .bind(context.site_id.into_uuid())
+            .bind(person_id.into_uuid())
+            .bind(now)
+            .execute(tx.conn())
+            .await
+            .map_err(|_| MaviError::Internal)?;
+        }
+
+        let person = self.get_person(tx, context, person_id).await?;
+        AuditService
+            .record(
+                tx,
+                context,
+                &AuditEntry {
+                    action: "people.person.status_updated".to_owned(),
+                    resource_type: "Person".to_owned(),
+                    resource_id: Some(person_id.into_uuid()),
+                    payload: serde_json::json!({"status": input.status}),
+                },
+            )
+            .await?;
+        Ok(person)
+    }
+
+    pub async fn list_roles(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        filter: &RoleListFilter,
+    ) -> Result<Page<Role>> {
+        require_context_grant(context, Grant::new(Capability::People, Action::View))?;
+        let after = filter
+            .page
+            .after
+            .as_ref()
+            .map(decode_identity_cursor)
+            .transpose()?;
+        let limit = i64::from(filter.page.effective_limit());
+        let mut query = sqlx::QueryBuilder::<sqlx::Postgres>::new(
+            "select id, site_id, name, created_at from roles where site_id = ",
+        );
+        query.push_bind(context.site_id.into_uuid());
+        if let Some(after) = after {
+            query
+                .push(" and (created_at, id) < (")
+                .push_bind(after.created_at)
+                .push(", ")
+                .push_bind(after.id)
+                .push(")");
+        }
+        let rows = query
+            .push(" order by created_at desc, id desc limit ")
+            .push_bind(limit + 1)
+            .build()
+            .fetch_all(tx.conn())
+            .await
+            .map_err(|_| MaviError::Internal)?;
+        let limit_usize = usize::try_from(limit).map_err(|_| MaviError::Internal)?;
+        let next_cursor = if rows.len() > limit_usize {
+            let row = rows
+                .get(limit_usize.saturating_sub(1))
+                .ok_or(MaviError::Internal)?;
+            Some(encode_identity_cursor(
+                row.try_get("created_at").map_err(|_| MaviError::Internal)?,
+                row.try_get("id").map_err(|_| MaviError::Internal)?,
+            )?)
+        } else {
+            None
+        };
+        let mut items = Vec::with_capacity(rows.len().min(limit_usize));
+        for row in rows.into_iter().take(limit_usize) {
+            let role_id = RoleId::from_uuid(row.try_get("id").map_err(|_| MaviError::Internal)?);
+            let grants = grants_for_role(tx, context.site_id, role_id).await?;
+            items.push(role_from_row(&row, grants)?);
+        }
+        Ok(Page::new(items, next_cursor))
+    }
+
+    pub async fn create_role(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        input: &CreateRole,
+    ) -> Result<Role> {
+        require_context_grant(context, Grant::new(Capability::People, Action::Write))?;
+        let name = RoleName::parse(&input.name)?;
+        let grants = delegated_grants(context, &input.grants)?;
+        let role_id = RoleId::new();
+        let row = sqlx::query(
+            "insert into roles (site_id, id, name) values ($1, $2, $3)
+             returning id, site_id, name, created_at",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(role_id.into_uuid())
+        .bind(name.as_str())
+        .fetch_one(tx.conn())
+        .await
+        .map_err(map_identity_write_error)?;
+        insert_role_grants(tx, context.site_id, role_id, &grants).await?;
+        let role = role_from_row(&row, Grants::new(grants.clone()))?;
+        AuditService
+            .record(
+                tx,
+                context,
+                &AuditEntry {
+                    action: "people.role.created".to_owned(),
+                    resource_type: "Role".to_owned(),
+                    resource_id: Some(role_id.into_uuid()),
+                    payload: serde_json::json!({"grant_count": grants.len()}),
+                },
+            )
+            .await?;
+        Ok(role)
+    }
+
+    pub async fn replace_role_grants(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        role_id: RoleId,
+        input: &ReplaceRoleGrants,
+    ) -> Result<Role> {
+        require_context_grant(context, Grant::new(Capability::People, Action::Write))?;
+        let grants = delegated_grants(context, &input.grants)?;
+        let exists: bool =
+            sqlx::query_scalar("select exists(select 1 from roles where site_id = $1 and id = $2)")
+                .bind(context.site_id.into_uuid())
+                .bind(role_id.into_uuid())
+                .fetch_one(tx.conn())
+                .await
+                .map_err(|_| MaviError::Internal)?;
+        if !exists {
+            return Err(MaviError::NotFound {
+                resource: ROLE_NOT_FOUND,
+            });
+        }
+        sqlx::query("delete from role_grants where site_id = $1 and role_id = $2")
+            .bind(context.site_id.into_uuid())
+            .bind(role_id.into_uuid())
+            .execute(tx.conn())
+            .await
+            .map_err(|_| MaviError::Internal)?;
+        insert_role_grants(tx, context.site_id, role_id, &grants).await?;
+        let role = get_role(tx, context.site_id, role_id).await?;
+        AuditService
+            .record(
+                tx,
+                context,
+                &AuditEntry {
+                    action: "people.role.grants_replaced".to_owned(),
+                    resource_type: "Role".to_owned(),
+                    resource_id: Some(role_id.into_uuid()),
+                    payload: serde_json::json!({"grant_count": grants.len()}),
+                },
+            )
+            .await?;
+        Ok(role)
     }
 
     pub async fn create_api_key(
@@ -500,6 +1161,7 @@ impl IdentityService {
         input: &CreateApiKey,
         now: DateTime<Utc>,
     ) -> Result<ApiKeyCreated> {
+        require_context_grant(context, Grant::new(Capability::People, Action::Write))?;
         let Caller::Account {
             person_id, grants, ..
         } = &context.caller
@@ -587,6 +1249,7 @@ impl IdentityService {
         key_id: ApiKeyId,
         now: DateTime<Utc>,
     ) -> Result<()> {
+        require_context_grant(context, Grant::new(Capability::People, Action::Delete))?;
         let affected = sqlx::query(
             "update api_keys set revoked_at = $3
                where site_id = $1 and id = $2 and revoked_at is null",
@@ -629,6 +1292,219 @@ impl IdentityService {
     }
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize)]
+struct IdentityCursor {
+    created_at: DateTime<Utc>,
+    id: Uuid,
+}
+
+fn encode_identity_cursor(created_at: DateTime<Utc>, id: Uuid) -> Result<Cursor> {
+    let bytes =
+        serde_json::to_vec(&IdentityCursor { created_at, id }).map_err(|_| MaviError::Internal)?;
+    Cursor::parse(URL_SAFE_NO_PAD.encode(bytes))
+}
+
+async fn lock_site(tx: &mut SiteTx, site_id: SiteId) -> Result<()> {
+    let site_id: Option<Uuid> =
+        sqlx::query_scalar("select site_id from site_catalog where site_id = $1 for update")
+            .bind(site_id.into_uuid())
+            .fetch_optional(tx.conn())
+            .await
+            .map_err(|_| MaviError::Internal)?;
+    if site_id.is_none() {
+        return Err(MaviError::NotFound {
+            resource: SITE_NOT_FOUND,
+        });
+    }
+    Ok(())
+}
+
+fn decode_identity_cursor(cursor: &Cursor) -> Result<IdentityCursor> {
+    let bytes = URL_SAFE_NO_PAD
+        .decode(cursor.as_str())
+        .map_err(|_| MaviError::validation("invalid_cursor"))?;
+    serde_json::from_slice(&bytes).map_err(|_| MaviError::validation("invalid_cursor"))
+}
+
+fn person_from_row(row: &sqlx::postgres::PgRow) -> Result<PersonRecord> {
+    let role_ids: Vec<Uuid> = row.try_get("role_ids").map_err(|_| MaviError::Internal)?;
+    let status: String = row.try_get("status").map_err(|_| MaviError::Internal)?;
+    let email: String = row.try_get("email").map_err(|_| MaviError::Internal)?;
+    let name: String = row.try_get("name").map_err(|_| MaviError::Internal)?;
+    Ok(PersonRecord {
+        id: PersonId::from_uuid(row.try_get("id").map_err(|_| MaviError::Internal)?),
+        site_id: SiteId::from_uuid(row.try_get("site_id").map_err(|_| MaviError::Internal)?),
+        email: Email::parse(&email).map_err(|_| MaviError::Internal)?,
+        name: PersonName::parse(&name).map_err(|_| MaviError::Internal)?,
+        status: PersonStatus::parse(&status)?,
+        role_ids: role_ids.into_iter().map(RoleId::from_uuid).collect(),
+        created_at: row.try_get("created_at").map_err(|_| MaviError::Internal)?,
+        updated_at: row.try_get("updated_at").map_err(|_| MaviError::Internal)?,
+    })
+}
+
+fn role_from_row(row: &sqlx::postgres::PgRow, grants: Grants) -> Result<Role> {
+    let name: String = row.try_get("name").map_err(|_| MaviError::Internal)?;
+    Ok(Role {
+        id: RoleId::from_uuid(row.try_get("id").map_err(|_| MaviError::Internal)?),
+        site_id: SiteId::from_uuid(row.try_get("site_id").map_err(|_| MaviError::Internal)?),
+        name: RoleName::parse(&name).map_err(|_| MaviError::Internal)?,
+        grants,
+        created_at: row.try_get("created_at").map_err(|_| MaviError::Internal)?,
+    })
+}
+
+async fn get_role(tx: &mut SiteTx, site_id: SiteId, role_id: RoleId) -> Result<Role> {
+    let row = sqlx::query(
+        "select id, site_id, name, created_at from roles
+          where site_id = $1 and id = $2",
+    )
+    .bind(site_id.into_uuid())
+    .bind(role_id.into_uuid())
+    .fetch_optional(tx.conn())
+    .await
+    .map_err(|_| MaviError::Internal)?
+    .ok_or(MaviError::NotFound {
+        resource: ROLE_NOT_FOUND,
+    })?;
+    let grants = grants_for_role(tx, site_id, role_id).await?;
+    role_from_row(&row, grants)
+}
+
+async fn grants_for_role(tx: &mut SiteTx, site_id: SiteId, role_id: RoleId) -> Result<Grants> {
+    let rows = sqlx::query(
+        "select capability, action from role_grants
+          where site_id = $1 and role_id = $2",
+    )
+    .bind(site_id.into_uuid())
+    .bind(role_id.into_uuid())
+    .fetch_all(tx.conn())
+    .await
+    .map_err(|_| MaviError::Internal)?;
+    parse_grant_rows(rows)
+}
+
+fn delegated_grants(context: &SiteContext, requested: &[Grant]) -> Result<Vec<Grant>> {
+    let held = context.caller.grants().ok_or(MaviError::Forbidden)?;
+    let mut grants = Vec::new();
+    for grant in requested {
+        if !held.allows(*grant) {
+            return Err(MaviError::Forbidden);
+        }
+        if !grants.contains(grant) {
+            grants.push(*grant);
+        }
+    }
+    Ok(grants)
+}
+
+async fn ensure_roles_exist(tx: &mut SiteTx, site_id: SiteId, role_ids: &[RoleId]) -> Result<()> {
+    if role_ids.is_empty() {
+        return Ok(());
+    }
+    let role_uuids: Vec<Uuid> = role_ids.iter().map(|role_id| role_id.into_uuid()).collect();
+    let count: i64 = sqlx::query_scalar(
+        "select count(*) from roles where site_id = $1 and id = any($2::uuid[])",
+    )
+    .bind(site_id.into_uuid())
+    .bind(role_uuids)
+    .fetch_one(tx.conn())
+    .await
+    .map_err(|_| MaviError::Internal)?;
+    if count != i64::try_from(role_ids.len()).map_err(|_| MaviError::Internal)? {
+        return Err(MaviError::NotFound {
+            resource: ROLE_NOT_FOUND,
+        });
+    }
+    Ok(())
+}
+
+async fn ensure_roles_are_delegable(
+    tx: &mut SiteTx,
+    context: &SiteContext,
+    role_ids: &[RoleId],
+) -> Result<()> {
+    let held = context.caller.grants().ok_or(MaviError::Forbidden)?;
+    ensure_roles_exist(tx, context.site_id, role_ids).await?;
+    if role_ids.is_empty() {
+        return Ok(());
+    }
+
+    let role_uuids: Vec<Uuid> = role_ids.iter().map(|role_id| role_id.into_uuid()).collect();
+    let rows = sqlx::query(
+        "select capability, action from role_grants
+          where site_id = $1 and role_id = any($2::uuid[])",
+    )
+    .bind(context.site_id.into_uuid())
+    .bind(role_uuids)
+    .fetch_all(tx.conn())
+    .await
+    .map_err(|_| MaviError::Internal)?;
+    let grants = parse_grant_rows(rows)?;
+    if grants.as_slice().iter().any(|grant| !held.allows(*grant)) {
+        return Err(MaviError::Forbidden);
+    }
+    Ok(())
+}
+
+fn require_context_grant(context: &SiteContext, grant: Grant) -> Result<()> {
+    context
+        .caller
+        .grants()
+        .filter(|grants| grants.allows(grant))
+        .map(|_| ())
+        .ok_or(MaviError::Forbidden)
+}
+
+async fn insert_role_grants(
+    tx: &mut SiteTx,
+    site_id: SiteId,
+    role_id: RoleId,
+    grants: &[Grant],
+) -> Result<()> {
+    for grant in grants {
+        sqlx::query(
+            "insert into role_grants (site_id, role_id, capability, action)
+             values ($1, $2, $3, $4)",
+        )
+        .bind(site_id.into_uuid())
+        .bind(role_id.into_uuid())
+        .bind(grant.capability.as_str())
+        .bind(grant.action.as_str())
+        .execute(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?;
+    }
+    Ok(())
+}
+
+fn unique_role_ids(role_ids: &[RoleId]) -> Vec<RoleId> {
+    let mut unique = Vec::new();
+    for role_id in role_ids {
+        if !unique.contains(role_id) {
+            unique.push(*role_id);
+        }
+    }
+    unique
+}
+
+fn map_identity_write_error(error: sqlx::Error) -> MaviError {
+    if let sqlx::Error::Database(database) = error {
+        match database.constraint() {
+            Some(
+                "people_site_email_key" | "people_site_id_email_key" | "people_site_email_lower",
+            ) => {
+                return MaviError::conflict("email_taken");
+            }
+            Some("roles_site_name_key" | "roles_site_id_name_key") => {
+                return MaviError::conflict("role_name_taken");
+            }
+            _ => {}
+        }
+    }
+    MaviError::Internal
+}
+
 async fn grants_for_person(
     tx: &mut SiteTx,
     site_id: mavi_core::SiteId,
@@ -645,21 +1521,7 @@ async fn grants_for_person(
     .await
     .map_err(|_| MaviError::Internal)?;
 
-    let mut grants = Vec::with_capacity(rows.len());
-    for row in rows {
-        let capability: String = row.try_get("capability").map_err(|_| MaviError::Internal)?;
-        let action: String = row.try_get("action").map_err(|_| MaviError::Internal)?;
-        let capability = Capability::ALL
-            .into_iter()
-            .find(|candidate| candidate.as_str() == capability)
-            .ok_or(MaviError::Internal)?;
-        let action = Action::ALL
-            .into_iter()
-            .find(|candidate| candidate.as_str() == action)
-            .ok_or(MaviError::Internal)?;
-        grants.push(Grant::new(capability, action));
-    }
-    Ok(Grants::new(grants))
+    parse_grant_rows(rows)
 }
 
 async fn grants_for_api_key(
@@ -677,6 +1539,10 @@ async fn grants_for_api_key(
     .await
     .map_err(|_| MaviError::Internal)?;
 
+    parse_grant_rows(rows)
+}
+
+fn parse_grant_rows(rows: Vec<sqlx::postgres::PgRow>) -> Result<Grants> {
     let mut grants = Vec::with_capacity(rows.len());
     for row in rows {
         let capability: String = row.try_get("capability").map_err(|_| MaviError::Internal)?;
@@ -724,12 +1590,28 @@ mod tests {
         let email = Email::parse("  Owner@Example.COM ").expect("valid email");
         assert_eq!(email.as_str(), "owner@example.com");
         assert!(Email::parse("not-an-email").is_err());
+        assert!(Email::parse(&format!("owner@{}@other.com", "example.com")).is_err());
+        assert!(Email::parse(&format!("owner@-{}", "example.com")).is_err());
     }
 
     #[test]
     fn password_policy_rejects_short_values() {
         assert!(Password::parse("too-short".to_owned()).is_err());
         assert!(Password::parse("long-enough-password".to_owned()).is_ok());
+    }
+
+    #[test]
+    fn setup_debug_output_redacts_passwords() {
+        let input = SetupInput {
+            site_name: "Mavi".to_owned(),
+            email: "owner@example.com".to_owned(),
+            name: "Owner".to_owned(),
+            password: "super-secret-password".to_owned(),
+        };
+        let debug = format!("{input:?}");
+
+        assert!(debug.contains("<redacted>"));
+        assert!(!debug.contains("super-secret-password"));
     }
 
     #[test]
@@ -756,6 +1638,45 @@ mod tests {
         let prefix = api_key_prefix(&token).expect("prefix");
         assert_ne!(prefix, token);
         assert!(token.starts_with(prefix));
+    }
+
+    #[test]
+    fn role_names_are_lowercase_delegation_safe_identifiers() {
+        assert!(RoleName::parse("editor").is_ok());
+        assert!(RoleName::parse("Editor").is_err());
+        assert!(RoleName::parse("content-editor").is_ok());
+        assert!(RoleName::parse("owner role").is_err());
+    }
+
+    #[test]
+    fn delegated_role_grants_cannot_escalate_the_caller() {
+        let grant = Grant::new(Capability::Content, Action::View);
+        let context = SiteContext::with_caller(
+            SiteId::new(),
+            Caller::Account {
+                person_id: PersonId::new(),
+                session_id: None,
+                grants: Grants::new([grant]),
+            },
+            mavi_core::RequestId::new(),
+        );
+
+        assert!(delegated_grants(&context, &[grant]).is_ok());
+        assert!(
+            delegated_grants(&context, &[Grant::new(Capability::Content, Action::Write)]).is_err()
+        );
+    }
+
+    #[test]
+    fn identity_cursor_round_trips_and_rejects_corruption() {
+        let id = Uuid::now_v7();
+        let created_at = Utc::now();
+        let cursor = encode_identity_cursor(created_at, id).expect("cursor");
+        let decoded = decode_identity_cursor(&cursor).expect("decoded cursor");
+
+        assert_eq!(decoded.id, id);
+        assert_eq!(decoded.created_at, created_at);
+        assert!(decode_identity_cursor(&Cursor::parse("bad").expect("cursor")).is_err());
     }
 
     #[test]

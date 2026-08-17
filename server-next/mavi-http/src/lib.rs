@@ -10,7 +10,7 @@ use axum::{
     http::{HeaderValue, Request, StatusCode, header::AUTHORIZATION},
     middleware::{self, Next},
     response::{IntoResponse, Response},
-    routing::{delete, get, post},
+    routing::{delete, get, post, put},
 };
 use chrono::Utc;
 use mavi_authz::CedarAuthorizer;
@@ -19,12 +19,13 @@ use mavi_content::{
     UpdateContent,
 };
 use mavi_core::{
-    Action, Caller, Capability, ContentId, ErrorCode, Grant, MaviError, Page, RequestId,
-    SiteContext,
+    Action, Caller, Capability, ContentId, ErrorCode, Grant, MaviError, Page, PersonId, RequestId,
+    RoleId, SiteContext,
 };
 use mavi_identity::{
-    ApiKeyCreated, CreateApiKey, IdentityService, LoginInput, Person, SessionCreated, SetupInput,
-    SetupStatus,
+    ApiKeyCreated, CreateApiKey, CreatePerson, CreateRole, IdentityService, LoginInput,
+    PeopleListFilter, Person, PersonRecord, ReplaceRoleGrants, Role, RoleListFilter,
+    SessionCreated, SetupInput, SetupStatus, UpdatePersonStatus,
 };
 use mavi_runtime::{Runtime, SiteResolver};
 use serde::{Deserialize, Serialize};
@@ -100,6 +101,16 @@ where
         .route("/api/v1/auth/sessions/current", delete(revoke_session::<R>))
         .route("/api/v1/auth/api-keys", post(create_api_key::<R>))
         .route("/api/v1/auth/api-keys/{id}", delete(revoke_api_key::<R>))
+        .route(
+            "/api/v1/people",
+            get(list_people::<R>).post(create_person::<R>),
+        )
+        .route(
+            "/api/v1/people/{id}/status",
+            axum::routing::patch(update_person_status::<R>),
+        )
+        .route("/api/v1/roles", get(list_roles::<R>).post(create_role::<R>))
+        .route("/api/v1/roles/{id}/grants", put(replace_role_grants::<R>))
         .route(
             "/api/v1/content/{id}",
             get(read_content::<R>)
@@ -349,6 +360,158 @@ where
         .map_err(HttpError)?;
     transaction.commit().await.map_err(HttpError)?;
     Ok(StatusCode::NO_CONTENT)
+}
+
+async fn list_people<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Query(filter): Query<PeopleListFilter>,
+) -> Result<Json<Page<PersonRecord>>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::People, Action::View),
+        "Person",
+        "people_collection",
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let page = state
+        .identity
+        .list_people(&mut transaction, &context, &filter)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(page))
+}
+
+async fn create_person<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Json(input): Json<CreatePerson>,
+) -> Result<(StatusCode, Json<PersonRecord>), HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::People, Action::Write),
+        "Person",
+        "people_collection",
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let person = state
+        .identity
+        .create_person(&mut transaction, &context, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok((StatusCode::CREATED, Json(person)))
+}
+
+async fn update_person_status<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<PersonId>,
+    Json(input): Json<UpdatePersonStatus>,
+) -> Result<Json<PersonRecord>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::People, Action::Write),
+        "Person",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let person = state
+        .identity
+        .update_person_status(&mut transaction, &context, id, &input, Utc::now())
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(person))
+}
+
+async fn list_roles<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Query(filter): Query<RoleListFilter>,
+) -> Result<Json<Page<Role>>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::People, Action::View),
+        "Role",
+        "roles_collection",
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let page = state
+        .identity
+        .list_roles(&mut transaction, &context, &filter)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(page))
+}
+
+async fn create_role<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Json(input): Json<CreateRole>,
+) -> Result<(StatusCode, Json<Role>), HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::People, Action::Write),
+        "Role",
+        "roles_collection",
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let role = state
+        .identity
+        .create_role(&mut transaction, &context, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok((StatusCode::CREATED, Json(role)))
+}
+
+async fn replace_role_grants<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<RoleId>,
+    Json(input): Json<ReplaceRoleGrants>,
+) -> Result<Json<Role>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::People, Action::Write),
+        "Role",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let role = state
+        .identity
+        .replace_role_grants(&mut transaction, &context, id, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(role))
 }
 
 async fn read_content<R>(

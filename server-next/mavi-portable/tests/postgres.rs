@@ -176,11 +176,41 @@ async fn portable_bundles_export_cross_site_import_and_reject_conflicts() {
             &mut conflict_tx,
             &target_context,
             &PortableImportRequest {
-                bundle,
+                bundle: bundle.clone(),
                 strategy: ImportStrategy::CreateOnly,
             },
         )
         .await
         .expect_err("create-only import must reject existing rows");
     assert!(matches!(conflict, mavi_core::MaviError::Conflict { .. }));
+
+    let relocation_site = SiteId::new();
+    database
+        .ensure_site(relocation_site)
+        .await
+        .expect("relocation site");
+    let relocation_context = SiteContext::public(relocation_site);
+    let mut relocation_bundle = bundle;
+    relocation_bundle.manifest.source_site_id = relocation_site;
+    let mut relocation_tx = database
+        .begin(&relocation_context)
+        .await
+        .expect("relocation scope");
+    portable
+        .relocate(
+            &mut relocation_tx,
+            &relocation_context,
+            &PortableImportRequest {
+                bundle: relocation_bundle,
+                strategy: ImportStrategy::Upsert,
+            },
+        )
+        .await
+        .expect("relocation into a fresh site");
+    let relocated = portable
+        .export(&mut relocation_tx, &relocation_context)
+        .await
+        .expect("relocated export");
+    assert_eq!(relocated.site.name, "Source site");
+    relocation_tx.commit().await.expect("relocation commit");
 }

@@ -597,7 +597,7 @@ impl PortableService {
         request: &PortableImportRequest,
     ) -> Result<ImportReceipt> {
         request.bundle.validate_for_site(context.site_id)?;
-        self.import_validated(tx, context, request, "portable.bundle.imported")
+        self.import_validated(tx, context, request, "portable.bundle.imported", false)
             .await
     }
 
@@ -619,7 +619,7 @@ impl PortableService {
             ));
         }
         request.bundle.validate_for_relocation(context.site_id)?;
-        self.import_validated(tx, context, request, "portable.bundle.relocated")
+        self.import_validated(tx, context, request, "portable.bundle.relocated", true)
             .await
     }
 
@@ -630,6 +630,7 @@ impl PortableService {
         context: &SiteContext,
         request: &PortableImportRequest,
         audit_action: &str,
+        initialize_site_settings: bool,
     ) -> Result<ImportReceipt> {
         let receipt = receipt_for(request.strategy, &request.bundle)?;
         if !request.strategy.writes() {
@@ -641,16 +642,26 @@ impl PortableService {
             ensure_create_only(tx, &request.bundle).await?;
         }
 
-        sqlx::query(
-            "update site_settings set name = $2, timezone = $3, updated_at = now()
-             where site_id = $1",
-        )
-        .bind(context.site_id.into_uuid())
-        .bind(&request.bundle.site.name)
-        .bind(&request.bundle.site.timezone)
-        .execute(tx.conn())
-        .await
-        .map_err(map_import_write_error)?;
+        let settings = if initialize_site_settings {
+            sqlx::query(
+                "insert into site_settings (site_id, name, timezone)
+                 values ($1, $2, $3)
+                 on conflict (site_id) do update set
+                    name = excluded.name, timezone = excluded.timezone, updated_at = now()",
+            )
+        } else {
+            sqlx::query(
+                "update site_settings set name = $2, timezone = $3, updated_at = now()
+                 where site_id = $1",
+            )
+        };
+        settings
+            .bind(context.site_id.into_uuid())
+            .bind(&request.bundle.site.name)
+            .bind(&request.bundle.site.timezone)
+            .execute(tx.conn())
+            .await
+            .map_err(map_import_write_error)?;
 
         sqlx::query(
             "update site_languages set is_default = false, updated_at = now() where site_id = $1",

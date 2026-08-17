@@ -41,6 +41,30 @@ export interface ContentPage {
   next_cursor: string | null;
 }
 
+export interface ContentRevision {
+  content_id: string;
+  revision: number;
+  kind: string;
+  language: string;
+  slug: string;
+  title: string;
+  excerpt: string | null;
+  body: string;
+  fields: Record<string, unknown>;
+  publication: Publication;
+  created_at: string;
+}
+
+export interface ContentRevisionListFilter {
+  after?: string | null;
+  limit?: number;
+}
+
+export interface ContentRevisionPage {
+  items: ContentRevision[];
+  next_cursor: string | null;
+}
+
 export interface ContentType {
   site_id: string;
   kind: string;
@@ -295,6 +319,8 @@ export const operations = {
   "content_types.list": { method: "get", path: "/api/v1/content-types", input: { location: "query", shape: "ContentTypeListFilter" }, output: "ContentTypePage", status: 200, authentication: "account_or_assistant", permission: { capability: "content", action: "view" } },
   "content_types.upsert": { method: "put", path: "/api/v1/content-types/{kind}", input: { location: "json", shape: "DeclareContentType" }, output: "ContentType", status: 200, authentication: "account_or_assistant", permission: { capability: "content", action: "write" } },
   "content_types.delete": { method: "delete", path: "/api/v1/content-types/{kind}", input: null, output: "Empty", status: 204, authentication: "account_or_assistant", permission: { capability: "content", action: "delete" } },
+  "content.revisions.list": { method: "get", path: "/api/v1/content/{id}/revisions", input: { location: "query", shape: "ContentRevisionListFilter" }, output: "ContentRevisionPage", status: 200, authentication: "account_or_assistant", permission: { capability: "content", action: "view" } },
+  "content.revisions.read": { method: "get", path: "/api/v1/content/{id}/revisions/{revision}", input: null, output: "ContentRevision", status: 200, authentication: "account_or_assistant", permission: { capability: "content", action: "view" } },
   "settings.read": { method: "get", path: "/api/v1/settings", input: null, output: "SiteSettings", status: 200, authentication: "account_or_assistant", permission: { capability: "settings", action: "view" } },
   "settings.update": { method: "patch", path: "/api/v1/settings", input: { location: "json", shape: "UpdateSiteSettings" }, output: "SiteSettings", status: 200, authentication: "account_or_assistant", permission: { capability: "settings", action: "write" } },
   "languages.list": { method: "get", path: "/api/v1/languages", input: { location: "query", shape: "LanguageListFilter" }, output: "LanguagePage", status: 200, authentication: "account_or_assistant", permission: { capability: "settings", action: "view" } },
@@ -331,6 +357,8 @@ export interface OperationArguments {
   "content_types.list": { path?: never; query: ContentTypeListFilter; body?: never; }
   "content_types.upsert": { path: { kind: string }; query?: never; body: DeclareContentType; }
   "content_types.delete": { path: { kind: string }; query?: never; body?: never; }
+  "content.revisions.list": { path: { id: string }; query: ContentRevisionListFilter; body?: never; }
+  "content.revisions.read": { path: { id: string; revision: string }; query?: never; body?: never; }
   "settings.read": { path?: never; query?: never; body?: never; }
   "settings.update": { path?: never; query?: never; body: UpdateSiteSettings; }
   "languages.list": { path?: never; query: LanguageListFilter; body?: never; }
@@ -365,6 +393,8 @@ export interface OperationResponses {
   "content_types.list": ContentTypePage;
   "content_types.upsert": ContentType;
   "content_types.delete": void;
+  "content.revisions.list": ContentRevisionPage;
+  "content.revisions.read": ContentRevision;
   "settings.read": SiteSettings;
   "settings.update": SiteSettings;
   "languages.list": LanguagePage;

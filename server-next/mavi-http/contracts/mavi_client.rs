@@ -47,6 +47,33 @@ pub struct ContentPage {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ContentRevision {
+    pub content_id: String,
+    pub revision: i64,
+    pub kind: String,
+    pub language: String,
+    pub slug: String,
+    pub title: String,
+    pub excerpt: Option<String>,
+    pub body: String,
+    pub fields: Value,
+    pub publication: Publication,
+    pub created_at: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ContentRevisionListFilter {
+    pub after: Option<String>,
+    pub limit: Option<i64>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ContentRevisionPage {
+    pub items: Vec<ContentRevision>,
+    pub next_cursor: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ContentType {
     pub site_id: String,
     pub kind: String,
@@ -337,6 +364,8 @@ pub const OPERATIONS: &[OperationDefinition] = &[
     OperationDefinition { name: "content_types.list", method: "get", path: "/api/v1/content-types", request: Some("ContentTypeListFilter"), response: Some("ContentTypePage"), status: 200, authentication: "account_or_assistant", capability: Some("content"), action: Some("view") },
     OperationDefinition { name: "content_types.upsert", method: "put", path: "/api/v1/content-types/{kind}", request: Some("DeclareContentType"), response: Some("ContentType"), status: 200, authentication: "account_or_assistant", capability: Some("content"), action: Some("write") },
     OperationDefinition { name: "content_types.delete", method: "delete", path: "/api/v1/content-types/{kind}", request: None, response: Some("Empty"), status: 204, authentication: "account_or_assistant", capability: Some("content"), action: Some("delete") },
+    OperationDefinition { name: "content.revisions.list", method: "get", path: "/api/v1/content/{id}/revisions", request: Some("ContentRevisionListFilter"), response: Some("ContentRevisionPage"), status: 200, authentication: "account_or_assistant", capability: Some("content"), action: Some("view") },
+    OperationDefinition { name: "content.revisions.read", method: "get", path: "/api/v1/content/{id}/revisions/{revision}", request: None, response: Some("ContentRevision"), status: 200, authentication: "account_or_assistant", capability: Some("content"), action: Some("view") },
     OperationDefinition { name: "settings.read", method: "get", path: "/api/v1/settings", request: None, response: Some("SiteSettings"), status: 200, authentication: "account_or_assistant", capability: Some("settings"), action: Some("view") },
     OperationDefinition { name: "settings.update", method: "patch", path: "/api/v1/settings", request: Some("UpdateSiteSettings"), response: Some("SiteSettings"), status: 200, authentication: "account_or_assistant", capability: Some("settings"), action: Some("write") },
     OperationDefinition { name: "languages.list", method: "get", path: "/api/v1/languages", request: Some("LanguageListFilter"), response: Some("LanguagePage"), status: 200, authentication: "account_or_assistant", capability: Some("settings"), action: Some("view") },

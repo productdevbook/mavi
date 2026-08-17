@@ -15,8 +15,9 @@ use axum::{
 use chrono::Utc;
 use mavi_authz::CedarAuthorizer;
 use mavi_content::{
-    Content, ContentListFilter, ContentService, ContentType, ContentTypeListFilter, CreateContent,
-    DeclareContentType, PublicationInput, ScheduleContent, UpdateContent,
+    Content, ContentListFilter, ContentRevision, ContentRevisionListFilter, ContentService,
+    ContentType, ContentTypeListFilter, CreateContent, DeclareContentType, PublicationInput,
+    ScheduleContent, UpdateContent,
 };
 use mavi_contract::Api;
 use mavi_core::{
@@ -154,6 +155,14 @@ where
         .route(
             "/api/v1/content-types/{kind}",
             put(upsert_content_type::<R>).delete(delete_content_type::<R>),
+        )
+        .route(
+            "/api/v1/content/{id}/revisions",
+            get(list_content_revisions::<R>),
+        )
+        .route(
+            "/api/v1/content/{id}/revisions/{revision}",
+            get(read_content_revision::<R>),
         )
         .route(
             "/api/v1/content/{id}",
@@ -794,6 +803,55 @@ where
         .map_err(HttpError)?;
     transaction.commit().await.map_err(HttpError)?;
     Ok(StatusCode::NO_CONTENT)
+}
+
+async fn list_content_revisions<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<ContentId>,
+    Query(filter): Query<ContentRevisionListFilter>,
+) -> Result<Json<Page<ContentRevision>>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant(
+        &state,
+        &context,
+        Grant::new(Capability::Content, Action::View),
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let revisions = state
+        .content
+        .list_revisions(&mut transaction, &context, id, &filter)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(revisions))
+}
+
+async fn read_content_revision<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path((id, revision)): Path<(ContentId, u32)>,
+) -> Result<Json<ContentRevision>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant(
+        &state,
+        &context,
+        Grant::new(Capability::Content, Action::View),
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let revision = state
+        .content
+        .read_revision(&mut transaction, &context, id, revision)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(revision))
 }
 
 async fn read_content<R>(

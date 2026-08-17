@@ -108,5 +108,15 @@ mod tests {
         assert!(
             content_types_migration.contains("alter table content_types force row level security")
         );
+
+        let slug_history_migration = include_str!("../migrations/0007_content_slug_history.sql");
+        assert!(
+            slug_history_migration.contains("primary key (site_id, content_id, language, slug)")
+        );
+        assert!(slug_history_migration.contains("content_slug_history_lookup"));
+        assert!(
+            slug_history_migration
+                .contains("alter table content_slug_history force row level security")
+        );
     }
 }

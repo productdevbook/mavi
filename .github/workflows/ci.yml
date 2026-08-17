@@ -146,6 +146,7 @@ jobs:
             -c synchronous_commit=off \
             -c full_page_writes=off
           until docker exec pg-next pg_isready -U postgres >/dev/null 2>&1; do sleep 1; done
+          until docker exec pg-next psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "select 1" >/dev/null 2>&1; do sleep 1; done
           docker exec pg-next psql -v ON_ERROR_STOP=1 -U postgres -d postgres \
             -c "create role mavi_test login password 'mavi_test' nocreatedb nosuperuser nobypassrls;" \
             -c "create database mavi_next owner mavi_test;"

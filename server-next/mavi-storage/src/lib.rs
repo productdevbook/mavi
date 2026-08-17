@@ -118,5 +118,19 @@ mod tests {
             slug_history_migration
                 .contains("alter table content_slug_history force row level security")
         );
+
+        let taxonomy_migration = include_str!("../migrations/0008_taxonomy.sql");
+        assert!(taxonomy_migration.contains("primary key (site_id, id)"));
+        assert!(taxonomy_migration.contains("taxonomy_terms_site_kind_language_slug"));
+        assert!(
+            taxonomy_migration.contains(
+                "foreign key (site_id, parent_id) references taxonomy_terms(site_id, id)"
+            )
+        );
+        assert!(taxonomy_migration.contains("primary key (site_id, content_id, term_id)"));
+        assert!(
+            taxonomy_migration
+                .contains("alter table content_term_assignments force row level security")
+        );
     }
 }

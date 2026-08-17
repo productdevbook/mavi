@@ -74,6 +74,24 @@ pub struct ContentRevisionPage {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ContentTermAssignment {
+    pub content_id: String,
+    pub assigned_at: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ContentTermAssignmentListFilter {
+    pub after: Option<String>,
+    pub limit: Option<i64>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ContentTermAssignmentPage {
+    pub items: Vec<ContentTermAssignment>,
+    pub next_cursor: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ContentType {
     pub site_id: String,
     pub kind: String,
@@ -142,6 +160,15 @@ pub struct CreatePerson {
 pub struct CreateRole {
     pub name: String,
     pub grants: Option<Vec<Grant>>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct CreateTerm {
+    pub kind: TermKind,
+    pub language: String,
+    pub slug: String,
+    pub name: String,
+    pub parent_id: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -240,6 +267,11 @@ pub type PublicationInput = Value;
 pub type PublicationStatus = String;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ReplaceContentTerms {
+    pub term_ids: Vec<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ReplaceRoleGrants {
     pub grants: Vec<Grant>,
 }
@@ -299,6 +331,39 @@ pub struct SiteSettings {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Term {
+    pub id: String,
+    pub site_id: String,
+    pub kind: TermKind,
+    pub language: String,
+    pub slug: String,
+    pub name: String,
+    pub parent_id: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+pub type TermKind = String;
+
+pub type TermList = Vec<Term>;
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct TermListFilter {
+    pub after: Option<String>,
+    pub limit: Option<i64>,
+    pub kind: Option<TermKind>,
+    pub language: Option<String>,
+    pub parent_id: Option<String>,
+    pub roots: Option<bool>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct TermPage {
+    pub items: Vec<Term>,
+    pub next_cursor: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct UpdateContent {
     pub slug: Option<String>,
     pub title: Option<String>,
@@ -323,6 +388,12 @@ pub struct UpdatePersonStatus {
 pub struct UpdateSiteSettings {
     pub name: Option<String>,
     pub timezone: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct UpdateTerm {
+    pub name: Option<String>,
+    pub parent_id: Option<String>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -372,4 +443,12 @@ pub const OPERATIONS: &[OperationDefinition] = &[
     OperationDefinition { name: "languages.create", method: "post", path: "/api/v1/languages", request: Some("CreateLanguage"), response: Some("Language"), status: 201, authentication: "account_or_assistant", capability: Some("settings"), action: Some("write") },
     OperationDefinition { name: "languages.update", method: "patch", path: "/api/v1/languages/{tag}", request: Some("UpdateLanguage"), response: Some("Language"), status: 200, authentication: "account_or_assistant", capability: Some("settings"), action: Some("write") },
     OperationDefinition { name: "languages.delete", method: "delete", path: "/api/v1/languages/{tag}", request: None, response: Some("Empty"), status: 204, authentication: "account_or_assistant", capability: Some("settings"), action: Some("delete") },
+    OperationDefinition { name: "taxonomy.terms.list", method: "get", path: "/api/v1/terms", request: Some("TermListFilter"), response: Some("TermPage"), status: 200, authentication: "account_or_assistant", capability: Some("taxonomy"), action: Some("view") },
+    OperationDefinition { name: "taxonomy.terms.create", method: "post", path: "/api/v1/terms", request: Some("CreateTerm"), response: Some("Term"), status: 201, authentication: "account_or_assistant", capability: Some("taxonomy"), action: Some("write") },
+    OperationDefinition { name: "taxonomy.terms.read", method: "get", path: "/api/v1/terms/{id}", request: None, response: Some("Term"), status: 200, authentication: "account_or_assistant", capability: Some("taxonomy"), action: Some("view") },
+    OperationDefinition { name: "taxonomy.terms.update", method: "patch", path: "/api/v1/terms/{id}", request: Some("UpdateTerm"), response: Some("Term"), status: 200, authentication: "account_or_assistant", capability: Some("taxonomy"), action: Some("write") },
+    OperationDefinition { name: "taxonomy.terms.delete", method: "delete", path: "/api/v1/terms/{id}", request: None, response: Some("Empty"), status: 204, authentication: "account_or_assistant", capability: Some("taxonomy"), action: Some("delete") },
+    OperationDefinition { name: "taxonomy.content_terms.list", method: "get", path: "/api/v1/content/{id}/terms", request: None, response: Some("TermList"), status: 200, authentication: "account_or_assistant", capability: Some("taxonomy"), action: Some("view") },
+    OperationDefinition { name: "taxonomy.content_terms.replace", method: "put", path: "/api/v1/content/{id}/terms", request: Some("ReplaceContentTerms"), response: Some("TermList"), status: 200, authentication: "account_or_assistant", capability: Some("taxonomy"), action: Some("write") },
+    OperationDefinition { name: "taxonomy.term_content.list", method: "get", path: "/api/v1/terms/{id}/content", request: Some("ContentTermAssignmentListFilter"), response: Some("ContentTermAssignmentPage"), status: 200, authentication: "account_or_assistant", capability: Some("taxonomy"), action: Some("view") },
 ];

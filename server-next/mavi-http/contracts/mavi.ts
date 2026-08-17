@@ -65,6 +65,21 @@ export interface ContentRevisionPage {
   next_cursor: string | null;
 }
 
+export interface ContentTermAssignment {
+  content_id: string;
+  assigned_at: string;
+}
+
+export interface ContentTermAssignmentListFilter {
+  after?: string | null;
+  limit?: number;
+}
+
+export interface ContentTermAssignmentPage {
+  items: ContentTermAssignment[];
+  next_cursor: string | null;
+}
+
 export interface ContentType {
   site_id: string;
   kind: string;
@@ -125,6 +140,14 @@ export interface CreatePerson {
 export interface CreateRole {
   name: string;
   grants?: Grant[];
+}
+
+export interface CreateTerm {
+  kind: TermKind;
+  language: string;
+  slug: string;
+  name: string;
+  parent_id?: string | null;
 }
 
 export interface DeclareContentType {
@@ -210,6 +233,10 @@ export type PublicationInput = "draft" | "publish" | "archive" | Record<string, 
 
 export type PublicationStatus = "draft" | "scheduled" | "published" | "archived";
 
+export interface ReplaceContentTerms {
+  term_ids: string[];
+}
+
 export interface ReplaceRoleGrants {
   grants: Grant[];
 }
@@ -260,6 +287,36 @@ export interface SiteSettings {
   updated_at: string;
 }
 
+export interface Term {
+  id: string;
+  site_id: string;
+  kind: TermKind;
+  language: string;
+  slug: string;
+  name: string;
+  parent_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type TermKind = "category" | "tag";
+
+export type TermList = Term[];
+
+export interface TermListFilter {
+  after?: string | null;
+  limit?: number;
+  kind?: TermKind;
+  language?: string | null;
+  parent_id?: string | null;
+  roots?: boolean;
+}
+
+export interface TermPage {
+  items: Term[];
+  next_cursor: string | null;
+}
+
 export interface UpdateContent {
   slug?: string | null;
   title?: string | null;
@@ -281,6 +338,11 @@ export interface UpdatePersonStatus {
 export interface UpdateSiteSettings {
   name?: string | null;
   timezone?: string | null;
+}
+
+export interface UpdateTerm {
+  name?: string | null;
+  parent_id?: string | null;
 }
 
 export interface MaviOperation {
@@ -327,6 +389,14 @@ export const operations = {
   "languages.create": { method: "post", path: "/api/v1/languages", input: { location: "json", shape: "CreateLanguage" }, output: "Language", status: 201, authentication: "account_or_assistant", permission: { capability: "settings", action: "write" } },
   "languages.update": { method: "patch", path: "/api/v1/languages/{tag}", input: { location: "json", shape: "UpdateLanguage" }, output: "Language", status: 200, authentication: "account_or_assistant", permission: { capability: "settings", action: "write" } },
   "languages.delete": { method: "delete", path: "/api/v1/languages/{tag}", input: null, output: "Empty", status: 204, authentication: "account_or_assistant", permission: { capability: "settings", action: "delete" } },
+  "taxonomy.terms.list": { method: "get", path: "/api/v1/terms", input: { location: "query", shape: "TermListFilter" }, output: "TermPage", status: 200, authentication: "account_or_assistant", permission: { capability: "taxonomy", action: "view" } },
+  "taxonomy.terms.create": { method: "post", path: "/api/v1/terms", input: { location: "json", shape: "CreateTerm" }, output: "Term", status: 201, authentication: "account_or_assistant", permission: { capability: "taxonomy", action: "write" } },
+  "taxonomy.terms.read": { method: "get", path: "/api/v1/terms/{id}", input: null, output: "Term", status: 200, authentication: "account_or_assistant", permission: { capability: "taxonomy", action: "view" } },
+  "taxonomy.terms.update": { method: "patch", path: "/api/v1/terms/{id}", input: { location: "json", shape: "UpdateTerm" }, output: "Term", status: 200, authentication: "account_or_assistant", permission: { capability: "taxonomy", action: "write" } },
+  "taxonomy.terms.delete": { method: "delete", path: "/api/v1/terms/{id}", input: null, output: "Empty", status: 204, authentication: "account_or_assistant", permission: { capability: "taxonomy", action: "delete" } },
+  "taxonomy.content_terms.list": { method: "get", path: "/api/v1/content/{id}/terms", input: null, output: "TermList", status: 200, authentication: "account_or_assistant", permission: { capability: "taxonomy", action: "view" } },
+  "taxonomy.content_terms.replace": { method: "put", path: "/api/v1/content/{id}/terms", input: { location: "json", shape: "ReplaceContentTerms" }, output: "TermList", status: 200, authentication: "account_or_assistant", permission: { capability: "taxonomy", action: "write" } },
+  "taxonomy.term_content.list": { method: "get", path: "/api/v1/terms/{id}/content", input: { location: "query", shape: "ContentTermAssignmentListFilter" }, output: "ContentTermAssignmentPage", status: 200, authentication: "account_or_assistant", permission: { capability: "taxonomy", action: "view" } },
 } as const satisfies Record<string, MaviOperation>;
 
 export type OperationName = keyof typeof operations;
@@ -365,6 +435,14 @@ export interface OperationArguments {
   "languages.create": { path?: never; query?: never; body: CreateLanguage; }
   "languages.update": { path: { tag: string }; query?: never; body: UpdateLanguage; }
   "languages.delete": { path: { tag: string }; query?: never; body?: never; }
+  "taxonomy.terms.list": { path?: never; query: TermListFilter; body?: never; }
+  "taxonomy.terms.create": { path?: never; query?: never; body: CreateTerm; }
+  "taxonomy.terms.read": { path: { id: string }; query?: never; body?: never; }
+  "taxonomy.terms.update": { path: { id: string }; query?: never; body: UpdateTerm; }
+  "taxonomy.terms.delete": { path: { id: string }; query?: never; body?: never; }
+  "taxonomy.content_terms.list": { path: { id: string }; query?: never; body?: never; }
+  "taxonomy.content_terms.replace": { path: { id: string }; query?: never; body: ReplaceContentTerms; }
+  "taxonomy.term_content.list": { path: { id: string }; query: ContentTermAssignmentListFilter; body?: never; }
 }
 
 export interface OperationResponses {
@@ -401,6 +479,14 @@ export interface OperationResponses {
   "languages.create": Language;
   "languages.update": Language;
   "languages.delete": void;
+  "taxonomy.terms.list": TermPage;
+  "taxonomy.terms.create": Term;
+  "taxonomy.terms.read": Term;
+  "taxonomy.terms.update": Term;
+  "taxonomy.terms.delete": void;
+  "taxonomy.content_terms.list": TermList;
+  "taxonomy.content_terms.replace": TermList;
+  "taxonomy.term_content.list": ContentTermAssignmentPage;
 }
 
 export interface MaviClientOptions {

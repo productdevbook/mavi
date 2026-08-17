@@ -16,6 +16,7 @@ pub use error::{ErrorCode, MaviError, Result};
 pub use grants::{Action, Capability, Grant, Grants};
 pub use ids::{
     ApiKeyId, ContentId, FileId, JobId, PersonId, RequestId, RoleId, SessionId, SiteId, StudentId,
+    TermId,
 };
 pub use money::{Currency, Money};
 pub use pagination::{Cursor, Page, PageRequest};

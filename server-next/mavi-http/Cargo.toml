@@ -16,6 +16,7 @@ mavi-core = { path = "../mavi-core" }
 mavi-identity = { path = "../mavi-identity" }
 mavi-runtime = { path = "../mavi-runtime" }
 mavi-settings = { path = "../mavi-settings" }
+mavi-taxonomy = { path = "../mavi-taxonomy" }
 serde.workspace = true
 serde_json.workspace = true
 

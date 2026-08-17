@@ -9,6 +9,7 @@ members = [
   "mavi-content",
   "mavi-settings",
   "mavi-identity",
+  "mavi-taxonomy",
   "mavi-authz",
   "mavi-audit",
   "mavi",

@@ -22,7 +22,7 @@ use mavi_content::{
 use mavi_contract::Api;
 use mavi_core::{
     Action, Caller, Capability, ContentId, ErrorCode, Grant, MaviError, Page, PersonId, RequestId,
-    RoleId, SiteContext,
+    RoleId, SiteContext, TermId,
 };
 use mavi_identity::{
     ApiKeyCreated, CreateApiKey, CreatePerson, CreateRole, IdentityService, LoginInput,
@@ -33,6 +33,10 @@ use mavi_runtime::{Runtime, SiteResolver};
 use mavi_settings::{
     CreateLanguage, Language, LanguageListFilter, SettingsService, SiteSettings, UpdateLanguage,
     UpdateSiteSettings,
+};
+use mavi_taxonomy::{
+    ContentTermAssignment, ContentTermAssignmentListFilter, CreateTerm, ReplaceContentTerms,
+    TaxonomyService, Term, TermListFilter, UpdateTerm,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -96,6 +100,7 @@ pub fn api() -> Api {
     let mut api = mavi_identity::api();
     api.extend(mavi_content::api());
     api.extend(mavi_settings::api());
+    api.extend(mavi_taxonomy::api());
     api
 }
 
@@ -116,6 +121,7 @@ where
         identity: IdentityService,
         content: ContentService,
         settings: SettingsService,
+        taxonomy: TaxonomyService,
         authorizer: CedarAuthorizer::new()?,
     };
     Ok(runtime
@@ -156,6 +162,18 @@ where
             "/api/v1/content-types/{kind}",
             put(upsert_content_type::<R>).delete(delete_content_type::<R>),
         )
+        .route("/api/v1/terms", get(list_terms::<R>).post(create_term::<R>))
+        .route(
+            "/api/v1/terms/{id}",
+            get(read_term::<R>)
+                .patch(update_term::<R>)
+                .delete(delete_term::<R>),
+        )
+        .route("/api/v1/terms/{id}/content", get(list_term_content::<R>))
+        .route(
+            "/api/v1/content/{id}/terms",
+            get(list_content_terms::<R>).put(replace_content_terms::<R>),
+        )
         .route(
             "/api/v1/content/{id}/revisions",
             get(list_content_revisions::<R>),
@@ -192,6 +210,7 @@ struct HttpState<R> {
     identity: IdentityService,
     content: ContentService,
     settings: SettingsService,
+    taxonomy: TaxonomyService,
     authorizer: CedarAuthorizer,
 }
 
@@ -202,6 +221,7 @@ impl<R> Clone for HttpState<R> {
             identity: self.identity,
             content: self.content,
             settings: self.settings,
+            taxonomy: self.taxonomy,
             authorizer: self.authorizer.clone(),
         }
     }
@@ -803,6 +823,209 @@ where
         .map_err(HttpError)?;
     transaction.commit().await.map_err(HttpError)?;
     Ok(StatusCode::NO_CONTENT)
+}
+
+async fn list_terms<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Query(filter): Query<TermListFilter>,
+) -> Result<Json<Page<Term>>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Taxonomy, Action::View),
+        "TaxonomyTerm",
+        "terms_collection",
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let terms = state
+        .taxonomy
+        .list_terms(&mut transaction, &context, &filter)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(terms))
+}
+
+async fn create_term<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Json(input): Json<CreateTerm>,
+) -> Result<(StatusCode, Json<Term>), HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Taxonomy, Action::Write),
+        "TaxonomyTerm",
+        "terms_collection",
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let term = state
+        .taxonomy
+        .create_term(&mut transaction, &context, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok((StatusCode::CREATED, Json(term)))
+}
+
+async fn read_term<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<TermId>,
+) -> Result<Json<Term>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Taxonomy, Action::View),
+        "TaxonomyTerm",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let term = state
+        .taxonomy
+        .get_term(&mut transaction, &context, id)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(term))
+}
+
+async fn update_term<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<TermId>,
+    Json(input): Json<UpdateTerm>,
+) -> Result<Json<Term>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Taxonomy, Action::Write),
+        "TaxonomyTerm",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let term = state
+        .taxonomy
+        .update_term(&mut transaction, &context, id, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(term))
+}
+
+async fn delete_term<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<TermId>,
+) -> Result<StatusCode, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Taxonomy, Action::Delete),
+        "TaxonomyTerm",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    state
+        .taxonomy
+        .delete_term(&mut transaction, &context, id)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+async fn list_content_terms<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<ContentId>,
+) -> Result<Json<Vec<Term>>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Taxonomy, Action::View),
+        "Content",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let terms = state
+        .taxonomy
+        .list_content_terms(&mut transaction, &context, id)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(terms))
+}
+
+async fn replace_content_terms<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<ContentId>,
+    Json(input): Json<ReplaceContentTerms>,
+) -> Result<Json<Vec<Term>>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Taxonomy, Action::Write),
+        "Content",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let terms = state
+        .taxonomy
+        .replace_content_terms(&mut transaction, &context, id, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(terms))
+}
+
+async fn list_term_content<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<TermId>,
+    Query(filter): Query<ContentTermAssignmentListFilter>,
+) -> Result<Json<Page<ContentTermAssignment>>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Taxonomy, Action::View),
+        "TaxonomyTerm",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let assignments = state
+        .taxonomy
+        .list_term_content(&mut transaction, &context, id, &filter)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(assignments))
 }
 
 async fn list_content_revisions<R>(

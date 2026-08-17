@@ -1431,6 +1431,7 @@ dependencies = [
  "mavi-runtime",
  "mavi-settings",
  "mavi-storage",
+ "mavi-taxonomy",
  "serde",
  "serde_json",
  "tokio",
@@ -1492,6 +1493,24 @@ dependencies = [
  "mavi-core",
  "sqlx",
  "thiserror",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
+name = "mavi-taxonomy"
+version = "0.1.0"
+dependencies = [
+ "base64 0.23.1",
+ "chrono",
+ "mavi-audit",
+ "mavi-content",
+ "mavi-contract",
+ "mavi-core",
+ "mavi-storage",
+ "serde",
+ "serde_json",
+ "sqlx",
  "tokio",
  "uuid",
 ]

@@ -1318,6 +1318,397 @@
           "action": "delete"
         }
       }
+    },
+    {
+      "name": "taxonomy.terms.list",
+      "description": "List site taxonomy terms",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "object",
+            "properties": {
+              "after": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 512
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "category",
+                  "tag"
+                ]
+              },
+              "language": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 35
+              },
+              "parent_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uuid"
+              },
+              "roots": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true
+      },
+      "x-mavi": {
+        "authentication": "account_or_assistant",
+        "scope": "site",
+        "permission": {
+          "capability": "taxonomy",
+          "action": "view"
+        }
+      }
+    },
+    {
+      "name": "taxonomy.terms.create",
+      "description": "Create a site taxonomy term",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "object",
+            "required": [
+              "kind",
+              "language",
+              "slug",
+              "name"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "category",
+                  "tag"
+                ]
+              },
+              "language": {
+                "type": "string",
+                "maxLength": 35
+              },
+              "slug": {
+                "type": "string",
+                "maxLength": 160
+              },
+              "name": {
+                "type": "string",
+                "maxLength": 100
+              },
+              "parent_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uuid"
+              }
+            }
+          }
+        },
+        "required": [
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false
+      },
+      "x-mavi": {
+        "authentication": "account_or_assistant",
+        "scope": "site",
+        "permission": {
+          "capability": "taxonomy",
+          "action": "write"
+        }
+      }
+    },
+    {
+      "name": "taxonomy.terms.read",
+      "description": "Read one site taxonomy term",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ]
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true
+      },
+      "x-mavi": {
+        "authentication": "account_or_assistant",
+        "scope": "site",
+        "permission": {
+          "capability": "taxonomy",
+          "action": "view"
+        }
+      }
+    },
+    {
+      "name": "taxonomy.terms.update",
+      "description": "Update a site taxonomy term",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ]
+          },
+          "body": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 100
+              },
+              "parent_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uuid"
+              }
+            }
+          }
+        },
+        "required": [
+          "path",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false
+      },
+      "x-mavi": {
+        "authentication": "account_or_assistant",
+        "scope": "site",
+        "permission": {
+          "capability": "taxonomy",
+          "action": "write"
+        }
+      }
+    },
+    {
+      "name": "taxonomy.terms.delete",
+      "description": "Move a site taxonomy term to trash",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ]
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false
+      },
+      "x-mavi": {
+        "authentication": "account_or_assistant",
+        "scope": "site",
+        "permission": {
+          "capability": "taxonomy",
+          "action": "delete"
+        }
+      }
+    },
+    {
+      "name": "taxonomy.content_terms.list",
+      "description": "List terms assigned to content",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ]
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true
+      },
+      "x-mavi": {
+        "authentication": "account_or_assistant",
+        "scope": "site",
+        "permission": {
+          "capability": "taxonomy",
+          "action": "view"
+        }
+      }
+    },
+    {
+      "name": "taxonomy.content_terms.replace",
+      "description": "Replace terms assigned to content",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ]
+          },
+          "body": {
+            "type": "object",
+            "required": [
+              "term_ids"
+            ],
+            "properties": {
+              "term_ids": {
+                "type": "array",
+                "maxItems": 100,
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          }
+        },
+        "required": [
+          "path",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false
+      },
+      "x-mavi": {
+        "authentication": "account_or_assistant",
+        "scope": "site",
+        "permission": {
+          "capability": "taxonomy",
+          "action": "write"
+        }
+      }
+    },
+    {
+      "name": "taxonomy.term_content.list",
+      "description": "List content assigned to a term",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ]
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "after": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 512
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100
+              }
+            }
+          }
+        },
+        "required": [
+          "path",
+          "query"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true
+      },
+      "x-mavi": {
+        "authentication": "account_or_assistant",
+        "scope": "site",
+        "permission": {
+          "capability": "taxonomy",
+          "action": "view"
+        }
+      }
     }
   ]
 }

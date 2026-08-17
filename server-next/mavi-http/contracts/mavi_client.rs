@@ -174,6 +174,14 @@ pub struct CreateContent {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct CreateForm {
+    pub slug: String,
+    pub name: String,
+    pub fields: Option<Vec<FormField>>,
+    pub kept_days: Option<i64>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct CreateLanguage {
     pub tag: String,
     pub name: String,
@@ -349,6 +357,50 @@ pub struct FilePage {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Form {
+    pub id: String,
+    pub slug: String,
+    pub name: String,
+    pub fields: Vec<FormField>,
+    pub open: bool,
+    pub kept_days: i64,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct FormField {
+    pub key: String,
+    pub label: String,
+    pub required: bool,
+    pub kind: FormFieldKind,
+    pub options: Vec<String>,
+}
+
+pub type FormFieldKind = String;
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct FormListFilter {
+    pub after: Option<String>,
+    pub limit: Option<i64>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct FormPage {
+    pub items: Vec<Form>,
+    pub next_cursor: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct FormSubmission {
+    pub id: String,
+    pub form_id: String,
+    pub answers: Value,
+    pub seen_at: Option<String>,
+    pub created_at: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Grant {
     pub capability: String,
     pub action: String,
@@ -417,6 +469,13 @@ pub struct PersonRecord {
     pub updated_at: String,
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct PublicForm {
+    pub slug: String,
+    pub name: String,
+    pub fields: Vec<FormField>,
+}
+
 pub type Publication = Value;
 
 pub type PublicationInput = Value;
@@ -460,6 +519,11 @@ pub struct ScheduleContent {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct SeenCount {
+    pub seen: i64,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct SessionCreated {
     pub id: String,
     pub token: String,
@@ -490,6 +554,29 @@ pub struct SiteSettings {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct StartDesignChange {
     pub name: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct SubmissionListFilter {
+    pub after: Option<String>,
+    pub limit: Option<i64>,
+    pub unread: Option<bool>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct SubmissionPage {
+    pub items: Vec<FormSubmission>,
+    pub next_cursor: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct SubmissionReceipt {
+    pub id: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct SubmitForm {
+    pub answers: Value,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -556,6 +643,14 @@ pub struct UpdateContent {
     pub body: Option<String>,
     pub fields: Option<Value>,
     pub publication: Option<PublicationInput>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct UpdateForm {
+    pub name: Option<String>,
+    pub fields: Option<Value>,
+    pub open: Option<bool>,
+    pub kept_days: Option<i64>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -665,4 +760,14 @@ pub const OPERATIONS: &[OperationDefinition] = &[
     OperationDefinition { name: "design.changes.rollback", method: "post", path: "/api/v1/design/changes/{id}/rollback", request: None, request_location: None, query: None, response: Some("DesignChange"), status: 200, authentication: "account_or_assistant", capability: Some("publish"), action: Some("write") },
     OperationDefinition { name: "design.preview.asset", method: "get", path: "/preview/v1/design/{build_id}/{path}", request: None, request_location: None, query: None, response: Some("DesignAsset"), status: 200, authentication: "public", capability: None, action: None },
     OperationDefinition { name: "design.public.asset", method: "get", path: "/public/v1/site/{path}", request: None, request_location: None, query: None, response: Some("DesignAsset"), status: 200, authentication: "public", capability: None, action: None },
+    OperationDefinition { name: "forms.list", method: "get", path: "/api/v1/forms", request: Some("FormListFilter"), request_location: Some("query"), query: None, response: Some("FormPage"), status: 200, authentication: "account_or_assistant", capability: Some("forms"), action: Some("view") },
+    OperationDefinition { name: "forms.create", method: "post", path: "/api/v1/forms", request: Some("CreateForm"), request_location: Some("json"), query: None, response: Some("Form"), status: 201, authentication: "account_or_assistant", capability: Some("forms"), action: Some("write") },
+    OperationDefinition { name: "forms.read", method: "get", path: "/api/v1/forms/{id}", request: None, request_location: None, query: None, response: Some("Form"), status: 200, authentication: "account_or_assistant", capability: Some("forms"), action: Some("view") },
+    OperationDefinition { name: "forms.update", method: "patch", path: "/api/v1/forms/{id}", request: Some("UpdateForm"), request_location: Some("json"), query: None, response: Some("Form"), status: 200, authentication: "account_or_assistant", capability: Some("forms"), action: Some("write") },
+    OperationDefinition { name: "forms.delete", method: "delete", path: "/api/v1/forms/{id}", request: None, request_location: None, query: None, response: Some("Empty"), status: 204, authentication: "account_or_assistant", capability: Some("forms"), action: Some("delete") },
+    OperationDefinition { name: "forms.submissions.list", method: "get", path: "/api/v1/forms/{id}/submissions", request: Some("SubmissionListFilter"), request_location: Some("query"), query: None, response: Some("SubmissionPage"), status: 200, authentication: "account_or_assistant", capability: Some("forms"), action: Some("view") },
+    OperationDefinition { name: "forms.submissions.mark_read", method: "post", path: "/api/v1/forms/{id}/submissions/mark-read", request: None, request_location: None, query: None, response: Some("SeenCount"), status: 200, authentication: "account_or_assistant", capability: Some("forms"), action: Some("write") },
+    OperationDefinition { name: "forms.submissions.delete", method: "delete", path: "/api/v1/form-submissions/{id}", request: None, request_location: None, query: None, response: Some("Empty"), status: 204, authentication: "account_or_assistant", capability: Some("forms"), action: Some("delete") },
+    OperationDefinition { name: "forms.public.read", method: "get", path: "/public/v1/forms/{slug}", request: None, request_location: None, query: None, response: Some("PublicForm"), status: 200, authentication: "public", capability: None, action: None },
+    OperationDefinition { name: "forms.public.submit", method: "post", path: "/public/v1/forms/{slug}/submissions", request: Some("SubmitForm"), request_location: Some("json"), query: None, response: Some("SubmissionReceipt"), status: 201, authentication: "public", capability: None, action: None },
 ];

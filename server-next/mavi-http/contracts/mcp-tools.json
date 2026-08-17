@@ -2601,6 +2601,459 @@
           "action": "write"
         }
       }
+    },
+    {
+      "name": "forms.list",
+      "description": "List site forms with an opaque cursor",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "object",
+            "properties": {
+              "after": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 512
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100
+              }
+            }
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true
+      },
+      "x-mavi": {
+        "authentication": "account_or_assistant",
+        "scope": "site",
+        "permission": {
+          "capability": "forms",
+          "action": "view"
+        }
+      }
+    },
+    {
+      "name": "forms.create",
+      "description": "Create a validated site form",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "object",
+            "required": [
+              "slug",
+              "name"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "slug": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "fields": {
+                "type": "array",
+                "maxItems": 50,
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "key",
+                    "label",
+                    "required",
+                    "kind",
+                    "options"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "key": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    },
+                    "label": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200
+                    },
+                    "required": {
+                      "type": "boolean"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "text",
+                        "long",
+                        "email",
+                        "number",
+                        "choice",
+                        "boolean"
+                      ]
+                    },
+                    "options": {
+                      "type": "array",
+                      "maxItems": 100,
+                      "items": {
+                        "type": "string",
+                        "maxLength": 160
+                      }
+                    }
+                  }
+                }
+              },
+              "kept_days": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 1,
+                "maximum": 3650
+              }
+            }
+          }
+        },
+        "required": [
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false
+      },
+      "x-mavi": {
+        "authentication": "account_or_assistant",
+        "scope": "site",
+        "permission": {
+          "capability": "forms",
+          "action": "write"
+        }
+      }
+    },
+    {
+      "name": "forms.read",
+      "description": "Read one site form",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ]
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true
+      },
+      "x-mavi": {
+        "authentication": "account_or_assistant",
+        "scope": "site",
+        "permission": {
+          "capability": "forms",
+          "action": "view"
+        }
+      }
+    },
+    {
+      "name": "forms.update",
+      "description": "Update a form declaration or open state",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ]
+          },
+          "body": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 200
+              },
+              "fields": {
+                "type": [
+                  "array",
+                  "null"
+                ],
+                "maxItems": 50,
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "key",
+                    "label",
+                    "required",
+                    "kind",
+                    "options"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "key": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    },
+                    "label": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200
+                    },
+                    "required": {
+                      "type": "boolean"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "text",
+                        "long",
+                        "email",
+                        "number",
+                        "choice",
+                        "boolean"
+                      ]
+                    },
+                    "options": {
+                      "type": "array",
+                      "maxItems": 100,
+                      "items": {
+                        "type": "string",
+                        "maxLength": 160
+                      }
+                    }
+                  }
+                }
+              },
+              "open": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "kept_days": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 1,
+                "maximum": 3650
+              }
+            }
+          }
+        },
+        "required": [
+          "path",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false
+      },
+      "x-mavi": {
+        "authentication": "account_or_assistant",
+        "scope": "site",
+        "permission": {
+          "capability": "forms",
+          "action": "write"
+        }
+      }
+    },
+    {
+      "name": "forms.delete",
+      "description": "Move a form out of the active form catalog",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ]
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false
+      },
+      "x-mavi": {
+        "authentication": "account_or_assistant",
+        "scope": "site",
+        "permission": {
+          "capability": "forms",
+          "action": "delete"
+        }
+      }
+    },
+    {
+      "name": "forms.submissions.list",
+      "description": "List form submissions with an opaque cursor",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ]
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "after": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 512
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100
+              },
+              "unread": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "required": [
+          "path",
+          "query"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true
+      },
+      "x-mavi": {
+        "authentication": "account_or_assistant",
+        "scope": "site",
+        "permission": {
+          "capability": "forms",
+          "action": "view"
+        }
+      }
+    },
+    {
+      "name": "forms.submissions.mark_read",
+      "description": "Mark submissions received up to this transaction as read",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ]
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false
+      },
+      "x-mavi": {
+        "authentication": "account_or_assistant",
+        "scope": "site",
+        "permission": {
+          "capability": "forms",
+          "action": "write"
+        }
+      }
+    },
+    {
+      "name": "forms.submissions.delete",
+      "description": "Forget one form submission",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ]
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false
+      },
+      "x-mavi": {
+        "authentication": "account_or_assistant",
+        "scope": "site",
+        "permission": {
+          "capability": "forms",
+          "action": "delete"
+        }
+      }
     }
   ]
 }

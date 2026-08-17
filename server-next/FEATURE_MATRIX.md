@@ -24,6 +24,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
 - [-] RLS/DB guard, composite foreign keys and site-aware unique constraints across every domain table.
   - [x] Site catalog, content, identity, audit and settings tables enforce RLS and site-aware keys.
   - [x] Design changes, files, builds and artifacts enforce RLS, composite foreign keys and site-aware keys.
+  - [-] Forms and submissions enforce RLS, composite foreign keys and site-aware keys.
   - [ ] Remaining domain tables and a single reusable DB guard for every repository.
 - [-] Migration and schema integration tests against PostgreSQL.
   - [x] Storage, identity and settings migrations run against a non-superuser PostgreSQL role.
@@ -88,8 +89,15 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Ready builds are immutable; publish and rollback atomically switch the live build pointer and write audit receipts.
   - [x] Preview/live serving is routed through site-scoped `FileStore` metadata and Cedar protects management APIs.
   - [ ] Sandboxed cloud compiler adapter, panel design screens and asynchronous build worker.
-- [ ] Forms, submissions, exports, spam controls and retention policy.
+- [-] Forms, submissions, exports, spam controls and retention policy.
+  - [x] Form declarations validate bounded fields, types, choices and site-local active slugs.
+  - [x] Public submissions validate required/typed/known answers and return a receipt without exposing management metadata.
+  - [x] Submission inbox uses `after`/`limit` cursors, unread filtering, mark-read and audited deletion.
+  - [x] Forms/submissions use composite keys, RLS, Cedar grants and mutation audit receipts.
+  - [ ] Export format, spam/rate-limit controls and scheduled retention worker.
 - [ ] Mail templates, delivery queue, retries and provider adapters.
+  - [x] Domain code has the shared `Mailer` port boundary; no provider is coupled to form submission.
+  - [ ] Outbox/queue, retry policy, templates and concrete self-host/cloud providers.
 
 ## Commerce and learning
 
@@ -123,6 +131,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Audit receipt PostgreSQL isolation/cursor tests and audit/trash HTTP acceptance tests.
   - [x] Trash restore/permanent-delete PostgreSQL tests, including media cleanup receipts.
   - [x] Design source/build PostgreSQL isolation, immutable artifact, publish/rollback and HTTP serving tests.
+  - [x] Forms declaration/submission PostgreSQL RLS isolation and HTTP validation/cursor/permission tests.
   - [x] Identity HTTP integration covers setup, login, cursor, 401/403 and Cedar behavior.
   - [x] Generated OpenAPI/TypeScript/Rust/MCP artifacts have stale-contract tests.
   - [ ] Remaining domain HTTP suites.

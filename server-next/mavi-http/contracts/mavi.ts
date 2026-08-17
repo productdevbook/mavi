@@ -153,6 +153,13 @@ export interface CreateContent {
   publication?: PublicationInput;
 }
 
+export interface CreateForm {
+  slug: string;
+  name: string;
+  fields?: FormField[];
+  kept_days?: number | null;
+}
+
 export interface CreateLanguage {
   tag: string;
   name: string;
@@ -306,6 +313,45 @@ export interface FilePage {
   next_cursor: string | null;
 }
 
+export interface Form {
+  id: string;
+  slug: string;
+  name: string;
+  fields: FormField[];
+  open: boolean;
+  kept_days: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FormField {
+  key: string;
+  label: string;
+  required: boolean;
+  kind: FormFieldKind;
+  options: string[];
+}
+
+export type FormFieldKind = "text" | "long" | "email" | "number" | "choice" | "boolean";
+
+export interface FormListFilter {
+  after?: string | null;
+  limit?: number;
+}
+
+export interface FormPage {
+  items: Form[];
+  next_cursor: string | null;
+}
+
+export interface FormSubmission {
+  id: string;
+  form_id: string;
+  answers: Record<string, unknown>;
+  seen_at: string | null;
+  created_at: string;
+}
+
 export interface Grant {
   capability: string;
   action: string;
@@ -366,6 +412,12 @@ export interface PersonRecord {
   updated_at: string;
 }
 
+export interface PublicForm {
+  slug: string;
+  name: string;
+  fields: FormField[];
+}
+
 export type Publication = "draft" | "archived" | Record<string, unknown> | Record<string, unknown>;
 
 export type PublicationInput = "draft" | "publish" | "archive" | Record<string, unknown>;
@@ -402,6 +454,10 @@ export interface ScheduleContent {
   at: string;
 }
 
+export interface SeenCount {
+  seen: number;
+}
+
 export interface SessionCreated {
   id: string;
   token: string;
@@ -428,6 +484,25 @@ export interface SiteSettings {
 
 export interface StartDesignChange {
   name: string;
+}
+
+export interface SubmissionListFilter {
+  after?: string | null;
+  limit?: number;
+  unread?: boolean;
+}
+
+export interface SubmissionPage {
+  items: FormSubmission[];
+  next_cursor: string | null;
+}
+
+export interface SubmissionReceipt {
+  id: string;
+}
+
+export interface SubmitForm {
+  answers: Record<string, unknown>;
 }
 
 export interface Term {
@@ -487,6 +562,13 @@ export interface UpdateContent {
   body?: string | null;
   fields?: Record<string, unknown> | null;
   publication?: PublicationInput;
+}
+
+export interface UpdateForm {
+  name?: string | null;
+  fields?: unknown[] | null;
+  open?: boolean | null;
+  kept_days?: number | null;
 }
 
 export interface UpdateLanguage {
@@ -587,6 +669,16 @@ export const operations = {
   "design.changes.rollback": { method: "post", path: "/api/v1/design/changes/{id}/rollback", input: null, query: null, output: "DesignChange", status: 200, authentication: "account_or_assistant", permission: { capability: "publish", action: "write" } },
   "design.preview.asset": { method: "get", path: "/preview/v1/design/{build_id}/{path}", input: null, query: null, output: "DesignAsset", status: 200, authentication: "public", permission: null },
   "design.public.asset": { method: "get", path: "/public/v1/site/{path}", input: null, query: null, output: "DesignAsset", status: 200, authentication: "public", permission: null },
+  "forms.list": { method: "get", path: "/api/v1/forms", input: { location: "query", shape: "FormListFilter" }, query: null, output: "FormPage", status: 200, authentication: "account_or_assistant", permission: { capability: "forms", action: "view" } },
+  "forms.create": { method: "post", path: "/api/v1/forms", input: { location: "json", shape: "CreateForm" }, query: null, output: "Form", status: 201, authentication: "account_or_assistant", permission: { capability: "forms", action: "write" } },
+  "forms.read": { method: "get", path: "/api/v1/forms/{id}", input: null, query: null, output: "Form", status: 200, authentication: "account_or_assistant", permission: { capability: "forms", action: "view" } },
+  "forms.update": { method: "patch", path: "/api/v1/forms/{id}", input: { location: "json", shape: "UpdateForm" }, query: null, output: "Form", status: 200, authentication: "account_or_assistant", permission: { capability: "forms", action: "write" } },
+  "forms.delete": { method: "delete", path: "/api/v1/forms/{id}", input: null, query: null, output: "Empty", status: 204, authentication: "account_or_assistant", permission: { capability: "forms", action: "delete" } },
+  "forms.submissions.list": { method: "get", path: "/api/v1/forms/{id}/submissions", input: { location: "query", shape: "SubmissionListFilter" }, query: null, output: "SubmissionPage", status: 200, authentication: "account_or_assistant", permission: { capability: "forms", action: "view" } },
+  "forms.submissions.mark_read": { method: "post", path: "/api/v1/forms/{id}/submissions/mark-read", input: null, query: null, output: "SeenCount", status: 200, authentication: "account_or_assistant", permission: { capability: "forms", action: "write" } },
+  "forms.submissions.delete": { method: "delete", path: "/api/v1/form-submissions/{id}", input: null, query: null, output: "Empty", status: 204, authentication: "account_or_assistant", permission: { capability: "forms", action: "delete" } },
+  "forms.public.read": { method: "get", path: "/public/v1/forms/{slug}", input: null, query: null, output: "PublicForm", status: 200, authentication: "public", permission: null },
+  "forms.public.submit": { method: "post", path: "/public/v1/forms/{slug}/submissions", input: { location: "json", shape: "SubmitForm" }, query: null, output: "SubmissionReceipt", status: 201, authentication: "public", permission: null },
 } as const satisfies Record<string, MaviOperation>;
 
 export type OperationName = keyof typeof operations;
@@ -655,6 +747,16 @@ export interface OperationArguments {
   "design.changes.rollback": { path: { id: string }; query?: never; body?: never; }
   "design.preview.asset": { path: { build_id: string; path: string }; query?: never; body?: never; }
   "design.public.asset": { path: { path: string }; query?: never; body?: never; }
+  "forms.list": { path?: never; query: FormListFilter; body?: never; }
+  "forms.create": { path?: never; query?: never; body: CreateForm; }
+  "forms.read": { path: { id: string }; query?: never; body?: never; }
+  "forms.update": { path: { id: string }; query?: never; body: UpdateForm; }
+  "forms.delete": { path: { id: string }; query?: never; body?: never; }
+  "forms.submissions.list": { path: { id: string }; query: SubmissionListFilter; body?: never; }
+  "forms.submissions.mark_read": { path: { id: string }; query?: never; body?: never; }
+  "forms.submissions.delete": { path: { id: string }; query?: never; body?: never; }
+  "forms.public.read": { path: { slug: string }; query?: never; body?: never; }
+  "forms.public.submit": { path: { slug: string }; query?: never; body: SubmitForm; }
 }
 
 export interface OperationResponses {
@@ -721,6 +823,16 @@ export interface OperationResponses {
   "design.changes.rollback": DesignChange;
   "design.preview.asset": DesignAsset;
   "design.public.asset": DesignAsset;
+  "forms.list": FormPage;
+  "forms.create": Form;
+  "forms.read": Form;
+  "forms.update": Form;
+  "forms.delete": void;
+  "forms.submissions.list": SubmissionPage;
+  "forms.submissions.mark_read": SeenCount;
+  "forms.submissions.delete": void;
+  "forms.public.read": PublicForm;
+  "forms.public.submit": SubmissionReceipt;
 }
 
 export interface MaviClientOptions {

@@ -13,6 +13,7 @@ use std::{
 use mavi_core::{Action, Capability, ErrorCode};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
+use sha2::{Digest, Sha256};
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "UPPERCASE")]
@@ -396,6 +397,22 @@ impl Api {
 
     pub fn as_json(&self) -> Result<Value, serde_json::Error> {
         serde_json::to_value(self)
+    }
+
+    /// Returns the stable fingerprint of the canonical API declaration.
+    ///
+    /// The declaration is serialized in its authored order. Domain crates
+    /// own that order, while the contract generator and runtime manifest use
+    /// this same value, so an operator can reject a panel or client built for
+    /// a different API without guessing from the product version alone.
+    pub fn fingerprint(&self) -> Result<String, serde_json::Error> {
+        let bytes = serde_json::to_vec(self)?;
+        let digest = Sha256::digest(bytes);
+        let mut hexadecimal = String::with_capacity(64);
+        for byte in digest {
+            write!(hexadecimal, "{byte:02x}").expect("writing to a String cannot fail");
+        }
+        Ok(format!("sha256:{hexadecimal}"))
     }
 
     #[allow(clippy::too_many_lines)]
@@ -1497,6 +1514,43 @@ mod tests {
         assert!(operation.get("requestBody").is_none());
         assert_eq!(operation["parameters"][0]["name"], "after");
         assert_eq!(operation["parameters"][1]["name"], "limit");
+    }
+
+    #[test]
+    fn fingerprint_is_deterministic_and_changes_with_the_contract() {
+        let first = Api::new([Endpoint::new(
+            Method::Get,
+            "/api/v1/health",
+            "health.read",
+            "Health",
+        )]);
+        let second = Api::new([Endpoint::new(
+            Method::Get,
+            "/api/v1/health",
+            "health.read",
+            "Health",
+        )]);
+        let changed = Api::new([Endpoint::new(
+            Method::Get,
+            "/api/v1/runtime/manifest",
+            "runtime.manifest.read",
+            "Runtime manifest",
+        )]);
+
+        assert_eq!(
+            first.fingerprint().expect("fingerprint"),
+            second.fingerprint().expect("fingerprint")
+        );
+        assert_ne!(
+            first.fingerprint().expect("fingerprint"),
+            changed.fingerprint().expect("fingerprint")
+        );
+        assert!(
+            first
+                .fingerprint()
+                .expect("fingerprint")
+                .starts_with("sha256:")
+        );
     }
 
     #[test]

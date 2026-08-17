@@ -16074,6 +16074,49 @@
           ]
         }
       }
+    },
+    "/api/v1/runtime/manifest": {
+      "get": {
+        "operationId": "runtime.manifest.read",
+        "summary": "Read the runtime compatibility manifest",
+        "tags": [
+          "runtime"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimeManifest"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {}
+        ],
+        "x-mavi": {
+          "scope": "site",
+          "authentication": "public",
+          "mutation": "none",
+          "permission": null,
+          "errors": [
+            "internal"
+          ]
+        }
+      }
     }
   },
   "components": {
@@ -20506,6 +20549,31 @@
           }
         }
       },
+      "PaginationContract": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "style",
+          "default_limit",
+          "max_limit"
+        ],
+        "properties": {
+          "style": {
+            "type": "string",
+            "const": "cursor"
+          },
+          "default_limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "max_limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          }
+        }
+      },
       "PaymentReceiptInput": {
         "type": "object",
         "required": [
@@ -21679,6 +21747,55 @@
           "succeeded",
           "failed"
         ]
+      },
+      "RuntimeManifest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "protocol",
+          "release",
+          "api_contract_version",
+          "api_contract_hash",
+          "storage_schema_version",
+          "runtime_mode",
+          "site_id",
+          "pagination"
+        ],
+        "properties": {
+          "protocol": {
+            "type": "string",
+            "const": "mavi.runtime.v1"
+          },
+          "release": {
+            "type": "string"
+          },
+          "api_contract_version": {
+            "type": "string",
+            "const": "v1"
+          },
+          "api_contract_hash": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "storage_schema_version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "runtime_mode": {
+            "type": "string",
+            "enum": [
+              "fixed_site",
+              "shard"
+            ]
+          },
+          "site_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/PaginationContract"
+          }
+        }
       },
       "ScheduleContent": {
         "type": "object",

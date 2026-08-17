@@ -66,6 +66,13 @@ cargo run -p mavi-http --bin generate_contract -- rust
 cargo run -p mavi-http --bin generate_contract -- mcp
 ```
 
+After provisioning, an operator or panel checks `/api/v1/runtime/manifest`.
+The response is the compatibility boundary for a running site: it identifies
+the Mavi release, canonical API fingerprint, storage schema version, fixed-site
+or shard mode, and pagination policy. The pagination policy is deliberately
+cursor-only (`after`, bounded `limit`, opaque `next_cursor`); page numbers and
+offsets are not accepted or advertised.
+
 List inputs use opaque keyset cursors. The generated query contracts expose
 `after` and bounded `limit`; page/offset inputs are not part of this workspace.
 Forms use the same rule for both form declarations and submission inboxes.
@@ -116,6 +123,12 @@ Design builds use the same `FileStore` boundary. The self-host baseline exposes
 only `public/` source files through the static build engine; `src/` remains
 non-executable source. Preview and live assets are immutable build artifacts,
 and publish/rollback changes one site-scoped database pointer atomically.
+
+MCP follows the current stateless `2026-07-28` transport shape: the server will
+advertise its supported protocol through `server/discover`, every request is
+self-contained, and no session or `initialize` handshake is part of the new
+runtime contract. Tool descriptors remain generated from the same API catalog;
+tool execution is still subject to the endpoint's Cedar grant.
 
 ## Dependency policy
 

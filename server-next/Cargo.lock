@@ -1447,6 +1447,7 @@ dependencies = [
  "mavi-core",
  "serde",
  "serde_json",
+ "sha2 0.11.0",
 ]
 
 [[package]]
@@ -1678,6 +1679,7 @@ dependencies = [
  "axum",
  "mavi-core",
  "mavi-storage",
+ "serde",
  "tokio",
  "uuid",
 ]

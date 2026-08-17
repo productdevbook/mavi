@@ -32,6 +32,7 @@ pub async fn build_app() -> Router {
     .expect("router")
 }
 
+#[allow(dead_code)]
 pub async fn bootstrap(app: &Router, site_name: &str) -> String {
     let setup = send(
         app,
@@ -52,6 +53,7 @@ pub async fn bootstrap(app: &Router, site_name: &str) -> String {
     login(app, "owner@example.com").await
 }
 
+#[allow(dead_code)]
 pub async fn login(app: &Router, email: &str) -> String {
     let response = send(
         app,

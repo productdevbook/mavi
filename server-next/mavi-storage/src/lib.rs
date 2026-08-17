@@ -9,6 +9,13 @@ use mavi_core::{MaviError, Result, SiteContext, SiteId};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use sqlx::{PgPool, Postgres, Transaction};
 
+/// The highest migration applied by this workspace.
+///
+/// It is part of the runtime compatibility contract exposed to the operator.
+/// Keep it next to the migration runner so a release cannot advertise a
+/// storage version independently from the migrations it ships.
+pub const CURRENT_SCHEMA_VERSION: u32 = 22;
+
 #[derive(Clone, Debug)]
 pub struct Database {
     pool: PgPool,
@@ -79,6 +86,8 @@ impl SiteTx {
 
 #[cfg(test)]
 mod tests {
+    use crate::CURRENT_SCHEMA_VERSION;
+
     #[test]
     #[allow(clippy::too_many_lines)]
     fn content_schema_is_site_scoped_and_has_composite_revision_links() {
@@ -240,5 +249,6 @@ mod tests {
         assert!(analytics_migration.contains("analytics_daily"));
         assert!(analytics_migration.contains("analytics_events_site_recent"));
         assert!(analytics_migration.contains("force row level security"));
+        assert_eq!(CURRENT_SCHEMA_VERSION, 22);
     }
 }

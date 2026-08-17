@@ -15,8 +15,8 @@ use axum::{
 use chrono::Utc;
 use mavi_authz::CedarAuthorizer;
 use mavi_content::{
-    Content, ContentListFilter, ContentService, CreateContent, PublicationInput, ScheduleContent,
-    UpdateContent,
+    Content, ContentListFilter, ContentService, ContentType, ContentTypeListFilter, CreateContent,
+    DeclareContentType, PublicationInput, ScheduleContent, UpdateContent,
 };
 use mavi_contract::Api;
 use mavi_core::{
@@ -149,6 +149,11 @@ where
         .route(
             "/api/v1/languages/{tag}",
             axum::routing::patch(update_language::<R>).delete(delete_language::<R>),
+        )
+        .route("/api/v1/content-types", get(list_content_types::<R>))
+        .route(
+            "/api/v1/content-types/{kind}",
+            put(upsert_content_type::<R>).delete(delete_content_type::<R>),
         )
         .route(
             "/api/v1/content/{id}",
@@ -314,6 +319,11 @@ where
     state
         .settings
         .initialize(&mut transaction, &context, &input.site_name)
+        .await
+        .map_err(HttpError)?;
+    state
+        .content
+        .initialize(&mut transaction, &context)
         .await
         .map_err(HttpError)?;
     transaction.commit().await.map_err(HttpError)?;
@@ -704,6 +714,82 @@ where
     state
         .settings
         .delete_language(&mut transaction, &context, &tag)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+async fn list_content_types<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Query(filter): Query<ContentTypeListFilter>,
+) -> Result<Json<Page<ContentType>>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Content, Action::View),
+        "ContentType",
+        "content_type_collection",
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let content_types = state
+        .content
+        .list_content_types(&mut transaction, &context, &filter)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(content_types))
+}
+
+async fn upsert_content_type<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(kind): Path<String>,
+    Json(input): Json<DeclareContentType>,
+) -> Result<Json<ContentType>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Content, Action::Write),
+        "ContentType",
+        kind.clone(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let content_type = state
+        .content
+        .upsert_content_type(&mut transaction, &context, &kind, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(content_type))
+}
+
+async fn delete_content_type<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(kind): Path<String>,
+) -> Result<StatusCode, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Content, Action::Delete),
+        "ContentType",
+        kind.clone(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    state
+        .content
+        .delete_content_type(&mut transaction, &context, &kind)
         .await
         .map_err(HttpError)?;
     transaction.commit().await.map_err(HttpError)?;
@@ -1124,6 +1210,12 @@ mod tests {
                 .endpoints
                 .iter()
                 .any(|endpoint| endpoint.operation_id == "content.list")
+        );
+        assert!(
+            catalog
+                .endpoints
+                .iter()
+                .any(|endpoint| endpoint.operation_id == "content_types.upsert")
         );
     }
 }

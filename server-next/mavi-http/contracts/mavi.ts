@@ -26,6 +26,8 @@ export interface Content {
   updated_at: string;
 }
 
+export type ContentFieldKind = "text" | "long" | "email" | "number" | "choice" | "boolean";
+
 export interface ContentListFilter {
   after?: string | null;
   limit?: number;
@@ -36,6 +38,33 @@ export interface ContentListFilter {
 
 export interface ContentPage {
   items: Content[];
+  next_cursor: string | null;
+}
+
+export interface ContentType {
+  site_id: string;
+  kind: string;
+  name: string;
+  fields: ContentTypeField[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ContentTypeField {
+  key: string;
+  label: string;
+  required: boolean;
+  kind: ContentFieldKind;
+  options: string[];
+}
+
+export interface ContentTypeListFilter {
+  after?: string | null;
+  limit?: number;
+}
+
+export interface ContentTypePage {
+  items: ContentType[];
   next_cursor: string | null;
 }
 
@@ -72,6 +101,11 @@ export interface CreatePerson {
 export interface CreateRole {
   name: string;
   grants?: Grant[];
+}
+
+export interface DeclareContentType {
+  name: string;
+  fields?: ContentTypeField[];
 }
 
 export type Empty = Record<string, unknown>;
@@ -258,6 +292,9 @@ export const operations = {
   "content.trash": { method: "delete", path: "/api/v1/content/{id}", input: null, output: "Empty", status: 204, authentication: "account_or_assistant", permission: { capability: "trash", action: "delete" } },
   "content.restore": { method: "post", path: "/api/v1/content/{id}/restore", input: null, output: "Content", status: 200, authentication: "account_or_assistant", permission: { capability: "trash", action: "write" } },
   "content.public_read": { method: "get", path: "/public/v1/content/{slug}", input: null, output: "Content", status: 200, authentication: "public", permission: null },
+  "content_types.list": { method: "get", path: "/api/v1/content-types", input: { location: "query", shape: "ContentTypeListFilter" }, output: "ContentTypePage", status: 200, authentication: "account_or_assistant", permission: { capability: "content", action: "view" } },
+  "content_types.upsert": { method: "put", path: "/api/v1/content-types/{kind}", input: { location: "json", shape: "DeclareContentType" }, output: "ContentType", status: 200, authentication: "account_or_assistant", permission: { capability: "content", action: "write" } },
+  "content_types.delete": { method: "delete", path: "/api/v1/content-types/{kind}", input: null, output: "Empty", status: 204, authentication: "account_or_assistant", permission: { capability: "content", action: "delete" } },
   "settings.read": { method: "get", path: "/api/v1/settings", input: null, output: "SiteSettings", status: 200, authentication: "account_or_assistant", permission: { capability: "settings", action: "view" } },
   "settings.update": { method: "patch", path: "/api/v1/settings", input: { location: "json", shape: "UpdateSiteSettings" }, output: "SiteSettings", status: 200, authentication: "account_or_assistant", permission: { capability: "settings", action: "write" } },
   "languages.list": { method: "get", path: "/api/v1/languages", input: { location: "query", shape: "LanguageListFilter" }, output: "LanguagePage", status: 200, authentication: "account_or_assistant", permission: { capability: "settings", action: "view" } },
@@ -291,6 +328,9 @@ export interface OperationArguments {
   "content.trash": { path: { id: string }; query?: never; body?: never; }
   "content.restore": { path: { id: string }; query?: never; body?: never; }
   "content.public_read": { path: { slug: string }; query?: never; body?: never; }
+  "content_types.list": { path?: never; query: ContentTypeListFilter; body?: never; }
+  "content_types.upsert": { path: { kind: string }; query?: never; body: DeclareContentType; }
+  "content_types.delete": { path: { kind: string }; query?: never; body?: never; }
   "settings.read": { path?: never; query?: never; body?: never; }
   "settings.update": { path?: never; query?: never; body: UpdateSiteSettings; }
   "languages.list": { path?: never; query: LanguageListFilter; body?: never; }
@@ -322,6 +362,9 @@ export interface OperationResponses {
   "content.trash": void;
   "content.restore": Content;
   "content.public_read": Content;
+  "content_types.list": ContentTypePage;
+  "content_types.upsert": ContentType;
+  "content_types.delete": void;
   "settings.read": SiteSettings;
   "settings.update": SiteSettings;
   "languages.list": LanguagePage;

@@ -5,6 +5,7 @@
 //! the only place that knows the content tables.
 
 mod content_types;
+mod revisions;
 
 use std::fmt;
 
@@ -26,6 +27,7 @@ pub use content_types::{
     CONTENT_FIELD_REQUIRED, ContentType, ContentTypeField, ContentTypeListFilter,
     DeclareContentType, FieldKind,
 };
+pub use revisions::{ContentRevision, ContentRevisionListFilter};
 
 const KIND_MAX: usize = 31;
 const LANGUAGE_MAX: usize = 35;
@@ -176,8 +178,10 @@ pub fn api() -> Api {
         .returns(200, "Content"),
     ]);
     api.endpoints.extend(content_types::endpoints());
+    api.endpoints.extend(revisions::endpoints());
     let mut shapes = content_shapes();
     shapes.extend(content_types::shapes());
+    shapes.extend(revisions::shapes());
     api.with_shapes(shapes)
 }
 
@@ -683,6 +687,26 @@ impl ContentService {
         content_types::delete(tx, context, kind).await
     }
 
+    pub async fn list_revisions(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        id: ContentId,
+        filter: &ContentRevisionListFilter,
+    ) -> Result<Page<ContentRevision>> {
+        revisions::list(tx, context, id, filter).await
+    }
+
+    pub async fn read_revision(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        id: ContentId,
+        revision: u32,
+    ) -> Result<ContentRevision> {
+        revisions::read(tx, context, id, revision).await
+    }
+
     pub async fn create(
         &self,
         tx: &mut SiteTx,
@@ -863,9 +887,28 @@ impl ContentService {
         let slug = Slug::parse(slug)?;
         let row = sqlx::query(
             "select id, site_id, kind, language, slug, title, excerpt, body, fields, status, scheduled_at, published_at, revision, created_at, updated_at
-               from content_entries
+              from content_entries
               where site_id = $1 and language = $2 and slug = $3
-                and status = 'published' and published_at <= now() and deleted_at is null",
+                and status = 'published' and published_at <= clock_timestamp() and deleted_at is null",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(language.as_str())
+        .bind(slug.as_str())
+        .fetch_optional(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?;
+        if let Some(row) = row {
+            return from_row(&row);
+        }
+
+        let historical_row = sqlx::query(
+            "select c.id, c.site_id, c.kind, c.language, c.slug, c.title, c.excerpt, c.body, c.fields, c.status, c.scheduled_at, c.published_at, c.revision, c.created_at, c.updated_at
+               from content_slug_history h
+               join content_entries c on c.site_id = h.site_id and c.id = h.content_id
+              where h.site_id = $1 and h.language = $2 and h.slug = $3
+                and c.status = 'published' and c.published_at <= clock_timestamp() and c.deleted_at is null
+              order by h.created_at desc
+              limit 1",
         )
         .bind(context.site_id.into_uuid())
         .bind(language.as_str())
@@ -877,7 +920,7 @@ impl ContentService {
             resource: CONTENT_NOT_FOUND,
         })?;
 
-        from_row(&row)
+        from_row(&historical_row)
     }
 
     pub async fn update(
@@ -902,6 +945,7 @@ impl ContentService {
         audit_action: &str,
     ) -> Result<Content> {
         let current = self.get(tx, context, id).await?;
+        let previous_slug = current.slug.as_str().to_owned();
         let slug = match &input.slug {
             Some(value) => Slug::parse(value)?,
             None => current.slug,
@@ -924,6 +968,10 @@ impl ContentService {
             return Err(MaviError::validation("content_body_too_large"));
         }
         let next_revision = current.revision.checked_add(1).ok_or(MaviError::Internal)?;
+
+        if previous_slug != slug.as_str() {
+            record_slug_history(tx, context, id, &current.language, &previous_slug).await?;
+        }
 
         let row = sqlx::query(
             "update content_entries
@@ -1137,6 +1185,28 @@ fn map_write_error(error: &sqlx::Error) -> MaviError {
     }
 
     MaviError::Internal
+}
+
+async fn record_slug_history(
+    tx: &mut SiteTx,
+    context: &SiteContext,
+    content_id: ContentId,
+    language: &LanguageTag,
+    slug: &str,
+) -> Result<()> {
+    sqlx::query(
+        "insert into content_slug_history (site_id, content_id, language, slug)
+         values ($1, $2, $3, $4)
+         on conflict (site_id, content_id, language, slug) do nothing",
+    )
+    .bind(context.site_id.into_uuid())
+    .bind(content_id.into_uuid())
+    .bind(language.as_str())
+    .bind(slug)
+    .execute(tx.conn())
+    .await
+    .map_err(|_| MaviError::Internal)?;
+    Ok(())
 }
 
 impl fmt::Display for ContentKind {

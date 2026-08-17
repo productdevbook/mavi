@@ -160,5 +160,11 @@ mod tests {
         );
         assert!(design_migration.contains("force row level security"));
         assert!(design_migration.contains("design_build_artifacts"));
+
+        let forms_migration = include_str!("../migrations/0013_forms.sql");
+        assert!(forms_migration.contains("primary key (site_id, id)"));
+        assert!(forms_migration.contains("forms_site_slug_active"));
+        assert!(forms_migration.contains("form_submissions_site_form_recent"));
+        assert!(forms_migration.contains("force row level security"));
     }
 }

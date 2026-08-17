@@ -29,13 +29,17 @@ use mavi_content::{
 use mavi_contract::Api;
 use mavi_core::{
     Action, AuditEventId, Caller, Capability, ContentId, DesignBuildId, DesignChangeId, ErrorCode,
-    FileId, Grant, MaviError, Page, PersonId, RequestId, RoleId, SiteContext, TermId,
-    ports::FileStore,
+    FileId, FormSubmissionId, Grant, MaviError, Page, PersonId, RequestId, RoleId, SiteContext,
+    TermId, ports::FileStore,
 };
 use mavi_design::{
     BuildEngine, DESIGN_BUILD_FAILED, DesignBuild, DesignBuildListFilter, DesignChange,
     DesignChangeListFilter, DesignFile, DesignFileInput, DesignFileListFilter, DesignFileQuery,
     DesignService, StartDesignChange,
+};
+use mavi_forms::{
+    CreateForm, Form, FormListFilter, FormService, FormSubmission, PublicForm, SeenCount,
+    SubmissionListFilter, SubmissionReceipt, SubmitForm, UpdateForm,
 };
 use mavi_identity::{
     ApiKeyCreated, CreateApiKey, CreatePerson, CreateRole, IdentityService, LoginInput,
@@ -121,6 +125,7 @@ pub fn api() -> Api {
     api.extend(mavi_audit::api());
     api.extend(mavi_trash::api());
     api.extend(mavi_design::api());
+    api.extend(mavi_forms::api());
     api
 }
 
@@ -150,6 +155,7 @@ where
         audit: AuditService,
         trash: TrashService,
         design: DesignService,
+        forms: FormService,
         file_store,
         builder,
         authorizer: CedarAuthorizer::new()?,
@@ -178,6 +184,7 @@ where
         .merge(media_routes::<R>())
         .merge(audit_trash_routes::<R>())
         .merge(design_routes::<R>())
+        .merge(form_routes::<R>())
 }
 
 fn identity_routes<R>() -> Router<HttpState<R>>
@@ -340,6 +347,37 @@ where
         .route("/public/v1/site/{*path}", get(public_design_asset::<R>))
 }
 
+fn form_routes<R>() -> Router<HttpState<R>>
+where
+    R: SiteResolver,
+{
+    Router::new()
+        .route("/api/v1/forms", get(list_forms::<R>).post(create_form::<R>))
+        .route(
+            "/api/v1/forms/{id}",
+            get(read_form::<R>)
+                .patch(update_form::<R>)
+                .delete(delete_form::<R>),
+        )
+        .route(
+            "/api/v1/forms/{id}/submissions",
+            get(list_form_submissions::<R>),
+        )
+        .route(
+            "/api/v1/forms/{id}/submissions/mark-read",
+            post(mark_form_submissions_read::<R>),
+        )
+        .route(
+            "/api/v1/form-submissions/{id}",
+            delete(delete_form_submission::<R>),
+        )
+        .route("/public/v1/forms/{slug}", get(public_form::<R>))
+        .route(
+            "/public/v1/forms/{slug}/submissions",
+            post(submit_form::<R>),
+        )
+}
+
 struct HttpState<R> {
     runtime: Runtime<R>,
     identity: IdentityService,
@@ -350,6 +388,7 @@ struct HttpState<R> {
     audit: AuditService,
     trash: TrashService,
     design: DesignService,
+    forms: FormService,
     file_store: Arc<dyn FileStore>,
     builder: Arc<dyn BuildEngine>,
     authorizer: CedarAuthorizer,
@@ -367,6 +406,7 @@ impl<R> Clone for HttpState<R> {
             audit: self.audit,
             trash: self.trash,
             design: self.design,
+            forms: self.forms,
             file_store: Arc::clone(&self.file_store),
             builder: Arc::clone(&self.builder),
             authorizer: self.authorizer.clone(),
@@ -2187,6 +2227,245 @@ fn design_build_error_code(error: &MaviError) -> String {
         | MaviError::RateLimited
         | MaviError::Internal => DESIGN_BUILD_FAILED.to_owned(),
     }
+}
+
+async fn list_forms<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Query(filter): Query<FormListFilter>,
+) -> Result<Json<Page<Form>>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Forms, Action::View),
+        "Form",
+        "forms",
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let forms = state
+        .forms
+        .list(&mut transaction, &context, &filter)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(forms))
+}
+
+async fn create_form<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Json(input): Json<CreateForm>,
+) -> Result<(StatusCode, Json<Form>), HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Forms, Action::Write),
+        "Form",
+        "forms",
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let form = state
+        .forms
+        .create(&mut transaction, &context, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok((StatusCode::CREATED, Json(form)))
+}
+
+async fn read_form<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<mavi_core::FormId>,
+) -> Result<Json<Form>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Forms, Action::View),
+        "Form",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let form = state
+        .forms
+        .get(&mut transaction, &context, id)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(form))
+}
+
+async fn update_form<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<mavi_core::FormId>,
+    Json(input): Json<UpdateForm>,
+) -> Result<Json<Form>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Forms, Action::Write),
+        "Form",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let form = state
+        .forms
+        .update(&mut transaction, &context, id, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(form))
+}
+
+async fn delete_form<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<mavi_core::FormId>,
+) -> Result<StatusCode, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Forms, Action::Delete),
+        "Form",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    state
+        .forms
+        .delete(&mut transaction, &context, id)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+async fn list_form_submissions<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(form_id): Path<mavi_core::FormId>,
+    Query(filter): Query<SubmissionListFilter>,
+) -> Result<Json<Page<FormSubmission>>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Forms, Action::View),
+        "Form",
+        form_id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let submissions = state
+        .forms
+        .list_submissions(&mut transaction, &context, form_id, &filter)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(submissions))
+}
+
+async fn mark_form_submissions_read<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(form_id): Path<mavi_core::FormId>,
+) -> Result<Json<SeenCount>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Forms, Action::Write),
+        "Form",
+        form_id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let count = state
+        .forms
+        .mark_read(&mut transaction, &context, form_id)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(count))
+}
+
+async fn delete_form_submission<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<FormSubmissionId>,
+) -> Result<StatusCode, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Forms, Action::Delete),
+        "FormSubmission",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    state
+        .forms
+        .delete_submission(&mut transaction, &context, id)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+async fn public_form<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(slug): Path<String>,
+) -> Result<Json<PublicForm>, HttpError>
+where
+    R: SiteResolver,
+{
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let form = state
+        .forms
+        .public_get(&mut transaction, &context, &slug)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(form))
+}
+
+async fn submit_form<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(slug): Path<String>,
+    Json(input): Json<SubmitForm>,
+) -> Result<(StatusCode, Json<SubmissionReceipt>), HttpError>
+where
+    R: SiteResolver,
+{
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let receipt = state
+        .forms
+        .submit(&mut transaction, &context, &slug, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok((StatusCode::CREATED, Json(receipt)))
 }
 
 fn require_grant<R>(

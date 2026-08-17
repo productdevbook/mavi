@@ -5567,6 +5567,914 @@
           ]
         }
       }
+    },
+    "/api/v1/forms": {
+      "get": {
+        "operationId": "forms.list",
+        "summary": "List site forms with an opaque cursor",
+        "tags": [
+          "forms"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FormPage"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "maxLength": 512
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-mavi": {
+          "scope": "site",
+          "authentication": "account_or_assistant",
+          "mutation": "none",
+          "permission": {
+            "capability": "forms",
+            "action": "view"
+          },
+          "errors": [
+            "forbidden",
+            "validation",
+            "internal"
+          ]
+        }
+      },
+      "post": {
+        "operationId": "forms.create",
+        "summary": "Create a validated site form",
+        "tags": [
+          "forms"
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Form"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateForm"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-mavi": {
+          "scope": "site",
+          "authentication": "account_or_assistant",
+          "mutation": {
+            "permissioned": {
+              "idempotent": false
+            }
+          },
+          "permission": {
+            "capability": "forms",
+            "action": "write"
+          },
+          "errors": [
+            "forbidden",
+            "validation",
+            "conflict",
+            "internal"
+          ]
+        }
+      }
+    },
+    "/api/v1/forms/{id}": {
+      "get": {
+        "operationId": "forms.read",
+        "summary": "Read one site form",
+        "tags": [
+          "forms"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Form"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-mavi": {
+          "scope": "site",
+          "authentication": "account_or_assistant",
+          "mutation": "none",
+          "permission": {
+            "capability": "forms",
+            "action": "view"
+          },
+          "errors": [
+            "forbidden",
+            "not_found",
+            "internal"
+          ]
+        }
+      },
+      "patch": {
+        "operationId": "forms.update",
+        "summary": "Update a form declaration or open state",
+        "tags": [
+          "forms"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Form"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateForm"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-mavi": {
+          "scope": "site",
+          "authentication": "account_or_assistant",
+          "mutation": {
+            "permissioned": {
+              "idempotent": true
+            }
+          },
+          "permission": {
+            "capability": "forms",
+            "action": "write"
+          },
+          "errors": [
+            "forbidden",
+            "validation",
+            "conflict",
+            "not_found",
+            "internal"
+          ]
+        }
+      },
+      "delete": {
+        "operationId": "forms.delete",
+        "summary": "Move a form out of the active form catalog",
+        "tags": [
+          "forms"
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-mavi": {
+          "scope": "site",
+          "authentication": "account_or_assistant",
+          "mutation": {
+            "permissioned": {
+              "idempotent": false
+            }
+          },
+          "permission": {
+            "capability": "forms",
+            "action": "delete"
+          },
+          "errors": [
+            "forbidden",
+            "not_found",
+            "internal"
+          ]
+        }
+      }
+    },
+    "/api/v1/forms/{id}/submissions": {
+      "get": {
+        "operationId": "forms.submissions.list",
+        "summary": "List form submissions with an opaque cursor",
+        "tags": [
+          "forms"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionPage"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "maxLength": 512
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "name": "unread",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-mavi": {
+          "scope": "site",
+          "authentication": "account_or_assistant",
+          "mutation": "none",
+          "permission": {
+            "capability": "forms",
+            "action": "view"
+          },
+          "errors": [
+            "forbidden",
+            "validation",
+            "not_found",
+            "internal"
+          ]
+        }
+      }
+    },
+    "/api/v1/forms/{id}/submissions/mark-read": {
+      "post": {
+        "operationId": "forms.submissions.mark_read",
+        "summary": "Mark submissions received up to this transaction as read",
+        "tags": [
+          "forms"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeenCount"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-mavi": {
+          "scope": "site",
+          "authentication": "account_or_assistant",
+          "mutation": {
+            "permissioned": {
+              "idempotent": false
+            }
+          },
+          "permission": {
+            "capability": "forms",
+            "action": "write"
+          },
+          "errors": [
+            "forbidden",
+            "not_found",
+            "internal"
+          ]
+        }
+      }
+    },
+    "/api/v1/form-submissions/{id}": {
+      "delete": {
+        "operationId": "forms.submissions.delete",
+        "summary": "Forget one form submission",
+        "tags": [
+          "forms"
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-mavi": {
+          "scope": "site",
+          "authentication": "account_or_assistant",
+          "mutation": {
+            "permissioned": {
+              "idempotent": false
+            }
+          },
+          "permission": {
+            "capability": "forms",
+            "action": "delete"
+          },
+          "errors": [
+            "forbidden",
+            "not_found",
+            "internal"
+          ]
+        }
+      }
+    },
+    "/public/v1/forms/{slug}": {
+      "get": {
+        "operationId": "forms.public.read",
+        "summary": "Read an open public form without site management metadata",
+        "tags": [
+          "forms"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicForm"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {}
+        ],
+        "x-mavi": {
+          "scope": "site",
+          "authentication": "public",
+          "mutation": "none",
+          "permission": null,
+          "errors": [
+            "not_found",
+            "validation",
+            "internal"
+          ]
+        }
+      }
+    },
+    "/public/v1/forms/{slug}/submissions": {
+      "post": {
+        "operationId": "forms.public.submit",
+        "summary": "Validate and accept one public form submission",
+        "tags": [
+          "forms"
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionReceipt"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitForm"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {}
+        ],
+        "x-mavi": {
+          "scope": "site",
+          "authentication": "public",
+          "mutation": {
+            "public": {
+              "idempotent": false
+            }
+          },
+          "permission": null,
+          "errors": [
+            "not_found",
+            "validation",
+            "internal"
+          ]
+        }
+      }
     }
   },
   "components": {
@@ -6219,6 +7127,41 @@
           }
         }
       },
+      "CreateForm": {
+        "type": "object",
+        "required": [
+          "slug",
+          "name"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "slug": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "fields": {
+            "type": "array",
+            "maxItems": 50,
+            "items": {
+              "$ref": "#/components/schemas/FormField"
+            }
+          },
+          "kept_days": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1,
+            "maximum": 3650
+          }
+        }
+      },
       "CreateLanguage": {
         "type": "object",
         "required": [
@@ -6818,6 +7761,175 @@
           }
         }
       },
+      "Form": {
+        "type": "object",
+        "required": [
+          "id",
+          "slug",
+          "name",
+          "fields",
+          "open",
+          "kept_days",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FormField"
+            }
+          },
+          "open": {
+            "type": "boolean"
+          },
+          "kept_days": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3650
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "FormField": {
+        "type": "object",
+        "required": [
+          "key",
+          "label",
+          "required",
+          "kind",
+          "options"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/FormFieldKind"
+          },
+          "options": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "type": "string",
+              "maxLength": 160
+            }
+          }
+        }
+      },
+      "FormFieldKind": {
+        "type": "string",
+        "enum": [
+          "text",
+          "long",
+          "email",
+          "number",
+          "choice",
+          "boolean"
+        ]
+      },
+      "FormListFilter": {
+        "type": "object",
+        "properties": {
+          "after": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 512
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          }
+        }
+      },
+      "FormPage": {
+        "type": "object",
+        "required": [
+          "items",
+          "next_cursor"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Form"
+            }
+          },
+          "next_cursor": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 512
+          }
+        }
+      },
+      "FormSubmission": {
+        "type": "object",
+        "required": [
+          "id",
+          "form_id",
+          "answers",
+          "seen_at",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "form_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "answers": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "seen_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "Grant": {
         "type": "object",
         "required": [
@@ -7047,6 +8159,28 @@
           }
         }
       },
+      "PublicForm": {
+        "type": "object",
+        "required": [
+          "slug",
+          "name",
+          "fields"
+        ],
+        "properties": {
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FormField"
+            }
+          }
+        }
+      },
       "Publication": {
         "oneOf": [
           {
@@ -7245,6 +8379,19 @@
           }
         }
       },
+      "SeenCount": {
+        "type": "object",
+        "required": [
+          "seen"
+        ],
+        "properties": {
+          "seen": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        }
+      },
       "SessionCreated": {
         "type": "object",
         "required": [
@@ -7343,6 +8490,73 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 120
+          }
+        }
+      },
+      "SubmissionListFilter": {
+        "type": "object",
+        "properties": {
+          "after": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 512
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "unread": {
+            "type": "boolean"
+          }
+        }
+      },
+      "SubmissionPage": {
+        "type": "object",
+        "required": [
+          "items",
+          "next_cursor"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FormSubmission"
+            }
+          },
+          "next_cursor": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 512
+          }
+        }
+      },
+      "SubmissionReceipt": {
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "SubmitForm": {
+        "type": "object",
+        "required": [
+          "answers"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "answers": {
+            "type": "object",
+            "additionalProperties": true
           }
         }
       },
@@ -7586,6 +8800,43 @@
           },
           "publication": {
             "$ref": "#/components/schemas/PublicationInput"
+          }
+        }
+      },
+      "UpdateForm": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 200
+          },
+          "fields": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "maxItems": 50,
+            "items": {
+              "$ref": "#/components/schemas/FormField"
+            }
+          },
+          "open": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "kept_days": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1,
+            "maximum": 3650
           }
         }
       },

@@ -7,6 +7,7 @@ members = [
   "mavi-runtime",
   "mavi-http",
   "mavi-content",
+  "mavi-settings",
   "mavi-identity",
   "mavi-authz",
   "mavi-audit",

@@ -759,10 +759,6 @@ impl IdentityService {
 
         lock_site(tx, context.site_id).await?;
 
-        let name = input.site_name.trim();
-        if name.is_empty() || name.chars().count() > 200 {
-            return Err(MaviError::validation("site_name_invalid"));
-        }
         let email = Email::parse(&input.email)?;
         let person_name = PersonName::parse(&input.name)?;
         let password = Password::parse(input.password.clone())?;
@@ -777,16 +773,6 @@ impl IdentityService {
         if already_initialized {
             return Err(MaviError::conflict(SETUP_ALREADY_COMPLETE));
         }
-
-        sqlx::query(
-            "insert into site_settings (site_id, name) values ($1, $2)
-             on conflict (site_id) do update set name = excluded.name, updated_at = now()",
-        )
-        .bind(context.site_id.into_uuid())
-        .bind(name)
-        .execute(tx.conn())
-        .await
-        .map_err(|_| MaviError::Internal)?;
 
         let person_id = PersonId::new();
         let role_id = RoleId::new();

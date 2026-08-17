@@ -29,6 +29,10 @@ use mavi_identity::{
     SessionCreated, SetupInput, SetupStatus, UpdatePersonStatus,
 };
 use mavi_runtime::{Runtime, SiteResolver};
+use mavi_settings::{
+    CreateLanguage, Language, LanguageListFilter, SettingsService, SiteSettings, UpdateLanguage,
+    UpdateSiteSettings,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -90,6 +94,7 @@ impl IntoResponse for HttpError {
 pub fn api() -> Api {
     let mut api = mavi_identity::api();
     api.extend(mavi_content::api());
+    api.extend(mavi_settings::api());
     api
 }
 
@@ -109,6 +114,7 @@ where
         runtime: runtime.clone(),
         identity: IdentityService,
         content: ContentService,
+        settings: SettingsService,
         authorizer: CedarAuthorizer::new()?,
     };
     Ok(runtime
@@ -132,6 +138,18 @@ where
         )
         .route("/api/v1/roles", get(list_roles::<R>).post(create_role::<R>))
         .route("/api/v1/roles/{id}/grants", put(replace_role_grants::<R>))
+        .route(
+            "/api/v1/settings",
+            get(read_settings::<R>).patch(update_settings::<R>),
+        )
+        .route(
+            "/api/v1/languages",
+            get(list_languages::<R>).post(create_language::<R>),
+        )
+        .route(
+            "/api/v1/languages/{tag}",
+            axum::routing::patch(update_language::<R>).delete(delete_language::<R>),
+        )
         .route(
             "/api/v1/content/{id}",
             get(read_content::<R>)
@@ -159,6 +177,7 @@ struct HttpState<R> {
     runtime: Runtime<R>,
     identity: IdentityService,
     content: ContentService,
+    settings: SettingsService,
     authorizer: CedarAuthorizer,
 }
 
@@ -168,6 +187,7 @@ impl<R> Clone for HttpState<R> {
             runtime: self.runtime.clone(),
             identity: self.identity,
             content: self.content,
+            settings: self.settings,
             authorizer: self.authorizer.clone(),
         }
     }
@@ -289,6 +309,11 @@ where
     let person = state
         .identity
         .initialize(&mut transaction, &context, &input)
+        .await
+        .map_err(HttpError)?;
+    state
+        .settings
+        .initialize(&mut transaction, &context, &input.site_name)
         .await
         .map_err(HttpError)?;
     transaction.commit().await.map_err(HttpError)?;
@@ -533,6 +558,156 @@ where
         .map_err(HttpError)?;
     transaction.commit().await.map_err(HttpError)?;
     Ok(Json(role))
+}
+
+async fn read_settings<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+) -> Result<Json<SiteSettings>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Settings, Action::View),
+        "SiteSettings",
+        context.site_id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let settings = state
+        .settings
+        .get_settings(&mut transaction, &context)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(settings))
+}
+
+async fn update_settings<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Json(input): Json<UpdateSiteSettings>,
+) -> Result<Json<SiteSettings>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Settings, Action::Write),
+        "SiteSettings",
+        context.site_id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let settings = state
+        .settings
+        .update_settings(&mut transaction, &context, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(settings))
+}
+
+async fn list_languages<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Query(filter): Query<LanguageListFilter>,
+) -> Result<Json<Page<Language>>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Settings, Action::View),
+        "Language",
+        "language_collection",
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let languages = state
+        .settings
+        .list_languages(&mut transaction, &context, &filter)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(languages))
+}
+
+async fn create_language<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Json(input): Json<CreateLanguage>,
+) -> Result<(StatusCode, Json<Language>), HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Settings, Action::Write),
+        "Language",
+        "language_collection",
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let language = state
+        .settings
+        .create_language(&mut transaction, &context, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok((StatusCode::CREATED, Json(language)))
+}
+
+async fn update_language<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(tag): Path<String>,
+    Json(input): Json<UpdateLanguage>,
+) -> Result<Json<Language>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Settings, Action::Write),
+        "Language",
+        tag.clone(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let language = state
+        .settings
+        .update_language(&mut transaction, &context, &tag, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(language))
+}
+
+async fn delete_language<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(tag): Path<String>,
+) -> Result<StatusCode, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Settings, Action::Delete),
+        "Language",
+        tag.clone(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    state
+        .settings
+        .delete_language(&mut transaction, &context, &tag)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(StatusCode::NO_CONTENT)
 }
 
 async fn read_content<R>(

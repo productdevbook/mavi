@@ -1,0 +1,93 @@
+use std::env;
+
+use axum::{
+    Router,
+    body::{Body, to_bytes},
+    http::{Method, Request, header::AUTHORIZATION},
+    response::Response,
+};
+use mavi_core::SiteId;
+use mavi_http::router;
+use mavi_runtime::{FixedSiteResolver, Runtime};
+use mavi_storage::Database;
+use serde_json::{Value, json};
+use tower::ServiceExt;
+
+pub async fn build_app() -> Router {
+    let url = env::var("TEST_DATABASE_URL").expect("TEST_DATABASE_URL");
+    let database = Database::connect(&url, 2)
+        .await
+        .expect("database connection");
+    database.migrate().await.expect("migrations");
+
+    let site_id = SiteId::new();
+    database.ensure_site(site_id).await.expect("site");
+    router(Runtime::new(database, FixedSiteResolver::new(site_id))).expect("router")
+}
+
+pub async fn bootstrap(app: &Router, site_name: &str) -> String {
+    let setup = send(
+        app,
+        Method::POST,
+        "/api/v1/setup",
+        None,
+        Some(json!({
+            "site_name": site_name,
+            "email": "owner@example.com",
+            "name": "Owner",
+            "password": "long-enough-password"
+        })),
+    )
+    .await;
+    assert_eq!(setup.status(), axum::http::StatusCode::CREATED);
+    assert!(setup.headers().contains_key("x-request-id"));
+
+    login(app, "owner@example.com").await
+}
+
+pub async fn login(app: &Router, email: &str) -> String {
+    let response = send(
+        app,
+        Method::POST,
+        "/api/v1/auth/sessions",
+        None,
+        Some(json!({
+            "email": email,
+            "password": "long-enough-password"
+        })),
+    )
+    .await;
+    assert_eq!(response.status(), axum::http::StatusCode::CREATED);
+    response_json(response).await["token"]
+        .as_str()
+        .expect("session token")
+        .to_owned()
+}
+
+pub async fn send(
+    app: &Router,
+    method: Method,
+    uri: &str,
+    token: Option<&str>,
+    payload: Option<Value>,
+) -> Response {
+    let mut request = Request::builder().method(method).uri(uri);
+    if let Some(token) = token {
+        request = request.header(AUTHORIZATION, format!("Bearer {token}"));
+    }
+    if payload.is_some() {
+        request = request.header("content-type", "application/json");
+    }
+    let body = payload.map_or_else(Body::empty, |payload| Body::from(payload.to_string()));
+    app.clone()
+        .oneshot(request.body(body).expect("request"))
+        .await
+        .expect("response")
+}
+
+pub async fn response_json(response: Response) -> Value {
+    let bytes = to_bytes(response.into_body(), 1024 * 1024)
+        .await
+        .expect("response body");
+    serde_json::from_slice(&bytes).expect("json response")
+}

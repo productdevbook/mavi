@@ -21,8 +21,12 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
 - [x] OpenAPI, TypeScript/Rust client and MCP tool generation from the same contract.
   - [x] HTTP composition root combines domain endpoint declarations into one validated catalog.
   - [x] OpenAPI snapshot, typed TypeScript/Rust client artifacts and MCP tool generation.
-- [ ] RLS/DB guard, composite foreign keys and site-aware unique constraints across every domain table.
-- [ ] Migration and schema integration tests against PostgreSQL.
+- [-] RLS/DB guard, composite foreign keys and site-aware unique constraints across every domain table.
+  - [x] Site catalog, content, identity, audit and settings tables enforce RLS and site-aware keys.
+  - [ ] Remaining domain tables and a single reusable DB guard for every repository.
+- [-] Migration and schema integration tests against PostgreSQL.
+  - [x] Storage, identity and settings migrations run against a non-superuser PostgreSQL role.
+  - [ ] Every future domain adds its migration and isolation suite before completion.
 
 ## Setup, identity and access
 
@@ -43,7 +47,10 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
 
 ## Site configuration and content
 
-- [ ] Site settings, URL, timezone and language configuration.
+- [-] Site settings, URL, timezone and language configuration.
+  - [x] Site settings and language list/create/update/delete APIs use typed DTOs, Cedar grants and audit receipts.
+  - [x] Site language defaults are serialized per site and cannot be removed without a replacement.
+  - [ ] Canonical site URL and locale fallback policy.
 - [ ] Content types and validated custom fields.
 - [-] Posts/pages, drafts, revisions, slugs, scheduling and public reads.
 - [ ] Taxonomy terms, trees, assignment and filtered listing.
@@ -82,6 +89,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
 - [ ] Per-domain unit, repository, migration, isolation, application, API,
   HTTP, permission and audit tests.
   - [x] Identity unit, PostgreSQL scope/audit and negative delegation tests.
+  - [x] Settings/languages unit, PostgreSQL scope/audit and HTTP cursor/default tests.
   - [x] Identity HTTP integration covers setup, login, cursor, 401/403 and Cedar behavior.
   - [x] Generated OpenAPI/TypeScript/Rust/MCP artifacts have stale-contract tests.
   - [ ] Remaining domain HTTP suites.

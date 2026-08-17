@@ -819,6 +819,244 @@
           "action": "write"
         }
       }
+    },
+    {
+      "name": "settings.read",
+      "description": "Read site settings",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true
+      },
+      "x-mavi": {
+        "authentication": "account_or_assistant",
+        "scope": "site",
+        "permission": {
+          "capability": "settings",
+          "action": "view"
+        }
+      }
+    },
+    {
+      "name": "settings.update",
+      "description": "Update site settings",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 200
+              },
+              "timezone": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 64
+              }
+            }
+          }
+        },
+        "required": [
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false
+      },
+      "x-mavi": {
+        "authentication": "account_or_assistant",
+        "scope": "site",
+        "permission": {
+          "capability": "settings",
+          "action": "write"
+        }
+      }
+    },
+    {
+      "name": "languages.list",
+      "description": "List site languages",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "object",
+            "properties": {
+              "after": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 512
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100
+              }
+            }
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true
+      },
+      "x-mavi": {
+        "authentication": "account_or_assistant",
+        "scope": "site",
+        "permission": {
+          "capability": "settings",
+          "action": "view"
+        }
+      }
+    },
+    {
+      "name": "languages.create",
+      "description": "Create a site language",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "object",
+            "required": [
+              "tag",
+              "name"
+            ],
+            "properties": {
+              "tag": {
+                "type": "string",
+                "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$"
+              },
+              "name": {
+                "type": "string",
+                "maxLength": 120
+              },
+              "is_default": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "required": [
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false
+      },
+      "x-mavi": {
+        "authentication": "account_or_assistant",
+        "scope": "site",
+        "permission": {
+          "capability": "settings",
+          "action": "write"
+        }
+      }
+    },
+    {
+      "name": "languages.update",
+      "description": "Update a site language",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "tag": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "tag"
+            ]
+          },
+          "body": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 120
+              },
+              "is_default": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "required": [
+          "path",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false
+      },
+      "x-mavi": {
+        "authentication": "account_or_assistant",
+        "scope": "site",
+        "permission": {
+          "capability": "settings",
+          "action": "write"
+        }
+      }
+    },
+    {
+      "name": "languages.delete",
+      "description": "Delete a site language",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "tag": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "tag"
+            ]
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false
+      },
+      "x-mavi": {
+        "authentication": "account_or_assistant",
+        "scope": "site",
+        "permission": {
+          "capability": "settings",
+          "action": "delete"
+        }
+      }
     }
   ]
 }

@@ -96,5 +96,10 @@ mod tests {
         let audit_migration = include_str!("../migrations/0004_audit.sql");
         assert!(audit_migration.contains("alter table audit_events force row level security"));
         assert!(audit_migration.contains("request_id uuid not null"));
+
+        let settings_migration = include_str!("../migrations/0005_settings_languages.sql");
+        assert!(settings_migration.contains("primary key (site_id, tag)"));
+        assert!(settings_migration.contains("site_languages_one_default"));
+        assert!(settings_migration.contains("alter table site_languages force row level security"));
     }
 }

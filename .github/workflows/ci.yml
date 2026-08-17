@@ -167,7 +167,9 @@ jobs:
       - run: cargo nextest run --workspace
       - run: cargo nextest run -p mavi-storage --test postgres --run-ignored all
       - run: cargo nextest run -p mavi-identity --test postgres --run-ignored all
+      - run: cargo nextest run -p mavi-settings --test postgres --run-ignored all
       - run: cargo nextest run -p mavi-http --test identity --run-ignored all
+      - run: cargo nextest run -p mavi-http --test settings --run-ignored all
       - run: cargo test --workspace --doc
 
   client:

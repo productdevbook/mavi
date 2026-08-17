@@ -29,6 +29,7 @@ The same Mavi application runs in both modes:
 | `mavi-contract` | canonical endpoint declarations and contract validation |
 | `mavi-runtime` | self-host/cloud runtime composition and site resolution |
 | `mavi-identity` | setup, people, roles and password identity primitives |
+| `mavi-settings` | site settings, timezone and site language configuration |
 | `mavi-authz` | embedded Cedar policy evaluation with site-scope enforcement |
 | `mavi` | executable composition root |
 

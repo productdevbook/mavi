@@ -56,6 +56,12 @@ export interface CreateContent {
   publication?: PublicationInput;
 }
 
+export interface CreateLanguage {
+  tag: string;
+  name: string;
+  is_default?: boolean;
+}
+
 export interface CreatePerson {
   email: string;
   name: string;
@@ -83,6 +89,25 @@ export interface ErrorEnvelope {
 export interface Grant {
   capability: string;
   action: string;
+}
+
+export interface Language {
+  site_id: string;
+  tag: string;
+  name: string;
+  is_default: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LanguageListFilter {
+  after?: string | null;
+  limit?: number;
+}
+
+export interface LanguagePage {
+  items: Language[];
+  next_cursor: string | null;
 }
 
 export interface LoginInput {
@@ -170,6 +195,13 @@ export interface SetupStatus {
   initialized: boolean;
 }
 
+export interface SiteSettings {
+  site_id: string;
+  name: string;
+  timezone: string;
+  updated_at: string;
+}
+
 export interface UpdateContent {
   slug?: string | null;
   title?: string | null;
@@ -179,8 +211,18 @@ export interface UpdateContent {
   publication?: PublicationInput;
 }
 
+export interface UpdateLanguage {
+  name?: string | null;
+  is_default?: boolean | null;
+}
+
 export interface UpdatePersonStatus {
   status: PersonListFilterStatus;
+}
+
+export interface UpdateSiteSettings {
+  name?: string | null;
+  timezone?: string | null;
 }
 
 export interface MaviOperation {
@@ -216,6 +258,12 @@ export const operations = {
   "content.trash": { method: "delete", path: "/api/v1/content/{id}", input: null, output: "Empty", status: 204, authentication: "account_or_assistant", permission: { capability: "trash", action: "delete" } },
   "content.restore": { method: "post", path: "/api/v1/content/{id}/restore", input: null, output: "Content", status: 200, authentication: "account_or_assistant", permission: { capability: "trash", action: "write" } },
   "content.public_read": { method: "get", path: "/public/v1/content/{slug}", input: null, output: "Content", status: 200, authentication: "public", permission: null },
+  "settings.read": { method: "get", path: "/api/v1/settings", input: null, output: "SiteSettings", status: 200, authentication: "account_or_assistant", permission: { capability: "settings", action: "view" } },
+  "settings.update": { method: "patch", path: "/api/v1/settings", input: { location: "json", shape: "UpdateSiteSettings" }, output: "SiteSettings", status: 200, authentication: "account_or_assistant", permission: { capability: "settings", action: "write" } },
+  "languages.list": { method: "get", path: "/api/v1/languages", input: { location: "query", shape: "LanguageListFilter" }, output: "LanguagePage", status: 200, authentication: "account_or_assistant", permission: { capability: "settings", action: "view" } },
+  "languages.create": { method: "post", path: "/api/v1/languages", input: { location: "json", shape: "CreateLanguage" }, output: "Language", status: 201, authentication: "account_or_assistant", permission: { capability: "settings", action: "write" } },
+  "languages.update": { method: "patch", path: "/api/v1/languages/{tag}", input: { location: "json", shape: "UpdateLanguage" }, output: "Language", status: 200, authentication: "account_or_assistant", permission: { capability: "settings", action: "write" } },
+  "languages.delete": { method: "delete", path: "/api/v1/languages/{tag}", input: null, output: "Empty", status: 204, authentication: "account_or_assistant", permission: { capability: "settings", action: "delete" } },
 } as const satisfies Record<string, MaviOperation>;
 
 export type OperationName = keyof typeof operations;
@@ -243,6 +291,12 @@ export interface OperationArguments {
   "content.trash": { path: { id: string }; query?: never; body?: never; }
   "content.restore": { path: { id: string }; query?: never; body?: never; }
   "content.public_read": { path: { slug: string }; query?: never; body?: never; }
+  "settings.read": { path?: never; query?: never; body?: never; }
+  "settings.update": { path?: never; query?: never; body: UpdateSiteSettings; }
+  "languages.list": { path?: never; query: LanguageListFilter; body?: never; }
+  "languages.create": { path?: never; query?: never; body: CreateLanguage; }
+  "languages.update": { path: { tag: string }; query?: never; body: UpdateLanguage; }
+  "languages.delete": { path: { tag: string }; query?: never; body?: never; }
 }
 
 export interface OperationResponses {
@@ -268,6 +322,12 @@ export interface OperationResponses {
   "content.trash": void;
   "content.restore": Content;
   "content.public_read": Content;
+  "settings.read": SiteSettings;
+  "settings.update": SiteSettings;
+  "languages.list": LanguagePage;
+  "languages.create": Language;
+  "languages.update": Language;
+  "languages.delete": void;
 }
 
 export interface MaviClientOptions {

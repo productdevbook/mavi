@@ -1,6 +1,11 @@
 //! Runtime composition without one router per cloud site.
 
-use std::{collections::HashMap, future::Future, pin::Pin, sync::Arc};
+use std::{
+    collections::HashMap,
+    future::Future,
+    pin::Pin,
+    sync::{Arc, RwLock},
+};
 
 use axum::{Router, http::header::HOST, routing::get};
 use mavi_core::{MaviError, RequestId, Result, SiteContext, SiteId};
@@ -115,19 +120,25 @@ impl SiteResolver for FixedSiteResolver {
 /// request-level `SiteContext` and scoped transaction path is used.
 #[derive(Clone, Debug)]
 pub struct HostSiteResolver {
-    sites: Arc<HashMap<String, SiteId>>,
+    sites: Arc<RwLock<HashMap<String, SiteId>>>,
 }
 
 impl HostSiteResolver {
-    #[must_use]
-    pub fn new(entries: impl IntoIterator<Item = (String, SiteId)>) -> Self {
-        let sites = entries
-            .into_iter()
-            .map(|(host, site_id)| (normalize_host(&host), site_id))
-            .collect();
-        Self {
-            sites: Arc::new(sites),
-        }
+    pub fn new(entries: impl IntoIterator<Item = (String, SiteId)>) -> Result<Self> {
+        Ok(Self {
+            sites: Arc::new(RwLock::new(checked_entries(entries)?)),
+        })
+    }
+
+    /// Replaces the host directory as one in-memory snapshot.
+    ///
+    /// A resolver never observes a half-written directory. Duplicate hosts
+    /// claimed by different sites are refused before the old snapshot is
+    /// replaced, so a bad control-plane refresh cannot redirect traffic.
+    pub fn replace(&self, entries: impl IntoIterator<Item = (String, SiteId)>) -> Result<()> {
+        let next = checked_entries(entries)?;
+        *self.sites.write().map_err(|_| MaviError::Internal)? = next;
+        Ok(())
     }
 }
 
@@ -140,9 +151,14 @@ impl SiteResolver for HostSiteResolver {
                 .and_then(|value| value.to_str().ok())
                 .map(normalize_host)
                 .ok_or_else(|| MaviError::validation("site_host_required"))?;
-            let site_id = sites.get(&host).copied().ok_or(MaviError::NotFound {
-                resource: "site_host",
-            })?;
+            let site_id = sites
+                .read()
+                .map_err(|_| MaviError::Internal)?
+                .get(&host)
+                .copied()
+                .ok_or(MaviError::NotFound {
+                    resource: "site_host",
+                })?;
             Ok(SiteContext::with_caller(
                 site_id,
                 mavi_core::Caller::Public,
@@ -162,6 +178,27 @@ fn normalize_host(value: &str) -> String {
         .split_once(':')
         .map_or(value.trim(), |(host, _)| host)
         .to_ascii_lowercase()
+}
+
+fn checked_entries(
+    entries: impl IntoIterator<Item = (String, SiteId)>,
+) -> Result<HashMap<String, SiteId>> {
+    let mut sites = HashMap::new();
+
+    for (raw_host, site_id) in entries {
+        let host = normalize_host(&raw_host);
+        if host.is_empty() {
+            return Err(MaviError::validation("site_host_required"));
+        }
+
+        if let Some(previous) = sites.insert(host, site_id)
+            && previous != site_id
+        {
+            return Err(MaviError::validation("duplicate_site_host"));
+        }
+    }
+
+    Ok(sites)
 }
 
 /// One router and one pool can serve many site scopes in a shard.
@@ -255,7 +292,8 @@ mod tests {
     #[tokio::test]
     async fn host_resolver_only_accepts_allowlisted_hosts() {
         let site_id = SiteId::new();
-        let resolver = HostSiteResolver::new([("Example.com".to_owned(), site_id)]);
+        let resolver = HostSiteResolver::new([("Example.com".to_owned(), site_id)])
+            .expect("valid host directory");
         let mut headers = axum::http::HeaderMap::new();
         headers.insert(HOST, "example.com:443".parse().expect("host"));
 
@@ -274,6 +312,35 @@ mod tests {
                 .await
                 .is_err()
         );
+    }
+
+    #[tokio::test]
+    async fn host_resolver_replaces_its_directory_as_one_snapshot() {
+        let first = SiteId::new();
+        let second = SiteId::new();
+        let resolver = HostSiteResolver::new([("first.example.com".to_owned(), first)])
+            .expect("valid host directory");
+
+        resolver
+            .replace([("second.example.com".to_owned(), second)])
+            .expect("valid replacement");
+
+        let mut headers = axum::http::HeaderMap::new();
+        headers.insert(HOST, "second.example.com".parse().expect("host"));
+        assert_eq!(
+            resolver
+                .resolve(headers, RequestId::new())
+                .await
+                .unwrap()
+                .site_id,
+            second
+        );
+
+        let duplicate = resolver.replace([
+            ("same.example.com".to_owned(), first),
+            ("SAME.EXAMPLE.COM:443".to_owned(), second),
+        ]);
+        assert!(duplicate.is_err());
     }
 
     #[test]

@@ -16,6 +16,27 @@ use sqlx::{PgPool, Postgres, Transaction};
 /// storage version independently from the migrations it ships.
 pub const CURRENT_SCHEMA_VERSION: u32 = 22;
 
+/// The lifecycle state stored in the shared shard catalog.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum SiteStatus {
+    Provisioning,
+    Active,
+    Suspended,
+    Removed,
+}
+
+impl SiteStatus {
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Provisioning => "provisioning",
+            Self::Active => "active",
+            Self::Suspended => "suspended",
+            Self::Removed => "removed",
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct Database {
     pool: PgPool,
@@ -42,13 +63,38 @@ impl Database {
 
     /// Creates a site catalog row without exposing an unscoped transaction to domains.
     pub async fn ensure_site(&self, site_id: SiteId) -> Result<()> {
-        sqlx::query(
-            "insert into site_catalog (site_id) values ($1) on conflict (site_id) do nothing",
-        )
-        .bind(site_id.into_uuid())
-        .execute(&self.pool)
-        .await
-        .map_err(|_| MaviError::Internal)?;
+        self.reconcile_sites([(site_id, SiteStatus::Active)]).await
+    }
+
+    /// Applies a control-plane lifecycle snapshot as one catalog transaction.
+    ///
+    /// The caller owns host routing; this method only makes the shard's
+    /// durable status agree with the authoritative control snapshot. Existing
+    /// rows are updated instead of being deleted so removed sites remain
+    /// valid parents for retained audit and financial records.
+    pub async fn reconcile_sites(
+        &self,
+        sites: impl IntoIterator<Item = (SiteId, SiteStatus)>,
+    ) -> Result<()> {
+        let mut transaction = self.pool.begin().await.map_err(|_| MaviError::Internal)?;
+
+        for (site_id, status) in sites {
+            sqlx::query(
+                "insert into site_catalog (site_id, status)
+                 values ($1, $2)
+                 on conflict (site_id) do update set status = excluded.status",
+            )
+            .bind(site_id.into_uuid())
+            .bind(status.as_str())
+            .execute(&mut *transaction)
+            .await
+            .map_err(|_| MaviError::Internal)?;
+        }
+
+        transaction
+            .commit()
+            .await
+            .map_err(|_| MaviError::Internal)?;
 
         Ok(())
     }
@@ -86,7 +132,15 @@ impl SiteTx {
 
 #[cfg(test)]
 mod tests {
-    use crate::CURRENT_SCHEMA_VERSION;
+    use crate::{CURRENT_SCHEMA_VERSION, SiteStatus};
+
+    #[test]
+    fn site_statuses_match_the_catalog_contract() {
+        assert_eq!(SiteStatus::Provisioning.as_str(), "provisioning");
+        assert_eq!(SiteStatus::Active.as_str(), "active");
+        assert_eq!(SiteStatus::Suspended.as_str(), "suspended");
+        assert_eq!(SiteStatus::Removed.as_str(), "removed");
+    }
 
     #[test]
     #[allow(clippy::too_many_lines)]

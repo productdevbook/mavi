@@ -14,6 +14,7 @@ pub enum Capability {
     Mail,
     Media,
     People,
+    Portable,
     Publish,
     Settings,
     Shop,
@@ -22,7 +23,7 @@ pub enum Capability {
 }
 
 impl Capability {
-    pub const ALL: [Self; 16] = [
+    pub const ALL: [Self; 17] = [
         Self::Audit,
         Self::Analytics,
         Self::Automation,
@@ -34,6 +35,7 @@ impl Capability {
         Self::Mail,
         Self::Media,
         Self::People,
+        Self::Portable,
         Self::Publish,
         Self::Settings,
         Self::Shop,
@@ -55,6 +57,7 @@ impl Capability {
             Self::Mail => "mail",
             Self::Media => "media",
             Self::People => "people",
+            Self::Portable => "portable",
             Self::Publish => "publish",
             Self::Settings => "settings",
             Self::Shop => "shop",

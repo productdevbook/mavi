@@ -15887,6 +15887,193 @@
           ]
         }
       }
+    },
+    "/api/v1/portable/export": {
+      "get": {
+        "operationId": "portable.export",
+        "summary": "Export an explicit versioned site bundle",
+        "tags": [
+          "portable"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PortableBundle"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-mavi": {
+          "scope": "site",
+          "authentication": "account_or_assistant",
+          "mutation": "none",
+          "permission": {
+            "capability": "portable",
+            "action": "view"
+          },
+          "errors": [
+            "forbidden",
+            "not_found",
+            "validation",
+            "internal"
+          ]
+        }
+      }
+    },
+    "/api/v1/portable/import": {
+      "post": {
+        "operationId": "portable.import",
+        "summary": "Validate or atomically import a versioned site bundle",
+        "tags": [
+          "portable"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportReceipt"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PortableImportRequest"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-mavi": {
+          "scope": "site",
+          "authentication": "account_or_assistant",
+          "mutation": {
+            "permissioned": {
+              "idempotent": false
+            }
+          },
+          "permission": {
+            "capability": "portable",
+            "action": "write"
+          },
+          "errors": [
+            "forbidden",
+            "conflict",
+            "validation",
+            "not_found",
+            "internal"
+          ]
+        }
+      }
     }
   },
   "components": {
@@ -19135,6 +19322,60 @@
           }
         }
       },
+      "ImportReceipt": {
+        "type": "object",
+        "required": [
+          "strategy",
+          "languages",
+          "content_types",
+          "terms",
+          "content",
+          "revisions",
+          "slug_history",
+          "assignments"
+        ],
+        "properties": {
+          "strategy": {
+            "$ref": "#/components/schemas/ImportStrategy"
+          },
+          "languages": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "content_types": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "terms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "content": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "revisions": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "slug_history": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "assignments": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "ImportStrategy": {
+        "type": "string",
+        "enum": [
+          "validate_only",
+          "create_only",
+          "upsert"
+        ]
+      },
       "Job": {
         "type": "object",
         "required": [
@@ -20406,6 +20647,469 @@
           "updated_at": {
             "type": "string",
             "format": "date-time"
+          }
+        }
+      },
+      "PortableAssignment": {
+        "type": "object",
+        "required": [
+          "content_id",
+          "term_id",
+          "assigned_at"
+        ],
+        "properties": {
+          "content_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "term_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "assigned_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PortableBundle": {
+        "type": "object",
+        "required": [
+          "manifest",
+          "site",
+          "languages",
+          "content_types",
+          "terms",
+          "content",
+          "revisions",
+          "slug_history",
+          "assignments"
+        ],
+        "properties": {
+          "manifest": {
+            "$ref": "#/components/schemas/PortableManifest"
+          },
+          "site": {
+            "$ref": "#/components/schemas/PortableSite"
+          },
+          "languages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PortableLanguage"
+            }
+          },
+          "content_types": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PortableContentType"
+            }
+          },
+          "terms": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PortableTerm"
+            }
+          },
+          "content": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PortableContent"
+            }
+          },
+          "revisions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PortableRevision"
+            }
+          },
+          "slug_history": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PortableSlugHistory"
+            }
+          },
+          "assignments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PortableAssignment"
+            }
+          }
+        }
+      },
+      "PortableContent": {
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "language",
+          "slug",
+          "title",
+          "excerpt",
+          "body",
+          "fields",
+          "status",
+          "scheduled_at",
+          "published_at",
+          "revision",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "language": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "excerpt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "body": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "object"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "scheduled",
+              "published",
+              "archived"
+            ]
+          },
+          "scheduled_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "published_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PortableContentType": {
+        "type": "object",
+        "required": [
+          "kind",
+          "name",
+          "fields"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "maxLength": 31
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "fields": {
+            "type": "array"
+          }
+        }
+      },
+      "PortableCounts": {
+        "type": "object",
+        "required": [
+          "languages",
+          "content_types",
+          "terms",
+          "content",
+          "revisions",
+          "slug_history",
+          "assignments"
+        ],
+        "properties": {
+          "languages": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "content_types": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "terms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "content": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "revisions": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "slug_history": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "assignments": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "PortableImportRequest": {
+        "type": "object",
+        "required": [
+          "bundle",
+          "strategy"
+        ],
+        "properties": {
+          "bundle": {
+            "$ref": "#/components/schemas/PortableBundle"
+          },
+          "strategy": {
+            "$ref": "#/components/schemas/ImportStrategy"
+          }
+        }
+      },
+      "PortableLanguage": {
+        "type": "object",
+        "required": [
+          "tag",
+          "name",
+          "is_default"
+        ],
+        "properties": {
+          "tag": {
+            "type": "string",
+            "maxLength": 35
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "is_default": {
+            "type": "boolean"
+          }
+        }
+      },
+      "PortableManifest": {
+        "type": "object",
+        "required": [
+          "format",
+          "version",
+          "source_site_id",
+          "exported_at",
+          "schema_hash",
+          "counts"
+        ],
+        "properties": {
+          "format": {
+            "type": "string",
+            "const": "mavi.portable"
+          },
+          "version": {
+            "type": "integer",
+            "const": 1
+          },
+          "source_site_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "exported_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "schema_hash": {
+            "type": "string"
+          },
+          "counts": {
+            "$ref": "#/components/schemas/PortableCounts"
+          }
+        }
+      },
+      "PortableRevision": {
+        "type": "object",
+        "required": [
+          "content_id",
+          "revision",
+          "kind",
+          "language",
+          "slug",
+          "title",
+          "excerpt",
+          "body",
+          "fields",
+          "status",
+          "scheduled_at",
+          "published_at",
+          "created_at"
+        ],
+        "properties": {
+          "content_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "kind": {
+            "type": "string"
+          },
+          "language": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "excerpt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "body": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "object"
+          },
+          "status": {
+            "type": "string"
+          },
+          "scheduled_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "published_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PortableSite": {
+        "type": "object",
+        "required": [
+          "name",
+          "timezone"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "timezone": {
+            "type": "string",
+            "maxLength": 64
+          }
+        }
+      },
+      "PortableSlugHistory": {
+        "type": "object",
+        "required": [
+          "content_id",
+          "language",
+          "slug",
+          "created_at"
+        ],
+        "properties": {
+          "content_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "language": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PortableTerm": {
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "language",
+          "slug",
+          "name",
+          "parent_id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "category",
+              "tag"
+            ]
+          },
+          "language": {
+            "type": "string",
+            "maxLength": 35
+          },
+          "slug": {
+            "type": "string",
+            "maxLength": 160
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "parent_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
           }
         }
       },

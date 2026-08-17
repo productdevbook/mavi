@@ -1565,6 +1565,7 @@ dependencies = [
  "mavi-jobs",
  "mavi-mail",
  "mavi-media",
+ "mavi-portable",
  "mavi-runtime",
  "mavi-settings",
  "mavi-shop",
@@ -1644,6 +1645,23 @@ dependencies = [
  "mavi-contract",
  "mavi-core",
  "mavi-files",
+ "mavi-storage",
+ "serde",
+ "serde_json",
+ "sha2 0.11.0",
+ "sqlx",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
+name = "mavi-portable"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "mavi-audit",
+ "mavi-contract",
+ "mavi-core",
  "mavi-storage",
  "serde",
  "serde_json",

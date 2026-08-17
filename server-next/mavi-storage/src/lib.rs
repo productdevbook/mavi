@@ -224,6 +224,10 @@ mod tests {
         assert!(grant_migration.contains("'automation'"));
         assert!(grant_migration.contains("'analytics'"));
 
+        let portable_grant_migration = include_str!("../migrations/0022_portable_grant.sql");
+        assert!(portable_grant_migration.contains("'portable'"));
+        assert!(portable_grant_migration.contains("role_grants_capability_check"));
+
         let boards_migration = include_str!("../migrations/0020_boards.sql");
         assert!(boards_migration.contains("primary key (site_id, id)"));
         assert!(boards_migration.contains("board_lists_site_position"));

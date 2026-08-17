@@ -77,6 +77,7 @@ use mavi_mail::{
     RetryDelivery, SendCampaign, SendCount, UnsubscribeReceipt, UpdateMailList, UpdateMailTemplate,
 };
 use mavi_media::{FileListFilter, FileRecord, MAX_FILE_BYTES, MediaService, UploadFileQuery};
+use mavi_portable::{ImportReceipt, PortableBundle, PortableImportRequest, PortableService};
 use mavi_runtime::{Runtime, SiteResolver};
 use mavi_settings::{
     CreateLanguage, Language, LanguageListFilter, SettingsService, SiteSettings, UpdateLanguage,
@@ -168,6 +169,7 @@ pub fn api() -> Api {
     api.extend(mavi_flows::api());
     api.extend(mavi_boards::api());
     api.extend(mavi_analytics::api());
+    api.extend(mavi_portable::api());
     api
 }
 
@@ -205,6 +207,7 @@ where
         flows: FlowService,
         boards: BoardService,
         analytics: AnalyticsService,
+        portable: PortableService,
         file_store,
         builder,
         authorizer: CedarAuthorizer::new()?,
@@ -240,6 +243,7 @@ where
         .merge(automation_routes::<R>())
         .merge(board_routes::<R>())
         .merge(analytics_routes::<R>())
+        .merge(portable_routes::<R>())
 }
 
 fn identity_routes<R>() -> Router<HttpState<R>>
@@ -703,6 +707,15 @@ where
         .route("/api/v1/analytics/events", get(list_analytics_events::<R>))
         .route("/api/v1/analytics/daily", get(list_analytics_daily::<R>))
         .route("/api/v1/analytics/prune", post(prune_analytics::<R>))
+}
+
+fn portable_routes<R>() -> Router<HttpState<R>>
+where
+    R: SiteResolver,
+{
+    Router::new()
+        .route("/api/v1/portable/export", get(export_portable::<R>))
+        .route("/api/v1/portable/import", post(import_portable::<R>))
 }
 
 async fn list_boards<R>(
@@ -1232,6 +1245,55 @@ where
     Ok(Json(receipt))
 }
 
+async fn export_portable<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+) -> Result<Json<PortableBundle>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_portable_grant(
+        &state,
+        &context,
+        Action::View,
+        "PortableBundle",
+        "site_export",
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let bundle = state
+        .portable
+        .export(&mut transaction, &context)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(bundle))
+}
+
+async fn import_portable<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Json(input): Json<PortableImportRequest>,
+) -> Result<Json<ImportReceipt>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_portable_grant(
+        &state,
+        &context,
+        Action::Write,
+        "PortableBundle",
+        "site_import",
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let receipt = state
+        .portable
+        .import(&mut transaction, &context, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(receipt))
+}
+
 struct HttpState<R> {
     runtime: Runtime<R>,
     identity: IdentityService,
@@ -1250,6 +1312,7 @@ struct HttpState<R> {
     flows: FlowService,
     boards: BoardService,
     analytics: AnalyticsService,
+    portable: PortableService,
     file_store: Arc<dyn FileStore>,
     builder: Arc<dyn BuildEngine>,
     authorizer: CedarAuthorizer,
@@ -1275,6 +1338,7 @@ impl<R> Clone for HttpState<R> {
             flows: self.flows,
             boards: self.boards,
             analytics: self.analytics,
+            portable: self.portable,
             file_store: Arc::clone(&self.file_store),
             builder: Arc::clone(&self.builder),
             authorizer: self.authorizer.clone(),
@@ -5125,6 +5189,25 @@ where
         state,
         context,
         Grant::new(Capability::Analytics, action),
+        resource_type,
+        resource_id,
+    )
+}
+
+fn require_portable_grant<R>(
+    state: &HttpState<R>,
+    context: &SiteContext,
+    action: Action,
+    resource_type: impl Into<String>,
+    resource_id: impl Into<String>,
+) -> Result<(), HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        state,
+        context,
+        Grant::new(Capability::Portable, action),
         resource_type,
         resource_id,
     )

@@ -2,6 +2,12 @@
 
 export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 
+export interface AddReader {
+  email: string;
+  name?: string | null;
+  resubscribe?: boolean;
+}
+
 export interface ApiKeyCreated {
   id: string;
   name: string;
@@ -166,6 +172,19 @@ export interface CreateLanguage {
   is_default?: boolean;
 }
 
+export interface CreateMailList {
+  slug: string;
+  name: string;
+}
+
+export interface CreateMailTemplate {
+  key: string;
+  language: string;
+  subject: string;
+  body: string;
+  content_type?: MailContentType;
+}
+
 export interface CreatePerson {
   email: string;
   name: string;
@@ -189,6 +208,12 @@ export interface CreateTerm {
 export interface DeclareContentType {
   name: string;
   fields?: ContentTypeField[];
+}
+
+export interface DeliveryListFilter {
+  after?: string | null;
+  limit?: number;
+  status?: MailDeliveryStatus;
 }
 
 export type DesignAsset = string;
@@ -277,6 +302,13 @@ export interface DesignFileSummary {
 export type DesignState = "writing" | "building" | "ready" | "failed" | "published";
 
 export type Empty = Record<string, unknown>;
+
+export interface EnqueueDelivery {
+  recipient: string;
+  template_id: string;
+  variables?: Record<string, unknown>;
+  idempotency_key?: string | null;
+}
 
 export interface ErrorBody {
   code: string;
@@ -381,6 +413,102 @@ export interface LoginInput {
   password: string;
 }
 
+export type MailContentType = "plain" | "html";
+
+export interface MailDelivery {
+  id: string;
+  template_id: string | null;
+  list_id: string | null;
+  recipient: string;
+  subject: string;
+  body: string;
+  content_type: MailContentType;
+  purpose: MailPurpose;
+  status: MailDeliveryStatus;
+  attempts: number;
+  available_at: string;
+  provider: string | null;
+  provider_reference: string | null;
+  last_error: string | null;
+  created_at: string;
+  updated_at: string;
+  sent_at: string | null;
+}
+
+export interface MailDeliveryPage {
+  items: MailDelivery[];
+  next_cursor: string | null;
+}
+
+export type MailDeliveryStatus = "queued" | "sending" | "retry" | "sent" | "dead" | "cancelled";
+
+export interface MailList {
+  id: string;
+  slug: string;
+  name: string;
+  subscriber_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MailListListFilter {
+  after?: string | null;
+  limit?: number;
+}
+
+export interface MailListPage {
+  items: MailList[];
+  next_cursor: string | null;
+}
+
+export type MailPurpose = "transactional" | "campaign";
+
+export interface MailReader {
+  id: string;
+  email: string;
+  name: string | null;
+  standing: MailStanding;
+  added_at: string;
+}
+
+export interface MailReaderCreated {
+  reader: MailReader;
+  unsubscribe_token: string;
+}
+
+export interface MailReaderPage {
+  items: MailReader[];
+  next_cursor: string | null;
+}
+
+export type MailStanding = "subscribed" | "unsubscribed" | "bounced" | "complained";
+
+export interface MailTemplate {
+  id: string;
+  key: string;
+  language: string;
+  subject: string;
+  body: string;
+  content_type: MailContentType;
+  variables: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MailTemplateListFilter {
+  after?: string | null;
+  limit?: number;
+}
+
+export interface MailTemplatePage {
+  items: MailTemplate[];
+  next_cursor: string | null;
+}
+
+export interface MailTemplatePreview {
+  variables?: Record<string, unknown>;
+}
+
 export interface PeopleListFilter {
   after?: string | null;
   limit?: number;
@@ -424,6 +552,18 @@ export type PublicationInput = "draft" | "publish" | "archive" | Record<string, 
 
 export type PublicationStatus = "draft" | "scheduled" | "published" | "archived";
 
+export interface ReaderListFilter {
+  after?: string | null;
+  limit?: number;
+  standing?: MailStanding;
+}
+
+export interface RenderedMail {
+  subject: string;
+  body: string;
+  content_type: MailContentType;
+}
+
 export interface ReplaceContentTerms {
   term_ids: string[];
 }
@@ -431,6 +571,8 @@ export interface ReplaceContentTerms {
 export interface ReplaceRoleGrants {
   grants: Grant[];
 }
+
+export type RetryDelivery = Record<string, unknown>;
 
 export interface Role {
   id: string;
@@ -456,6 +598,16 @@ export interface ScheduleContent {
 
 export interface SeenCount {
   seen: number;
+}
+
+export interface SendCampaign {
+  template_id: string;
+  variables?: Record<string, unknown>;
+  idempotency_key?: string | null;
+}
+
+export interface SendCount {
+  enqueued: number;
 }
 
 export interface SessionCreated {
@@ -555,6 +707,10 @@ export interface TrashPage {
   next_cursor: string | null;
 }
 
+export interface UnsubscribeReceipt {
+  unsubscribed: boolean;
+}
+
 export interface UpdateContent {
   slug?: string | null;
   title?: string | null;
@@ -574,6 +730,16 @@ export interface UpdateForm {
 export interface UpdateLanguage {
   name?: string | null;
   is_default?: boolean | null;
+}
+
+export interface UpdateMailList {
+  name?: string | null;
+}
+
+export interface UpdateMailTemplate {
+  subject?: string | null;
+  body?: string | null;
+  content_type?: MailContentType | unknown;
 }
 
 export interface UpdatePersonStatus {
@@ -679,6 +845,26 @@ export const operations = {
   "forms.submissions.delete": { method: "delete", path: "/api/v1/form-submissions/{id}", input: null, query: null, output: "Empty", status: 204, authentication: "account_or_assistant", permission: { capability: "forms", action: "delete" } },
   "forms.public.read": { method: "get", path: "/public/v1/forms/{slug}", input: null, query: null, output: "PublicForm", status: 200, authentication: "public", permission: null },
   "forms.public.submit": { method: "post", path: "/public/v1/forms/{slug}/submissions", input: { location: "json", shape: "SubmitForm" }, query: null, output: "SubmissionReceipt", status: 201, authentication: "public", permission: null },
+  "mail.templates.list": { method: "get", path: "/api/v1/mail/templates", input: { location: "query", shape: "MailTemplateListFilter" }, query: null, output: "MailTemplatePage", status: 200, authentication: "account_or_assistant", permission: { capability: "mail", action: "view" } },
+  "mail.templates.create": { method: "post", path: "/api/v1/mail/templates", input: { location: "json", shape: "CreateMailTemplate" }, query: null, output: "MailTemplate", status: 201, authentication: "account_or_assistant", permission: { capability: "mail", action: "write" } },
+  "mail.templates.read": { method: "get", path: "/api/v1/mail/templates/{id}", input: null, query: null, output: "MailTemplate", status: 200, authentication: "account_or_assistant", permission: { capability: "mail", action: "view" } },
+  "mail.templates.update": { method: "patch", path: "/api/v1/mail/templates/{id}", input: { location: "json", shape: "UpdateMailTemplate" }, query: null, output: "MailTemplate", status: 200, authentication: "account_or_assistant", permission: { capability: "mail", action: "write" } },
+  "mail.templates.delete": { method: "delete", path: "/api/v1/mail/templates/{id}", input: null, query: null, output: "Empty", status: 204, authentication: "account_or_assistant", permission: { capability: "mail", action: "delete" } },
+  "mail.templates.preview": { method: "post", path: "/api/v1/mail/templates/{id}/preview", input: { location: "json", shape: "MailTemplatePreview" }, query: null, output: "RenderedMail", status: 200, authentication: "account_or_assistant", permission: { capability: "mail", action: "view" } },
+  "mail.lists.list": { method: "get", path: "/api/v1/mail/lists", input: { location: "query", shape: "MailListListFilter" }, query: null, output: "MailListPage", status: 200, authentication: "account_or_assistant", permission: { capability: "mail", action: "view" } },
+  "mail.lists.create": { method: "post", path: "/api/v1/mail/lists", input: { location: "json", shape: "CreateMailList" }, query: null, output: "MailList", status: 201, authentication: "account_or_assistant", permission: { capability: "mail", action: "write" } },
+  "mail.lists.read": { method: "get", path: "/api/v1/mail/lists/{id}", input: null, query: null, output: "MailList", status: 200, authentication: "account_or_assistant", permission: { capability: "mail", action: "view" } },
+  "mail.lists.update": { method: "patch", path: "/api/v1/mail/lists/{id}", input: { location: "json", shape: "UpdateMailList" }, query: null, output: "MailList", status: 200, authentication: "account_or_assistant", permission: { capability: "mail", action: "write" } },
+  "mail.lists.delete": { method: "delete", path: "/api/v1/mail/lists/{id}", input: null, query: null, output: "Empty", status: 204, authentication: "account_or_assistant", permission: { capability: "mail", action: "delete" } },
+  "mail.readers.list": { method: "get", path: "/api/v1/mail/lists/{id}/readers", input: { location: "query", shape: "ReaderListFilter" }, query: null, output: "MailReaderPage", status: 200, authentication: "account_or_assistant", permission: { capability: "mail", action: "view" } },
+  "mail.readers.add": { method: "post", path: "/api/v1/mail/lists/{id}/readers", input: { location: "json", shape: "AddReader" }, query: null, output: "MailReaderCreated", status: 201, authentication: "account_or_assistant", permission: { capability: "mail", action: "write" } },
+  "mail.readers.delete": { method: "delete", path: "/api/v1/mail/readers/{id}", input: null, query: null, output: "Empty", status: 204, authentication: "account_or_assistant", permission: { capability: "mail", action: "delete" } },
+  "mail.public.unsubscribe": { method: "post", path: "/public/v1/mail/unsubscribe/{token}", input: null, query: null, output: "UnsubscribeReceipt", status: 200, authentication: "public", permission: null },
+  "mail.deliveries.list": { method: "get", path: "/api/v1/mail/deliveries", input: { location: "query", shape: "DeliveryListFilter" }, query: null, output: "MailDeliveryPage", status: 200, authentication: "account_or_assistant", permission: { capability: "mail", action: "view" } },
+  "mail.deliveries.enqueue": { method: "post", path: "/api/v1/mail/deliveries", input: { location: "json", shape: "EnqueueDelivery" }, query: null, output: "MailDelivery", status: 202, authentication: "account_or_assistant", permission: { capability: "mail", action: "write" } },
+  "mail.deliveries.read": { method: "get", path: "/api/v1/mail/deliveries/{id}", input: null, query: null, output: "MailDelivery", status: 200, authentication: "account_or_assistant", permission: { capability: "mail", action: "view" } },
+  "mail.deliveries.retry": { method: "post", path: "/api/v1/mail/deliveries/{id}/retry", input: { location: "json", shape: "RetryDelivery" }, query: null, output: "MailDelivery", status: 202, authentication: "account_or_assistant", permission: { capability: "mail", action: "write" } },
+  "mail.deliveries.campaign": { method: "post", path: "/api/v1/mail/lists/{id}/deliveries", input: { location: "json", shape: "SendCampaign" }, query: null, output: "SendCount", status: 202, authentication: "account_or_assistant", permission: { capability: "mail", action: "write" } },
 } as const satisfies Record<string, MaviOperation>;
 
 export type OperationName = keyof typeof operations;
@@ -757,6 +943,26 @@ export interface OperationArguments {
   "forms.submissions.delete": { path: { id: string }; query?: never; body?: never; }
   "forms.public.read": { path: { slug: string }; query?: never; body?: never; }
   "forms.public.submit": { path: { slug: string }; query?: never; body: SubmitForm; }
+  "mail.templates.list": { path?: never; query: MailTemplateListFilter; body?: never; }
+  "mail.templates.create": { path?: never; query?: never; body: CreateMailTemplate; }
+  "mail.templates.read": { path: { id: string }; query?: never; body?: never; }
+  "mail.templates.update": { path: { id: string }; query?: never; body: UpdateMailTemplate; }
+  "mail.templates.delete": { path: { id: string }; query?: never; body?: never; }
+  "mail.templates.preview": { path: { id: string }; query?: never; body: MailTemplatePreview; }
+  "mail.lists.list": { path?: never; query: MailListListFilter; body?: never; }
+  "mail.lists.create": { path?: never; query?: never; body: CreateMailList; }
+  "mail.lists.read": { path: { id: string }; query?: never; body?: never; }
+  "mail.lists.update": { path: { id: string }; query?: never; body: UpdateMailList; }
+  "mail.lists.delete": { path: { id: string }; query?: never; body?: never; }
+  "mail.readers.list": { path: { id: string }; query: ReaderListFilter; body?: never; }
+  "mail.readers.add": { path: { id: string }; query?: never; body: AddReader; }
+  "mail.readers.delete": { path: { id: string }; query?: never; body?: never; }
+  "mail.public.unsubscribe": { path: { token: string }; query?: never; body?: never; }
+  "mail.deliveries.list": { path?: never; query: DeliveryListFilter; body?: never; }
+  "mail.deliveries.enqueue": { path?: never; query?: never; body: EnqueueDelivery; }
+  "mail.deliveries.read": { path: { id: string }; query?: never; body?: never; }
+  "mail.deliveries.retry": { path: { id: string }; query?: never; body: RetryDelivery; }
+  "mail.deliveries.campaign": { path: { id: string }; query?: never; body: SendCampaign; }
 }
 
 export interface OperationResponses {
@@ -833,6 +1039,26 @@ export interface OperationResponses {
   "forms.submissions.delete": void;
   "forms.public.read": PublicForm;
   "forms.public.submit": SubmissionReceipt;
+  "mail.templates.list": MailTemplatePage;
+  "mail.templates.create": MailTemplate;
+  "mail.templates.read": MailTemplate;
+  "mail.templates.update": MailTemplate;
+  "mail.templates.delete": void;
+  "mail.templates.preview": RenderedMail;
+  "mail.lists.list": MailListPage;
+  "mail.lists.create": MailList;
+  "mail.lists.read": MailList;
+  "mail.lists.update": MailList;
+  "mail.lists.delete": void;
+  "mail.readers.list": MailReaderPage;
+  "mail.readers.add": MailReaderCreated;
+  "mail.readers.delete": void;
+  "mail.public.unsubscribe": UnsubscribeReceipt;
+  "mail.deliveries.list": MailDeliveryPage;
+  "mail.deliveries.enqueue": MailDelivery;
+  "mail.deliveries.read": MailDelivery;
+  "mail.deliveries.retry": MailDelivery;
+  "mail.deliveries.campaign": SendCount;
 }
 
 export interface MaviClientOptions {

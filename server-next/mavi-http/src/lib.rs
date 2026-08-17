@@ -29,8 +29,8 @@ use mavi_content::{
 use mavi_contract::Api;
 use mavi_core::{
     Action, AuditEventId, Caller, Capability, ContentId, DesignBuildId, DesignChangeId, ErrorCode,
-    FileId, FormSubmissionId, Grant, MaviError, Page, PersonId, RequestId, RoleId, SiteContext,
-    TermId, ports::FileStore,
+    FileId, FormSubmissionId, Grant, MailDeliveryId, MailListId, MailReaderId, MailTemplateId,
+    MaviError, Page, PersonId, RequestId, RoleId, SiteContext, TermId, ports::FileStore,
 };
 use mavi_design::{
     BuildEngine, DESIGN_BUILD_FAILED, DesignBuild, DesignBuildListFilter, DesignChange,
@@ -45,6 +45,12 @@ use mavi_identity::{
     ApiKeyCreated, CreateApiKey, CreatePerson, CreateRole, IdentityService, LoginInput,
     PeopleListFilter, Person, PersonRecord, ReplaceRoleGrants, Role, RoleListFilter,
     SessionCreated, SetupInput, SetupStatus, UpdatePersonStatus,
+};
+use mavi_mail::{
+    AddReader, CreateMailList, CreateMailTemplate, DeliveryListFilter, EnqueueDelivery,
+    MailDelivery, MailList, MailListListFilter, MailReader, MailReaderCreated, MailService,
+    MailTemplate, MailTemplateListFilter, MailTemplatePreview, ReaderListFilter, RenderedMail,
+    RetryDelivery, SendCampaign, SendCount, UnsubscribeReceipt, UpdateMailList, UpdateMailTemplate,
 };
 use mavi_media::{FileListFilter, FileRecord, MAX_FILE_BYTES, MediaService, UploadFileQuery};
 use mavi_runtime::{Runtime, SiteResolver};
@@ -126,6 +132,7 @@ pub fn api() -> Api {
     api.extend(mavi_trash::api());
     api.extend(mavi_design::api());
     api.extend(mavi_forms::api());
+    api.extend(mavi_mail::api());
     api
 }
 
@@ -156,6 +163,7 @@ where
         trash: TrashService,
         design: DesignService,
         forms: FormService,
+        mail: MailService,
         file_store,
         builder,
         authorizer: CedarAuthorizer::new()?,
@@ -185,6 +193,7 @@ where
         .merge(audit_trash_routes::<R>())
         .merge(design_routes::<R>())
         .merge(form_routes::<R>())
+        .merge(mail_routes::<R>())
 }
 
 fn identity_routes<R>() -> Router<HttpState<R>>
@@ -378,6 +387,59 @@ where
         )
 }
 
+fn mail_routes<R>() -> Router<HttpState<R>>
+where
+    R: SiteResolver,
+{
+    Router::new()
+        .route(
+            "/api/v1/mail/templates",
+            get(list_mail_templates::<R>).post(create_mail_template::<R>),
+        )
+        .route(
+            "/api/v1/mail/templates/{id}",
+            get(read_mail_template::<R>)
+                .patch(update_mail_template::<R>)
+                .delete(delete_mail_template::<R>),
+        )
+        .route(
+            "/api/v1/mail/templates/{id}/preview",
+            post(preview_mail_template::<R>),
+        )
+        .route(
+            "/api/v1/mail/lists",
+            get(list_mail_lists::<R>).post(create_mail_list::<R>),
+        )
+        .route(
+            "/api/v1/mail/lists/{id}",
+            get(read_mail_list::<R>)
+                .patch(update_mail_list::<R>)
+                .delete(delete_mail_list::<R>),
+        )
+        .route(
+            "/api/v1/mail/lists/{id}/readers",
+            get(list_mail_readers::<R>).post(add_mail_reader::<R>),
+        )
+        .route(
+            "/api/v1/mail/lists/{id}/deliveries",
+            post(send_mail_campaign::<R>),
+        )
+        .route("/api/v1/mail/readers/{id}", delete(delete_mail_reader::<R>))
+        .route(
+            "/api/v1/mail/deliveries",
+            get(list_mail_deliveries::<R>).post(enqueue_mail_delivery::<R>),
+        )
+        .route("/api/v1/mail/deliveries/{id}", get(read_mail_delivery::<R>))
+        .route(
+            "/api/v1/mail/deliveries/{id}/retry",
+            post(retry_mail_delivery::<R>),
+        )
+        .route(
+            "/public/v1/mail/unsubscribe/{token}",
+            post(public_mail_unsubscribe::<R>),
+        )
+}
+
 struct HttpState<R> {
     runtime: Runtime<R>,
     identity: IdentityService,
@@ -389,6 +451,7 @@ struct HttpState<R> {
     trash: TrashService,
     design: DesignService,
     forms: FormService,
+    mail: MailService,
     file_store: Arc<dyn FileStore>,
     builder: Arc<dyn BuildEngine>,
     authorizer: CedarAuthorizer,
@@ -407,6 +470,7 @@ impl<R> Clone for HttpState<R> {
             trash: self.trash,
             design: self.design,
             forms: self.forms,
+            mail: self.mail,
             file_store: Arc::clone(&self.file_store),
             builder: Arc::clone(&self.builder),
             authorizer: self.authorizer.clone(),
@@ -2466,6 +2530,506 @@ where
         .map_err(HttpError)?;
     transaction.commit().await.map_err(HttpError)?;
     Ok((StatusCode::CREATED, Json(receipt)))
+}
+
+async fn list_mail_templates<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Query(filter): Query<MailTemplateListFilter>,
+) -> Result<Json<Page<MailTemplate>>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Mail, Action::View),
+        "MailTemplate",
+        "mail_templates",
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let templates = state
+        .mail
+        .list_templates(&mut transaction, &context, &filter)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(templates))
+}
+
+async fn create_mail_template<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Json(input): Json<CreateMailTemplate>,
+) -> Result<(StatusCode, Json<MailTemplate>), HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Mail, Action::Write),
+        "MailTemplate",
+        "mail_templates",
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let template = state
+        .mail
+        .create_template(&mut transaction, &context, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok((StatusCode::CREATED, Json(template)))
+}
+
+async fn read_mail_template<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<MailTemplateId>,
+) -> Result<Json<MailTemplate>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Mail, Action::View),
+        "MailTemplate",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let template = state
+        .mail
+        .get_template(&mut transaction, &context, id)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(template))
+}
+
+async fn update_mail_template<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<MailTemplateId>,
+    Json(input): Json<UpdateMailTemplate>,
+) -> Result<Json<MailTemplate>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Mail, Action::Write),
+        "MailTemplate",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let template = state
+        .mail
+        .update_template(&mut transaction, &context, id, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(template))
+}
+
+async fn delete_mail_template<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<MailTemplateId>,
+) -> Result<StatusCode, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Mail, Action::Delete),
+        "MailTemplate",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    state
+        .mail
+        .delete_template(&mut transaction, &context, id)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+async fn preview_mail_template<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<MailTemplateId>,
+    Json(input): Json<MailTemplatePreview>,
+) -> Result<Json<RenderedMail>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Mail, Action::View),
+        "MailTemplate",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let rendered = state
+        .mail
+        .preview_template(&mut transaction, &context, id, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(rendered))
+}
+
+async fn list_mail_lists<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Query(filter): Query<MailListListFilter>,
+) -> Result<Json<Page<MailList>>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Mail, Action::View),
+        "MailList",
+        "mail_lists",
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let lists = state
+        .mail
+        .list_lists(&mut transaction, &context, &filter)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(lists))
+}
+
+async fn create_mail_list<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Json(input): Json<CreateMailList>,
+) -> Result<(StatusCode, Json<MailList>), HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Mail, Action::Write),
+        "MailList",
+        "mail_lists",
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let list = state
+        .mail
+        .create_list(&mut transaction, &context, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok((StatusCode::CREATED, Json(list)))
+}
+
+async fn read_mail_list<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<MailListId>,
+) -> Result<Json<MailList>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Mail, Action::View),
+        "MailList",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let list = state
+        .mail
+        .get_list(&mut transaction, &context, id)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(list))
+}
+
+async fn update_mail_list<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<MailListId>,
+    Json(input): Json<UpdateMailList>,
+) -> Result<Json<MailList>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Mail, Action::Write),
+        "MailList",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let list = state
+        .mail
+        .update_list(&mut transaction, &context, id, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(list))
+}
+
+async fn delete_mail_list<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<MailListId>,
+) -> Result<StatusCode, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Mail, Action::Delete),
+        "MailList",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    state
+        .mail
+        .delete_list(&mut transaction, &context, id)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+async fn list_mail_readers<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(list_id): Path<MailListId>,
+    Query(filter): Query<ReaderListFilter>,
+) -> Result<Json<Page<MailReader>>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Mail, Action::View),
+        "MailList",
+        list_id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let readers = state
+        .mail
+        .list_readers(&mut transaction, &context, list_id, &filter)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(readers))
+}
+
+async fn add_mail_reader<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(list_id): Path<MailListId>,
+    Json(input): Json<AddReader>,
+) -> Result<(StatusCode, Json<MailReaderCreated>), HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Mail, Action::Write),
+        "MailList",
+        list_id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let reader = state
+        .mail
+        .add_reader(&mut transaction, &context, list_id, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok((StatusCode::CREATED, Json(reader)))
+}
+
+async fn delete_mail_reader<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<MailReaderId>,
+) -> Result<StatusCode, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Mail, Action::Delete),
+        "MailReader",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    state
+        .mail
+        .delete_reader(&mut transaction, &context, id)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+async fn public_mail_unsubscribe<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(token): Path<String>,
+) -> Result<Json<UnsubscribeReceipt>, HttpError>
+where
+    R: SiteResolver,
+{
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let receipt = state
+        .mail
+        .unsubscribe(&mut transaction, &context, &token)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(receipt))
+}
+
+async fn list_mail_deliveries<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Query(filter): Query<DeliveryListFilter>,
+) -> Result<Json<Page<MailDelivery>>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Mail, Action::View),
+        "MailDelivery",
+        "mail_deliveries",
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let deliveries = state
+        .mail
+        .list_deliveries(&mut transaction, &context, &filter)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(deliveries))
+}
+
+async fn enqueue_mail_delivery<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Json(input): Json<EnqueueDelivery>,
+) -> Result<(StatusCode, Json<MailDelivery>), HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Mail, Action::Write),
+        "MailDelivery",
+        "mail_deliveries",
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let delivery = state
+        .mail
+        .enqueue_delivery(&mut transaction, &context, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok((StatusCode::ACCEPTED, Json(delivery)))
+}
+
+async fn read_mail_delivery<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<MailDeliveryId>,
+) -> Result<Json<MailDelivery>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Mail, Action::View),
+        "MailDelivery",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let delivery = state
+        .mail
+        .get_delivery(&mut transaction, &context, id)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(delivery))
+}
+
+async fn retry_mail_delivery<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<MailDeliveryId>,
+    Json(_input): Json<RetryDelivery>,
+) -> Result<(StatusCode, Json<MailDelivery>), HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Mail, Action::Write),
+        "MailDelivery",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let delivery = state
+        .mail
+        .retry_delivery(&mut transaction, &context, id)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok((StatusCode::ACCEPTED, Json(delivery)))
+}
+
+async fn send_mail_campaign<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(list_id): Path<MailListId>,
+    Json(input): Json<SendCampaign>,
+) -> Result<(StatusCode, Json<SendCount>), HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Mail, Action::Write),
+        "MailList",
+        list_id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let count = state
+        .mail
+        .send_campaign(&mut transaction, &context, list_id, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok((StatusCode::ACCEPTED, Json(count)))
 }
 
 fn require_grant<R>(

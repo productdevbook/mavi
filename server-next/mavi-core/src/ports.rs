@@ -1,6 +1,7 @@
 use std::{fmt::Debug, future::Future, pin::Pin};
 
 use crate::{Money, Result, SiteContext};
+use serde::{Deserialize, Serialize};
 
 pub type BoxFuture<'a, T> = Pin<Box<dyn Future<Output = T> + Send + 'a>>;
 
@@ -25,7 +26,7 @@ pub trait Mailer: Debug + Send + Sync {
         &'a self,
         context: &'a SiteContext,
         message: MailMessage,
-    ) -> BoxFuture<'a, Result<()>>;
+    ) -> BoxFuture<'a, Result<MailDeliveryReceipt>>;
 }
 
 #[derive(Clone, Debug)]
@@ -33,6 +34,31 @@ pub struct MailMessage {
     pub recipient: String,
     pub subject: String,
     pub body: String,
+    pub content_type: MailContentType,
+}
+
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MailContentType {
+    #[default]
+    Plain,
+    Html,
+}
+
+impl MailContentType {
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Plain => "plain",
+            Self::Html => "html",
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct MailDeliveryReceipt {
+    pub provider: String,
+    pub reference: String,
 }
 
 pub trait Payments: Debug + Send + Sync {

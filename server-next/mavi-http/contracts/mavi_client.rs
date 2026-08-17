@@ -4,6 +4,13 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct AddReader {
+    pub email: String,
+    pub name: Option<String>,
+    pub resubscribe: Option<bool>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ApiKeyCreated {
     pub id: String,
     pub name: String,
@@ -189,6 +196,21 @@ pub struct CreateLanguage {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct CreateMailList {
+    pub slug: String,
+    pub name: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct CreateMailTemplate {
+    pub key: String,
+    pub language: String,
+    pub subject: String,
+    pub body: String,
+    pub content_type: Option<MailContentType>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct CreatePerson {
     pub email: String,
     pub name: String,
@@ -215,6 +237,13 @@ pub struct CreateTerm {
 pub struct DeclareContentType {
     pub name: String,
     pub fields: Option<Vec<ContentTypeField>>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct DeliveryListFilter {
+    pub after: Option<String>,
+    pub limit: Option<i64>,
+    pub status: Option<MailDeliveryStatus>,
 }
 
 pub type DesignAsset = String;
@@ -315,6 +344,14 @@ pub struct DesignFileSummary {
 pub type DesignState = String;
 
 pub type Empty = Value;
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct EnqueueDelivery {
+    pub recipient: String,
+    pub template_id: String,
+    pub variables: Option<Value>,
+    pub idempotency_key: Option<String>,
+}
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ErrorBody {
@@ -434,6 +471,114 @@ pub struct LoginInput {
     pub password: String,
 }
 
+pub type MailContentType = String;
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct MailDelivery {
+    pub id: String,
+    pub template_id: Option<String>,
+    pub list_id: Option<String>,
+    pub recipient: String,
+    pub subject: String,
+    pub body: String,
+    pub content_type: MailContentType,
+    pub purpose: MailPurpose,
+    pub status: MailDeliveryStatus,
+    pub attempts: i64,
+    pub available_at: String,
+    pub provider: Option<String>,
+    pub provider_reference: Option<String>,
+    pub last_error: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
+    pub sent_at: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct MailDeliveryPage {
+    pub items: Vec<MailDelivery>,
+    pub next_cursor: Option<String>,
+}
+
+pub type MailDeliveryStatus = String;
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct MailList {
+    pub id: String,
+    pub slug: String,
+    pub name: String,
+    pub subscriber_count: i64,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct MailListListFilter {
+    pub after: Option<String>,
+    pub limit: Option<i64>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct MailListPage {
+    pub items: Vec<MailList>,
+    pub next_cursor: Option<String>,
+}
+
+pub type MailPurpose = String;
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct MailReader {
+    pub id: String,
+    pub email: String,
+    pub name: Option<String>,
+    pub standing: MailStanding,
+    pub added_at: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct MailReaderCreated {
+    pub reader: MailReader,
+    pub unsubscribe_token: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct MailReaderPage {
+    pub items: Vec<MailReader>,
+    pub next_cursor: Option<String>,
+}
+
+pub type MailStanding = String;
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct MailTemplate {
+    pub id: String,
+    pub key: String,
+    pub language: String,
+    pub subject: String,
+    pub body: String,
+    pub content_type: MailContentType,
+    pub variables: Vec<String>,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct MailTemplateListFilter {
+    pub after: Option<String>,
+    pub limit: Option<i64>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct MailTemplatePage {
+    pub items: Vec<MailTemplate>,
+    pub next_cursor: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct MailTemplatePreview {
+    pub variables: Option<Value>,
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct PeopleListFilter {
     pub after: Option<String>,
@@ -483,6 +628,20 @@ pub type PublicationInput = Value;
 pub type PublicationStatus = String;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ReaderListFilter {
+    pub after: Option<String>,
+    pub limit: Option<i64>,
+    pub standing: Option<MailStanding>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct RenderedMail {
+    pub subject: String,
+    pub body: String,
+    pub content_type: MailContentType,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ReplaceContentTerms {
     pub term_ids: Vec<String>,
 }
@@ -491,6 +650,8 @@ pub struct ReplaceContentTerms {
 pub struct ReplaceRoleGrants {
     pub grants: Vec<Grant>,
 }
+
+pub type RetryDelivery = Value;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Role {
@@ -521,6 +682,18 @@ pub struct ScheduleContent {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct SeenCount {
     pub seen: i64,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct SendCampaign {
+    pub template_id: String,
+    pub variables: Option<Value>,
+    pub idempotency_key: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct SendCount {
+    pub enqueued: i64,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -636,6 +809,11 @@ pub struct TrashPage {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct UnsubscribeReceipt {
+    pub unsubscribed: bool,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct UpdateContent {
     pub slug: Option<String>,
     pub title: Option<String>,
@@ -657,6 +835,18 @@ pub struct UpdateForm {
 pub struct UpdateLanguage {
     pub name: Option<String>,
     pub is_default: Option<bool>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct UpdateMailList {
+    pub name: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct UpdateMailTemplate {
+    pub subject: Option<String>,
+    pub body: Option<String>,
+    pub content_type: Option<Value>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -770,4 +960,24 @@ pub const OPERATIONS: &[OperationDefinition] = &[
     OperationDefinition { name: "forms.submissions.delete", method: "delete", path: "/api/v1/form-submissions/{id}", request: None, request_location: None, query: None, response: Some("Empty"), status: 204, authentication: "account_or_assistant", capability: Some("forms"), action: Some("delete") },
     OperationDefinition { name: "forms.public.read", method: "get", path: "/public/v1/forms/{slug}", request: None, request_location: None, query: None, response: Some("PublicForm"), status: 200, authentication: "public", capability: None, action: None },
     OperationDefinition { name: "forms.public.submit", method: "post", path: "/public/v1/forms/{slug}/submissions", request: Some("SubmitForm"), request_location: Some("json"), query: None, response: Some("SubmissionReceipt"), status: 201, authentication: "public", capability: None, action: None },
+    OperationDefinition { name: "mail.templates.list", method: "get", path: "/api/v1/mail/templates", request: Some("MailTemplateListFilter"), request_location: Some("query"), query: None, response: Some("MailTemplatePage"), status: 200, authentication: "account_or_assistant", capability: Some("mail"), action: Some("view") },
+    OperationDefinition { name: "mail.templates.create", method: "post", path: "/api/v1/mail/templates", request: Some("CreateMailTemplate"), request_location: Some("json"), query: None, response: Some("MailTemplate"), status: 201, authentication: "account_or_assistant", capability: Some("mail"), action: Some("write") },
+    OperationDefinition { name: "mail.templates.read", method: "get", path: "/api/v1/mail/templates/{id}", request: None, request_location: None, query: None, response: Some("MailTemplate"), status: 200, authentication: "account_or_assistant", capability: Some("mail"), action: Some("view") },
+    OperationDefinition { name: "mail.templates.update", method: "patch", path: "/api/v1/mail/templates/{id}", request: Some("UpdateMailTemplate"), request_location: Some("json"), query: None, response: Some("MailTemplate"), status: 200, authentication: "account_or_assistant", capability: Some("mail"), action: Some("write") },
+    OperationDefinition { name: "mail.templates.delete", method: "delete", path: "/api/v1/mail/templates/{id}", request: None, request_location: None, query: None, response: Some("Empty"), status: 204, authentication: "account_or_assistant", capability: Some("mail"), action: Some("delete") },
+    OperationDefinition { name: "mail.templates.preview", method: "post", path: "/api/v1/mail/templates/{id}/preview", request: Some("MailTemplatePreview"), request_location: Some("json"), query: None, response: Some("RenderedMail"), status: 200, authentication: "account_or_assistant", capability: Some("mail"), action: Some("view") },
+    OperationDefinition { name: "mail.lists.list", method: "get", path: "/api/v1/mail/lists", request: Some("MailListListFilter"), request_location: Some("query"), query: None, response: Some("MailListPage"), status: 200, authentication: "account_or_assistant", capability: Some("mail"), action: Some("view") },
+    OperationDefinition { name: "mail.lists.create", method: "post", path: "/api/v1/mail/lists", request: Some("CreateMailList"), request_location: Some("json"), query: None, response: Some("MailList"), status: 201, authentication: "account_or_assistant", capability: Some("mail"), action: Some("write") },
+    OperationDefinition { name: "mail.lists.read", method: "get", path: "/api/v1/mail/lists/{id}", request: None, request_location: None, query: None, response: Some("MailList"), status: 200, authentication: "account_or_assistant", capability: Some("mail"), action: Some("view") },
+    OperationDefinition { name: "mail.lists.update", method: "patch", path: "/api/v1/mail/lists/{id}", request: Some("UpdateMailList"), request_location: Some("json"), query: None, response: Some("MailList"), status: 200, authentication: "account_or_assistant", capability: Some("mail"), action: Some("write") },
+    OperationDefinition { name: "mail.lists.delete", method: "delete", path: "/api/v1/mail/lists/{id}", request: None, request_location: None, query: None, response: Some("Empty"), status: 204, authentication: "account_or_assistant", capability: Some("mail"), action: Some("delete") },
+    OperationDefinition { name: "mail.readers.list", method: "get", path: "/api/v1/mail/lists/{id}/readers", request: Some("ReaderListFilter"), request_location: Some("query"), query: None, response: Some("MailReaderPage"), status: 200, authentication: "account_or_assistant", capability: Some("mail"), action: Some("view") },
+    OperationDefinition { name: "mail.readers.add", method: "post", path: "/api/v1/mail/lists/{id}/readers", request: Some("AddReader"), request_location: Some("json"), query: None, response: Some("MailReaderCreated"), status: 201, authentication: "account_or_assistant", capability: Some("mail"), action: Some("write") },
+    OperationDefinition { name: "mail.readers.delete", method: "delete", path: "/api/v1/mail/readers/{id}", request: None, request_location: None, query: None, response: Some("Empty"), status: 204, authentication: "account_or_assistant", capability: Some("mail"), action: Some("delete") },
+    OperationDefinition { name: "mail.public.unsubscribe", method: "post", path: "/public/v1/mail/unsubscribe/{token}", request: None, request_location: None, query: None, response: Some("UnsubscribeReceipt"), status: 200, authentication: "public", capability: None, action: None },
+    OperationDefinition { name: "mail.deliveries.list", method: "get", path: "/api/v1/mail/deliveries", request: Some("DeliveryListFilter"), request_location: Some("query"), query: None, response: Some("MailDeliveryPage"), status: 200, authentication: "account_or_assistant", capability: Some("mail"), action: Some("view") },
+    OperationDefinition { name: "mail.deliveries.enqueue", method: "post", path: "/api/v1/mail/deliveries", request: Some("EnqueueDelivery"), request_location: Some("json"), query: None, response: Some("MailDelivery"), status: 202, authentication: "account_or_assistant", capability: Some("mail"), action: Some("write") },
+    OperationDefinition { name: "mail.deliveries.read", method: "get", path: "/api/v1/mail/deliveries/{id}", request: None, request_location: None, query: None, response: Some("MailDelivery"), status: 200, authentication: "account_or_assistant", capability: Some("mail"), action: Some("view") },
+    OperationDefinition { name: "mail.deliveries.retry", method: "post", path: "/api/v1/mail/deliveries/{id}/retry", request: Some("RetryDelivery"), request_location: Some("json"), query: None, response: Some("MailDelivery"), status: 202, authentication: "account_or_assistant", capability: Some("mail"), action: Some("write") },
+    OperationDefinition { name: "mail.deliveries.campaign", method: "post", path: "/api/v1/mail/lists/{id}/deliveries", request: Some("SendCampaign"), request_location: Some("json"), query: None, response: Some("SendCount"), status: 202, authentication: "account_or_assistant", capability: Some("mail"), action: Some("write") },
 ];

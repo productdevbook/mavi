@@ -166,5 +166,15 @@ mod tests {
         assert!(forms_migration.contains("forms_site_slug_active"));
         assert!(forms_migration.contains("form_submissions_site_form_recent"));
         assert!(forms_migration.contains("force row level security"));
+
+        let mail_migration = include_str!("../migrations/0014_mail.sql");
+        assert!(mail_migration.contains("primary key (site_id, id)"));
+        assert!(mail_migration.contains("mail_templates_site_key_language_active"));
+        assert!(mail_migration.contains("mail_deliveries_site_queue"));
+        assert!(mail_migration.contains(
+            "foreign key (site_id, delivery_id) references mail_deliveries(site_id, id)"
+        ));
+        assert!(mail_migration.contains("mail_delivery_attempts"));
+        assert!(mail_migration.contains("force row level security"));
     }
 }

@@ -4,6 +4,7 @@
 //! A type belongs here only when every domain needs the same meaning.
 
 mod context;
+mod email;
 mod error;
 mod grants;
 mod ids;
@@ -12,11 +13,13 @@ mod pagination;
 pub mod ports;
 
 pub use context::{Caller, SiteContext};
+pub use email::Email;
 pub use error::{ErrorCode, MaviError, Result};
 pub use grants::{Action, Capability, Grant, Grants};
 pub use ids::{
     ApiKeyId, AuditEventId, ContentId, DesignBuildId, DesignChangeId, FileId, FormId,
-    FormSubmissionId, JobId, PersonId, RequestId, RoleId, SessionId, SiteId, StudentId, TermId,
+    FormSubmissionId, JobId, MailAttemptId, MailDeliveryId, MailListId, MailReaderId,
+    MailTemplateId, PersonId, RequestId, RoleId, SessionId, SiteId, StudentId, TermId,
 };
 pub use money::{Currency, Money};
 pub use pagination::{Cursor, Page, PageRequest};

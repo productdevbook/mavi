@@ -25,6 +25,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Site catalog, content, identity, audit and settings tables enforce RLS and site-aware keys.
   - [x] Design changes, files, builds and artifacts enforce RLS, composite foreign keys and site-aware keys.
   - [-] Forms and submissions enforce RLS, composite foreign keys and site-aware keys.
+  - [x] Mail templates, lists, readers, deliveries and delivery attempts enforce RLS, composite foreign keys and site-aware keys.
   - [ ] Remaining domain tables and a single reusable DB guard for every repository.
 - [-] Migration and schema integration tests against PostgreSQL.
   - [x] Storage, identity and settings migrations run against a non-superuser PostgreSQL role.
@@ -95,9 +96,13 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Submission inbox uses `after`/`limit` cursors, unread filtering, mark-read and audited deletion.
   - [x] Forms/submissions use composite keys, RLS, Cedar grants and mutation audit receipts.
   - [ ] Export format, spam/rate-limit controls and scheduled retention worker.
-- [ ] Mail templates, delivery queue, retries and provider adapters.
-  - [x] Domain code has the shared `Mailer` port boundary; no provider is coupled to form submission.
-  - [ ] Outbox/queue, retry policy, templates and concrete self-host/cloud providers.
+- [-] Mail templates, delivery queue, retries and provider adapters.
+  - [x] Strict site-scoped templates render bounded `{{variable}}` placeholders and expose preview without sending.
+  - [x] Mailing lists/readers use normalized addresses, hashed unsubscribe tokens and explicit standing states.
+  - [x] Transactional and campaign requests enqueue provider-neutral outbox rows; public/API requests never call a provider.
+  - [x] Workers claim leases, record attempts, mark sent/retry/dead and support idempotency keys.
+  - [x] Domain code uses the shared `Mailer` port and returns provider receipts without coupling to SMTP/cloud SDKs.
+  - [ ] Concrete self-host/cloud providers, templated unsubscribe URL injection and rate-limit/deliverability policy.
 
 ## Commerce and learning
 
@@ -132,6 +137,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Trash restore/permanent-delete PostgreSQL tests, including media cleanup receipts.
   - [x] Design source/build PostgreSQL isolation, immutable artifact, publish/rollback and HTTP serving tests.
   - [x] Forms declaration/submission PostgreSQL RLS isolation and HTTP validation/cursor/permission tests.
+  - [x] Mail template/list/outbox PostgreSQL RLS state-machine tests and HTTP contract coverage.
   - [x] Identity HTTP integration covers setup, login, cursor, 401/403 and Cedar behavior.
   - [x] Generated OpenAPI/TypeScript/Rust/MCP artifacts have stale-contract tests.
   - [ ] Remaining domain HTTP suites.

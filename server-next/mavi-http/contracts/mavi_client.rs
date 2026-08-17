@@ -29,6 +29,8 @@ pub struct Content {
     pub updated_at: String,
 }
 
+pub type ContentFieldKind = String;
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ContentListFilter {
     pub after: Option<String>,
@@ -41,6 +43,37 @@ pub struct ContentListFilter {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ContentPage {
     pub items: Vec<Content>,
+    pub next_cursor: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ContentType {
+    pub site_id: String,
+    pub kind: String,
+    pub name: String,
+    pub fields: Vec<ContentTypeField>,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ContentTypeField {
+    pub key: String,
+    pub label: String,
+    pub required: bool,
+    pub kind: ContentFieldKind,
+    pub options: Vec<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ContentTypeListFilter {
+    pub after: Option<String>,
+    pub limit: Option<i64>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ContentTypePage {
+    pub items: Vec<ContentType>,
     pub next_cursor: Option<String>,
 }
 
@@ -82,6 +115,12 @@ pub struct CreatePerson {
 pub struct CreateRole {
     pub name: String,
     pub grants: Option<Vec<Grant>>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct DeclareContentType {
+    pub name: String,
+    pub fields: Option<Vec<ContentTypeField>>,
 }
 
 pub type Empty = Value;
@@ -295,6 +334,9 @@ pub const OPERATIONS: &[OperationDefinition] = &[
     OperationDefinition { name: "content.trash", method: "delete", path: "/api/v1/content/{id}", request: None, response: Some("Empty"), status: 204, authentication: "account_or_assistant", capability: Some("trash"), action: Some("delete") },
     OperationDefinition { name: "content.restore", method: "post", path: "/api/v1/content/{id}/restore", request: None, response: Some("Content"), status: 200, authentication: "account_or_assistant", capability: Some("trash"), action: Some("write") },
     OperationDefinition { name: "content.public_read", method: "get", path: "/public/v1/content/{slug}", request: None, response: Some("Content"), status: 200, authentication: "public", capability: None, action: None },
+    OperationDefinition { name: "content_types.list", method: "get", path: "/api/v1/content-types", request: Some("ContentTypeListFilter"), response: Some("ContentTypePage"), status: 200, authentication: "account_or_assistant", capability: Some("content"), action: Some("view") },
+    OperationDefinition { name: "content_types.upsert", method: "put", path: "/api/v1/content-types/{kind}", request: Some("DeclareContentType"), response: Some("ContentType"), status: 200, authentication: "account_or_assistant", capability: Some("content"), action: Some("write") },
+    OperationDefinition { name: "content_types.delete", method: "delete", path: "/api/v1/content-types/{kind}", request: None, response: Some("Empty"), status: 204, authentication: "account_or_assistant", capability: Some("content"), action: Some("delete") },
     OperationDefinition { name: "settings.read", method: "get", path: "/api/v1/settings", request: None, response: Some("SiteSettings"), status: 200, authentication: "account_or_assistant", capability: Some("settings"), action: Some("view") },
     OperationDefinition { name: "settings.update", method: "patch", path: "/api/v1/settings", request: Some("UpdateSiteSettings"), response: Some("SiteSettings"), status: 200, authentication: "account_or_assistant", capability: Some("settings"), action: Some("write") },
     OperationDefinition { name: "languages.list", method: "get", path: "/api/v1/languages", request: Some("LanguageListFilter"), response: Some("LanguagePage"), status: 200, authentication: "account_or_assistant", capability: Some("settings"), action: Some("view") },

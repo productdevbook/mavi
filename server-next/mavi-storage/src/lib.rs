@@ -101,5 +101,12 @@ mod tests {
         assert!(settings_migration.contains("primary key (site_id, tag)"));
         assert!(settings_migration.contains("site_languages_one_default"));
         assert!(settings_migration.contains("alter table site_languages force row level security"));
+
+        let content_types_migration = include_str!("../migrations/0006_content_types.sql");
+        assert!(content_types_migration.contains("primary key (site_id, kind)"));
+        assert!(content_types_migration.contains("content_types_site_created"));
+        assert!(
+            content_types_migration.contains("alter table content_types force row level security")
+        );
     }
 }

@@ -51,7 +51,10 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Site settings and language list/create/update/delete APIs use typed DTOs, Cedar grants and audit receipts.
   - [x] Site language defaults are serialized per site and cannot be removed without a replacement.
   - [ ] Canonical site URL and locale fallback policy.
-- [ ] Content types and validated custom fields.
+- [x] Content types and validated custom fields.
+  - [x] Site-scoped content type declarations use `PUT` upsert and opaque cursor listing.
+  - [x] Declared custom fields validate required values, types, choices and unknown keys.
+  - [x] Removing a declaration preserves existing content and its stored fields.
 - [-] Posts/pages, drafts, revisions, slugs, scheduling and public reads.
 - [ ] Taxonomy terms, trees, assignment and filtered listing.
 - [ ] Media metadata, uploads, image variants, file storage and cleanup.
@@ -90,6 +93,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   HTTP, permission and audit tests.
   - [x] Identity unit, PostgreSQL scope/audit and negative delegation tests.
   - [x] Settings/languages unit, PostgreSQL scope/audit and HTTP cursor/default tests.
+  - [x] Content type unit, PostgreSQL scope/audit/field validation and HTTP tests.
   - [x] Identity HTTP integration covers setup, login, cursor, 401/403 and Cedar behavior.
   - [x] Generated OpenAPI/TypeScript/Rust/MCP artifacts have stale-contract tests.
   - [ ] Remaining domain HTTP suites.

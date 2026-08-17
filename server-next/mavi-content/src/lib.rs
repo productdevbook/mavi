@@ -4,6 +4,8 @@
 //! semantics. It hands a validated command to this crate; the repository is
 //! the only place that knows the content tables.
 
+mod content_types;
+
 use std::fmt;
 
 use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
@@ -19,6 +21,11 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use sqlx::Row;
 use uuid::Uuid;
+
+pub use content_types::{
+    CONTENT_FIELD_REQUIRED, ContentType, ContentTypeField, ContentTypeListFilter,
+    DeclareContentType, FieldKind,
+};
 
 const KIND_MAX: usize = 31;
 const LANGUAGE_MAX: usize = 35;
@@ -39,7 +46,7 @@ pub const CONTENT_STATE_INVALID: &str = "content_state_invalid";
 #[allow(clippy::too_many_lines)]
 #[must_use]
 pub fn api() -> Api {
-    Api::new([
+    let mut api = Api::new([
         Endpoint::new(
             Method::Get,
             "/api/v1/content",
@@ -167,8 +174,11 @@ pub fn api() -> Api {
         )
         .public()
         .returns(200, "Content"),
-    ])
-    .with_shapes(content_shapes())
+    ]);
+    api.endpoints.extend(content_types::endpoints());
+    let mut shapes = content_shapes();
+    shapes.extend(content_types::shapes());
+    api.with_shapes(shapes)
 }
 
 #[allow(clippy::too_many_lines)]
@@ -326,9 +336,13 @@ impl LanguageTag {
                     (1..=8).contains(&length)
                 };
                 size_ok
-                    && part
-                        .chars()
-                        .all(|character| character.is_ascii_alphanumeric())
+                    && part.chars().all(|character| {
+                        if index == 0 {
+                            character.is_ascii_alphabetic()
+                        } else {
+                            character.is_ascii_alphanumeric()
+                        }
+                    })
             });
 
         if !valid {
@@ -637,6 +651,38 @@ fn from_row(row: &sqlx::postgres::PgRow) -> Result<Content> {
 pub struct ContentService;
 
 impl ContentService {
+    pub async fn initialize(&self, tx: &mut SiteTx, context: &SiteContext) -> Result<()> {
+        content_types::initialize(tx, context).await
+    }
+
+    pub async fn list_content_types(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        filter: &ContentTypeListFilter,
+    ) -> Result<Page<ContentType>> {
+        content_types::list(tx, context, filter).await
+    }
+
+    pub async fn upsert_content_type(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        kind: &str,
+        input: &DeclareContentType,
+    ) -> Result<ContentType> {
+        content_types::upsert(tx, context, kind, input).await
+    }
+
+    pub async fn delete_content_type(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        kind: &str,
+    ) -> Result<()> {
+        content_types::delete(tx, context, kind).await
+    }
+
     pub async fn create(
         &self,
         tx: &mut SiteTx,
@@ -645,6 +691,7 @@ impl ContentService {
         now: DateTime<Utc>,
     ) -> Result<Content> {
         let new = checked_new(input, now)?;
+        content_types::validate_content_fields(tx, context, &new.kind, &new.fields).await?;
         let (status, scheduled_at, published_at) = new.publication.columns();
 
         let row = sqlx::query(
@@ -865,6 +912,7 @@ impl ContentService {
         };
         let fields = input.fields.clone().unwrap_or(current.fields);
         validate_fields(&fields)?;
+        content_types::validate_content_fields(tx, context, &current.kind, &fields).await?;
         let publication = match &input.publication {
             Some(value) => publication_input(value, now)?,
             None => current.publication,
@@ -1120,6 +1168,7 @@ mod tests {
         assert!(ContentKind::parse("Post").is_err());
         assert!(LanguageTag::parse("en-US").is_ok());
         assert!(LanguageTag::parse("e").is_err());
+        assert!(LanguageTag::parse("1n").is_err());
         assert!(Slug::parse("hello-world").is_ok());
         assert!(Slug::parse("hello--world").is_err());
     }

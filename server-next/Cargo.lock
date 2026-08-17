@@ -1424,10 +1424,15 @@ dependencies = [
  "chrono",
  "mavi-authz",
  "mavi-content",
+ "mavi-contract",
  "mavi-core",
  "mavi-identity",
  "mavi-runtime",
+ "mavi-storage",
  "serde",
+ "serde_json",
+ "tokio",
+ "tower",
 ]
 
 [[package]]

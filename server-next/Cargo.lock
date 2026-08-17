@@ -1352,6 +1352,7 @@ version = "0.1.0"
 dependencies = [
  "axum",
  "mavi-core",
+ "mavi-files",
  "mavi-http",
  "mavi-runtime",
  "mavi-storage",
@@ -1418,6 +1419,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "mavi-files"
+version = "0.1.0"
+dependencies = [
+ "mavi-core",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
 name = "mavi-http"
 version = "0.1.0"
 dependencies = [
@@ -1427,7 +1437,9 @@ dependencies = [
  "mavi-content",
  "mavi-contract",
  "mavi-core",
+ "mavi-files",
  "mavi-identity",
+ "mavi-media",
  "mavi-runtime",
  "mavi-settings",
  "mavi-storage",
@@ -1450,6 +1462,25 @@ dependencies = [
  "mavi-core",
  "mavi-storage",
  "rand",
+ "serde",
+ "serde_json",
+ "sha2 0.11.0",
+ "sqlx",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
+name = "mavi-media"
+version = "0.1.0"
+dependencies = [
+ "base64 0.23.1",
+ "chrono",
+ "mavi-audit",
+ "mavi-contract",
+ "mavi-core",
+ "mavi-files",
+ "mavi-storage",
  "serde",
  "serde_json",
  "sha2 0.11.0",

@@ -4,9 +4,12 @@
 //! Handlers receive the context as an extension and cannot silently resolve a
 //! different site halfway through an operation.
 
+use std::sync::Arc;
+
 use axum::{
     Extension, Router,
-    extract::{Json, Path, Query, State},
+    body::Bytes,
+    extract::{DefaultBodyLimit, Json, Path, Query, State},
     http::{HeaderValue, Request, StatusCode, header::AUTHORIZATION},
     middleware::{self, Next},
     response::{IntoResponse, Response},
@@ -21,14 +24,15 @@ use mavi_content::{
 };
 use mavi_contract::Api;
 use mavi_core::{
-    Action, Caller, Capability, ContentId, ErrorCode, Grant, MaviError, Page, PersonId, RequestId,
-    RoleId, SiteContext, TermId,
+    Action, Caller, Capability, ContentId, ErrorCode, FileId, Grant, MaviError, Page, PersonId,
+    RequestId, RoleId, SiteContext, TermId, ports::FileStore,
 };
 use mavi_identity::{
     ApiKeyCreated, CreateApiKey, CreatePerson, CreateRole, IdentityService, LoginInput,
     PeopleListFilter, Person, PersonRecord, ReplaceRoleGrants, Role, RoleListFilter,
     SessionCreated, SetupInput, SetupStatus, UpdatePersonStatus,
 };
+use mavi_media::{FileListFilter, FileRecord, MAX_FILE_BYTES, MediaService, UploadFileQuery};
 use mavi_runtime::{Runtime, SiteResolver};
 use mavi_settings::{
     CreateLanguage, Language, LanguageListFilter, SettingsService, SiteSettings, UpdateLanguage,
@@ -101,6 +105,7 @@ pub fn api() -> Api {
     api.extend(mavi_content::api());
     api.extend(mavi_settings::api());
     api.extend(mavi_taxonomy::api());
+    api.extend(mavi_media::api());
     api
 }
 
@@ -112,7 +117,7 @@ async fn openapi_document() -> Result<Json<Value>, HttpError> {
 }
 
 /// Builds the shared router and admits every request into a site context.
-pub fn router<R>(runtime: Runtime<R>) -> Result<Router, MaviError>
+pub fn router<R>(runtime: Runtime<R>, file_store: Arc<dyn FileStore>) -> Result<Router, MaviError>
 where
     R: SiteResolver,
 {
@@ -122,6 +127,8 @@ where
         content: ContentService,
         settings: SettingsService,
         taxonomy: TaxonomyService,
+        media: MediaService,
+        file_store,
         authorizer: CedarAuthorizer::new()?,
     };
     Ok(runtime
@@ -196,12 +203,18 @@ where
         .route("/api/v1/content/{id}/schedule", post(schedule_content::<R>))
         .route("/api/v1/content/{id}/archive", post(archive_content::<R>))
         .route("/api/v1/content/{id}/restore", post(restore_content::<R>))
+        .route("/api/v1/files", get(list_files::<R>).post(upload_file::<R>))
+        .route(
+            "/api/v1/files/{id}",
+            get(read_file::<R>).delete(delete_file::<R>),
+        )
         .route("/public/v1/content/{slug}", get(public_content::<R>))
         .layer(middleware::from_fn_with_state(
             runtime.clone(),
             authenticate::<R>,
         ))
         .layer(middleware::from_fn_with_state(runtime, admit::<R>))
+        .layer(DefaultBodyLimit::max(MAX_FILE_BYTES + 1))
         .with_state(state))
 }
 
@@ -211,6 +224,8 @@ struct HttpState<R> {
     content: ContentService,
     settings: SettingsService,
     taxonomy: TaxonomyService,
+    media: MediaService,
+    file_store: Arc<dyn FileStore>,
     authorizer: CedarAuthorizer,
 }
 
@@ -222,6 +237,8 @@ impl<R> Clone for HttpState<R> {
             content: self.content,
             settings: self.settings,
             taxonomy: self.taxonomy,
+            media: self.media,
+            file_store: Arc::clone(&self.file_store),
             authorizer: self.authorizer.clone(),
         }
     }
@@ -1026,6 +1043,118 @@ where
         .map_err(HttpError)?;
     transaction.commit().await.map_err(HttpError)?;
     Ok(Json(assignments))
+}
+
+async fn list_files<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Query(filter): Query<FileListFilter>,
+) -> Result<Json<Page<FileRecord>>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Media, Action::View),
+        "File",
+        "files_collection",
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let files = state
+        .media
+        .list(&mut transaction, &context, &filter)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(files))
+}
+
+async fn upload_file<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Query(query): Query<UploadFileQuery>,
+    body: Bytes,
+) -> Result<(StatusCode, Json<FileRecord>), HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Media, Action::Write),
+        "File",
+        "files_collection",
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let file = state
+        .media
+        .upload(
+            &mut transaction,
+            &context,
+            state.file_store.as_ref(),
+            &query.name,
+            body.to_vec(),
+        )
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok((StatusCode::CREATED, Json(file)))
+}
+
+async fn read_file<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<FileId>,
+) -> Result<Json<FileRecord>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Media, Action::View),
+        "File",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let file = state
+        .media
+        .get(&mut transaction, &context, id)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(file))
+}
+
+async fn delete_file<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<FileId>,
+) -> Result<StatusCode, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Media, Action::Delete),
+        "File",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let storage_key = state
+        .media
+        .delete(&mut transaction, &context, id)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    state
+        .file_store
+        .remove(&context, &storage_key)
+        .await
+        .map_err(HttpError)?;
+    Ok(StatusCode::NO_CONTENT)
 }
 
 async fn list_content_revisions<R>(

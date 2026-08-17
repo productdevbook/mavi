@@ -1,6 +1,7 @@
-use std::{env, net::SocketAddr};
+use std::{env, net::SocketAddr, sync::Arc};
 
 use mavi_core::{MaviError, Result, SiteId};
+use mavi_files::DirectoryFileStore;
 use mavi_http::router;
 use mavi_runtime::{FixedSiteResolver, Runtime};
 use mavi_storage::Database;
@@ -35,6 +36,8 @@ async fn main() -> Result<()> {
     database.ensure_site(site_id).await?;
 
     let runtime = Runtime::new(database, FixedSiteResolver::new(site_id));
+    let file_root = env::var("MAVI_FILES_DIR").unwrap_or_else(|_| "./mavi-files".to_owned());
+    let file_store = Arc::new(DirectoryFileStore::at(file_root));
     let address: SocketAddr = listen
         .parse()
         .map_err(|_| MaviError::validation("invalid_listen_address"))?;
@@ -43,7 +46,7 @@ async fn main() -> Result<()> {
         .map_err(|_| MaviError::Internal)?;
 
     tracing::info!(%address, %site_id, "mavi runtime listening");
-    axum::serve(listener, router(runtime)?)
+    axum::serve(listener, router(runtime, file_store)?)
         .await
         .map_err(|_| MaviError::Internal)
 }

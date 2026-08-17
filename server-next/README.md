@@ -45,6 +45,7 @@ The same Mavi application runs in both modes:
 | `mavi-flows` | validated trigger/step definitions, event fan-out, run snapshots and step history |
 | `mavi-boards` | ordered site-scoped boards, lists, cards, assignments, comments and immutable activity |
 | `mavi-analytics` | bounded privacy-preserving events, daily rollups, cursor export and retention |
+| `mavi-portable` | versioned site bundles with schema hashes, validation and atomic import strategies |
 | `mavi` | executable composition root |
 
 Domains are added only after the foundation is stable. Each domain owns its
@@ -99,6 +100,13 @@ append-only activity history. Analytics ingestion deliberately accepts no
 arbitrary properties, visitor fingerprint, IP address or query string. Raw
 events are an export surface with bounded retention, while daily aggregates are
 the stable reporting surface; both use opaque keyset cursors.
+
+Portable bundles are explicit application snapshots rather than database dumps.
+Version 1 carries site settings/languages, content type declarations, taxonomy,
+content and revision history, old slug paths and term assignments. Every bundle
+contains source-site provenance, record counts and a schema hash. Import first
+validates references and conflicts, then applies in one site-scoped transaction
+using `validate_only`, `create_only` or `upsert` semantics.
 
 Self-host stores binary objects outside PostgreSQL. Set `MAVI_FILES_DIR` to a
 persistent directory (default: `./mavi-files`); object keys are generated from

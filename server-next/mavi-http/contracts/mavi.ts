@@ -781,6 +781,19 @@ export interface Grant {
   action: string;
 }
 
+export interface ImportReceipt {
+  strategy: ImportStrategy;
+  languages: number;
+  content_types: number;
+  terms: number;
+  content: number;
+  revisions: number;
+  slug_history: number;
+  assignments: number;
+}
+
+export type ImportStrategy = "validate_only" | "create_only" | "upsert";
+
 export interface Job {
   id: string;
   kind: string;
@@ -1085,6 +1098,114 @@ export interface PersonRecord {
   role_ids: string[];
   created_at: string;
   updated_at: string;
+}
+
+export interface PortableAssignment {
+  content_id: string;
+  term_id: string;
+  assigned_at: string;
+}
+
+export interface PortableBundle {
+  manifest: PortableManifest;
+  site: PortableSite;
+  languages: PortableLanguage[];
+  content_types: PortableContentType[];
+  terms: PortableTerm[];
+  content: PortableContent[];
+  revisions: PortableRevision[];
+  slug_history: PortableSlugHistory[];
+  assignments: PortableAssignment[];
+}
+
+export interface PortableContent {
+  id: string;
+  kind: string;
+  language: string;
+  slug: string;
+  title: string;
+  excerpt: string | null;
+  body: string;
+  fields: Record<string, unknown>;
+  status: "draft" | "scheduled" | "published" | "archived";
+  scheduled_at: string | null;
+  published_at: string | null;
+  revision: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PortableContentType {
+  kind: string;
+  name: string;
+  fields: unknown[];
+}
+
+export interface PortableCounts {
+  languages: number;
+  content_types: number;
+  terms: number;
+  content: number;
+  revisions: number;
+  slug_history: number;
+  assignments: number;
+}
+
+export interface PortableImportRequest {
+  bundle: PortableBundle;
+  strategy: ImportStrategy;
+}
+
+export interface PortableLanguage {
+  tag: string;
+  name: string;
+  is_default: boolean;
+}
+
+export interface PortableManifest {
+  format: string;
+  version: number;
+  source_site_id: string;
+  exported_at: string;
+  schema_hash: string;
+  counts: PortableCounts;
+}
+
+export interface PortableRevision {
+  content_id: string;
+  revision: number;
+  kind: string;
+  language: string;
+  slug: string;
+  title: string;
+  excerpt: string | null;
+  body: string;
+  fields: Record<string, unknown>;
+  status: string;
+  scheduled_at: string | null;
+  published_at: string | null;
+  created_at: string;
+}
+
+export interface PortableSite {
+  name: string;
+  timezone: string;
+}
+
+export interface PortableSlugHistory {
+  content_id: string;
+  language: string;
+  slug: string;
+  created_at: string;
+}
+
+export interface PortableTerm {
+  id: string;
+  kind: "category" | "tag";
+  language: string;
+  slug: string;
+  name: string;
+  parent_id: string | null;
 }
 
 export interface Product {
@@ -1691,6 +1812,8 @@ export const operations = {
   "analytics.events.list": { method: "get", path: "/api/v1/analytics/events", input: { location: "query", shape: "EventListFilter" }, query: null, output: "AnalyticsEventPage", status: 200, authentication: "account_or_assistant", permission: { capability: "analytics", action: "view" } },
   "analytics.daily.list": { method: "get", path: "/api/v1/analytics/daily", input: { location: "query", shape: "DailyListFilter" }, query: null, output: "DailyAggregatePage", status: 200, authentication: "account_or_assistant", permission: { capability: "analytics", action: "view" } },
   "analytics.retention.prune": { method: "post", path: "/api/v1/analytics/prune", input: { location: "json", shape: "PruneAnalytics" }, query: null, output: "PruneReceipt", status: 200, authentication: "account_or_assistant", permission: { capability: "analytics", action: "delete" } },
+  "portable.export": { method: "get", path: "/api/v1/portable/export", input: null, query: null, output: "PortableBundle", status: 200, authentication: "account_or_assistant", permission: { capability: "portable", action: "view" } },
+  "portable.import": { method: "post", path: "/api/v1/portable/import", input: { location: "json", shape: "PortableImportRequest" }, query: null, output: "ImportReceipt", status: 200, authentication: "account_or_assistant", permission: { capability: "portable", action: "write" } },
 } as const satisfies Record<string, MaviOperation>;
 
 export type OperationName = keyof typeof operations;
@@ -1865,6 +1988,8 @@ export interface OperationArguments {
   "analytics.events.list": { path?: never; query: EventListFilter; body?: never; }
   "analytics.daily.list": { path?: never; query: DailyListFilter; body?: never; }
   "analytics.retention.prune": { path?: never; query?: never; body: PruneAnalytics; }
+  "portable.export": { path?: never; query?: never; body?: never; }
+  "portable.import": { path?: never; query?: never; body: PortableImportRequest; }
 }
 
 export interface OperationResponses {
@@ -2037,6 +2162,8 @@ export interface OperationResponses {
   "analytics.events.list": AnalyticsEventPage;
   "analytics.daily.list": DailyAggregatePage;
   "analytics.retention.prune": PruneReceipt;
+  "portable.export": PortableBundle;
+  "portable.import": ImportReceipt;
 }
 
 export interface MaviClientOptions {

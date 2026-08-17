@@ -893,6 +893,20 @@ pub struct Grant {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ImportReceipt {
+    pub strategy: ImportStrategy,
+    pub languages: i64,
+    pub content_types: i64,
+    pub terms: i64,
+    pub content: i64,
+    pub revisions: i64,
+    pub slug_history: i64,
+    pub assignments: i64,
+}
+
+pub type ImportStrategy = String;
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Job {
     pub id: String,
     pub kind: String,
@@ -1237,6 +1251,126 @@ pub struct PersonRecord {
     pub role_ids: Vec<String>,
     pub created_at: String,
     pub updated_at: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct PortableAssignment {
+    pub content_id: String,
+    pub term_id: String,
+    pub assigned_at: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct PortableBundle {
+    pub manifest: PortableManifest,
+    pub site: PortableSite,
+    pub languages: Vec<PortableLanguage>,
+    pub content_types: Vec<PortableContentType>,
+    pub terms: Vec<PortableTerm>,
+    pub content: Vec<PortableContent>,
+    pub revisions: Vec<PortableRevision>,
+    pub slug_history: Vec<PortableSlugHistory>,
+    pub assignments: Vec<PortableAssignment>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct PortableContent {
+    pub id: String,
+    pub kind: String,
+    pub language: String,
+    pub slug: String,
+    pub title: String,
+    pub excerpt: Option<String>,
+    pub body: String,
+    pub fields: Value,
+    pub status: String,
+    pub scheduled_at: Option<String>,
+    pub published_at: Option<String>,
+    pub revision: i64,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct PortableContentType {
+    pub kind: String,
+    pub name: String,
+    pub fields: Vec<Value>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct PortableCounts {
+    pub languages: i64,
+    pub content_types: i64,
+    pub terms: i64,
+    pub content: i64,
+    pub revisions: i64,
+    pub slug_history: i64,
+    pub assignments: i64,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct PortableImportRequest {
+    pub bundle: PortableBundle,
+    pub strategy: ImportStrategy,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct PortableLanguage {
+    pub tag: String,
+    pub name: String,
+    pub is_default: bool,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct PortableManifest {
+    pub format: String,
+    pub version: i64,
+    pub source_site_id: String,
+    pub exported_at: String,
+    pub schema_hash: String,
+    pub counts: PortableCounts,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct PortableRevision {
+    pub content_id: String,
+    pub revision: i64,
+    pub kind: String,
+    pub language: String,
+    pub slug: String,
+    pub title: String,
+    pub excerpt: Option<String>,
+    pub body: String,
+    pub fields: Value,
+    pub status: String,
+    pub scheduled_at: Option<String>,
+    pub published_at: Option<String>,
+    pub created_at: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct PortableSite {
+    pub name: String,
+    pub timezone: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct PortableSlugHistory {
+    pub content_id: String,
+    pub language: String,
+    pub slug: String,
+    pub created_at: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct PortableTerm {
+    pub id: String,
+    pub kind: String,
+    pub language: String,
+    pub slug: String,
+    pub name: String,
+    pub parent_id: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -1918,4 +2052,6 @@ pub const OPERATIONS: &[OperationDefinition] = &[
     OperationDefinition { name: "analytics.events.list", method: "get", path: "/api/v1/analytics/events", request: Some("EventListFilter"), request_location: Some("query"), query: None, response: Some("AnalyticsEventPage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("analytics"), action: Some("view") },
     OperationDefinition { name: "analytics.daily.list", method: "get", path: "/api/v1/analytics/daily", request: Some("DailyListFilter"), request_location: Some("query"), query: None, response: Some("DailyAggregatePage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("analytics"), action: Some("view") },
     OperationDefinition { name: "analytics.retention.prune", method: "post", path: "/api/v1/analytics/prune", request: Some("PruneAnalytics"), request_location: Some("json"), query: None, response: Some("PruneReceipt"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("analytics"), action: Some("delete") },
+    OperationDefinition { name: "portable.export", method: "get", path: "/api/v1/portable/export", request: None, request_location: None, query: None, response: Some("PortableBundle"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("portable"), action: Some("view") },
+    OperationDefinition { name: "portable.import", method: "post", path: "/api/v1/portable/import", request: Some("PortableImportRequest"), request_location: Some("json"), query: None, response: Some("ImportReceipt"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("portable"), action: Some("write") },
 ];

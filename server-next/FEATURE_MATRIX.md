@@ -30,6 +30,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Courses, modules, lessons, students, sessions, enrollments and progress enforce RLS, composite foreign keys and site-aware keys.
   - [x] Jobs, automation flows and run history enforce RLS, composite foreign keys and site-aware idempotency/order keys.
   - [x] Boards, lists, cards, comments, immutable activity and analytics tables enforce RLS and site-scoped keys.
+  - [x] Portable imports write through the target site scope and preserve composite foreign-key boundaries.
   - [ ] Remaining domain tables and a single reusable DB guard for every repository.
 - [-] Migration and schema integration tests against PostgreSQL.
   - [x] Storage, identity and settings migrations run against a non-superuser PostgreSQL role.
@@ -151,7 +152,11 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Raw event export and daily aggregates use opaque cursors; daily rollups are updated in the ingestion transaction.
   - [x] Raw and aggregate retention pruning is bounded, explicit and audit-recorded.
   - [ ] Rate limiting, scheduled retention worker, privacy documentation and panel charts.
-- [ ] Portable export/import with versioned manifests and validation.
+- [-] Portable export/import with versioned manifests and validation.
+  - [x] Explicit `mavi.portable` v1 bundles carry source-site provenance, counts and a schema hash.
+  - [x] Settings/languages, content types, taxonomy, content/revisions, slug history and assignments export/import with typed records.
+  - [x] Import validates references before writes, supports validate-only/create-only/upsert strategies and applies atomically.
+  - [ ] Media bytes, shop/courses/forms/boards/automation provider state and encrypted secret handling in later bundle versions.
 - [ ] MCP resources/tools generated from the canonical API with grant checks.
 
 ## Runtime, panel and release
@@ -177,6 +182,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Jobs lease/idempotency/dead-letter PostgreSQL isolation and automation flow snapshot/event/run HTTP coverage.
   - [x] Boards PostgreSQL scope/order/activity tests and boards HTTP cursor/permission acceptance coverage.
   - [x] Analytics PostgreSQL aggregate/retention/isolation tests and analytics HTTP ingest/export coverage.
+  - [x] Portable cross-site PostgreSQL export/import/conflict tests and HTTP contract acceptance coverage.
   - [x] Identity HTTP integration covers setup, login, cursor, 401/403 and Cedar behavior.
   - [x] Generated OpenAPI/TypeScript/Rust/MCP artifacts have stale-contract tests.
   - [ ] Remaining domain HTTP suites.

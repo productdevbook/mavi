@@ -184,6 +184,91 @@ export interface DeclareContentType {
   fields?: ContentTypeField[];
 }
 
+export type DesignAsset = string;
+
+export interface DesignBuild {
+  id: string;
+  change_id: string;
+  state: DesignBuildState;
+  error: string | null;
+  preview_path: string;
+  created_at: string;
+  completed_at: string | null;
+}
+
+export interface DesignBuildListFilter {
+  after?: string | null;
+  limit?: number;
+}
+
+export interface DesignBuildPage {
+  items: DesignBuild[];
+  next_cursor: string | null;
+}
+
+export type DesignBuildState = "queued" | "ready" | "failed";
+
+export interface DesignChange {
+  id: string;
+  name: string;
+  state: DesignState;
+  ready_build_id: string | null;
+  published_build_id: string | null;
+  last_error: string | null;
+  published_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DesignChangeListFilter {
+  after?: string | null;
+  limit?: number;
+  state?: DesignState;
+}
+
+export interface DesignChangePage {
+  items: DesignChange[];
+  next_cursor: string | null;
+}
+
+export interface DesignFile {
+  path: string;
+  contents: string;
+  bytes: number;
+  sha256: string;
+  removed: boolean;
+  updated_at: string;
+}
+
+export interface DesignFileInput {
+  path: string;
+  contents: string;
+}
+
+export interface DesignFileListFilter {
+  after?: string | null;
+  limit?: number;
+}
+
+export interface DesignFilePage {
+  items: DesignFileSummary[];
+  next_cursor: string | null;
+}
+
+export interface DesignFileQuery {
+  path: string;
+}
+
+export interface DesignFileSummary {
+  path: string;
+  bytes: number;
+  sha256: string;
+  removed: boolean;
+  updated_at: string;
+}
+
+export type DesignState = "writing" | "building" | "ready" | "failed" | "published";
+
 export type Empty = Record<string, unknown>;
 
 export interface ErrorBody {
@@ -341,6 +426,10 @@ export interface SiteSettings {
   updated_at: string;
 }
 
+export interface StartDesignChange {
+  name: string;
+}
+
 export interface Term {
   id: string;
   site_id: string;
@@ -485,6 +574,19 @@ export const operations = {
   "trash.items.list": { method: "get", path: "/api/v1/trash", input: { location: "query", shape: "TrashListFilter" }, query: null, output: "TrashPage", status: 200, authentication: "account_or_assistant", permission: { capability: "trash", action: "view" } },
   "trash.items.restore": { method: "post", path: "/api/v1/trash/{kind}/{id}/restore", input: null, query: null, output: "Empty", status: 204, authentication: "account_or_assistant", permission: { capability: "trash", action: "write" } },
   "trash.items.delete_permanently": { method: "delete", path: "/api/v1/trash/{kind}/{id}", input: null, query: null, output: "Empty", status: 204, authentication: "account_or_assistant", permission: { capability: "trash", action: "delete" } },
+  "design.changes.list": { method: "get", path: "/api/v1/design/changes", input: { location: "query", shape: "DesignChangeListFilter" }, query: null, output: "DesignChangePage", status: 200, authentication: "account_or_assistant", permission: { capability: "design", action: "view" } },
+  "design.changes.start": { method: "post", path: "/api/v1/design/changes", input: { location: "json", shape: "StartDesignChange" }, query: null, output: "DesignChange", status: 201, authentication: "account_or_assistant", permission: { capability: "design", action: "write" } },
+  "design.changes.read": { method: "get", path: "/api/v1/design/changes/{id}", input: null, query: null, output: "DesignChange", status: 200, authentication: "account_or_assistant", permission: { capability: "design", action: "view" } },
+  "design.files.list": { method: "get", path: "/api/v1/design/changes/{id}/files", input: { location: "query", shape: "DesignFileListFilter" }, query: null, output: "DesignFilePage", status: 200, authentication: "account_or_assistant", permission: { capability: "design", action: "view" } },
+  "design.files.read": { method: "get", path: "/api/v1/design/changes/{id}/file", input: null, query: "DesignFileQuery", output: "DesignFile", status: 200, authentication: "account_or_assistant", permission: { capability: "design", action: "view" } },
+  "design.files.write": { method: "put", path: "/api/v1/design/changes/{id}/file", input: { location: "json", shape: "DesignFileInput" }, query: null, output: "DesignFile", status: 200, authentication: "account_or_assistant", permission: { capability: "design", action: "write" } },
+  "design.files.remove": { method: "delete", path: "/api/v1/design/changes/{id}/file", input: null, query: "DesignFileQuery", output: "Empty", status: 204, authentication: "account_or_assistant", permission: { capability: "design", action: "delete" } },
+  "design.builds.create": { method: "post", path: "/api/v1/design/changes/{id}/builds", input: null, query: null, output: "DesignBuild", status: 201, authentication: "account_or_assistant", permission: { capability: "design", action: "write" } },
+  "design.builds.list": { method: "get", path: "/api/v1/design/changes/{id}/builds", input: { location: "query", shape: "DesignBuildListFilter" }, query: null, output: "DesignBuildPage", status: 200, authentication: "account_or_assistant", permission: { capability: "design", action: "view" } },
+  "design.changes.publish": { method: "post", path: "/api/v1/design/changes/{id}/publish", input: null, query: null, output: "DesignChange", status: 200, authentication: "account_or_assistant", permission: { capability: "publish", action: "write" } },
+  "design.changes.rollback": { method: "post", path: "/api/v1/design/changes/{id}/rollback", input: null, query: null, output: "DesignChange", status: 200, authentication: "account_or_assistant", permission: { capability: "publish", action: "write" } },
+  "design.preview.asset": { method: "get", path: "/preview/v1/design/{build_id}/{path}", input: null, query: null, output: "DesignAsset", status: 200, authentication: "public", permission: null },
+  "design.public.asset": { method: "get", path: "/public/v1/site/{path}", input: null, query: null, output: "DesignAsset", status: 200, authentication: "public", permission: null },
 } as const satisfies Record<string, MaviOperation>;
 
 export type OperationName = keyof typeof operations;
@@ -540,6 +642,19 @@ export interface OperationArguments {
   "trash.items.list": { path?: never; query: TrashListFilter; body?: never; }
   "trash.items.restore": { path: { kind: string; id: string }; query?: never; body?: never; }
   "trash.items.delete_permanently": { path: { kind: string; id: string }; query?: never; body?: never; }
+  "design.changes.list": { path?: never; query: DesignChangeListFilter; body?: never; }
+  "design.changes.start": { path?: never; query?: never; body: StartDesignChange; }
+  "design.changes.read": { path: { id: string }; query?: never; body?: never; }
+  "design.files.list": { path: { id: string }; query: DesignFileListFilter; body?: never; }
+  "design.files.read": { path: { id: string }; query: DesignFileQuery; body?: never; }
+  "design.files.write": { path: { id: string }; query?: never; body: DesignFileInput; }
+  "design.files.remove": { path: { id: string }; query: DesignFileQuery; body?: never; }
+  "design.builds.create": { path: { id: string }; query?: never; body?: never; }
+  "design.builds.list": { path: { id: string }; query: DesignBuildListFilter; body?: never; }
+  "design.changes.publish": { path: { id: string }; query?: never; body?: never; }
+  "design.changes.rollback": { path: { id: string }; query?: never; body?: never; }
+  "design.preview.asset": { path: { build_id: string; path: string }; query?: never; body?: never; }
+  "design.public.asset": { path: { path: string }; query?: never; body?: never; }
 }
 
 export interface OperationResponses {
@@ -593,6 +708,19 @@ export interface OperationResponses {
   "trash.items.list": TrashPage;
   "trash.items.restore": void;
   "trash.items.delete_permanently": void;
+  "design.changes.list": DesignChangePage;
+  "design.changes.start": DesignChange;
+  "design.changes.read": DesignChange;
+  "design.files.list": DesignFilePage;
+  "design.files.read": DesignFile;
+  "design.files.write": DesignFile;
+  "design.files.remove": void;
+  "design.builds.create": DesignBuild;
+  "design.builds.list": DesignBuildPage;
+  "design.changes.publish": DesignChange;
+  "design.changes.rollback": DesignChange;
+  "design.preview.asset": DesignAsset;
+  "design.public.asset": DesignAsset;
 }
 
 export interface MaviClientOptions {

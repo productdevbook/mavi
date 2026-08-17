@@ -1,6 +1,7 @@
 use std::{env, net::SocketAddr, sync::Arc};
 
 use mavi_core::{MaviError, Result, SiteId};
+use mavi_design::StaticBuildEngine;
 use mavi_files::DirectoryFileStore;
 use mavi_http::router;
 use mavi_runtime::{FixedSiteResolver, Runtime};
@@ -46,9 +47,12 @@ async fn main() -> Result<()> {
         .map_err(|_| MaviError::Internal)?;
 
     tracing::info!(%address, %site_id, "mavi runtime listening");
-    axum::serve(listener, router(runtime, file_store)?)
-        .await
-        .map_err(|_| MaviError::Internal)
+    axum::serve(
+        listener,
+        router(runtime, file_store, Arc::new(StaticBuildEngine))?,
+    )
+    .await
+    .map_err(|_| MaviError::Internal)
 }
 
 fn required(name: &str) -> Result<String> {

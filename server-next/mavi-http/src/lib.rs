@@ -8,9 +8,12 @@ use std::sync::Arc;
 
 use axum::{
     Extension, Router,
-    body::Bytes,
+    body::{Body, Bytes},
     extract::{DefaultBodyLimit, Json, Path, Query, State},
-    http::{HeaderValue, Request, StatusCode, header::AUTHORIZATION},
+    http::{
+        HeaderValue, Request, StatusCode,
+        header::{AUTHORIZATION, CACHE_CONTROL, CONTENT_TYPE},
+    },
     middleware::{self, Next},
     response::{IntoResponse, Response},
     routing::{delete, get, post, put},
@@ -25,8 +28,14 @@ use mavi_content::{
 };
 use mavi_contract::Api;
 use mavi_core::{
-    Action, AuditEventId, Caller, Capability, ContentId, ErrorCode, FileId, Grant, MaviError, Page,
-    PersonId, RequestId, RoleId, SiteContext, TermId, ports::FileStore,
+    Action, AuditEventId, Caller, Capability, ContentId, DesignBuildId, DesignChangeId, ErrorCode,
+    FileId, Grant, MaviError, Page, PersonId, RequestId, RoleId, SiteContext, TermId,
+    ports::FileStore,
+};
+use mavi_design::{
+    BuildEngine, DESIGN_BUILD_FAILED, DesignBuild, DesignBuildListFilter, DesignChange,
+    DesignChangeListFilter, DesignFile, DesignFileInput, DesignFileListFilter, DesignFileQuery,
+    DesignService, StartDesignChange,
 };
 use mavi_identity::{
     ApiKeyCreated, CreateApiKey, CreatePerson, CreateRole, IdentityService, LoginInput,
@@ -111,6 +120,7 @@ pub fn api() -> Api {
     api.extend(mavi_media::api());
     api.extend(mavi_audit::api());
     api.extend(mavi_trash::api());
+    api.extend(mavi_design::api());
     api
 }
 
@@ -122,7 +132,11 @@ async fn openapi_document() -> Result<Json<Value>, HttpError> {
 }
 
 /// Builds the shared router and admits every request into a site context.
-pub fn router<R>(runtime: Runtime<R>, file_store: Arc<dyn FileStore>) -> Result<Router, MaviError>
+pub fn router<R>(
+    runtime: Runtime<R>,
+    file_store: Arc<dyn FileStore>,
+    builder: Arc<dyn BuildEngine>,
+) -> Result<Router, MaviError>
 where
     R: SiteResolver,
 {
@@ -135,7 +149,9 @@ where
         media: MediaService,
         audit: AuditService,
         trash: TrashService,
+        design: DesignService,
         file_store,
+        builder,
         authorizer: CedarAuthorizer::new()?,
     };
     let application = runtime
@@ -161,6 +177,7 @@ where
         .merge(content_routes::<R>())
         .merge(media_routes::<R>())
         .merge(audit_trash_routes::<R>())
+        .merge(design_routes::<R>())
 }
 
 fn identity_routes<R>() -> Router<HttpState<R>>
@@ -284,6 +301,45 @@ where
         )
 }
 
+fn design_routes<R>() -> Router<HttpState<R>>
+where
+    R: SiteResolver,
+{
+    Router::new()
+        .route(
+            "/api/v1/design/changes",
+            get(list_design_changes::<R>).post(start_design_change::<R>),
+        )
+        .route("/api/v1/design/changes/{id}", get(read_design_change::<R>))
+        .route(
+            "/api/v1/design/changes/{id}/files",
+            get(list_design_files::<R>),
+        )
+        .route(
+            "/api/v1/design/changes/{id}/file",
+            get(read_design_file::<R>)
+                .put(write_design_file::<R>)
+                .delete(remove_design_file::<R>),
+        )
+        .route(
+            "/api/v1/design/changes/{id}/builds",
+            get(list_design_builds::<R>).post(create_design_build::<R>),
+        )
+        .route(
+            "/api/v1/design/changes/{id}/publish",
+            post(publish_design_change::<R>),
+        )
+        .route(
+            "/api/v1/design/changes/{id}/rollback",
+            post(rollback_design_change::<R>),
+        )
+        .route(
+            "/preview/v1/design/{build_id}/{*path}",
+            get(preview_design_asset::<R>),
+        )
+        .route("/public/v1/site/{*path}", get(public_design_asset::<R>))
+}
+
 struct HttpState<R> {
     runtime: Runtime<R>,
     identity: IdentityService,
@@ -293,7 +349,9 @@ struct HttpState<R> {
     media: MediaService,
     audit: AuditService,
     trash: TrashService,
+    design: DesignService,
     file_store: Arc<dyn FileStore>,
+    builder: Arc<dyn BuildEngine>,
     authorizer: CedarAuthorizer,
 }
 
@@ -308,7 +366,9 @@ impl<R> Clone for HttpState<R> {
             media: self.media,
             audit: self.audit,
             trash: self.trash,
+            design: self.design,
             file_store: Arc::clone(&self.file_store),
+            builder: Arc::clone(&self.builder),
             authorizer: self.authorizer.clone(),
         }
     }
@@ -1721,6 +1781,412 @@ where
         .map_err(HttpError)?;
     transaction.commit().await.map_err(HttpError)?;
     Ok(Json(entry))
+}
+
+async fn list_design_changes<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Query(filter): Query<DesignChangeListFilter>,
+) -> Result<Json<Page<DesignChange>>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Design, Action::View),
+        "DesignChange",
+        "design_changes",
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let changes = state
+        .design
+        .list_changes(&mut transaction, &context, &filter)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(changes))
+}
+
+async fn start_design_change<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Json(input): Json<StartDesignChange>,
+) -> Result<(StatusCode, Json<DesignChange>), HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Design, Action::Write),
+        "DesignChange",
+        "design_changes",
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let change = state
+        .design
+        .start_change(&mut transaction, &context, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok((StatusCode::CREATED, Json(change)))
+}
+
+async fn read_design_change<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<DesignChangeId>,
+) -> Result<Json<DesignChange>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Design, Action::View),
+        "DesignChange",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let change = state
+        .design
+        .get_change(&mut transaction, &context, id)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(change))
+}
+
+async fn list_design_files<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(change_id): Path<DesignChangeId>,
+    Query(filter): Query<DesignFileListFilter>,
+) -> Result<Json<Page<mavi_design::DesignFileSummary>>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Design, Action::View),
+        "DesignChange",
+        change_id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let files = state
+        .design
+        .list_files(&mut transaction, &context, change_id, &filter)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(files))
+}
+
+async fn read_design_file<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(change_id): Path<DesignChangeId>,
+    Query(query): Query<DesignFileQuery>,
+) -> Result<Json<DesignFile>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Design, Action::View),
+        "DesignChange",
+        change_id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let file = state
+        .design
+        .read_file(&mut transaction, &context, change_id, &query.path)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(file))
+}
+
+async fn write_design_file<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(change_id): Path<DesignChangeId>,
+    Json(input): Json<DesignFileInput>,
+) -> Result<Json<DesignFile>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Design, Action::Write),
+        "DesignChange",
+        change_id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let file = state
+        .design
+        .write_file(&mut transaction, &context, change_id, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(file))
+}
+
+async fn remove_design_file<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(change_id): Path<DesignChangeId>,
+    Query(query): Query<DesignFileQuery>,
+) -> Result<StatusCode, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Design, Action::Delete),
+        "DesignChange",
+        change_id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    state
+        .design
+        .remove_file(&mut transaction, &context, change_id, &query.path)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+async fn list_design_builds<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(change_id): Path<DesignChangeId>,
+    Query(filter): Query<DesignBuildListFilter>,
+) -> Result<Json<Page<DesignBuild>>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Design, Action::View),
+        "DesignChange",
+        change_id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let builds = state
+        .design
+        .list_builds(&mut transaction, &context, change_id, &filter)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(builds))
+}
+
+async fn create_design_build<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(change_id): Path<DesignChangeId>,
+) -> Result<(StatusCode, Json<DesignBuild>), HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Design, Action::Write),
+        "DesignChange",
+        change_id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let request = state
+        .design
+        .start_build(&mut transaction, &context, change_id)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+
+    let build_id = request.build.id;
+    let artifacts = match state
+        .builder
+        .build(&context, build_id, &request.source)
+        .await
+    {
+        Ok(artifacts) => match state
+            .design
+            .persist_artifacts(&context, state.file_store.as_ref(), build_id, artifacts)
+            .await
+        {
+            Ok(stored) => stored,
+            Err(error) => {
+                return finish_failed_design_build(&state, &context, build_id, &error).await;
+            }
+        },
+        Err(error) => {
+            return finish_failed_design_build(&state, &context, build_id, &error).await;
+        }
+    };
+
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let build = match state
+        .design
+        .finish_build_success(&mut transaction, &context, build_id, &artifacts)
+        .await
+    {
+        Ok(build) => build,
+        Err(error) => {
+            for artifact in &artifacts {
+                let _ = state
+                    .file_store
+                    .remove(&context, &artifact.storage_key)
+                    .await;
+            }
+            return Err(HttpError(error));
+        }
+    };
+    transaction.commit().await.map_err(HttpError)?;
+    Ok((StatusCode::CREATED, Json(build)))
+}
+
+async fn finish_failed_design_build<R>(
+    state: &HttpState<R>,
+    context: &SiteContext,
+    build_id: DesignBuildId,
+    error: &MaviError,
+) -> Result<(StatusCode, Json<DesignBuild>), HttpError>
+where
+    R: SiteResolver,
+{
+    let error_code = design_build_error_code(error);
+    let mut transaction = state.runtime.begin(context).await.map_err(HttpError)?;
+    let build = state
+        .design
+        .finish_build_failed(&mut transaction, context, build_id, &error_code)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok((StatusCode::CREATED, Json(build)))
+}
+
+async fn publish_design_change<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(change_id): Path<DesignChangeId>,
+) -> Result<Json<DesignChange>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Publish, Action::Write),
+        "DesignChange",
+        change_id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let change = state
+        .design
+        .publish(&mut transaction, &context, change_id)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(change))
+}
+
+async fn rollback_design_change<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(change_id): Path<DesignChangeId>,
+) -> Result<Json<DesignChange>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Publish, Action::Write),
+        "DesignChange",
+        change_id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let change = state
+        .design
+        .rollback(&mut transaction, &context, change_id)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(change))
+}
+
+async fn preview_design_asset<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path((build_id, path)): Path<(DesignBuildId, String)>,
+) -> Result<Response, HttpError>
+where
+    R: SiteResolver,
+{
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let artifact = state
+        .design
+        .preview_artifact(&mut transaction, &context, build_id, &path)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    let bytes = state
+        .file_store
+        .get(&context, &artifact.storage_key)
+        .await
+        .map_err(HttpError)?;
+    asset_response(artifact.mime, bytes)
+}
+
+async fn public_design_asset<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(path): Path<String>,
+) -> Result<Response, HttpError>
+where
+    R: SiteResolver,
+{
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let artifact = state
+        .design
+        .live_artifact(&mut transaction, &context, &path)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    let bytes = state
+        .file_store
+        .get(&context, &artifact.storage_key)
+        .await
+        .map_err(HttpError)?;
+    asset_response(artifact.mime, bytes)
+}
+
+fn asset_response(mime: String, bytes: Vec<u8>) -> Result<Response, HttpError> {
+    Response::builder()
+        .status(StatusCode::OK)
+        .header(CONTENT_TYPE, mime)
+        .header(CACHE_CONTROL, "public, max-age=31536000, immutable")
+        .body(Body::from(bytes))
+        .map_err(|_| HttpError(MaviError::Internal))
+}
+
+fn design_build_error_code(error: &MaviError) -> String {
+    match error {
+        MaviError::Validation { code, .. } | MaviError::Conflict { code } => code.clone(),
+        MaviError::Unauthenticated
+        | MaviError::Forbidden
+        | MaviError::NotFound { .. }
+        | MaviError::RateLimited
+        | MaviError::Internal => DESIGN_BUILD_FAILED.to_owned(),
+    }
 }
 
 fn require_grant<R>(

@@ -23,6 +23,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] OpenAPI snapshot, typed TypeScript/Rust client artifacts and MCP tool generation.
 - [-] RLS/DB guard, composite foreign keys and site-aware unique constraints across every domain table.
   - [x] Site catalog, content, identity, audit and settings tables enforce RLS and site-aware keys.
+  - [x] Design changes, files, builds and artifacts enforce RLS, composite foreign keys and site-aware keys.
   - [ ] Remaining domain tables and a single reusable DB guard for every repository.
 - [-] Migration and schema integration tests against PostgreSQL.
   - [x] Storage, identity and settings migrations run against a non-superuser PostgreSQL role.
@@ -80,7 +81,13 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Shared cursor list, typed content/file/term restore and permanent-delete API.
   - [x] Media trash retains bytes; permanent deletion queues and confirms adapter cleanup.
   - [ ] Forms, shop, courses, boards and flow-specific trash kinds plus scheduled retention worker.
-- [ ] Design files, preview builds, publish, rollback and public serving.
+- [-] Design files, preview builds, publish, rollback and public serving.
+  - [x] Site-scoped design changes copy the current published source and expose only typed source-file APIs.
+  - [x] Opaque keyset cursors are used for changes, files and builds; `page`/`offset` are not public inputs.
+  - [x] Static self-host builds publish only `public/` files and require `public/index.html`; `src/` is never served.
+  - [x] Ready builds are immutable; publish and rollback atomically switch the live build pointer and write audit receipts.
+  - [x] Preview/live serving is routed through site-scoped `FileStore` metadata and Cedar protects management APIs.
+  - [ ] Sandboxed cloud compiler adapter, panel design screens and asynchronous build worker.
 - [ ] Forms, submissions, exports, spam controls and retention policy.
 - [ ] Mail templates, delivery queue, retries and provider adapters.
 
@@ -115,6 +122,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Taxonomy tree, assignment, RLS and HTTP permission/cursor tests.
   - [x] Audit receipt PostgreSQL isolation/cursor tests and audit/trash HTTP acceptance tests.
   - [x] Trash restore/permanent-delete PostgreSQL tests, including media cleanup receipts.
+  - [x] Design source/build PostgreSQL isolation, immutable artifact, publish/rollback and HTTP serving tests.
   - [x] Identity HTTP integration covers setup, login, cursor, 401/403 and Cedar behavior.
   - [x] Generated OpenAPI/TypeScript/Rust/MCP artifacts have stale-contract tests.
   - [ ] Remaining domain HTTP suites.

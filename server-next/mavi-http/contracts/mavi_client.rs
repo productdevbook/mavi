@@ -209,6 +209,103 @@ pub struct DeclareContentType {
     pub fields: Option<Vec<ContentTypeField>>,
 }
 
+pub type DesignAsset = String;
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct DesignBuild {
+    pub id: String,
+    pub change_id: String,
+    pub state: DesignBuildState,
+    pub error: Option<String>,
+    pub preview_path: String,
+    pub created_at: String,
+    pub completed_at: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct DesignBuildListFilter {
+    pub after: Option<String>,
+    pub limit: Option<i64>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct DesignBuildPage {
+    pub items: Vec<DesignBuild>,
+    pub next_cursor: Option<String>,
+}
+
+pub type DesignBuildState = String;
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct DesignChange {
+    pub id: String,
+    pub name: String,
+    pub state: DesignState,
+    pub ready_build_id: Option<String>,
+    pub published_build_id: Option<String>,
+    pub last_error: Option<String>,
+    pub published_at: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct DesignChangeListFilter {
+    pub after: Option<String>,
+    pub limit: Option<i64>,
+    pub state: Option<DesignState>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct DesignChangePage {
+    pub items: Vec<DesignChange>,
+    pub next_cursor: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct DesignFile {
+    pub path: String,
+    pub contents: String,
+    pub bytes: i64,
+    pub sha256: String,
+    pub removed: bool,
+    pub updated_at: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct DesignFileInput {
+    pub path: String,
+    pub contents: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct DesignFileListFilter {
+    pub after: Option<String>,
+    pub limit: Option<i64>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct DesignFilePage {
+    pub items: Vec<DesignFileSummary>,
+    pub next_cursor: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct DesignFileQuery {
+    pub path: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct DesignFileSummary {
+    pub path: String,
+    pub bytes: i64,
+    pub sha256: String,
+    pub removed: bool,
+    pub updated_at: String,
+}
+
+pub type DesignState = String;
+
 pub type Empty = Value;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -391,6 +488,11 @@ pub struct SiteSettings {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct StartDesignChange {
+    pub name: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Term {
     pub id: String,
     pub site_id: String,
@@ -550,4 +652,17 @@ pub const OPERATIONS: &[OperationDefinition] = &[
     OperationDefinition { name: "trash.items.list", method: "get", path: "/api/v1/trash", request: Some("TrashListFilter"), request_location: Some("query"), query: None, response: Some("TrashPage"), status: 200, authentication: "account_or_assistant", capability: Some("trash"), action: Some("view") },
     OperationDefinition { name: "trash.items.restore", method: "post", path: "/api/v1/trash/{kind}/{id}/restore", request: None, request_location: None, query: None, response: Some("Empty"), status: 204, authentication: "account_or_assistant", capability: Some("trash"), action: Some("write") },
     OperationDefinition { name: "trash.items.delete_permanently", method: "delete", path: "/api/v1/trash/{kind}/{id}", request: None, request_location: None, query: None, response: Some("Empty"), status: 204, authentication: "account_or_assistant", capability: Some("trash"), action: Some("delete") },
+    OperationDefinition { name: "design.changes.list", method: "get", path: "/api/v1/design/changes", request: Some("DesignChangeListFilter"), request_location: Some("query"), query: None, response: Some("DesignChangePage"), status: 200, authentication: "account_or_assistant", capability: Some("design"), action: Some("view") },
+    OperationDefinition { name: "design.changes.start", method: "post", path: "/api/v1/design/changes", request: Some("StartDesignChange"), request_location: Some("json"), query: None, response: Some("DesignChange"), status: 201, authentication: "account_or_assistant", capability: Some("design"), action: Some("write") },
+    OperationDefinition { name: "design.changes.read", method: "get", path: "/api/v1/design/changes/{id}", request: None, request_location: None, query: None, response: Some("DesignChange"), status: 200, authentication: "account_or_assistant", capability: Some("design"), action: Some("view") },
+    OperationDefinition { name: "design.files.list", method: "get", path: "/api/v1/design/changes/{id}/files", request: Some("DesignFileListFilter"), request_location: Some("query"), query: None, response: Some("DesignFilePage"), status: 200, authentication: "account_or_assistant", capability: Some("design"), action: Some("view") },
+    OperationDefinition { name: "design.files.read", method: "get", path: "/api/v1/design/changes/{id}/file", request: None, request_location: None, query: Some("DesignFileQuery"), response: Some("DesignFile"), status: 200, authentication: "account_or_assistant", capability: Some("design"), action: Some("view") },
+    OperationDefinition { name: "design.files.write", method: "put", path: "/api/v1/design/changes/{id}/file", request: Some("DesignFileInput"), request_location: Some("json"), query: None, response: Some("DesignFile"), status: 200, authentication: "account_or_assistant", capability: Some("design"), action: Some("write") },
+    OperationDefinition { name: "design.files.remove", method: "delete", path: "/api/v1/design/changes/{id}/file", request: None, request_location: None, query: Some("DesignFileQuery"), response: Some("Empty"), status: 204, authentication: "account_or_assistant", capability: Some("design"), action: Some("delete") },
+    OperationDefinition { name: "design.builds.create", method: "post", path: "/api/v1/design/changes/{id}/builds", request: None, request_location: None, query: None, response: Some("DesignBuild"), status: 201, authentication: "account_or_assistant", capability: Some("design"), action: Some("write") },
+    OperationDefinition { name: "design.builds.list", method: "get", path: "/api/v1/design/changes/{id}/builds", request: Some("DesignBuildListFilter"), request_location: Some("query"), query: None, response: Some("DesignBuildPage"), status: 200, authentication: "account_or_assistant", capability: Some("design"), action: Some("view") },
+    OperationDefinition { name: "design.changes.publish", method: "post", path: "/api/v1/design/changes/{id}/publish", request: None, request_location: None, query: None, response: Some("DesignChange"), status: 200, authentication: "account_or_assistant", capability: Some("publish"), action: Some("write") },
+    OperationDefinition { name: "design.changes.rollback", method: "post", path: "/api/v1/design/changes/{id}/rollback", request: None, request_location: None, query: None, response: Some("DesignChange"), status: 200, authentication: "account_or_assistant", capability: Some("publish"), action: Some("write") },
+    OperationDefinition { name: "design.preview.asset", method: "get", path: "/preview/v1/design/{build_id}/{path}", request: None, request_location: None, query: None, response: Some("DesignAsset"), status: 200, authentication: "public", capability: None, action: None },
+    OperationDefinition { name: "design.public.asset", method: "get", path: "/public/v1/site/{path}", request: None, request_location: None, query: None, response: Some("DesignAsset"), status: 200, authentication: "public", capability: None, action: None },
 ];

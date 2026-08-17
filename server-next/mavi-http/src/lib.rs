@@ -18,6 +18,7 @@ use mavi_content::{
     Content, ContentListFilter, ContentService, CreateContent, PublicationInput, ScheduleContent,
     UpdateContent,
 };
+use mavi_contract::Api;
 use mavi_core::{
     Action, Caller, Capability, ContentId, ErrorCode, Grant, MaviError, Page, PersonId, RequestId,
     RoleId, SiteContext,
@@ -78,6 +79,17 @@ impl IntoResponse for HttpError {
         let status = status_code(self.0.code());
         (status, axum::Json(ErrorEnvelope::from(self.0))).into_response()
     }
+}
+
+/// Returns the complete site API catalog used by documentation and clients.
+///
+/// Each domain owns its endpoint declarations; the HTTP composition root is
+/// the only place that combines them into the application contract.
+#[must_use]
+pub fn api() -> Api {
+    let mut endpoints = mavi_identity::api().endpoints;
+    endpoints.extend(mavi_content::api().endpoints);
+    Api::new(endpoints)
 }
 
 /// Builds the shared router and admits every request into a site context.
@@ -910,6 +922,24 @@ mod tests {
         assert_eq!(
             authorization_token(&request).expect("bearer"),
             Some("token")
+        );
+    }
+
+    #[test]
+    fn application_api_catalog_combines_domain_contracts() {
+        let catalog = api();
+        catalog.validate().expect("application API contract");
+        assert!(
+            catalog
+                .endpoints
+                .iter()
+                .any(|endpoint| endpoint.operation_id == "people.list")
+        );
+        assert!(
+            catalog
+                .endpoints
+                .iter()
+                .any(|endpoint| endpoint.operation_id == "content.list")
         );
     }
 }

@@ -11,6 +11,7 @@ axum.workspace = true
 chrono.workspace = true
 mavi-authz = { path = "../mavi-authz" }
 mavi-content = { path = "../mavi-content" }
+mavi-contract = { path = "../mavi-contract" }
 mavi-core = { path = "../mavi-core" }
 mavi-identity = { path = "../mavi-identity" }
 mavi-runtime = { path = "../mavi-runtime" }
@@ -18,3 +19,9 @@ serde.workspace = true
 
 [lints]
 workspace = true
+
+[dev-dependencies]
+mavi-storage = { path = "../mavi-storage" }
+serde_json.workspace = true
+tokio.workspace = true
+tower.workspace = true

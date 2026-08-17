@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::{MaviError, Result};
 
@@ -24,7 +24,30 @@ impl Cursor {
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct PageRequest {
     pub after: Option<Cursor>,
+    #[serde(default, deserialize_with = "deserialize_optional_limit")]
     pub limit: Option<u16>,
+}
+
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum LimitValue {
+    Number(u16),
+    String(String),
+}
+
+fn deserialize_optional_limit<'de, D>(deserializer: D) -> std::result::Result<Option<u16>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value = Option::<LimitValue>::deserialize(deserializer)?;
+    value
+        .map(|value| match value {
+            LimitValue::Number(limit) => Ok(limit),
+            LimitValue::String(limit) => limit
+                .parse::<u16>()
+                .map_err(|_| serde::de::Error::custom("limit must be an unsigned 16-bit integer")),
+        })
+        .transpose()
 }
 
 impl PageRequest {

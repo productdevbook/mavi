@@ -120,7 +120,8 @@ impl CedarAuthorizer {
                 person_id, grants, ..
             } => (person_id.to_string(), grants.clone()),
             Caller::Assistant { key_id, grants, .. } => (key_id.to_string(), grants.clone()),
-            Caller::Public | Caller::Student { .. } => return Err(MaviError::Forbidden),
+            Caller::Public => return Err(MaviError::Unauthenticated),
+            Caller::Student { .. } => return Err(MaviError::Forbidden),
         };
 
         self.authorize(&AuthorizationRequest {
@@ -186,5 +187,22 @@ mod tests {
         let mut cross_site = request(Grants::new([needed]), needed);
         cross_site.resource_site_id = SiteId::new();
         assert!(authorizer.authorize(&cross_site).is_err());
+    }
+
+    #[test]
+    fn public_permissioned_requests_are_unauthenticated() {
+        let authorizer = CedarAuthorizer::new().expect("policy");
+        let context = SiteContext::public(SiteId::new());
+
+        assert!(matches!(
+            authorizer.authorize_context(
+                &context,
+                Grant::new(Capability::Content, Action::View),
+                "Content",
+                "collection",
+                context.site_id,
+            ),
+            Err(MaviError::Unauthenticated)
+        ));
     }
 }

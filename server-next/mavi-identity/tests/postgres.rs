@@ -49,6 +49,19 @@ async fn identity_people_and_roles_are_site_scoped_and_audited() {
         .expect("setup");
     setup_tx.commit().await.expect("setup commit");
 
+    let mut owner_lookup_tx = database
+        .begin(&public_context)
+        .await
+        .expect("owner lookup scope");
+    assert_eq!(
+        service
+            .owner_email(&mut owner_lookup_tx, &public_context)
+            .await
+            .expect("owner email"),
+        Some("owner@example.com".to_owned())
+    );
+    owner_lookup_tx.commit().await.expect("owner lookup commit");
+
     let owner_context = SiteContext::with_caller(
         site_id,
         Caller::Account {

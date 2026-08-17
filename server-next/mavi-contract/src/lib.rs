@@ -183,9 +183,14 @@ impl Endpoint {
     }
 
     #[must_use]
-    pub const fn public_mutation(mut self) -> Self {
+    pub const fn public_mutation(self) -> Self {
+        self.public_changes(false)
+    }
+
+    #[must_use]
+    pub const fn public_changes(mut self, idempotent: bool) -> Self {
         self.authentication = Authentication::Public;
-        self.mutation = Mutation::Public { idempotent: false };
+        self.mutation = Mutation::Public { idempotent };
         self
     }
 

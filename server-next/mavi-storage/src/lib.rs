@@ -176,5 +176,16 @@ mod tests {
         ));
         assert!(mail_migration.contains("mail_delivery_attempts"));
         assert!(mail_migration.contains("force row level security"));
+
+        let shop_migration = include_str!("../migrations/0015_shop.sql");
+        assert!(shop_migration.contains("primary key (site_id, id)"));
+        assert!(shop_migration.contains("shop_products_site_slug_active"));
+        assert!(shop_migration.contains("shop_orders_site_email_idempotency"));
+        assert!(
+            shop_migration
+                .contains("foreign key (site_id, order_id) references shop_orders(site_id, id)")
+        );
+        assert!(shop_migration.contains("shop_stock_holds_site_expired"));
+        assert!(shop_migration.contains("force row level security"));
     }
 }

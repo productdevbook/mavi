@@ -39,6 +39,7 @@ The same Mavi application runs in both modes:
 | `mavi-design` | site-owned source files, immutable preview builds, publish/rollback and public asset metadata |
 | `mavi-forms` | validated site form declarations, public submissions and cursor-based inbox management |
 | `mavi-mail` | strict templates, subscriber lists, unsubscribe tokens and provider-neutral outbox delivery |
+| `mavi-shop` | site-scoped products, money, stock holds, coupons, checkout and order state transitions |
 | `mavi` | executable composition root |
 
 Domains are added only after the foundation is stable. Each domain owns its
@@ -66,7 +67,10 @@ Public submission delivery is intentionally behind the existing `Mailer` port;
 provider selection, retries and an outbox worker belong to the mail/automation
 slice and are not performed inline in the public request. Mail templates render
 strict `{{variable}}` placeholders, subscriber tokens are stored only as hashes,
-and delivery workers claim short leases before calling a provider adapter.
+and delivery workers claim short leases before calling a provider adapter. Shop
+checkout uses site-local order numbers, immutable line snapshots and
+email-scoped idempotency keys; public product responses never reveal stock
+counts.
 
 Self-host stores binary objects outside PostgreSQL. Set `MAVI_FILES_DIR` to a
 persistent directory (default: `./mavi-files`); object keys are generated from

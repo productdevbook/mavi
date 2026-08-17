@@ -43,6 +43,8 @@ The same Mavi application runs in both modes:
 | `mavi-courses` | course authoring, ordered modules/lessons, isolated student sessions, enrollment, progress and protected lesson media |
 | `mavi-jobs` | site-scoped durable queue leases, idempotency keys, retry backoff and dead-letter state |
 | `mavi-flows` | validated trigger/step definitions, event fan-out, run snapshots and step history |
+| `mavi-boards` | ordered site-scoped boards, lists, cards, assignments, comments and immutable activity |
+| `mavi-analytics` | bounded privacy-preserving events, daily rollups, cursor export and retention |
 | `mavi` | executable composition root |
 
 Domains are added only after the foundation is stable. Each domain owns its
@@ -89,6 +91,14 @@ while that lease is still theirs. Repeated source events use an idempotency key,
 run definitions are snapshotted, and exhausted attempts remain visible as dead
 letters. The canonical automation and job management APIs expose only opaque
 keyset cursors.
+
+Boards use integer positions and transactional reindexing for drag-and-drop;
+floating-point midpoint positions are not part of the new contract. Card moves,
+assignments and comments are site-scoped and write both an audit receipt and
+append-only activity history. Analytics ingestion deliberately accepts no
+arbitrary properties, visitor fingerprint, IP address or query string. Raw
+events are an export surface with bounded retention, while daily aggregates are
+the stable reporting surface; both use opaque keyset cursors.
 
 Self-host stores binary objects outside PostgreSQL. Set `MAVI_FILES_DIR` to a
 persistent directory (default: `./mavi-files`); object keys are generated from

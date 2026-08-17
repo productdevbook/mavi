@@ -19,8 +19,17 @@ use axum::{
     routing::{delete, get, patch, post, put},
 };
 use chrono::Utc;
+use mavi_analytics::{
+    AnalyticsEvent, AnalyticsEventBatch, AnalyticsReceipt, AnalyticsService, DailyAggregate,
+    DailyListFilter, EventListFilter, PruneAnalytics, PruneReceipt,
+};
 use mavi_audit::{AuditEvent, AuditListFilter, AuditService};
 use mavi_authz::CedarAuthorizer;
+use mavi_boards::{
+    Activity, ActivityPageFilter, AssignCard, Board, BoardList, BoardListFilter, BoardService,
+    Card, CardPageFilter, Comment, CommentPageFilter, CreateBoard, CreateCard, CreateComment,
+    CreateList, MoveCard, ReorderLists, UpdateBoard, UpdateCard, UpdateComment,
+};
 use mavi_content::{
     Content, ContentListFilter, ContentRevision, ContentRevisionListFilter, ContentService,
     ContentType, ContentTypeListFilter, CreateContent, DeclareContentType, PublicationInput,
@@ -28,11 +37,11 @@ use mavi_content::{
 };
 use mavi_contract::Api;
 use mavi_core::{
-    Action, AuditEventId, Caller, Capability, ContentId, CouponId, CourseId, DesignBuildId,
-    DesignChangeId, EnrollmentId, ErrorCode, FileId, FlowId, FlowRunId, FormSubmissionId, Grant,
-    JobId, LessonId, MailDeliveryId, MailListId, MailReaderId, MailTemplateId, MaviError, ModuleId,
-    OrderId, Page, PersonId, ProductId, RequestId, RoleId, SiteContext, StudentId, TermId,
-    ports::FileStore,
+    Action, AuditEventId, BoardCardId, BoardCommentId, BoardId, BoardListId, Caller, Capability,
+    ContentId, CouponId, CourseId, DesignBuildId, DesignChangeId, EnrollmentId, ErrorCode, FileId,
+    FlowId, FlowRunId, FormSubmissionId, Grant, JobId, LessonId, MailDeliveryId, MailListId,
+    MailReaderId, MailTemplateId, MaviError, ModuleId, OrderId, Page, PersonId, ProductId,
+    RequestId, RoleId, SiteContext, StudentId, TermId, ports::FileStore,
 };
 use mavi_courses::{
     Course, CourseListFilter, CourseSummary, CoursesService, CreateCourse, CreateLesson,
@@ -157,6 +166,8 @@ pub fn api() -> Api {
     api.extend(mavi_courses::api());
     api.extend(mavi_jobs::api());
     api.extend(mavi_flows::api());
+    api.extend(mavi_boards::api());
+    api.extend(mavi_analytics::api());
     api
 }
 
@@ -192,6 +203,8 @@ where
         courses: CoursesService,
         jobs: JobsService::new(mavi_flows::job_kinds()),
         flows: FlowService,
+        boards: BoardService,
+        analytics: AnalyticsService,
         file_store,
         builder,
         authorizer: CedarAuthorizer::new()?,
@@ -225,6 +238,8 @@ where
         .merge(course_routes::<R>())
         .merge(shop_routes::<R>())
         .merge(automation_routes::<R>())
+        .merge(board_routes::<R>())
+        .merge(analytics_routes::<R>())
 }
 
 fn identity_routes<R>() -> Router<HttpState<R>>
@@ -626,6 +641,597 @@ where
         .route("/api/v1/automation/runs/{id}", get(read_flow_run::<R>))
 }
 
+fn board_routes<R>() -> Router<HttpState<R>>
+where
+    R: SiteResolver,
+{
+    Router::new()
+        .route(
+            "/api/v1/boards",
+            get(list_boards::<R>).post(create_board::<R>),
+        )
+        .route(
+            "/api/v1/boards/{id}",
+            get(read_board::<R>)
+                .patch(update_board::<R>)
+                .delete(delete_board::<R>),
+        )
+        .route(
+            "/api/v1/boards/{id}/lists",
+            get(list_board_lists::<R>).post(create_board_list::<R>),
+        )
+        .route(
+            "/api/v1/boards/{id}/lists/order",
+            put(reorder_board_lists::<R>),
+        )
+        .route(
+            "/api/v1/boards/lists/{id}/cards",
+            get(list_board_cards::<R>).post(create_board_card::<R>),
+        )
+        .route(
+            "/api/v1/boards/cards/{id}",
+            get(read_board_card::<R>).patch(update_board_card::<R>),
+        )
+        .route("/api/v1/boards/cards/{id}/move", post(move_board_card::<R>))
+        .route(
+            "/api/v1/boards/cards/{id}/assign",
+            post(assign_board_card::<R>),
+        )
+        .route(
+            "/api/v1/boards/cards/{id}/comments",
+            get(list_board_comments::<R>).post(create_board_comment::<R>),
+        )
+        .route(
+            "/api/v1/boards/comments/{id}",
+            patch(update_board_comment::<R>).delete(delete_board_comment::<R>),
+        )
+        .route(
+            "/api/v1/boards/{id}/activity",
+            get(list_board_activity::<R>),
+        )
+}
+
+fn analytics_routes<R>() -> Router<HttpState<R>>
+where
+    R: SiteResolver,
+{
+    Router::new()
+        .route(
+            "/public/v1/analytics/events",
+            post(record_analytics_events::<R>),
+        )
+        .route("/api/v1/analytics/events", get(list_analytics_events::<R>))
+        .route("/api/v1/analytics/daily", get(list_analytics_daily::<R>))
+        .route("/api/v1/analytics/prune", post(prune_analytics::<R>))
+}
+
+async fn list_boards<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Query(filter): Query<BoardListFilter>,
+) -> Result<Json<Page<Board>>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_boards_grant(&state, &context, Action::View, "Board", "board_collection")?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let page = state
+        .boards
+        .list_boards(&mut transaction, &filter)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(page))
+}
+
+async fn create_board<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Json(input): Json<CreateBoard>,
+) -> Result<(StatusCode, Json<Board>), HttpError>
+where
+    R: SiteResolver,
+{
+    require_boards_grant(&state, &context, Action::Write, "Board", "board_collection")?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let board = state
+        .boards
+        .create_board(&mut transaction, &context, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok((StatusCode::CREATED, Json(board)))
+}
+
+async fn read_board<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<BoardId>,
+) -> Result<Json<Board>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_boards_grant(&state, &context, Action::View, "Board", id.to_string())?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let board = state
+        .boards
+        .get_board(&mut transaction, id)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(board))
+}
+
+async fn update_board<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<BoardId>,
+    Json(input): Json<UpdateBoard>,
+) -> Result<Json<Board>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_boards_grant(&state, &context, Action::Write, "Board", id.to_string())?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let board = state
+        .boards
+        .update_board(&mut transaction, &context, id, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(board))
+}
+
+async fn delete_board<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<BoardId>,
+) -> Result<StatusCode, HttpError>
+where
+    R: SiteResolver,
+{
+    require_boards_grant(&state, &context, Action::Delete, "Board", id.to_string())?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    state
+        .boards
+        .delete_board(&mut transaction, &context, id)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+async fn list_board_lists<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(board_id): Path<BoardId>,
+    Query(filter): Query<mavi_boards::ListPageFilter>,
+) -> Result<Json<Page<BoardList>>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_boards_grant(
+        &state,
+        &context,
+        Action::View,
+        "Board",
+        board_id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let page = state
+        .boards
+        .list_lists(&mut transaction, board_id, &filter)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(page))
+}
+
+async fn create_board_list<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(board_id): Path<BoardId>,
+    Json(input): Json<CreateList>,
+) -> Result<(StatusCode, Json<BoardList>), HttpError>
+where
+    R: SiteResolver,
+{
+    require_boards_grant(
+        &state,
+        &context,
+        Action::Write,
+        "Board",
+        board_id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let list = state
+        .boards
+        .create_list(&mut transaction, &context, board_id, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok((StatusCode::CREATED, Json(list)))
+}
+
+async fn reorder_board_lists<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(board_id): Path<BoardId>,
+    Json(input): Json<ReorderLists>,
+) -> Result<Json<Page<BoardList>>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_boards_grant(
+        &state,
+        &context,
+        Action::Write,
+        "Board",
+        board_id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let page = state
+        .boards
+        .reorder_lists(&mut transaction, &context, board_id, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(page))
+}
+
+async fn list_board_cards<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(list_id): Path<BoardListId>,
+    Query(filter): Query<CardPageFilter>,
+) -> Result<Json<Page<Card>>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_boards_grant(
+        &state,
+        &context,
+        Action::View,
+        "BoardList",
+        list_id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let page = state
+        .boards
+        .list_cards(&mut transaction, list_id, &filter)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(page))
+}
+
+async fn create_board_card<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(list_id): Path<BoardListId>,
+    Json(input): Json<CreateCard>,
+) -> Result<(StatusCode, Json<Card>), HttpError>
+where
+    R: SiteResolver,
+{
+    require_boards_grant(
+        &state,
+        &context,
+        Action::Write,
+        "BoardList",
+        list_id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let card = state
+        .boards
+        .create_card(&mut transaction, &context, list_id, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok((StatusCode::CREATED, Json(card)))
+}
+
+async fn read_board_card<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<BoardCardId>,
+) -> Result<Json<Card>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_boards_grant(&state, &context, Action::View, "BoardCard", id.to_string())?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let card = state
+        .boards
+        .get_card(&mut transaction, id)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(card))
+}
+
+async fn update_board_card<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<BoardCardId>,
+    Json(input): Json<UpdateCard>,
+) -> Result<Json<Card>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_boards_grant(&state, &context, Action::Write, "BoardCard", id.to_string())?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let card = state
+        .boards
+        .update_card(&mut transaction, &context, id, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(card))
+}
+
+async fn move_board_card<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<BoardCardId>,
+    Json(input): Json<MoveCard>,
+) -> Result<Json<Card>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_boards_grant(&state, &context, Action::Write, "BoardCard", id.to_string())?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let card = state
+        .boards
+        .move_card(&mut transaction, &context, id, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(card))
+}
+
+async fn assign_board_card<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<BoardCardId>,
+    Json(input): Json<AssignCard>,
+) -> Result<Json<Card>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_boards_grant(&state, &context, Action::Write, "BoardCard", id.to_string())?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let card = state
+        .boards
+        .assign_card(&mut transaction, &context, id, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(card))
+}
+
+async fn list_board_comments<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(card_id): Path<BoardCardId>,
+    Query(filter): Query<CommentPageFilter>,
+) -> Result<Json<Page<Comment>>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_boards_grant(
+        &state,
+        &context,
+        Action::View,
+        "BoardCard",
+        card_id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let page = state
+        .boards
+        .list_comments(&mut transaction, card_id, &filter)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(page))
+}
+
+async fn create_board_comment<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(card_id): Path<BoardCardId>,
+    Json(input): Json<CreateComment>,
+) -> Result<(StatusCode, Json<Comment>), HttpError>
+where
+    R: SiteResolver,
+{
+    require_boards_grant(
+        &state,
+        &context,
+        Action::Write,
+        "BoardCard",
+        card_id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let comment = state
+        .boards
+        .create_comment(&mut transaction, &context, card_id, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok((StatusCode::CREATED, Json(comment)))
+}
+
+async fn update_board_comment<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<BoardCommentId>,
+    Json(input): Json<UpdateComment>,
+) -> Result<Json<Comment>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_boards_grant(
+        &state,
+        &context,
+        Action::Write,
+        "BoardComment",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let comment = state
+        .boards
+        .update_comment(&mut transaction, &context, id, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(comment))
+}
+
+async fn delete_board_comment<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<BoardCommentId>,
+) -> Result<StatusCode, HttpError>
+where
+    R: SiteResolver,
+{
+    require_boards_grant(
+        &state,
+        &context,
+        Action::Delete,
+        "BoardComment",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    state
+        .boards
+        .delete_comment(&mut transaction, &context, id)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+async fn list_board_activity<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(board_id): Path<BoardId>,
+    Query(filter): Query<ActivityPageFilter>,
+) -> Result<Json<Page<Activity>>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_boards_grant(
+        &state,
+        &context,
+        Action::View,
+        "Board",
+        board_id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let page = state
+        .boards
+        .list_activity(&mut transaction, board_id, &filter)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(page))
+}
+
+async fn record_analytics_events<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Json(input): Json<AnalyticsEventBatch>,
+) -> Result<(StatusCode, Json<AnalyticsReceipt>), HttpError>
+where
+    R: SiteResolver,
+{
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let receipt = state
+        .analytics
+        .record_batch(&mut transaction, &context, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok((StatusCode::ACCEPTED, Json(receipt)))
+}
+
+async fn list_analytics_events<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Query(filter): Query<EventListFilter>,
+) -> Result<Json<Page<AnalyticsEvent>>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_analytics_grant(
+        &state,
+        &context,
+        Action::View,
+        "AnalyticsEvent",
+        "event_collection",
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let page = state
+        .analytics
+        .list_events(&mut transaction, &filter)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(page))
+}
+
+async fn list_analytics_daily<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Query(filter): Query<DailyListFilter>,
+) -> Result<Json<Page<DailyAggregate>>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_analytics_grant(
+        &state,
+        &context,
+        Action::View,
+        "AnalyticsDaily",
+        "daily_collection",
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let page = state
+        .analytics
+        .list_daily(&mut transaction, &filter)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(page))
+}
+
+async fn prune_analytics<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Json(input): Json<PruneAnalytics>,
+) -> Result<Json<PruneReceipt>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_analytics_grant(
+        &state,
+        &context,
+        Action::Delete,
+        "AnalyticsRetention",
+        "retention",
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let receipt = state
+        .analytics
+        .prune(&mut transaction, &context, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(receipt))
+}
+
 struct HttpState<R> {
     runtime: Runtime<R>,
     identity: IdentityService,
@@ -642,6 +1248,8 @@ struct HttpState<R> {
     courses: CoursesService,
     jobs: JobsService,
     flows: FlowService,
+    boards: BoardService,
+    analytics: AnalyticsService,
     file_store: Arc<dyn FileStore>,
     builder: Arc<dyn BuildEngine>,
     authorizer: CedarAuthorizer,
@@ -665,6 +1273,8 @@ impl<R> Clone for HttpState<R> {
             courses: self.courses,
             jobs: self.jobs.clone(),
             flows: self.flows,
+            boards: self.boards,
+            analytics: self.analytics,
             file_store: Arc::clone(&self.file_store),
             builder: Arc::clone(&self.builder),
             authorizer: self.authorizer.clone(),
@@ -4477,6 +5087,44 @@ where
         state,
         context,
         Grant::new(Capability::Automation, action),
+        resource_type,
+        resource_id,
+    )
+}
+
+fn require_boards_grant<R>(
+    state: &HttpState<R>,
+    context: &SiteContext,
+    action: Action,
+    resource_type: impl Into<String>,
+    resource_id: impl Into<String>,
+) -> Result<(), HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        state,
+        context,
+        Grant::new(Capability::Boards, action),
+        resource_type,
+        resource_id,
+    )
+}
+
+fn require_analytics_grant<R>(
+    state: &HttpState<R>,
+    context: &SiteContext,
+    action: Action,
+    resource_type: impl Into<String>,
+    resource_id: impl Into<String>,
+) -> Result<(), HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        state,
+        context,
+        Grant::new(Capability::Analytics, action),
         resource_type,
         resource_id,
     )

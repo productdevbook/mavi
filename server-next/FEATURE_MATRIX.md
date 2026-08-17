@@ -29,6 +29,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Shop products, coupons, order counters, orders, lines, holds and coupon uses enforce RLS, composite foreign keys and site-aware keys.
   - [x] Courses, modules, lessons, students, sessions, enrollments and progress enforce RLS, composite foreign keys and site-aware keys.
   - [x] Jobs, automation flows and run history enforce RLS, composite foreign keys and site-aware idempotency/order keys.
+  - [x] Boards, lists, cards, comments, immutable activity and analytics tables enforce RLS and site-scoped keys.
   - [ ] Remaining domain tables and a single reusable DB guard for every repository.
 - [-] Migration and schema integration tests against PostgreSQL.
   - [x] Storage, identity and settings migrations run against a non-superuser PostgreSQL role.
@@ -140,8 +141,16 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Registered job kinds, site-scoped queue rows, composite idempotency and cursor-only admin lists.
   - [x] `FOR UPDATE SKIP LOCKED` claims, lease heartbeat, stale-worker protection, bounded backoff and dead-letter retry.
   - [ ] Shared worker supervisor/metrics and concrete self-host/cloud adapter wiring.
-- [ ] Boards, lists, cards, assignments, comments and activity history.
-- [ ] Analytics events, aggregation, retention and export.
+- [-] Boards, lists, cards, assignments, comments and activity history.
+  - [x] Board/list/card APIs use integer positions, transactional reorder/move operations and opaque keyset cursors.
+  - [x] Card assignees are checked against active site people; comments support author-only editing and soft deletion.
+  - [x] Every board mutation emits an audit receipt and append-only activity row; activity cannot be updated or deleted.
+  - [ ] Card labels, due dates, mentions, collaboration notifications and panel screens.
+- [-] Analytics events, aggregation, retention and export.
+  - [x] Public ingestion accepts only bounded event names, route paths and non-negative numeric values; no arbitrary properties or visitor identifiers.
+  - [x] Raw event export and daily aggregates use opaque cursors; daily rollups are updated in the ingestion transaction.
+  - [x] Raw and aggregate retention pruning is bounded, explicit and audit-recorded.
+  - [ ] Rate limiting, scheduled retention worker, privacy documentation and panel charts.
 - [ ] Portable export/import with versioned manifests and validation.
 - [ ] MCP resources/tools generated from the canonical API with grant checks.
 
@@ -166,6 +175,8 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Shop catalog/checkout/stock/order PostgreSQL isolation tests and HTTP permission/contract coverage.
   - [x] Courses authoring/order/student-session/enrollment/progress/media PostgreSQL isolation tests and HTTP permission/contract coverage.
   - [x] Jobs lease/idempotency/dead-letter PostgreSQL isolation and automation flow snapshot/event/run HTTP coverage.
+  - [x] Boards PostgreSQL scope/order/activity tests and boards HTTP cursor/permission acceptance coverage.
+  - [x] Analytics PostgreSQL aggregate/retention/isolation tests and analytics HTTP ingest/export coverage.
   - [x] Identity HTTP integration covers setup, login, cursor, 401/403 and Cedar behavior.
   - [x] Generated OpenAPI/TypeScript/Rust/MCP artifacts have stale-contract tests.
   - [ ] Remaining domain HTTP suites.

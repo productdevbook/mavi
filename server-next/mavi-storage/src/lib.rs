@@ -223,5 +223,18 @@ mod tests {
         assert!(grant_migration.contains("api_key_grants_capability_check"));
         assert!(grant_migration.contains("'automation'"));
         assert!(grant_migration.contains("'analytics'"));
+
+        let boards_migration = include_str!("../migrations/0020_boards.sql");
+        assert!(boards_migration.contains("primary key (site_id, id)"));
+        assert!(boards_migration.contains("board_lists_site_position"));
+        assert!(boards_migration.contains("board_cards_site_position"));
+        assert!(boards_migration.contains("board_activity_immutable"));
+        assert!(boards_migration.contains("force row level security"));
+
+        let analytics_migration = include_str!("../migrations/0021_analytics.sql");
+        assert!(analytics_migration.contains("analytics_events"));
+        assert!(analytics_migration.contains("analytics_daily"));
+        assert!(analytics_migration.contains("analytics_events_site_recent"));
+        assert!(analytics_migration.contains("force row level security"));
     }
 }

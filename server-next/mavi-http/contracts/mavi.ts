@@ -2,10 +2,61 @@
 
 export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 
+export interface Activity {
+  id: string;
+  board_id: string;
+  card_id: string | null;
+  kind: string;
+  actor_kind: string;
+  actor_id: string | null;
+  detail: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface ActivityPage {
+  items: Activity[];
+  next_cursor: string | null;
+}
+
+export interface ActivityPageFilter {
+  after?: string | null;
+  limit?: number;
+  card_id?: string | null;
+}
+
 export interface AddReader {
   email: string;
   name?: string | null;
   resubscribe?: boolean;
+}
+
+export interface AnalyticsEvent {
+  id: string;
+  event_name: string;
+  path: string;
+  value: number;
+  occurred_at: string;
+  created_at: string;
+}
+
+export interface AnalyticsEventBatch {
+  events: AnalyticsEventInput[];
+}
+
+export interface AnalyticsEventInput {
+  event_name: string;
+  path: string;
+  value: number | null;
+  occurred_at: string | null;
+}
+
+export interface AnalyticsEventPage {
+  items: AnalyticsEvent[];
+  next_cursor: string | null;
+}
+
+export interface AnalyticsReceipt {
+  accepted: number;
 }
 
 export interface ApiKeyCreated {
@@ -14,6 +65,10 @@ export interface ApiKeyCreated {
   token: string;
   grants: Grant[];
   expires_at?: string | null;
+}
+
+export interface AssignCard {
+  assignee_id: string | null;
 }
 
 export type AuditActorKind = "public" | "account" | "student" | "assistant";
@@ -50,6 +105,63 @@ export interface BasketItem {
   quantity: number;
 }
 
+export interface Board {
+  id: string;
+  name: string;
+  description: string | null;
+  archived: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BoardList {
+  id: string;
+  board_id: string;
+  name: string;
+  position: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BoardListFilter {
+  after?: string | null;
+  limit?: number;
+  archived?: boolean | null;
+}
+
+export interface BoardListPage {
+  items: BoardList[];
+  next_cursor: string | null;
+}
+
+export interface BoardPage {
+  items: Board[];
+  next_cursor: string | null;
+}
+
+export interface Card {
+  id: string;
+  board_id: string;
+  list_id: string;
+  title: string;
+  description: string | null;
+  assignee_id: string | null;
+  position: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CardPage {
+  items: Card[];
+  next_cursor: string | null;
+}
+
+export interface CardPageFilter {
+  after?: string | null;
+  limit?: number;
+  assignee_id?: string | null;
+}
+
 export interface CheckoutInput {
   email: string;
   items: BasketItem[];
@@ -62,6 +174,26 @@ export interface CheckoutReceipt {
   number: number;
   state: OrderState;
   total: Money;
+}
+
+export interface Comment {
+  id: string;
+  board_id: string;
+  card_id: string;
+  author_id: string | null;
+  body: string;
+  edited_at: string | null;
+  created_at: string;
+}
+
+export interface CommentPage {
+  items: Comment[];
+  next_cursor: string | null;
+}
+
+export interface CommentPageFilter {
+  after?: string | null;
+  limit?: number;
 }
 
 export interface Content {
@@ -225,6 +357,21 @@ export interface CreateApiKey {
   expires_at?: string | null;
 }
 
+export interface CreateBoard {
+  name: string;
+  description?: string | null;
+}
+
+export interface CreateCard {
+  title: string;
+  description: string | null;
+  assignee_id: string | null;
+}
+
+export interface CreateComment {
+  body: string;
+}
+
 export interface CreateContent {
   kind: string;
   language: string;
@@ -276,6 +423,10 @@ export interface CreateLesson {
   media_file_id?: string | null;
 }
 
+export interface CreateList {
+  name: string;
+}
+
 export interface CreateMailList {
   slug: string;
   name: string;
@@ -325,6 +476,28 @@ export interface CreateTerm {
   slug: string;
   name: string;
   parent_id?: string | null;
+}
+
+export interface DailyAggregate {
+  day: string;
+  event_name: string;
+  path: string;
+  event_count: number;
+  value_sum: number;
+  value_min: number;
+  value_max: number;
+}
+
+export interface DailyAggregatePage {
+  items: DailyAggregate[];
+  next_cursor: string | null;
+}
+
+export interface DailyListFilter {
+  after?: string | null;
+  limit?: number;
+  event_name?: string | null;
+  path?: string | null;
 }
 
 export interface DeclareContentType {
@@ -463,6 +636,13 @@ export interface ErrorBody {
 
 export interface ErrorEnvelope {
   error: ErrorBody;
+}
+
+export interface EventListFilter {
+  after?: string | null;
+  limit?: number;
+  event_name?: string | null;
+  path?: string | null;
 }
 
 export interface File {
@@ -696,6 +876,11 @@ export interface LessonPage {
   next_cursor: string | null;
 }
 
+export interface ListPageFilter {
+  after?: string | null;
+  limit?: number;
+}
+
 export interface LoginInput {
   email: string;
   password: string;
@@ -810,6 +995,11 @@ export interface Module {
 export interface Money {
   minor: number;
   currency: string;
+}
+
+export interface MoveCard {
+  list_id: string;
+  before_card_id: string | null;
 }
 
 export interface Order {
@@ -929,6 +1119,16 @@ export interface Progress {
   completed_at: string;
 }
 
+export interface PruneAnalytics {
+  raw_days: number;
+  aggregate_days: number;
+}
+
+export interface PruneReceipt {
+  deleted_events: number;
+  deleted_aggregates: number;
+}
+
 export interface PublicForm {
   slug: string;
   name: string;
@@ -972,6 +1172,10 @@ export interface RenderedMail {
 }
 
 export interface ReorderLessons {
+  order: string[];
+}
+
+export interface ReorderLists {
   order: string[];
 }
 
@@ -1203,6 +1407,21 @@ export type TriggerList = TriggerDescription[];
 
 export interface UnsubscribeReceipt {
   unsubscribed: boolean;
+}
+
+export interface UpdateBoard {
+  name?: string | null;
+  description?: string | null;
+  archived?: boolean | null;
+}
+
+export interface UpdateCard {
+  title?: string | null;
+  description?: string | null;
+}
+
+export interface UpdateComment {
+  body: string;
 }
 
 export interface UpdateContent {
@@ -1449,6 +1668,29 @@ export const operations = {
   "automation.flows.simulate": { method: "post", path: "/api/v1/automation/flows/{id}/simulate", input: { location: "json", shape: "SimulateFlow" }, query: null, output: "Simulation", status: 200, authentication: "account_or_assistant", permission: { capability: "automation", action: "view" } },
   "automation.runs.list": { method: "get", path: "/api/v1/automation/flows/{id}/runs", input: { location: "query", shape: "RunListFilter" }, query: null, output: "FlowRunPage", status: 200, authentication: "account_or_assistant", permission: { capability: "automation", action: "view" } },
   "automation.runs.read": { method: "get", path: "/api/v1/automation/runs/{id}", input: null, query: null, output: "FlowRun", status: 200, authentication: "account_or_assistant", permission: { capability: "automation", action: "view" } },
+  "boards.list": { method: "get", path: "/api/v1/boards", input: { location: "query", shape: "BoardListFilter" }, query: null, output: "BoardPage", status: 200, authentication: "account_or_assistant", permission: { capability: "boards", action: "view" } },
+  "boards.create": { method: "post", path: "/api/v1/boards", input: { location: "json", shape: "CreateBoard" }, query: null, output: "Board", status: 201, authentication: "account_or_assistant", permission: { capability: "boards", action: "write" } },
+  "boards.read": { method: "get", path: "/api/v1/boards/{id}", input: null, query: null, output: "Board", status: 200, authentication: "account_or_assistant", permission: { capability: "boards", action: "view" } },
+  "boards.update": { method: "patch", path: "/api/v1/boards/{id}", input: { location: "json", shape: "UpdateBoard" }, query: null, output: "Board", status: 200, authentication: "account_or_assistant", permission: { capability: "boards", action: "write" } },
+  "boards.delete": { method: "delete", path: "/api/v1/boards/{id}", input: null, query: null, output: "Empty", status: 204, authentication: "account_or_assistant", permission: { capability: "boards", action: "delete" } },
+  "boards.lists.list": { method: "get", path: "/api/v1/boards/{id}/lists", input: { location: "query", shape: "ListPageFilter" }, query: null, output: "BoardListPage", status: 200, authentication: "account_or_assistant", permission: { capability: "boards", action: "view" } },
+  "boards.lists.create": { method: "post", path: "/api/v1/boards/{id}/lists", input: { location: "json", shape: "CreateList" }, query: null, output: "BoardList", status: 201, authentication: "account_or_assistant", permission: { capability: "boards", action: "write" } },
+  "boards.lists.reorder": { method: "put", path: "/api/v1/boards/{id}/lists/order", input: { location: "json", shape: "ReorderLists" }, query: null, output: "BoardListPage", status: 200, authentication: "account_or_assistant", permission: { capability: "boards", action: "write" } },
+  "boards.cards.list": { method: "get", path: "/api/v1/boards/lists/{id}/cards", input: { location: "query", shape: "CardPageFilter" }, query: null, output: "CardPage", status: 200, authentication: "account_or_assistant", permission: { capability: "boards", action: "view" } },
+  "boards.cards.create": { method: "post", path: "/api/v1/boards/lists/{id}/cards", input: { location: "json", shape: "CreateCard" }, query: null, output: "Card", status: 201, authentication: "account_or_assistant", permission: { capability: "boards", action: "write" } },
+  "boards.cards.read": { method: "get", path: "/api/v1/boards/cards/{id}", input: null, query: null, output: "Card", status: 200, authentication: "account_or_assistant", permission: { capability: "boards", action: "view" } },
+  "boards.cards.update": { method: "patch", path: "/api/v1/boards/cards/{id}", input: { location: "json", shape: "UpdateCard" }, query: null, output: "Card", status: 200, authentication: "account_or_assistant", permission: { capability: "boards", action: "write" } },
+  "boards.cards.move": { method: "post", path: "/api/v1/boards/cards/{id}/move", input: { location: "json", shape: "MoveCard" }, query: null, output: "Card", status: 200, authentication: "account_or_assistant", permission: { capability: "boards", action: "write" } },
+  "boards.cards.assign": { method: "post", path: "/api/v1/boards/cards/{id}/assign", input: { location: "json", shape: "AssignCard" }, query: null, output: "Card", status: 200, authentication: "account_or_assistant", permission: { capability: "boards", action: "write" } },
+  "boards.comments.list": { method: "get", path: "/api/v1/boards/cards/{id}/comments", input: { location: "query", shape: "CommentPageFilter" }, query: null, output: "CommentPage", status: 200, authentication: "account_or_assistant", permission: { capability: "boards", action: "view" } },
+  "boards.comments.create": { method: "post", path: "/api/v1/boards/cards/{id}/comments", input: { location: "json", shape: "CreateComment" }, query: null, output: "Comment", status: 201, authentication: "account_or_assistant", permission: { capability: "boards", action: "write" } },
+  "boards.comments.update": { method: "patch", path: "/api/v1/boards/comments/{id}", input: { location: "json", shape: "UpdateComment" }, query: null, output: "Comment", status: 200, authentication: "account_or_assistant", permission: { capability: "boards", action: "write" } },
+  "boards.comments.delete": { method: "delete", path: "/api/v1/boards/comments/{id}", input: null, query: null, output: "Empty", status: 204, authentication: "account_or_assistant", permission: { capability: "boards", action: "delete" } },
+  "boards.activity.list": { method: "get", path: "/api/v1/boards/{id}/activity", input: { location: "query", shape: "ActivityPageFilter" }, query: null, output: "ActivityPage", status: 200, authentication: "account_or_assistant", permission: { capability: "boards", action: "view" } },
+  "analytics.events.ingest": { method: "post", path: "/public/v1/analytics/events", input: { location: "json", shape: "AnalyticsEventBatch" }, query: null, output: "AnalyticsReceipt", status: 202, authentication: "public", permission: null },
+  "analytics.events.list": { method: "get", path: "/api/v1/analytics/events", input: { location: "query", shape: "EventListFilter" }, query: null, output: "AnalyticsEventPage", status: 200, authentication: "account_or_assistant", permission: { capability: "analytics", action: "view" } },
+  "analytics.daily.list": { method: "get", path: "/api/v1/analytics/daily", input: { location: "query", shape: "DailyListFilter" }, query: null, output: "DailyAggregatePage", status: 200, authentication: "account_or_assistant", permission: { capability: "analytics", action: "view" } },
+  "analytics.retention.prune": { method: "post", path: "/api/v1/analytics/prune", input: { location: "json", shape: "PruneAnalytics" }, query: null, output: "PruneReceipt", status: 200, authentication: "account_or_assistant", permission: { capability: "analytics", action: "delete" } },
 } as const satisfies Record<string, MaviOperation>;
 
 export type OperationName = keyof typeof operations;
@@ -1600,6 +1842,29 @@ export interface OperationArguments {
   "automation.flows.simulate": { path: { id: string }; query?: never; body: SimulateFlow; }
   "automation.runs.list": { path: { id: string }; query: RunListFilter; body?: never; }
   "automation.runs.read": { path: { id: string }; query?: never; body?: never; }
+  "boards.list": { path?: never; query: BoardListFilter; body?: never; }
+  "boards.create": { path?: never; query?: never; body: CreateBoard; }
+  "boards.read": { path: { id: string }; query?: never; body?: never; }
+  "boards.update": { path: { id: string }; query?: never; body: UpdateBoard; }
+  "boards.delete": { path: { id: string }; query?: never; body?: never; }
+  "boards.lists.list": { path: { id: string }; query: ListPageFilter; body?: never; }
+  "boards.lists.create": { path: { id: string }; query?: never; body: CreateList; }
+  "boards.lists.reorder": { path: { id: string }; query?: never; body: ReorderLists; }
+  "boards.cards.list": { path: { id: string }; query: CardPageFilter; body?: never; }
+  "boards.cards.create": { path: { id: string }; query?: never; body: CreateCard; }
+  "boards.cards.read": { path: { id: string }; query?: never; body?: never; }
+  "boards.cards.update": { path: { id: string }; query?: never; body: UpdateCard; }
+  "boards.cards.move": { path: { id: string }; query?: never; body: MoveCard; }
+  "boards.cards.assign": { path: { id: string }; query?: never; body: AssignCard; }
+  "boards.comments.list": { path: { id: string }; query: CommentPageFilter; body?: never; }
+  "boards.comments.create": { path: { id: string }; query?: never; body: CreateComment; }
+  "boards.comments.update": { path: { id: string }; query?: never; body: UpdateComment; }
+  "boards.comments.delete": { path: { id: string }; query?: never; body?: never; }
+  "boards.activity.list": { path: { id: string }; query: ActivityPageFilter; body?: never; }
+  "analytics.events.ingest": { path?: never; query?: never; body: AnalyticsEventBatch; }
+  "analytics.events.list": { path?: never; query: EventListFilter; body?: never; }
+  "analytics.daily.list": { path?: never; query: DailyListFilter; body?: never; }
+  "analytics.retention.prune": { path?: never; query?: never; body: PruneAnalytics; }
 }
 
 export interface OperationResponses {
@@ -1749,6 +2014,29 @@ export interface OperationResponses {
   "automation.flows.simulate": Simulation;
   "automation.runs.list": FlowRunPage;
   "automation.runs.read": FlowRun;
+  "boards.list": BoardPage;
+  "boards.create": Board;
+  "boards.read": Board;
+  "boards.update": Board;
+  "boards.delete": void;
+  "boards.lists.list": BoardListPage;
+  "boards.lists.create": BoardList;
+  "boards.lists.reorder": BoardListPage;
+  "boards.cards.list": CardPage;
+  "boards.cards.create": Card;
+  "boards.cards.read": Card;
+  "boards.cards.update": Card;
+  "boards.cards.move": Card;
+  "boards.cards.assign": Card;
+  "boards.comments.list": CommentPage;
+  "boards.comments.create": Comment;
+  "boards.comments.update": Comment;
+  "boards.comments.delete": void;
+  "boards.activity.list": ActivityPage;
+  "analytics.events.ingest": AnalyticsReceipt;
+  "analytics.events.list": AnalyticsEventPage;
+  "analytics.daily.list": DailyAggregatePage;
+  "analytics.retention.prune": PruneReceipt;
 }
 
 export interface MaviClientOptions {

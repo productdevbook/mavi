@@ -10,6 +10,35 @@ export interface ApiKeyCreated {
   expires_at?: string | null;
 }
 
+export type AuditActorKind = "public" | "account" | "student" | "assistant";
+
+export interface AuditEvent {
+  id: string;
+  request_id: string;
+  actor_kind: AuditActorKind;
+  actor_id: string | null;
+  action: string;
+  resource_type: string;
+  resource_id: string | null;
+  payload: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface AuditEventPage {
+  items: AuditEvent[];
+  next_cursor: string | null;
+}
+
+export interface AuditListFilter {
+  after?: string | null;
+  limit?: number;
+  action?: string | null;
+  resource_type?: string | null;
+  resource_id?: string | null;
+  actor_kind?: AuditActorKind;
+  actor_id?: string | null;
+}
+
 export interface Content {
   id: string;
   site_id: string;
@@ -342,6 +371,26 @@ export interface TermPage {
   next_cursor: string | null;
 }
 
+export interface TrashItem {
+  kind: TrashKind;
+  id: string;
+  label: string;
+  deleted_at: string;
+}
+
+export type TrashKind = "content" | "file" | "term";
+
+export interface TrashListFilter {
+  after?: string | null;
+  limit?: number;
+  kind?: TrashKind;
+}
+
+export interface TrashPage {
+  items: TrashItem[];
+  next_cursor: string | null;
+}
+
 export interface UpdateContent {
   slug?: string | null;
   title?: string | null;
@@ -423,14 +472,19 @@ export const operations = {
   "taxonomy.terms.create": { method: "post", path: "/api/v1/terms", input: { location: "json", shape: "CreateTerm" }, query: null, output: "Term", status: 201, authentication: "account_or_assistant", permission: { capability: "taxonomy", action: "write" } },
   "taxonomy.terms.read": { method: "get", path: "/api/v1/terms/{id}", input: null, query: null, output: "Term", status: 200, authentication: "account_or_assistant", permission: { capability: "taxonomy", action: "view" } },
   "taxonomy.terms.update": { method: "patch", path: "/api/v1/terms/{id}", input: { location: "json", shape: "UpdateTerm" }, query: null, output: "Term", status: 200, authentication: "account_or_assistant", permission: { capability: "taxonomy", action: "write" } },
-  "taxonomy.terms.delete": { method: "delete", path: "/api/v1/terms/{id}", input: null, query: null, output: "Empty", status: 204, authentication: "account_or_assistant", permission: { capability: "taxonomy", action: "delete" } },
+  "taxonomy.terms.trash": { method: "delete", path: "/api/v1/terms/{id}", input: null, query: null, output: "Empty", status: 204, authentication: "account_or_assistant", permission: { capability: "taxonomy", action: "delete" } },
   "taxonomy.content_terms.list": { method: "get", path: "/api/v1/content/{id}/terms", input: null, query: null, output: "TermList", status: 200, authentication: "account_or_assistant", permission: { capability: "taxonomy", action: "view" } },
   "taxonomy.content_terms.replace": { method: "put", path: "/api/v1/content/{id}/terms", input: { location: "json", shape: "ReplaceContentTerms" }, query: null, output: "TermList", status: 200, authentication: "account_or_assistant", permission: { capability: "taxonomy", action: "write" } },
   "taxonomy.term_content.list": { method: "get", path: "/api/v1/terms/{id}/content", input: { location: "query", shape: "ContentTermAssignmentListFilter" }, query: null, output: "ContentTermAssignmentPage", status: 200, authentication: "account_or_assistant", permission: { capability: "taxonomy", action: "view" } },
   "media.files.list": { method: "get", path: "/api/v1/files", input: { location: "query", shape: "FileListFilter" }, query: null, output: "FilePage", status: 200, authentication: "account_or_assistant", permission: { capability: "media", action: "view" } },
   "media.files.upload": { method: "post", path: "/api/v1/files", input: { location: "raw", shape: "FileBytes" }, query: "UploadFileQuery", output: "File", status: 201, authentication: "account_or_assistant", permission: { capability: "media", action: "write" } },
   "media.files.read": { method: "get", path: "/api/v1/files/{id}", input: null, query: null, output: "File", status: 200, authentication: "account_or_assistant", permission: { capability: "media", action: "view" } },
-  "media.files.delete": { method: "delete", path: "/api/v1/files/{id}", input: null, query: null, output: "Empty", status: 204, authentication: "account_or_assistant", permission: { capability: "media", action: "delete" } },
+  "media.files.trash": { method: "delete", path: "/api/v1/files/{id}", input: null, query: null, output: "Empty", status: 204, authentication: "account_or_assistant", permission: { capability: "media", action: "delete" } },
+  "audit.events.list": { method: "get", path: "/api/v1/audit", input: { location: "query", shape: "AuditListFilter" }, query: null, output: "AuditEventPage", status: 200, authentication: "account_or_assistant", permission: { capability: "audit", action: "view" } },
+  "audit.events.read": { method: "get", path: "/api/v1/audit/{id}", input: null, query: null, output: "AuditEvent", status: 200, authentication: "account_or_assistant", permission: { capability: "audit", action: "view" } },
+  "trash.items.list": { method: "get", path: "/api/v1/trash", input: { location: "query", shape: "TrashListFilter" }, query: null, output: "TrashPage", status: 200, authentication: "account_or_assistant", permission: { capability: "trash", action: "view" } },
+  "trash.items.restore": { method: "post", path: "/api/v1/trash/{kind}/{id}/restore", input: null, query: null, output: "Empty", status: 204, authentication: "account_or_assistant", permission: { capability: "trash", action: "write" } },
+  "trash.items.delete_permanently": { method: "delete", path: "/api/v1/trash/{kind}/{id}", input: null, query: null, output: "Empty", status: 204, authentication: "account_or_assistant", permission: { capability: "trash", action: "delete" } },
 } as const satisfies Record<string, MaviOperation>;
 
 export type OperationName = keyof typeof operations;
@@ -473,14 +527,19 @@ export interface OperationArguments {
   "taxonomy.terms.create": { path?: never; query?: never; body: CreateTerm; }
   "taxonomy.terms.read": { path: { id: string }; query?: never; body?: never; }
   "taxonomy.terms.update": { path: { id: string }; query?: never; body: UpdateTerm; }
-  "taxonomy.terms.delete": { path: { id: string }; query?: never; body?: never; }
+  "taxonomy.terms.trash": { path: { id: string }; query?: never; body?: never; }
   "taxonomy.content_terms.list": { path: { id: string }; query?: never; body?: never; }
   "taxonomy.content_terms.replace": { path: { id: string }; query?: never; body: ReplaceContentTerms; }
   "taxonomy.term_content.list": { path: { id: string }; query: ContentTermAssignmentListFilter; body?: never; }
   "media.files.list": { path?: never; query: FileListFilter; body?: never; }
   "media.files.upload": { path?: never; query: UploadFileQuery; body: Blob | ArrayBuffer | Uint8Array; }
   "media.files.read": { path: { id: string }; query?: never; body?: never; }
-  "media.files.delete": { path: { id: string }; query?: never; body?: never; }
+  "media.files.trash": { path: { id: string }; query?: never; body?: never; }
+  "audit.events.list": { path?: never; query: AuditListFilter; body?: never; }
+  "audit.events.read": { path: { id: string }; query?: never; body?: never; }
+  "trash.items.list": { path?: never; query: TrashListFilter; body?: never; }
+  "trash.items.restore": { path: { kind: string; id: string }; query?: never; body?: never; }
+  "trash.items.delete_permanently": { path: { kind: string; id: string }; query?: never; body?: never; }
 }
 
 export interface OperationResponses {
@@ -521,14 +580,19 @@ export interface OperationResponses {
   "taxonomy.terms.create": Term;
   "taxonomy.terms.read": Term;
   "taxonomy.terms.update": Term;
-  "taxonomy.terms.delete": void;
+  "taxonomy.terms.trash": void;
   "taxonomy.content_terms.list": TermList;
   "taxonomy.content_terms.replace": TermList;
   "taxonomy.term_content.list": ContentTermAssignmentPage;
   "media.files.list": FilePage;
   "media.files.upload": File;
   "media.files.read": File;
-  "media.files.delete": void;
+  "media.files.trash": void;
+  "audit.events.list": AuditEventPage;
+  "audit.events.read": AuditEvent;
+  "trash.items.list": TrashPage;
+  "trash.items.restore": void;
+  "trash.items.delete_permanently": void;
 }
 
 export interface MaviClientOptions {

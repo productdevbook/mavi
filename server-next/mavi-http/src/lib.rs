@@ -16,6 +16,7 @@ use axum::{
     routing::{delete, get, post, put},
 };
 use chrono::Utc;
+use mavi_audit::{AuditEvent, AuditListFilter, AuditService};
 use mavi_authz::CedarAuthorizer;
 use mavi_content::{
     Content, ContentListFilter, ContentRevision, ContentRevisionListFilter, ContentService,
@@ -24,8 +25,8 @@ use mavi_content::{
 };
 use mavi_contract::Api;
 use mavi_core::{
-    Action, Caller, Capability, ContentId, ErrorCode, FileId, Grant, MaviError, Page, PersonId,
-    RequestId, RoleId, SiteContext, TermId, ports::FileStore,
+    Action, AuditEventId, Caller, Capability, ContentId, ErrorCode, FileId, Grant, MaviError, Page,
+    PersonId, RequestId, RoleId, SiteContext, TermId, ports::FileStore,
 };
 use mavi_identity::{
     ApiKeyCreated, CreateApiKey, CreatePerson, CreateRole, IdentityService, LoginInput,
@@ -42,8 +43,10 @@ use mavi_taxonomy::{
     ContentTermAssignment, ContentTermAssignmentListFilter, CreateTerm, ReplaceContentTerms,
     TaxonomyService, Term, TermListFilter, UpdateTerm,
 };
+use mavi_trash::{TrashItem, TrashKind, TrashListFilter, TrashService};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use uuid::Uuid;
 
 const REQUEST_ID_HEADER: &str = "x-request-id";
 
@@ -106,6 +109,8 @@ pub fn api() -> Api {
     api.extend(mavi_settings::api());
     api.extend(mavi_taxonomy::api());
     api.extend(mavi_media::api());
+    api.extend(mavi_audit::api());
+    api.extend(mavi_trash::api());
     api
 }
 
@@ -128,12 +133,41 @@ where
         settings: SettingsService,
         taxonomy: TaxonomyService,
         media: MediaService,
+        audit: AuditService,
+        trash: TrashService,
         file_store,
         authorizer: CedarAuthorizer::new()?,
     };
-    Ok(runtime
+    let application = runtime
         .router::<HttpState<R>>()
+        .merge(api_routes::<R>())
+        .layer(middleware::from_fn_with_state(
+            runtime.clone(),
+            authenticate::<R>,
+        ))
+        .layer(middleware::from_fn_with_state(runtime, admit::<R>))
+        .layer(DefaultBodyLimit::max(MAX_FILE_BYTES + 1));
+    Ok(application.with_state(state))
+}
+
+fn api_routes<R>() -> Router<HttpState<R>>
+where
+    R: SiteResolver,
+{
+    Router::new()
         .route("/openapi.json", get(openapi_document))
+        .merge(identity_routes::<R>())
+        .merge(settings_routes::<R>())
+        .merge(content_routes::<R>())
+        .merge(media_routes::<R>())
+        .merge(audit_trash_routes::<R>())
+}
+
+fn identity_routes<R>() -> Router<HttpState<R>>
+where
+    R: SiteResolver,
+{
+    Router::new()
         .route(
             "/api/v1/setup",
             get(setup_status::<R>).post(setup_initialize::<R>),
@@ -152,6 +186,13 @@ where
         )
         .route("/api/v1/roles", get(list_roles::<R>).post(create_role::<R>))
         .route("/api/v1/roles/{id}/grants", put(replace_role_grants::<R>))
+}
+
+fn settings_routes<R>() -> Router<HttpState<R>>
+where
+    R: SiteResolver,
+{
+    Router::new()
         .route(
             "/api/v1/settings",
             get(read_settings::<R>).patch(update_settings::<R>),
@@ -164,6 +205,13 @@ where
             "/api/v1/languages/{tag}",
             axum::routing::patch(update_language::<R>).delete(delete_language::<R>),
         )
+}
+
+fn content_routes<R>() -> Router<HttpState<R>>
+where
+    R: SiteResolver,
+{
+    Router::new()
         .route("/api/v1/content-types", get(list_content_types::<R>))
         .route(
             "/api/v1/content-types/{kind}",
@@ -203,19 +251,37 @@ where
         .route("/api/v1/content/{id}/schedule", post(schedule_content::<R>))
         .route("/api/v1/content/{id}/archive", post(archive_content::<R>))
         .route("/api/v1/content/{id}/restore", post(restore_content::<R>))
+        .route("/public/v1/content/{slug}", get(public_content::<R>))
+}
+
+fn media_routes<R>() -> Router<HttpState<R>>
+where
+    R: SiteResolver,
+{
+    Router::new()
         .route("/api/v1/files", get(list_files::<R>).post(upload_file::<R>))
         .route(
             "/api/v1/files/{id}",
             get(read_file::<R>).delete(delete_file::<R>),
         )
-        .route("/public/v1/content/{slug}", get(public_content::<R>))
-        .layer(middleware::from_fn_with_state(
-            runtime.clone(),
-            authenticate::<R>,
-        ))
-        .layer(middleware::from_fn_with_state(runtime, admit::<R>))
-        .layer(DefaultBodyLimit::max(MAX_FILE_BYTES + 1))
-        .with_state(state))
+}
+
+fn audit_trash_routes<R>() -> Router<HttpState<R>>
+where
+    R: SiteResolver,
+{
+    Router::new()
+        .route("/api/v1/audit", get(list_audit::<R>))
+        .route("/api/v1/audit/{id}", get(read_audit::<R>))
+        .route("/api/v1/trash", get(list_trash::<R>))
+        .route(
+            "/api/v1/trash/{kind}/{id}/restore",
+            post(restore_trash::<R>),
+        )
+        .route(
+            "/api/v1/trash/{kind}/{id}",
+            delete(permanently_delete_trash::<R>),
+        )
 }
 
 struct HttpState<R> {
@@ -225,6 +291,8 @@ struct HttpState<R> {
     settings: SettingsService,
     taxonomy: TaxonomyService,
     media: MediaService,
+    audit: AuditService,
+    trash: TrashService,
     file_store: Arc<dyn FileStore>,
     authorizer: CedarAuthorizer,
 }
@@ -238,6 +306,8 @@ impl<R> Clone for HttpState<R> {
             settings: self.settings,
             taxonomy: self.taxonomy,
             media: self.media,
+            audit: self.audit,
+            trash: self.trash,
             file_store: Arc::clone(&self.file_store),
             authorizer: self.authorizer.clone(),
         }
@@ -1143,17 +1213,159 @@ where
         id.to_string(),
     )?;
     let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
-    let storage_key = state
+    state
         .media
-        .delete(&mut transaction, &context, id)
+        .trash(&mut transaction, &context, id)
         .await
         .map_err(HttpError)?;
     transaction.commit().await.map_err(HttpError)?;
-    state
-        .file_store
-        .remove(&context, &storage_key)
+    Ok(StatusCode::NO_CONTENT)
+}
+
+async fn list_audit<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Query(filter): Query<AuditListFilter>,
+) -> Result<Json<Page<AuditEvent>>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Audit, Action::View),
+        "AuditEvent",
+        "audit_collection",
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let events = state
+        .audit
+        .list(&mut transaction, &context, &filter)
         .await
         .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(events))
+}
+
+async fn read_audit<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<AuditEventId>,
+) -> Result<Json<AuditEvent>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Audit, Action::View),
+        "AuditEvent",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let event = state
+        .audit
+        .get(&mut transaction, &context, id)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(event))
+}
+
+async fn list_trash<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Query(filter): Query<TrashListFilter>,
+) -> Result<Json<Page<TrashItem>>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Trash, Action::View),
+        "TrashItem",
+        "trash_collection",
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let items = state
+        .trash
+        .list(&mut transaction, &context, &filter)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(items))
+}
+
+async fn restore_trash<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path((kind, id)): Path<(String, Uuid)>,
+) -> Result<StatusCode, HttpError>
+where
+    R: SiteResolver,
+{
+    let kind = TrashKind::parse(&kind).map_err(HttpError)?;
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Trash, Action::Write),
+        kind.resource_type(),
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    state
+        .trash
+        .restore(&mut transaction, &context, kind, id)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+async fn permanently_delete_trash<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path((kind, id)): Path<(String, Uuid)>,
+) -> Result<StatusCode, HttpError>
+where
+    R: SiteResolver,
+{
+    let kind = TrashKind::parse(&kind).map_err(HttpError)?;
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Trash, Action::Delete),
+        kind.resource_type(),
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let deletion = state
+        .trash
+        .permanently_delete(&mut transaction, &context, kind, id)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+
+    if let (Some(file_id), Some(storage_key)) = (deletion.file_id, deletion.file_storage_key) {
+        state
+            .file_store
+            .remove(&context, &storage_key)
+            .await
+            .map_err(HttpError)?;
+        let mut cleanup_transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+        state
+            .media
+            .complete_cleanup(
+                &mut cleanup_transaction,
+                &context,
+                FileId::from_uuid(file_id),
+            )
+            .await
+            .map_err(HttpError)?;
+        cleanup_transaction.commit().await.map_err(HttpError)?;
+    }
+
     Ok(StatusCode::NO_CONTENT)
 }
 

@@ -1,9 +1,10 @@
 //! Site-scoped media metadata and binary storage orchestration.
 //!
 //! `PostgreSQL` owns the tenant-scoped metadata, while a [`FileStore`] owns the
-//! bytes. Uploads write bytes before metadata; deletion tombstones metadata
-//! before removing bytes. The two systems cannot share one transaction, so a
-//! later cleanup worker can safely retry orphan removal.
+//! bytes. Uploads write bytes before metadata; trashing tombstones metadata
+//! while retaining bytes for restore, and permanent trash deletion removes
+//! both. The two systems cannot share one transaction, so cleanup remains an
+//! explicit retryable adapter operation.
 
 use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
 use chrono::{DateTime, Utc};
@@ -155,8 +156,8 @@ pub fn endpoints() -> Vec<Endpoint> {
         Endpoint::new(
             Method::Delete,
             "/api/v1/files/{id}",
-            "media.files.delete",
-            "Remove a file and schedule its binary for cleanup",
+            "media.files.trash",
+            "Move a file to trash while retaining its binary for restore",
         )
         .account_or_assistant()
         .requires(Permission {
@@ -389,13 +390,8 @@ impl MediaService {
         Ok(from_row(&row)?.record)
     }
 
-    /// Tombstones metadata and returns the adapter key to remove after commit.
-    pub async fn delete(
-        &self,
-        tx: &mut SiteTx,
-        context: &SiteContext,
-        id: FileId,
-    ) -> Result<String> {
+    /// Tombstones metadata while retaining the binary for trash restore.
+    pub async fn trash(&self, tx: &mut SiteTx, context: &SiteContext, id: FileId) -> Result<()> {
         let row = sqlx::query(
             "select id, kind, mime, name, storage_key, bytes, sha256, created_at
                from media_files
@@ -426,15 +422,42 @@ impl MediaService {
                 tx,
                 context,
                 &AuditEntry {
-                    action: "media.file.deleted".to_owned(),
+                    action: "media.file.trashed".to_owned(),
                     resource_type: "File".to_owned(),
                     resource_id: Some(id.into_uuid()),
-                    payload: json!({"storage_key": stored.storage_key}),
+                    payload: json!({"storage_key": stored.storage_key, "bytes_retained": true}),
                 },
             )
             .await?;
 
-        Ok(stored.storage_key)
+        Ok(())
+    }
+
+    /// Marks a durable cleanup task complete after the binary adapter confirms
+    /// removal. The row remains as a receipt that the external deletion was
+    /// attempted, which lets a future worker distinguish pending work.
+    pub async fn complete_cleanup(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        file_id: FileId,
+    ) -> Result<()> {
+        let result = sqlx::query(
+            "update media_cleanup_tasks
+                set attempts = attempts + 1, completed_at = clock_timestamp()
+              where site_id = $1 and file_id = $2 and completed_at is null",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(file_id.into_uuid())
+        .execute(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?;
+        if result.rows_affected() == 0 {
+            return Err(MaviError::NotFound {
+                resource: "media_cleanup_task",
+            });
+        }
+        Ok(())
     }
 }
 

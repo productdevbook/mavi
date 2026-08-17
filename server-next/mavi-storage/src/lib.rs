@@ -203,5 +203,25 @@ mod tests {
             )
         );
         assert!(courses_migration.contains("force row level security"));
+
+        let jobs_migration = include_str!("../migrations/0017_jobs.sql");
+        assert!(jobs_migration.contains("primary key (site_id, id)"));
+        assert!(jobs_migration.contains("jobs_site_kind_idempotency"));
+        assert!(jobs_migration.contains("claimed_until"));
+        assert!(jobs_migration.contains("force row level security"));
+
+        let automation_migration = include_str!("../migrations/0018_automation_flows.sql");
+        assert!(automation_migration.contains("automation_flows"));
+        assert!(automation_migration.contains("automation_flow_steps"));
+        assert!(automation_migration.contains("automation_runs"));
+        assert!(automation_migration.contains("automation_run_steps"));
+        assert!(automation_migration.contains("automation_runs_site_flow_source"));
+        assert!(automation_migration.contains("force row level security"));
+
+        let grant_migration = include_str!("../migrations/0019_automation_grants.sql");
+        assert!(grant_migration.contains("role_grants_capability_check"));
+        assert!(grant_migration.contains("api_key_grants_capability_check"));
+        assert!(grant_migration.contains("'automation'"));
+        assert!(grant_migration.contains("'analytics'"));
     }
 }

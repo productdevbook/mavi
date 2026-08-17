@@ -4,6 +4,8 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "snake_case")]
 pub enum Capability {
     Audit,
+    Analytics,
+    Automation,
     Boards,
     Content,
     Courses,
@@ -20,8 +22,10 @@ pub enum Capability {
 }
 
 impl Capability {
-    pub const ALL: [Self; 14] = [
+    pub const ALL: [Self; 16] = [
         Self::Audit,
+        Self::Analytics,
+        Self::Automation,
         Self::Boards,
         Self::Content,
         Self::Courses,
@@ -41,6 +45,8 @@ impl Capability {
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::Audit => "audit",
+            Self::Analytics => "analytics",
+            Self::Automation => "automation",
             Self::Boards => "boards",
             Self::Content => "content",
             Self::Courses => "courses",

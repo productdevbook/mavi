@@ -251,6 +251,12 @@ export interface CreateCourse {
   about?: string | null;
 }
 
+export interface CreateFlow {
+  name: string;
+  trigger: Trigger;
+  steps: FlowStepInput[];
+}
+
 export interface CreateForm {
   slug: string;
   name: string;
@@ -484,6 +490,73 @@ export interface FilePage {
   next_cursor: string | null;
 }
 
+export interface Flow {
+  id: string;
+  name: string;
+  trigger: Trigger;
+  enabled: boolean;
+  version: number;
+  steps: FlowStep[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FlowListFilter {
+  after?: string | null;
+  limit?: number;
+  trigger?: unknown;
+  enabled?: boolean | null;
+}
+
+export interface FlowPage {
+  items: Flow[];
+  next_cursor: string | null;
+}
+
+export interface FlowRun {
+  id: string;
+  flow_id: string;
+  trigger: Trigger;
+  event: Record<string, unknown>;
+  definition: FlowStepInput[];
+  state: RunState;
+  current_position: number;
+  retry_count: number;
+  last_error: string | null;
+  steps: FlowRunStep[];
+  started_at: string;
+  finished_at: string | null;
+}
+
+export interface FlowRunPage {
+  items: FlowRun[];
+  next_cursor: string | null;
+}
+
+export interface FlowRunStep {
+  id: string;
+  position: number;
+  attempt: number;
+  kind: StepKind;
+  outcome: string;
+  detail: Record<string, unknown>;
+  error: string | null;
+  started_at: string;
+  finished_at: string;
+}
+
+export interface FlowStep {
+  id: string;
+  position: number;
+  kind: StepKind;
+  config: Record<string, unknown>;
+}
+
+export interface FlowStepInput {
+  kind: StepKind;
+  config: Record<string, unknown>;
+}
+
 export interface Form {
   id: string;
   slug: string;
@@ -527,6 +600,35 @@ export interface Grant {
   capability: string;
   action: string;
 }
+
+export interface Job {
+  id: string;
+  kind: string;
+  payload: Record<string, unknown>;
+  state: JobState;
+  run_at: string;
+  claimed_until: string | null;
+  claimed_by: string | null;
+  attempts: number;
+  last_error: string | null;
+  idempotency_key: string | null;
+  created_at: string;
+  finished_at: string | null;
+}
+
+export interface JobListFilter {
+  after?: string | null;
+  limit?: number;
+  state?: JobState;
+  kind?: string | null;
+}
+
+export interface JobPage {
+  items: Job[];
+  next_cursor: string | null;
+}
+
+export type JobState = "ready" | "running" | "done" | "dead";
 
 export interface Language {
   site_id: string;
@@ -905,6 +1007,14 @@ export interface RolePage {
   next_cursor: string | null;
 }
 
+export interface RunListFilter {
+  after?: string | null;
+  limit?: number;
+  state?: unknown;
+}
+
+export type RunState = "running" | "waiting" | "succeeded" | "failed";
+
 export interface ScheduleContent {
   at: string;
 }
@@ -940,6 +1050,21 @@ export interface SetupStatus {
   initialized: boolean;
 }
 
+export interface SimulateFlow {
+  event?: Record<string, unknown>;
+}
+
+export interface Simulation {
+  steps: SimulationStep[];
+}
+
+export interface SimulationStep {
+  position: number;
+  kind: StepKind;
+  config: Record<string, unknown>;
+  event: Record<string, unknown>;
+}
+
 export interface SiteSettings {
   site_id: string;
   name: string;
@@ -950,6 +1075,8 @@ export interface SiteSettings {
 export interface StartDesignChange {
   name: string;
 }
+
+export type StepKind = "send_mail" | "webhook" | "wait" | "add_to_mail_list";
 
 export interface Student {
   id: string;
@@ -1065,6 +1192,15 @@ export interface TrashPage {
   next_cursor: string | null;
 }
 
+export type Trigger = "content_published" | "form_submitted" | "order_paid" | "order_sent" | "course_enrollment_created" | "course_lesson_completed";
+
+export interface TriggerDescription {
+  trigger: Trigger;
+  emitted_by: string;
+}
+
+export type TriggerList = TriggerDescription[];
+
 export interface UnsubscribeReceipt {
   unsubscribed: boolean;
 }
@@ -1082,6 +1218,13 @@ export interface UpdateCourse {
   title?: string | null;
   about?: string | null;
   state?: CourseState | unknown;
+}
+
+export interface UpdateFlow {
+  name?: string | null;
+  enabled?: boolean | null;
+  trigger?: unknown;
+  steps?: unknown[] | null;
 }
 
 export interface UpdateForm {
@@ -1294,6 +1437,18 @@ export const operations = {
   "learning.lesson.read": { method: "get", path: "/student/v1/learning/lessons/{id}", input: null, query: null, output: "LearningLesson", status: 200, authentication: "student", permission: null },
   "learning.lesson.media.read": { method: "get", path: "/student/v1/learning/lessons/{id}/media", input: null, query: null, output: "FileBytes", outputLocation: "raw", status: 200, authentication: "student", permission: null },
   "learning.lesson.done": { method: "put", path: "/student/v1/learning/lessons/{id}/done", input: null, query: null, output: "Progress", status: 200, authentication: "student", permission: null },
+  "jobs.list": { method: "get", path: "/api/v1/jobs", input: { location: "query", shape: "JobListFilter" }, query: null, output: "JobPage", status: 200, authentication: "account_or_assistant", permission: { capability: "automation", action: "view" } },
+  "jobs.read": { method: "get", path: "/api/v1/jobs/{id}", input: null, query: null, output: "Job", status: 200, authentication: "account_or_assistant", permission: { capability: "automation", action: "view" } },
+  "jobs.retry": { method: "post", path: "/api/v1/jobs/{id}/retry", input: null, query: null, output: "Job", status: 200, authentication: "account_or_assistant", permission: { capability: "automation", action: "write" } },
+  "automation.triggers.list": { method: "get", path: "/api/v1/automation/triggers", input: null, query: null, output: "TriggerList", status: 200, authentication: "account_or_assistant", permission: { capability: "automation", action: "view" } },
+  "automation.flows.list": { method: "get", path: "/api/v1/automation/flows", input: { location: "query", shape: "FlowListFilter" }, query: null, output: "FlowPage", status: 200, authentication: "account_or_assistant", permission: { capability: "automation", action: "view" } },
+  "automation.flows.create": { method: "post", path: "/api/v1/automation/flows", input: { location: "json", shape: "CreateFlow" }, query: null, output: "Flow", status: 201, authentication: "account_or_assistant", permission: { capability: "automation", action: "write" } },
+  "automation.flows.read": { method: "get", path: "/api/v1/automation/flows/{id}", input: null, query: null, output: "Flow", status: 200, authentication: "account_or_assistant", permission: { capability: "automation", action: "view" } },
+  "automation.flows.update": { method: "patch", path: "/api/v1/automation/flows/{id}", input: { location: "json", shape: "UpdateFlow" }, query: null, output: "Flow", status: 200, authentication: "account_or_assistant", permission: { capability: "automation", action: "write" } },
+  "automation.flows.delete": { method: "delete", path: "/api/v1/automation/flows/{id}", input: null, query: null, output: "Empty", status: 204, authentication: "account_or_assistant", permission: { capability: "automation", action: "write" } },
+  "automation.flows.simulate": { method: "post", path: "/api/v1/automation/flows/{id}/simulate", input: { location: "json", shape: "SimulateFlow" }, query: null, output: "Simulation", status: 200, authentication: "account_or_assistant", permission: { capability: "automation", action: "view" } },
+  "automation.runs.list": { method: "get", path: "/api/v1/automation/flows/{id}/runs", input: { location: "query", shape: "RunListFilter" }, query: null, output: "FlowRunPage", status: 200, authentication: "account_or_assistant", permission: { capability: "automation", action: "view" } },
+  "automation.runs.read": { method: "get", path: "/api/v1/automation/runs/{id}", input: null, query: null, output: "FlowRun", status: 200, authentication: "account_or_assistant", permission: { capability: "automation", action: "view" } },
 } as const satisfies Record<string, MaviOperation>;
 
 export type OperationName = keyof typeof operations;
@@ -1433,6 +1588,18 @@ export interface OperationArguments {
   "learning.lesson.read": { path: { id: string }; query?: never; body?: never; }
   "learning.lesson.media.read": { path: { id: string }; query?: never; body?: never; }
   "learning.lesson.done": { path: { id: string }; query?: never; body?: never; }
+  "jobs.list": { path?: never; query: JobListFilter; body?: never; }
+  "jobs.read": { path: { id: string }; query?: never; body?: never; }
+  "jobs.retry": { path: { id: string }; query?: never; body?: never; }
+  "automation.triggers.list": { path?: never; query?: never; body?: never; }
+  "automation.flows.list": { path?: never; query: FlowListFilter; body?: never; }
+  "automation.flows.create": { path?: never; query?: never; body: CreateFlow; }
+  "automation.flows.read": { path: { id: string }; query?: never; body?: never; }
+  "automation.flows.update": { path: { id: string }; query?: never; body: UpdateFlow; }
+  "automation.flows.delete": { path: { id: string }; query?: never; body?: never; }
+  "automation.flows.simulate": { path: { id: string }; query?: never; body: SimulateFlow; }
+  "automation.runs.list": { path: { id: string }; query: RunListFilter; body?: never; }
+  "automation.runs.read": { path: { id: string }; query?: never; body?: never; }
 }
 
 export interface OperationResponses {
@@ -1570,6 +1737,18 @@ export interface OperationResponses {
   "learning.lesson.read": LearningLesson;
   "learning.lesson.media.read": FileBytes;
   "learning.lesson.done": Progress;
+  "jobs.list": JobPage;
+  "jobs.read": Job;
+  "jobs.retry": Job;
+  "automation.triggers.list": TriggerList;
+  "automation.flows.list": FlowPage;
+  "automation.flows.create": Flow;
+  "automation.flows.read": Flow;
+  "automation.flows.update": Flow;
+  "automation.flows.delete": void;
+  "automation.flows.simulate": Simulation;
+  "automation.runs.list": FlowRunPage;
+  "automation.runs.read": FlowRun;
 }
 
 export interface MaviClientOptions {

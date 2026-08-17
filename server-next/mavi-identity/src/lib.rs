@@ -744,6 +744,30 @@ impl IdentityService {
         Ok(SetupStatus { initialized })
     }
 
+    /// Returns the normalized email of the site's owner, when setup has
+    /// already completed. The operator uses this only to make a retried
+    /// provisioning command idempotent; it does not expose the password or
+    /// grant set and it does not change the public setup response shape.
+    pub async fn owner_email(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+    ) -> Result<Option<String>> {
+        sqlx::query_scalar(
+            "select p.email
+               from people p
+               join person_roles pr on pr.site_id = p.site_id and pr.person_id = p.id
+               join roles r on r.site_id = pr.site_id and r.id = pr.role_id
+              where p.site_id = $1 and r.name = 'owner'
+              order by p.created_at asc
+              limit 1",
+        )
+        .bind(context.site_id.into_uuid())
+        .fetch_optional(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)
+    }
+
     /// Creates the first site owner exactly once. It is intentionally scoped
     /// to a public setup context: an account, assistant or operator cannot
     /// silently bootstrap another person through this method.

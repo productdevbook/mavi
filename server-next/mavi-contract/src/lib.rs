@@ -45,6 +45,19 @@ pub enum InputLocation {
     Raw,
 }
 
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum OutputLocation {
+    #[default]
+    Json,
+    Raw,
+}
+
+#[allow(clippy::trivially_copy_pass_by_ref)]
+fn is_json_output(location: &OutputLocation) -> bool {
+    *location == OutputLocation::Json
+}
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct RequestShape {
     pub shape: String,
@@ -146,6 +159,8 @@ pub struct Endpoint {
     pub request: Option<RequestShape>,
     pub query: Option<String>,
     pub response: Option<String>,
+    #[serde(default, skip_serializing_if = "is_json_output")]
+    pub response_location: OutputLocation,
     pub status: u16,
     pub errors: Vec<ErrorCode>,
     pub mutation: Mutation,
@@ -170,6 +185,7 @@ impl Endpoint {
             request: None,
             query: None,
             response: None,
+            response_location: OutputLocation::Json,
             status: 200,
             errors: vec![ErrorCode::Internal],
             mutation: Mutation::None,
@@ -179,6 +195,19 @@ impl Endpoint {
     #[must_use]
     pub const fn public(mut self) -> Self {
         self.authentication = Authentication::Public;
+        self
+    }
+
+    #[must_use]
+    pub const fn student(mut self) -> Self {
+        self.authentication = Authentication::Student;
+        self
+    }
+
+    #[must_use]
+    pub const fn student_changes(mut self, idempotent: bool) -> Self {
+        self.authentication = Authentication::Student;
+        self.mutation = Mutation::SelfOnly { idempotent };
         self
     }
 
@@ -250,6 +279,14 @@ impl Endpoint {
     }
 
     #[must_use]
+    pub fn returns_raw(mut self, status: u16, shape: impl Into<String>) -> Self {
+        self.status = status;
+        self.response = Some(shape.into());
+        self.response_location = OutputLocation::Raw;
+        self
+    }
+
+    #[must_use]
     pub fn refuses(mut self, errors: impl IntoIterator<Item = ErrorCode>) -> Self {
         self.errors = errors.into_iter().collect();
         self
@@ -285,7 +322,16 @@ impl Api {
 
     pub fn extend(&mut self, other: Self) {
         self.endpoints.extend(other.endpoints);
-        self.shapes.extend(other.shapes);
+        for shape in other.shapes {
+            let same_shape = self
+                .shapes
+                .iter()
+                .find(|existing| existing.name == shape.name)
+                .is_some_and(|existing| existing.schema == shape.schema);
+            if !same_shape {
+                self.shapes.push(shape);
+            }
+        }
     }
 
     pub fn validate(&self) -> Result<(), Vec<String>> {
@@ -591,7 +637,7 @@ impl Api {
         }
 
         output.push_str(
-            "export interface MaviOperation {\n  method: \"get\" | \"post\" | \"put\" | \"patch\" | \"delete\";\n  path: string;\n  input: { location: \"json\" | \"query\" | \"raw\"; shape: string } | null;\n  query: string | null;\n  output: string | null;\n  status: number;\n  authentication: string;\n  permission: { capability: string; action: string } | null;\n}\n\nexport const operations = {\n",
+            "export interface MaviOperation {\n  method: \"get\" | \"post\" | \"put\" | \"patch\" | \"delete\";\n  path: string;\n  input: { location: \"json\" | \"query\" | \"raw\"; shape: string } | null;\n  query: string | null;\n  output: string | null;\n  outputLocation?: \"json\" | \"raw\";\n  status: number;\n  authentication: string;\n  permission: { capability: string; action: string } | null;\n}\n\nexport const operations = {\n",
         );
         for endpoint in &self.endpoints {
             let input = endpoint.request.as_ref().map_or_else(
@@ -616,6 +662,10 @@ impl Api {
                 .response
                 .as_ref()
                 .map_or_else(|| "null".to_owned(), |shape| format!("\"{shape}\""));
+            let output_location = match endpoint.response_location {
+                OutputLocation::Json => String::new(),
+                OutputLocation::Raw => ", outputLocation: \"raw\"".to_owned(),
+            };
             let permission = endpoint.permission.as_ref().map_or_else(
                 || "null".to_owned(),
                 |permission| {
@@ -628,13 +678,14 @@ impl Api {
             );
             writeln!(
                 output,
-                "  \"{}\": {{ method: \"{}\", path: \"{}\", input: {}, query: {}, output: {}, status: {}, authentication: \"{}\", permission: {} }},",
+                "  \"{}\": {{ method: \"{}\", path: \"{}\", input: {}, query: {}, output: {}{}, status: {}, authentication: \"{}\", permission: {} }},",
                 endpoint.operation_id,
                 endpoint.method.as_str(),
                 endpoint.path,
                 input,
                 query,
                 response,
+                output_location,
                 endpoint.status,
                 authentication_name(endpoint.authentication),
                 permission,
@@ -687,7 +738,7 @@ impl Api {
         }
 
         output.push_str(
-            "#[derive(Clone, Copy, Debug, Eq, PartialEq)]\npub struct OperationDefinition {\n    pub name: &'static str,\n    pub method: &'static str,\n    pub path: &'static str,\n    pub request: Option<&'static str>,\n    pub request_location: Option<&'static str>,\n    pub query: Option<&'static str>,\n    pub response: Option<&'static str>,\n    pub status: u16,\n    pub authentication: &'static str,\n    pub capability: Option<&'static str>,\n    pub action: Option<&'static str>,\n}\n\npub const OPERATIONS: &[OperationDefinition] = &[\n",
+            "#[derive(Clone, Copy, Debug, Eq, PartialEq)]\npub struct OperationDefinition {\n    pub name: &'static str,\n    pub method: &'static str,\n    pub path: &'static str,\n    pub request: Option<&'static str>,\n    pub request_location: Option<&'static str>,\n    pub query: Option<&'static str>,\n    pub response: Option<&'static str>,\n    pub response_location: Option<&'static str>,\n    pub status: u16,\n    pub authentication: &'static str,\n    pub capability: Option<&'static str>,\n    pub action: Option<&'static str>,\n}\n\npub const OPERATIONS: &[OperationDefinition] = &[\n",
         );
         for endpoint in &self.endpoints {
             let request = endpoint.request.as_ref().map_or_else(
@@ -715,6 +766,10 @@ impl Api {
                 .response
                 .as_ref()
                 .map_or_else(|| "None".to_owned(), |shape| format!("Some(\"{shape}\")"));
+            let response_location = match endpoint.response_location {
+                OutputLocation::Json => "None",
+                OutputLocation::Raw => "Some(\"raw\")",
+            };
             let (capability, action) = endpoint.permission.as_ref().map_or_else(
                 || ("None".to_owned(), "None".to_owned()),
                 |permission| {
@@ -726,7 +781,7 @@ impl Api {
             );
             writeln!(
                 output,
-                "    OperationDefinition {{ name: \"{}\", method: \"{}\", path: \"{}\", request: {}, request_location: {}, query: {}, response: {}, status: {}, authentication: \"{}\", capability: {}, action: {} }},",
+                "    OperationDefinition {{ name: \"{}\", method: \"{}\", path: \"{}\", request: {}, request_location: {}, query: {}, response: {}, response_location: {}, status: {}, authentication: \"{}\", capability: {}, action: {} }},",
                 endpoint.operation_id,
                 endpoint.method.as_str(),
                 endpoint.path,
@@ -734,6 +789,7 @@ impl Api {
                 request_location,
                 query,
                 response,
+                response_location,
                 endpoint.status,
                 authentication_name(endpoint.authentication),
                 capability,
@@ -927,9 +983,18 @@ fn success_response(endpoint: &Endpoint) -> Value {
         return json!({"description": "Successful response"});
     }
 
+    let content_type = match endpoint.response_location {
+        OutputLocation::Json => "application/json",
+        OutputLocation::Raw => "application/octet-stream",
+    };
+    let content = json!({
+        "schema": schema_ref(endpoint.response.as_deref().unwrap_or("Empty")),
+    });
+    let mut contents = Map::new();
+    contents.insert(content_type.to_owned(), content);
     json!({
         "description": "Successful response",
-        "content": {"application/json": {"schema": schema_ref(endpoint.response.as_deref().unwrap_or("Empty"))}}
+        "content": contents
     })
 }
 
@@ -1047,6 +1112,9 @@ fn render_rust_shape(output: &mut String, name: &str, schema: &Value) {
 }
 
 fn rust_type(schema: &Value) -> String {
+    if schema.get("format").and_then(Value::as_str) == Some("binary") {
+        return "Vec<u8>".to_owned();
+    }
     if let Some(reference) = schema.get("$ref").and_then(Value::as_str) {
         return reference.rsplit('/').next().unwrap_or("Value").to_owned();
     }
@@ -1114,6 +1182,9 @@ fn typescript_property(property: &str) -> String {
 }
 
 fn typescript_type(schema: &Value) -> String {
+    if schema.get("format").and_then(Value::as_str) == Some("binary") {
+        return "Blob".to_owned();
+    }
     if let Some(reference) = schema.get("$ref").and_then(Value::as_str) {
         return reference.rsplit('/').next().unwrap_or("unknown").to_owned();
     }
@@ -1253,7 +1324,10 @@ export class MaviClient {
         url.searchParams.set(name, String(value));
       }
     }
-    const headers: Record<string, string> = { Accept: "application/json" };
+    const rawResponse = definition.outputLocation === "raw";
+    const headers: Record<string, string> = {
+      Accept: rawResponse ? "application/octet-stream" : "application/json",
+    };
     if (this.options.token) {
       headers.Authorization = `Bearer ${this.options.token}`;
     }
@@ -1284,7 +1358,9 @@ export class MaviClient {
     if (response.status === 204) {
       return undefined as OperationResponses[Name];
     }
-    return (await response.json()) as OperationResponses[Name];
+    return (rawResponse
+      ? await response.blob()
+      : await response.json()) as OperationResponses[Name];
   }
 }
 "#;
@@ -1460,6 +1536,33 @@ mod tests {
                 .expect("TypeScript")
                 .contains("location: \"raw\"")
         );
+    }
+
+    #[test]
+    fn raw_outputs_generate_binary_response_and_binary_client_types() {
+        let api = Api::new([Endpoint::new(
+            Method::Get,
+            "/student/v1/learning/media/{id}",
+            "learning.media.read",
+            "Read protected media",
+        )
+        .student()
+        .returns_raw(200, "FileBytes")])
+        .with_shapes([Shape::new(
+            "FileBytes",
+            json!({"type": "string", "format": "binary"}),
+        )]);
+
+        let document = api.openapi("Mavi", "0.1.0").expect("OpenAPI");
+        let operation = &document["paths"]["/student/v1/learning/media/{id}"]["get"];
+        assert!(
+            operation["responses"]["200"]["content"]
+                .get("application/octet-stream")
+                .is_some()
+        );
+        let typescript = api.typescript().expect("TypeScript");
+        assert!(typescript.contains("export type FileBytes = Blob;"));
+        assert!(typescript.contains("outputLocation: \"raw\""));
     }
 
     #[test]

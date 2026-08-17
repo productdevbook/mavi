@@ -390,6 +390,35 @@ impl MediaService {
         Ok(from_row(&row)?.record)
     }
 
+    /// Reads a live file's metadata and bytes for an already-authorized caller.
+    ///
+    /// The storage key never leaves this adapter. Callers must perform their
+    /// own domain-level authorization before asking for the binary.
+    pub async fn read_bytes(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        store: &dyn FileStore,
+        id: FileId,
+    ) -> Result<(FileRecord, Vec<u8>)> {
+        let row = sqlx::query(
+            "select id, kind, mime, name, storage_key, bytes, sha256, created_at
+               from media_files
+              where site_id = $1 and id = $2 and deleted_at is null",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(id.into_uuid())
+        .fetch_optional(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?
+        .ok_or(MaviError::NotFound {
+            resource: FILE_NOT_FOUND,
+        })?;
+        let stored = from_row(&row)?;
+        let bytes = store.get(context, &stored.storage_key).await?;
+        Ok((stored.record, bytes))
+    }
+
     /// Tombstones metadata while retaining the binary for trash restore.
     pub async fn trash(&self, tx: &mut SiteTx, context: &SiteContext, id: FileId) -> Result<()> {
         let row = sqlx::query(

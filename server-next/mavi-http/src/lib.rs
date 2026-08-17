@@ -16,7 +16,7 @@ use axum::{
     },
     middleware::{self, Next},
     response::{IntoResponse, Response},
-    routing::{delete, get, post, put},
+    routing::{delete, get, patch, post, put},
 };
 use chrono::Utc;
 use mavi_audit::{AuditEvent, AuditListFilter, AuditService};
@@ -28,10 +28,18 @@ use mavi_content::{
 };
 use mavi_contract::Api;
 use mavi_core::{
-    Action, AuditEventId, Caller, Capability, ContentId, CouponId, DesignBuildId, DesignChangeId,
-    ErrorCode, FileId, FormSubmissionId, Grant, MailDeliveryId, MailListId, MailReaderId,
-    MailTemplateId, MaviError, OrderId, Page, PersonId, ProductId, RequestId, RoleId, SiteContext,
-    TermId, ports::FileStore,
+    Action, AuditEventId, Caller, Capability, ContentId, CouponId, CourseId, DesignBuildId,
+    DesignChangeId, EnrollmentId, ErrorCode, FileId, FormSubmissionId, Grant, LessonId,
+    MailDeliveryId, MailListId, MailReaderId, MailTemplateId, MaviError, ModuleId, OrderId, Page,
+    PersonId, ProductId, RequestId, RoleId, SiteContext, StudentId, TermId, ports::FileStore,
+};
+use mavi_courses::{
+    Course, CourseListFilter, CourseSummary, CoursesService, CreateCourse, CreateLesson,
+    CreateModule, CreateStudent, EnrollStudent, Enrollment, EnrollmentListFilter, LearningCourse,
+    LearningCourseListFilter, LearningLesson, Lesson, LessonListFilter, Module, Progress,
+    ReorderLessons, ReorderModules, Student, StudentActivationInput, StudentInvitation,
+    StudentListFilter, StudentLoginInput, StudentSessionCreated, UpdateCourse, UpdateLesson,
+    UpdateModule, UpdateStudent,
 };
 use mavi_design::{
     BuildEngine, DESIGN_BUILD_FAILED, DesignBuild, DesignBuildListFilter, DesignChange,
@@ -140,6 +148,7 @@ pub fn api() -> Api {
     api.extend(mavi_forms::api());
     api.extend(mavi_mail::api());
     api.extend(mavi_shop::api());
+    api.extend(mavi_courses::api());
     api
 }
 
@@ -172,6 +181,7 @@ where
         forms: FormService,
         mail: MailService,
         shop: ShopService,
+        courses: CoursesService,
         file_store,
         builder,
         authorizer: CedarAuthorizer::new()?,
@@ -202,6 +212,7 @@ where
         .merge(design_routes::<R>())
         .merge(form_routes::<R>())
         .merge(mail_routes::<R>())
+        .merge(course_routes::<R>())
         .merge(shop_routes::<R>())
 }
 
@@ -449,6 +460,95 @@ where
         )
 }
 
+fn course_routes<R>() -> Router<HttpState<R>>
+where
+    R: SiteResolver,
+{
+    Router::new()
+        .route(
+            "/api/v1/courses",
+            get(list_courses::<R>).post(create_course::<R>),
+        )
+        .route(
+            "/api/v1/courses/{id}",
+            get(read_course::<R>).patch(update_course::<R>),
+        )
+        .route(
+            "/api/v1/courses/{id}/modules/order",
+            put(reorder_course_modules::<R>),
+        )
+        .route(
+            "/api/v1/courses/{id}/modules",
+            post(create_course_module::<R>),
+        )
+        .route(
+            "/api/v1/courses/modules/{id}",
+            get(read_course_module::<R>)
+                .patch(update_course_module::<R>)
+                .delete(delete_course_module::<R>),
+        )
+        .route(
+            "/api/v1/courses/modules/{id}/lessons",
+            get(list_course_lessons::<R>).post(create_course_lesson::<R>),
+        )
+        .route(
+            "/api/v1/courses/modules/{id}/lessons/order",
+            put(reorder_course_lessons::<R>),
+        )
+        .route(
+            "/api/v1/courses/lessons/{id}",
+            patch(update_course_lesson::<R>).delete(delete_course_lesson::<R>),
+        )
+        .route(
+            "/api/v1/courses/students",
+            get(list_course_students::<R>).post(create_course_student::<R>),
+        )
+        .route(
+            "/api/v1/courses/students/{id}",
+            axum::routing::patch(update_course_student::<R>),
+        )
+        .route(
+            "/api/v1/courses/students/{id}/invite",
+            post(reissue_course_student_invite::<R>),
+        )
+        .route(
+            "/api/v1/courses/{course_id}/enrollments",
+            get(list_course_enrollments::<R>).post(enroll_course_student::<R>),
+        )
+        .route(
+            "/api/v1/courses/enrollments/{id}",
+            delete(unenroll_course_student::<R>),
+        )
+        .route(
+            "/public/v1/courses/students/activate",
+            post(activate_course_student::<R>),
+        )
+        .route(
+            "/public/v1/courses/students/sessions",
+            post(login_course_student::<R>),
+        )
+        .route(
+            "/student/v1/auth/session",
+            delete(logout_course_student::<R>),
+        )
+        .route(
+            "/student/v1/learning/courses",
+            get(list_learning_courses::<R>),
+        )
+        .route(
+            "/student/v1/learning/lessons/{id}",
+            get(read_learning_lesson::<R>),
+        )
+        .route(
+            "/student/v1/learning/lessons/{id}/media",
+            get(read_learning_lesson_media::<R>),
+        )
+        .route(
+            "/student/v1/learning/lessons/{id}/done",
+            put(complete_learning_lesson::<R>),
+        )
+}
+
 fn shop_routes<R>() -> Router<HttpState<R>>
 where
     R: SiteResolver,
@@ -495,6 +595,7 @@ struct HttpState<R> {
     forms: FormService,
     mail: MailService,
     shop: ShopService,
+    courses: CoursesService,
     file_store: Arc<dyn FileStore>,
     builder: Arc<dyn BuildEngine>,
     authorizer: CedarAuthorizer,
@@ -515,6 +616,7 @@ impl<R> Clone for HttpState<R> {
             forms: self.forms,
             mail: self.mail,
             shop: self.shop,
+            courses: self.courses,
             file_store: Arc::clone(&self.file_store),
             builder: Arc::clone(&self.builder),
             authorizer: self.authorizer.clone(),
@@ -583,6 +685,13 @@ where
         .await
     {
         Ok(caller) => caller,
+        Err(MaviError::Unauthenticated) => match CoursesService
+            .authenticate_student(&mut transaction, &public_context, token, Utc::now())
+            .await
+        {
+            Ok(caller) => caller,
+            Err(error) => return HttpError(error).into_response(),
+        },
         Err(error) => return HttpError(error).into_response(),
     };
     if let Err(error) = transaction.commit().await {
@@ -3387,6 +3496,660 @@ where
         .map_err(HttpError)?;
     transaction.commit().await.map_err(HttpError)?;
     Ok((StatusCode::CREATED, Json(receipt)))
+}
+
+async fn list_courses<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Query(filter): Query<CourseListFilter>,
+) -> Result<Json<Page<CourseSummary>>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_courses_grant(&state, &context, Action::View, "Course", "courses")?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let courses = state
+        .courses
+        .list_courses(&mut transaction, &context, &filter)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(courses))
+}
+
+async fn create_course<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Json(input): Json<CreateCourse>,
+) -> Result<(StatusCode, Json<Course>), HttpError>
+where
+    R: SiteResolver,
+{
+    require_courses_grant(&state, &context, Action::Write, "Course", "courses")?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let course = state
+        .courses
+        .create_course(&mut transaction, &context, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok((StatusCode::CREATED, Json(course)))
+}
+
+async fn read_course<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<CourseId>,
+) -> Result<Json<Course>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_courses_grant(&state, &context, Action::View, "Course", id.to_string())?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let course = state
+        .courses
+        .get_course(&mut transaction, &context, id)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(course))
+}
+
+async fn update_course<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<CourseId>,
+    Json(input): Json<UpdateCourse>,
+) -> Result<Json<Course>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_courses_grant(&state, &context, Action::Write, "Course", id.to_string())?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let course = state
+        .courses
+        .update_course(&mut transaction, &context, id, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(course))
+}
+
+async fn reorder_course_modules<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<CourseId>,
+    Json(input): Json<ReorderModules>,
+) -> Result<Json<Course>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_courses_grant(&state, &context, Action::Write, "Course", id.to_string())?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let course = state
+        .courses
+        .reorder_modules(&mut transaction, &context, id, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(course))
+}
+
+async fn create_course_module<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<CourseId>,
+    Json(input): Json<CreateModule>,
+) -> Result<(StatusCode, Json<Module>), HttpError>
+where
+    R: SiteResolver,
+{
+    require_courses_grant(&state, &context, Action::Write, "Course", id.to_string())?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let module = state
+        .courses
+        .create_module(&mut transaction, &context, id, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok((StatusCode::CREATED, Json(module)))
+}
+
+async fn read_course_module<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<ModuleId>,
+) -> Result<Json<Module>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_courses_grant(
+        &state,
+        &context,
+        Action::View,
+        "CourseModule",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let module = state
+        .courses
+        .get_module(&mut transaction, &context, id)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(module))
+}
+
+async fn update_course_module<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<ModuleId>,
+    Json(input): Json<UpdateModule>,
+) -> Result<Json<Module>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_courses_grant(
+        &state,
+        &context,
+        Action::Write,
+        "CourseModule",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let module = state
+        .courses
+        .update_module(&mut transaction, &context, id, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(module))
+}
+
+async fn delete_course_module<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<ModuleId>,
+) -> Result<StatusCode, HttpError>
+where
+    R: SiteResolver,
+{
+    require_courses_grant(
+        &state,
+        &context,
+        Action::Delete,
+        "CourseModule",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    state
+        .courses
+        .delete_module(&mut transaction, &context, id)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+async fn list_course_lessons<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<ModuleId>,
+    Query(filter): Query<LessonListFilter>,
+) -> Result<Json<Page<Lesson>>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_courses_grant(
+        &state,
+        &context,
+        Action::View,
+        "CourseModule",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let lessons = state
+        .courses
+        .list_lessons(&mut transaction, &context, id, &filter)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(lessons))
+}
+
+async fn reorder_course_lessons<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<ModuleId>,
+    Json(input): Json<ReorderLessons>,
+) -> Result<Json<Module>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_courses_grant(
+        &state,
+        &context,
+        Action::Write,
+        "CourseModule",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let module = state
+        .courses
+        .reorder_lessons(&mut transaction, &context, id, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(module))
+}
+
+async fn create_course_lesson<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<ModuleId>,
+    Json(input): Json<CreateLesson>,
+) -> Result<(StatusCode, Json<Lesson>), HttpError>
+where
+    R: SiteResolver,
+{
+    require_courses_grant(
+        &state,
+        &context,
+        Action::Write,
+        "CourseModule",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let lesson = state
+        .courses
+        .create_lesson(&mut transaction, &context, id, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok((StatusCode::CREATED, Json(lesson)))
+}
+
+async fn update_course_lesson<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<LessonId>,
+    Json(input): Json<UpdateLesson>,
+) -> Result<Json<Lesson>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_courses_grant(
+        &state,
+        &context,
+        Action::Write,
+        "CourseLesson",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let lesson = state
+        .courses
+        .update_lesson(&mut transaction, &context, id, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(lesson))
+}
+
+async fn delete_course_lesson<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<LessonId>,
+) -> Result<StatusCode, HttpError>
+where
+    R: SiteResolver,
+{
+    require_courses_grant(
+        &state,
+        &context,
+        Action::Delete,
+        "CourseLesson",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    state
+        .courses
+        .delete_lesson(&mut transaction, &context, id)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+async fn list_course_students<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Query(filter): Query<StudentListFilter>,
+) -> Result<Json<Page<Student>>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_courses_grant(&state, &context, Action::View, "CourseStudent", "students")?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let students = state
+        .courses
+        .list_students(&mut transaction, &context, &filter)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(students))
+}
+
+async fn create_course_student<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Json(input): Json<CreateStudent>,
+) -> Result<(StatusCode, Json<StudentInvitation>), HttpError>
+where
+    R: SiteResolver,
+{
+    require_courses_grant(&state, &context, Action::Write, "CourseStudent", "students")?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let student = state
+        .courses
+        .create_student(&mut transaction, &context, &input, Utc::now())
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok((StatusCode::CREATED, Json(student)))
+}
+
+async fn reissue_course_student_invite<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<StudentId>,
+) -> Result<Json<StudentInvitation>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_courses_grant(
+        &state,
+        &context,
+        Action::Write,
+        "CourseStudent",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let student = state
+        .courses
+        .reissue_invitation(&mut transaction, &context, id, Utc::now())
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(student))
+}
+
+async fn update_course_student<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<StudentId>,
+    Json(input): Json<UpdateStudent>,
+) -> Result<Json<Student>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_courses_grant(
+        &state,
+        &context,
+        Action::Write,
+        "CourseStudent",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let student = state
+        .courses
+        .update_student(&mut transaction, &context, id, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(student))
+}
+
+async fn list_course_enrollments<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(course_id): Path<CourseId>,
+    Query(filter): Query<EnrollmentListFilter>,
+) -> Result<Json<Page<Enrollment>>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_courses_grant(
+        &state,
+        &context,
+        Action::View,
+        "Course",
+        course_id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let enrollments = state
+        .courses
+        .list_enrollments(&mut transaction, &context, course_id, &filter)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(enrollments))
+}
+
+async fn enroll_course_student<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(course_id): Path<CourseId>,
+    Json(input): Json<EnrollStudent>,
+) -> Result<(StatusCode, Json<Enrollment>), HttpError>
+where
+    R: SiteResolver,
+{
+    require_courses_grant(
+        &state,
+        &context,
+        Action::Write,
+        "Course",
+        course_id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let enrollment = state
+        .courses
+        .enroll(&mut transaction, &context, course_id, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok((StatusCode::CREATED, Json(enrollment)))
+}
+
+async fn unenroll_course_student<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<EnrollmentId>,
+) -> Result<StatusCode, HttpError>
+where
+    R: SiteResolver,
+{
+    require_courses_grant(
+        &state,
+        &context,
+        Action::Delete,
+        "CourseEnrollment",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    state
+        .courses
+        .unenroll(&mut transaction, &context, id)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+async fn activate_course_student<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Json(input): Json<StudentActivationInput>,
+) -> Result<(StatusCode, Json<StudentSessionCreated>), HttpError>
+where
+    R: SiteResolver,
+{
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let session = state
+        .courses
+        .activate_student(&mut transaction, &context, &input, Utc::now())
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok((StatusCode::CREATED, Json(session)))
+}
+
+async fn login_course_student<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Json(input): Json<StudentLoginInput>,
+) -> Result<(StatusCode, Json<StudentSessionCreated>), HttpError>
+where
+    R: SiteResolver,
+{
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let session = state
+        .courses
+        .login_student(&mut transaction, &context, &input, Utc::now())
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok((StatusCode::CREATED, Json(session)))
+}
+
+async fn logout_course_student<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+) -> Result<StatusCode, HttpError>
+where
+    R: SiteResolver,
+{
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    state
+        .courses
+        .logout_student(&mut transaction, &context, Utc::now())
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+async fn list_learning_courses<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Query(filter): Query<LearningCourseListFilter>,
+) -> Result<Json<Page<LearningCourse>>, HttpError>
+where
+    R: SiteResolver,
+{
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let courses = state
+        .courses
+        .list_learning_courses(&mut transaction, &context, &filter)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(courses))
+}
+
+async fn read_learning_lesson<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<LessonId>,
+) -> Result<Json<LearningLesson>, HttpError>
+where
+    R: SiteResolver,
+{
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let lesson = state
+        .courses
+        .get_learning_lesson(&mut transaction, &context, id)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(lesson))
+}
+
+async fn read_learning_lesson_media<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<LessonId>,
+) -> Result<Response, HttpError>
+where
+    R: SiteResolver,
+{
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let lesson = state
+        .courses
+        .get_learning_lesson(&mut transaction, &context, id)
+        .await
+        .map_err(HttpError)?;
+    let file_id = lesson
+        .lesson
+        .media_file_id
+        .ok_or(HttpError(MaviError::NotFound {
+            resource: "course_lesson_media",
+        }))?;
+    let (file, bytes) = state
+        .media
+        .read_bytes(
+            &mut transaction,
+            &context,
+            state.file_store.as_ref(),
+            file_id,
+        )
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Response::builder()
+        .status(StatusCode::OK)
+        .header(CONTENT_TYPE, file.mime)
+        .header(CACHE_CONTROL, "private, no-store")
+        .header("x-content-type-options", "nosniff")
+        .body(Body::from(bytes))
+        .map_err(|_| HttpError(MaviError::Internal))
+}
+
+async fn complete_learning_lesson<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<LessonId>,
+) -> Result<Json<Progress>, HttpError>
+where
+    R: SiteResolver,
+{
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let progress = state
+        .courses
+        .complete_lesson(&mut transaction, &context, id, Utc::now())
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(progress))
+}
+
+fn require_courses_grant<R>(
+    state: &HttpState<R>,
+    context: &SiteContext,
+    action: Action,
+    resource_type: impl Into<String>,
+    resource_id: impl Into<String>,
+) -> Result<(), HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        state,
+        context,
+        Grant::new(Capability::Courses, action),
+        resource_type,
+        resource_id,
+    )
 }
 
 fn require_grant<R>(

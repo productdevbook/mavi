@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{ApiKeyId, Grants, PersonId, RequestId, SessionId, SiteId, StudentId};
+use crate::{
+    ApiKeyId, Grants, PersonId, RequestId, SessionId, SiteId, StudentId, StudentSessionId,
+};
 
 /// The authenticated principal making a request to a site.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -13,6 +15,7 @@ pub enum Caller {
     },
     Student {
         student_id: StudentId,
+        session_id: Option<StudentSessionId>,
     },
     Assistant {
         key_id: ApiKeyId,

@@ -316,7 +316,7 @@ fn actor(context: &SiteContext) -> (&'static str, Option<String>) {
             AuditActorKind::Account.as_str(),
             Some(person_id.to_string()),
         ),
-        Caller::Student { student_id } => (
+        Caller::Student { student_id, .. } => (
             AuditActorKind::Student.as_str(),
             Some(student_id.to_string()),
         ),

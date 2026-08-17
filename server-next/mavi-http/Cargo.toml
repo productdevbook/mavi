@@ -9,8 +9,10 @@ description = "HTTP admission, site context propagation and canonical errors."
 [dependencies]
 axum.workspace = true
 chrono.workspace = true
+mavi-analytics = { path = "../mavi-analytics" }
 mavi-authz = { path = "../mavi-authz" }
 mavi-audit = { path = "../mavi-audit" }
+mavi-boards = { path = "../mavi-boards" }
 mavi-content = { path = "../mavi-content" }
 mavi-courses = { path = "../mavi-courses" }
 mavi-contract = { path = "../mavi-contract" }

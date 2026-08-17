@@ -4,10 +4,69 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Activity {
+    pub id: String,
+    pub board_id: String,
+    pub card_id: Option<String>,
+    pub kind: String,
+    pub actor_kind: String,
+    pub actor_id: Option<String>,
+    pub detail: Value,
+    pub created_at: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ActivityPage {
+    pub items: Vec<Activity>,
+    pub next_cursor: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ActivityPageFilter {
+    pub after: Option<String>,
+    pub limit: Option<i64>,
+    pub card_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct AddReader {
     pub email: String,
     pub name: Option<String>,
     pub resubscribe: Option<bool>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct AnalyticsEvent {
+    pub id: String,
+    pub event_name: String,
+    pub path: String,
+    pub value: i64,
+    pub occurred_at: String,
+    pub created_at: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct AnalyticsEventBatch {
+    pub events: Vec<AnalyticsEventInput>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct AnalyticsEventInput {
+    pub event_name: String,
+    pub path: String,
+    pub value: Option<i64>,
+    pub occurred_at: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct AnalyticsEventPage {
+    pub items: Vec<AnalyticsEvent>,
+    pub next_cursor: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct AnalyticsReceipt {
+    pub accepted: i64,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -17,6 +76,11 @@ pub struct ApiKeyCreated {
     pub token: String,
     pub grants: Vec<Grant>,
     pub expires_at: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct AssignCard {
+    pub assignee_id: Option<String>,
 }
 
 pub type AuditActorKind = String;
@@ -58,6 +122,71 @@ pub struct BasketItem {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Board {
+    pub id: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub archived: bool,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct BoardList {
+    pub id: String,
+    pub board_id: String,
+    pub name: String,
+    pub position: i64,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct BoardListFilter {
+    pub after: Option<String>,
+    pub limit: Option<i64>,
+    pub archived: Option<bool>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct BoardListPage {
+    pub items: Vec<BoardList>,
+    pub next_cursor: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct BoardPage {
+    pub items: Vec<Board>,
+    pub next_cursor: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Card {
+    pub id: String,
+    pub board_id: String,
+    pub list_id: String,
+    pub title: String,
+    pub description: Option<String>,
+    pub assignee_id: Option<String>,
+    pub position: i64,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct CardPage {
+    pub items: Vec<Card>,
+    pub next_cursor: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct CardPageFilter {
+    pub after: Option<String>,
+    pub limit: Option<i64>,
+    pub assignee_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct CheckoutInput {
     pub email: String,
     pub items: Vec<BasketItem>,
@@ -71,6 +200,29 @@ pub struct CheckoutReceipt {
     pub number: i64,
     pub state: OrderState,
     pub total: Money,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Comment {
+    pub id: String,
+    pub board_id: String,
+    pub card_id: String,
+    pub author_id: Option<String>,
+    pub body: String,
+    pub edited_at: Option<String>,
+    pub created_at: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct CommentPage {
+    pub items: Vec<Comment>,
+    pub next_cursor: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct CommentPageFilter {
+    pub after: Option<String>,
+    pub limit: Option<i64>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -256,6 +408,24 @@ pub struct CreateApiKey {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct CreateBoard {
+    pub name: String,
+    pub description: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct CreateCard {
+    pub title: String,
+    pub description: Option<String>,
+    pub assignee_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct CreateComment {
+    pub body: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct CreateContent {
     pub kind: String,
     pub language: String,
@@ -311,6 +481,11 @@ pub struct CreateLesson {
     pub title: String,
     pub body: Option<String>,
     pub media_file_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct CreateList {
+    pub name: String,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -370,6 +545,31 @@ pub struct CreateTerm {
     pub slug: String,
     pub name: String,
     pub parent_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct DailyAggregate {
+    pub day: String,
+    pub event_name: String,
+    pub path: String,
+    pub event_count: i64,
+    pub value_sum: i64,
+    pub value_min: i64,
+    pub value_max: i64,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct DailyAggregatePage {
+    pub items: Vec<DailyAggregate>,
+    pub next_cursor: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct DailyListFilter {
+    pub after: Option<String>,
+    pub limit: Option<i64>,
+    pub event_name: Option<String>,
+    pub path: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -529,6 +729,14 @@ pub struct ErrorBody {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ErrorEnvelope {
     pub error: ErrorBody,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct EventListFilter {
+    pub after: Option<String>,
+    pub limit: Option<i64>,
+    pub event_name: Option<String>,
+    pub path: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -793,6 +1001,12 @@ pub struct LessonPage {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ListPageFilter {
+    pub after: Option<String>,
+    pub limit: Option<i64>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct LoginInput {
     pub email: String,
     pub password: String,
@@ -921,6 +1135,12 @@ pub struct Module {
 pub struct Money {
     pub minor: i64,
     pub currency: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct MoveCard {
+    pub list_id: String,
+    pub before_card_id: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -1057,6 +1277,18 @@ pub struct Progress {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct PruneAnalytics {
+    pub raw_days: i64,
+    pub aggregate_days: i64,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct PruneReceipt {
+    pub deleted_events: i64,
+    pub deleted_aggregates: i64,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct PublicForm {
     pub slug: String,
     pub name: String,
@@ -1106,6 +1338,11 @@ pub struct RenderedMail {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ReorderLessons {
+    pub order: Vec<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ReorderLists {
     pub order: Vec<String>,
 }
 
@@ -1378,6 +1615,24 @@ pub struct UnsubscribeReceipt {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct UpdateBoard {
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub archived: Option<bool>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct UpdateCard {
+    pub title: Option<String>,
+    pub description: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct UpdateComment {
+    pub body: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct UpdateContent {
     pub slug: Option<String>,
     pub title: Option<String>,
@@ -1640,4 +1895,27 @@ pub const OPERATIONS: &[OperationDefinition] = &[
     OperationDefinition { name: "automation.flows.simulate", method: "post", path: "/api/v1/automation/flows/{id}/simulate", request: Some("SimulateFlow"), request_location: Some("json"), query: None, response: Some("Simulation"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("automation"), action: Some("view") },
     OperationDefinition { name: "automation.runs.list", method: "get", path: "/api/v1/automation/flows/{id}/runs", request: Some("RunListFilter"), request_location: Some("query"), query: None, response: Some("FlowRunPage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("automation"), action: Some("view") },
     OperationDefinition { name: "automation.runs.read", method: "get", path: "/api/v1/automation/runs/{id}", request: None, request_location: None, query: None, response: Some("FlowRun"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("automation"), action: Some("view") },
+    OperationDefinition { name: "boards.list", method: "get", path: "/api/v1/boards", request: Some("BoardListFilter"), request_location: Some("query"), query: None, response: Some("BoardPage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("boards"), action: Some("view") },
+    OperationDefinition { name: "boards.create", method: "post", path: "/api/v1/boards", request: Some("CreateBoard"), request_location: Some("json"), query: None, response: Some("Board"), response_location: None, status: 201, authentication: "account_or_assistant", capability: Some("boards"), action: Some("write") },
+    OperationDefinition { name: "boards.read", method: "get", path: "/api/v1/boards/{id}", request: None, request_location: None, query: None, response: Some("Board"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("boards"), action: Some("view") },
+    OperationDefinition { name: "boards.update", method: "patch", path: "/api/v1/boards/{id}", request: Some("UpdateBoard"), request_location: Some("json"), query: None, response: Some("Board"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("boards"), action: Some("write") },
+    OperationDefinition { name: "boards.delete", method: "delete", path: "/api/v1/boards/{id}", request: None, request_location: None, query: None, response: Some("Empty"), response_location: None, status: 204, authentication: "account_or_assistant", capability: Some("boards"), action: Some("delete") },
+    OperationDefinition { name: "boards.lists.list", method: "get", path: "/api/v1/boards/{id}/lists", request: Some("ListPageFilter"), request_location: Some("query"), query: None, response: Some("BoardListPage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("boards"), action: Some("view") },
+    OperationDefinition { name: "boards.lists.create", method: "post", path: "/api/v1/boards/{id}/lists", request: Some("CreateList"), request_location: Some("json"), query: None, response: Some("BoardList"), response_location: None, status: 201, authentication: "account_or_assistant", capability: Some("boards"), action: Some("write") },
+    OperationDefinition { name: "boards.lists.reorder", method: "put", path: "/api/v1/boards/{id}/lists/order", request: Some("ReorderLists"), request_location: Some("json"), query: None, response: Some("BoardListPage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("boards"), action: Some("write") },
+    OperationDefinition { name: "boards.cards.list", method: "get", path: "/api/v1/boards/lists/{id}/cards", request: Some("CardPageFilter"), request_location: Some("query"), query: None, response: Some("CardPage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("boards"), action: Some("view") },
+    OperationDefinition { name: "boards.cards.create", method: "post", path: "/api/v1/boards/lists/{id}/cards", request: Some("CreateCard"), request_location: Some("json"), query: None, response: Some("Card"), response_location: None, status: 201, authentication: "account_or_assistant", capability: Some("boards"), action: Some("write") },
+    OperationDefinition { name: "boards.cards.read", method: "get", path: "/api/v1/boards/cards/{id}", request: None, request_location: None, query: None, response: Some("Card"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("boards"), action: Some("view") },
+    OperationDefinition { name: "boards.cards.update", method: "patch", path: "/api/v1/boards/cards/{id}", request: Some("UpdateCard"), request_location: Some("json"), query: None, response: Some("Card"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("boards"), action: Some("write") },
+    OperationDefinition { name: "boards.cards.move", method: "post", path: "/api/v1/boards/cards/{id}/move", request: Some("MoveCard"), request_location: Some("json"), query: None, response: Some("Card"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("boards"), action: Some("write") },
+    OperationDefinition { name: "boards.cards.assign", method: "post", path: "/api/v1/boards/cards/{id}/assign", request: Some("AssignCard"), request_location: Some("json"), query: None, response: Some("Card"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("boards"), action: Some("write") },
+    OperationDefinition { name: "boards.comments.list", method: "get", path: "/api/v1/boards/cards/{id}/comments", request: Some("CommentPageFilter"), request_location: Some("query"), query: None, response: Some("CommentPage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("boards"), action: Some("view") },
+    OperationDefinition { name: "boards.comments.create", method: "post", path: "/api/v1/boards/cards/{id}/comments", request: Some("CreateComment"), request_location: Some("json"), query: None, response: Some("Comment"), response_location: None, status: 201, authentication: "account_or_assistant", capability: Some("boards"), action: Some("write") },
+    OperationDefinition { name: "boards.comments.update", method: "patch", path: "/api/v1/boards/comments/{id}", request: Some("UpdateComment"), request_location: Some("json"), query: None, response: Some("Comment"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("boards"), action: Some("write") },
+    OperationDefinition { name: "boards.comments.delete", method: "delete", path: "/api/v1/boards/comments/{id}", request: None, request_location: None, query: None, response: Some("Empty"), response_location: None, status: 204, authentication: "account_or_assistant", capability: Some("boards"), action: Some("delete") },
+    OperationDefinition { name: "boards.activity.list", method: "get", path: "/api/v1/boards/{id}/activity", request: Some("ActivityPageFilter"), request_location: Some("query"), query: None, response: Some("ActivityPage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("boards"), action: Some("view") },
+    OperationDefinition { name: "analytics.events.ingest", method: "post", path: "/public/v1/analytics/events", request: Some("AnalyticsEventBatch"), request_location: Some("json"), query: None, response: Some("AnalyticsReceipt"), response_location: None, status: 202, authentication: "public", capability: None, action: None },
+    OperationDefinition { name: "analytics.events.list", method: "get", path: "/api/v1/analytics/events", request: Some("EventListFilter"), request_location: Some("query"), query: None, response: Some("AnalyticsEventPage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("analytics"), action: Some("view") },
+    OperationDefinition { name: "analytics.daily.list", method: "get", path: "/api/v1/analytics/daily", request: Some("DailyListFilter"), request_location: Some("query"), query: None, response: Some("DailyAggregatePage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("analytics"), action: Some("view") },
+    OperationDefinition { name: "analytics.retention.prune", method: "post", path: "/api/v1/analytics/prune", request: Some("PruneAnalytics"), request_location: Some("json"), query: None, response: Some("PruneReceipt"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("analytics"), action: Some("delete") },
 ];

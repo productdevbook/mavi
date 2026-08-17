@@ -192,6 +192,9 @@ jobs:
       - run: cargo nextest run -p mavi-jobs --test postgres --run-ignored all
       - run: cargo nextest run -p mavi-flows --test postgres --run-ignored all
       - run: cargo nextest run -p mavi-http --test automation --run-ignored all
+      - run: cargo nextest run -p mavi-boards --test postgres --run-ignored all
+      - run: cargo nextest run -p mavi-analytics --test postgres --run-ignored all
+      - run: cargo nextest run -p mavi-http --test boards_analytics --run-ignored all
       - run: cargo nextest run -p mavi-http --test audit_trash --run-ignored all
       - run: cargo test --workspace --doc
 

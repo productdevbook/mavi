@@ -1364,6 +1364,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "mavi-analytics"
+version = "0.1.0"
+dependencies = [
+ "base64 0.23.1",
+ "chrono",
+ "mavi-audit",
+ "mavi-contract",
+ "mavi-core",
+ "mavi-storage",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
 name = "mavi-audit"
 version = "0.1.0"
 dependencies = [
@@ -1386,6 +1403,24 @@ dependencies = [
  "cedar-policy",
  "mavi-core",
  "serde_json",
+]
+
+[[package]]
+name = "mavi-boards"
+version = "0.1.0"
+dependencies = [
+ "base64 0.23.1",
+ "chrono",
+ "mavi-audit",
+ "mavi-contract",
+ "mavi-core",
+ "mavi-identity",
+ "mavi-storage",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "tokio",
+ "uuid",
 ]
 
 [[package]]
@@ -1514,8 +1549,10 @@ version = "0.1.0"
 dependencies = [
  "axum",
  "chrono",
+ "mavi-analytics",
  "mavi-audit",
  "mavi-authz",
+ "mavi-boards",
  "mavi-content",
  "mavi-contract",
  "mavi-core",

@@ -35,7 +35,7 @@ use mavi_content::{
     ContentType, ContentTypeListFilter, CreateContent, DeclareContentType, PublicationInput,
     ScheduleContent, UpdateContent,
 };
-use mavi_contract::Api;
+use mavi_contract::{Api, Endpoint, Method, Shape};
 use mavi_core::{
     Action, AuditEventId, BoardCardId, BoardCommentId, BoardId, BoardListId, Caller, Capability,
     ContentId, CouponId, CourseId, DesignBuildId, DesignChangeId, EnrollmentId, ErrorCode, FileId,
@@ -78,7 +78,7 @@ use mavi_mail::{
 };
 use mavi_media::{FileListFilter, FileRecord, MAX_FILE_BYTES, MediaService, UploadFileQuery};
 use mavi_portable::{ImportReceipt, PortableBundle, PortableImportRequest, PortableService};
-use mavi_runtime::{Runtime, SiteResolver};
+use mavi_runtime::{Runtime, RuntimeManifest, SiteResolver};
 use mavi_settings::{
     CreateLanguage, Language, LanguageListFilter, SettingsService, SiteSettings, UpdateLanguage,
     UpdateSiteSettings,
@@ -170,7 +170,61 @@ pub fn api() -> Api {
     api.extend(mavi_boards::api());
     api.extend(mavi_analytics::api());
     api.extend(mavi_portable::api());
+    api.extend(runtime_api());
     api
+}
+
+fn runtime_api() -> Api {
+    Api::new([Endpoint::new(
+        Method::Get,
+        "/api/v1/runtime/manifest",
+        "runtime.manifest.read",
+        "Read the runtime compatibility manifest",
+    )
+    .public()
+    .returns(200, "RuntimeManifest")])
+    .with_shapes([
+        Shape::new(
+            "RuntimeManifest",
+            serde_json::json!({
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                    "protocol",
+                    "release",
+                    "api_contract_version",
+                    "api_contract_hash",
+                    "storage_schema_version",
+                    "runtime_mode",
+                    "site_id",
+                    "pagination"
+                ],
+                "properties": {
+                    "protocol": {"type": "string", "const": "mavi.runtime.v1"},
+                    "release": {"type": "string"},
+                    "api_contract_version": {"type": "string", "const": "v1"},
+                    "api_contract_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+                    "storage_schema_version": {"type": "integer", "minimum": 1},
+                    "runtime_mode": {"type": "string", "enum": ["fixed_site", "shard"]},
+                    "site_id": {"type": "string", "format": "uuid"},
+                    "pagination": {"$ref": "#/components/schemas/PaginationContract"}
+                }
+            }),
+        ),
+        Shape::new(
+            "PaginationContract",
+            serde_json::json!({
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["style", "default_limit", "max_limit"],
+                "properties": {
+                    "style": {"type": "string", "const": "cursor"},
+                    "default_limit": {"type": "integer", "minimum": 1, "maximum": 100},
+                    "max_limit": {"type": "integer", "minimum": 1, "maximum": 100}
+                }
+            }),
+        ),
+    ])
 }
 
 async fn openapi_document() -> Result<Json<Value>, HttpError> {
@@ -244,6 +298,20 @@ where
         .merge(board_routes::<R>())
         .merge(analytics_routes::<R>())
         .merge(portable_routes::<R>())
+        .route("/api/v1/runtime/manifest", get(runtime_manifest::<R>))
+}
+
+async fn runtime_manifest<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+) -> Result<Json<RuntimeManifest>, HttpError>
+where
+    R: SiteResolver,
+{
+    let api_hash = api()
+        .fingerprint()
+        .map_err(|_| HttpError(MaviError::Internal))?;
+    Ok(Json(state.runtime.manifest(context.site_id, api_hash)))
 }
 
 fn identity_routes<R>() -> Router<HttpState<R>>

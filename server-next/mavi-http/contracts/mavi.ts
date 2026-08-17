@@ -1064,6 +1064,12 @@ export interface OrderTransition {
   payment?: PaymentReceiptInput | unknown;
 }
 
+export interface PaginationContract {
+  style: string;
+  default_limit: number;
+  max_limit: number;
+}
+
 export interface PaymentReceiptInput {
   provider: string;
   reference: string;
@@ -1339,6 +1345,17 @@ export interface RunListFilter {
 }
 
 export type RunState = "running" | "waiting" | "succeeded" | "failed";
+
+export interface RuntimeManifest {
+  protocol: string;
+  release: string;
+  api_contract_version: string;
+  api_contract_hash: string;
+  storage_schema_version: number;
+  runtime_mode: "fixed_site" | "shard";
+  site_id: string;
+  pagination: PaginationContract;
+}
 
 export interface ScheduleContent {
   at: string;
@@ -1814,6 +1831,7 @@ export const operations = {
   "analytics.retention.prune": { method: "post", path: "/api/v1/analytics/prune", input: { location: "json", shape: "PruneAnalytics" }, query: null, output: "PruneReceipt", status: 200, authentication: "account_or_assistant", permission: { capability: "analytics", action: "delete" } },
   "portable.export": { method: "get", path: "/api/v1/portable/export", input: null, query: null, output: "PortableBundle", status: 200, authentication: "account_or_assistant", permission: { capability: "portable", action: "view" } },
   "portable.import": { method: "post", path: "/api/v1/portable/import", input: { location: "json", shape: "PortableImportRequest" }, query: null, output: "ImportReceipt", status: 200, authentication: "account_or_assistant", permission: { capability: "portable", action: "write" } },
+  "runtime.manifest.read": { method: "get", path: "/api/v1/runtime/manifest", input: null, query: null, output: "RuntimeManifest", status: 200, authentication: "public", permission: null },
 } as const satisfies Record<string, MaviOperation>;
 
 export type OperationName = keyof typeof operations;
@@ -1990,6 +2008,7 @@ export interface OperationArguments {
   "analytics.retention.prune": { path?: never; query?: never; body: PruneAnalytics; }
   "portable.export": { path?: never; query?: never; body?: never; }
   "portable.import": { path?: never; query?: never; body: PortableImportRequest; }
+  "runtime.manifest.read": { path?: never; query?: never; body?: never; }
 }
 
 export interface OperationResponses {
@@ -2164,6 +2183,7 @@ export interface OperationResponses {
   "analytics.retention.prune": PruneReceipt;
   "portable.export": PortableBundle;
   "portable.import": ImportReceipt;
+  "runtime.manifest.read": RuntimeManifest;
 }
 
 export interface MaviClientOptions {

@@ -1213,6 +1213,13 @@ pub struct OrderTransition {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct PaginationContract {
+    pub style: String,
+    pub default_limit: i64,
+    pub max_limit: i64,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct PaymentReceiptInput {
     pub provider: String,
     pub reference: String,
@@ -1526,6 +1533,18 @@ pub struct RunListFilter {
 }
 
 pub type RunState = String;
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct RuntimeManifest {
+    pub protocol: String,
+    pub release: String,
+    pub api_contract_version: String,
+    pub api_contract_hash: String,
+    pub storage_schema_version: i64,
+    pub runtime_mode: String,
+    pub site_id: String,
+    pub pagination: PaginationContract,
+}
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ScheduleContent {
@@ -2054,4 +2073,5 @@ pub const OPERATIONS: &[OperationDefinition] = &[
     OperationDefinition { name: "analytics.retention.prune", method: "post", path: "/api/v1/analytics/prune", request: Some("PruneAnalytics"), request_location: Some("json"), query: None, response: Some("PruneReceipt"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("analytics"), action: Some("delete") },
     OperationDefinition { name: "portable.export", method: "get", path: "/api/v1/portable/export", request: None, request_location: None, query: None, response: Some("PortableBundle"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("portable"), action: Some("view") },
     OperationDefinition { name: "portable.import", method: "post", path: "/api/v1/portable/import", request: Some("PortableImportRequest"), request_location: Some("json"), query: None, response: Some("ImportReceipt"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("portable"), action: Some("write") },
+    OperationDefinition { name: "runtime.manifest.read", method: "get", path: "/api/v1/runtime/manifest", request: None, request_location: None, query: None, response: Some("RuntimeManifest"), response_location: None, status: 200, authentication: "public", capability: None, action: None },
 ];

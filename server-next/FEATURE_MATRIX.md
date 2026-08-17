@@ -18,6 +18,8 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
 - [x] Fixed-site runtime composition for self-host.
 - [x] Request admission middleware creates and validates `SiteContext`.
 - [ ] Cloud shard runtime resolves a site without a per-site router/process.
+- [x] Versioned runtime manifest exposes release/API fingerprint, storage schema,
+  runtime mode and cursor-only pagination policy to operator and panel clients.
 - [x] OpenAPI, TypeScript/Rust client and MCP tool generation from the same contract.
   - [x] HTTP composition root combines domain endpoint declarations into one validated catalog.
   - [x] OpenAPI snapshot, typed TypeScript/Rust client artifacts and MCP tool generation.
@@ -157,13 +159,17 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Settings/languages, content types, taxonomy, content/revisions, slug history and assignments export/import with typed records.
   - [x] Import validates references before writes, supports validate-only/create-only/upsert strategies and applies atomically.
   - [ ] Media bytes, shop/courses/forms/boards/automation provider state and encrypted secret handling in later bundle versions.
-- [ ] MCP resources/tools generated from the canonical API with grant checks.
+- [-] MCP resources/tools generated from the canonical API with grant checks.
+  - [x] Deterministic tool descriptors preserve authentication, scope and Cedar permission metadata.
+  - [ ] Stateless MCP transport and tool execution endpoint.
 
 ## Runtime, panel and release
 
 - [ ] Shared HTTP router with request-level site scope.
 - [ ] Self-host configuration and upgrade path.
-- [ ] Cloud/operator provisioning contract without direct database coupling.
+- [-] Cloud/operator provisioning contract without direct database coupling.
+  - [x] Mavi publishes a versioned runtime manifest for post-provision compatibility checks.
+  - [ ] Operator consumes only a tagged Mavi release and verifies the manifest before activation.
 - [ ] Panel generated client, stale-contract check and feature screens.
 - [ ] Per-domain unit, repository, migration, isolation, application, API,
   HTTP, permission and audit tests.
@@ -185,6 +191,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Portable cross-site PostgreSQL export/import/conflict tests and HTTP contract acceptance coverage.
   - [x] Identity HTTP integration covers setup, login, cursor, 401/403 and Cedar behavior.
   - [x] Generated OpenAPI/TypeScript/Rust/MCP artifacts have stale-contract tests.
+  - [x] Runtime manifest HTTP contract and cursor-only compatibility assertions.
   - [ ] Remaining domain HTTP suites.
 - [ ] Release smoke test, migration rollback policy, backups and upgrade docs.
 - [ ] Operator consumes only a tagged Mavi release/API contract.

@@ -10,6 +10,7 @@ description = "The single source of truth for Mavi's API contract."
 mavi-core = { path = "../mavi-core" }
 serde.workspace = true
 serde_json.workspace = true
+sha2.workspace = true
 
 [lints]
 workspace = true

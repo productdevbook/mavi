@@ -4,13 +4,79 @@ use std::{collections::HashMap, future::Future, pin::Pin, sync::Arc};
 
 use axum::{Router, http::header::HOST, routing::get};
 use mavi_core::{MaviError, RequestId, Result, SiteContext, SiteId};
-use mavi_storage::{Database, SiteTx};
+use mavi_storage::{CURRENT_SCHEMA_VERSION, Database, SiteTx};
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+
+pub const RUNTIME_PROTOCOL: &str = "mavi.runtime.v1";
+pub const API_CONTRACT_VERSION: &str = "v1";
+pub const PAGINATION_STYLE: &str = "cursor";
+pub const MAX_PAGE_LIMIT: u16 = 100;
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RuntimeMode {
+    FixedSite,
+    Shard,
+}
+
+impl RuntimeMode {
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::FixedSite => "fixed_site",
+            Self::Shard => "shard",
+        }
+    }
+}
+
+/// The machine-readable compatibility contract consumed by a panel or
+/// operator after a site is provisioned.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct RuntimeManifest {
+    pub protocol: String,
+    pub release: String,
+    pub api_contract_version: String,
+    pub api_contract_hash: String,
+    pub storage_schema_version: u32,
+    pub runtime_mode: RuntimeMode,
+    pub site_id: SiteId,
+    pub pagination: PaginationContract,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct PaginationContract {
+    pub style: String,
+    pub default_limit: u16,
+    pub max_limit: u16,
+}
+
+impl RuntimeManifest {
+    #[must_use]
+    pub fn new(site_id: SiteId, runtime_mode: RuntimeMode, api_contract_hash: String) -> Self {
+        Self {
+            protocol: RUNTIME_PROTOCOL.to_owned(),
+            release: env!("CARGO_PKG_VERSION").to_owned(),
+            api_contract_version: API_CONTRACT_VERSION.to_owned(),
+            api_contract_hash,
+            storage_schema_version: CURRENT_SCHEMA_VERSION,
+            runtime_mode,
+            site_id,
+            pagination: PaginationContract {
+                style: PAGINATION_STYLE.to_owned(),
+                default_limit: mavi_core::PageRequest::DEFAULT_LIMIT,
+                max_limit: MAX_PAGE_LIMIT,
+            },
+        }
+    }
+}
 
 pub type ResolveFuture = Pin<Box<dyn Future<Output = Result<SiteContext>> + Send>>;
 
 pub trait SiteResolver: Send + Sync + 'static {
     fn resolve(&self, headers: axum::http::HeaderMap, request_id: RequestId) -> ResolveFuture;
+
+    fn mode(&self) -> RuntimeMode;
 }
 
 #[derive(Clone, Debug)]
@@ -35,6 +101,10 @@ impl SiteResolver for FixedSiteResolver {
                 request_id,
             ))
         })
+    }
+
+    fn mode(&self) -> RuntimeMode {
+        RuntimeMode::FixedSite
     }
 }
 
@@ -79,6 +149,10 @@ impl SiteResolver for HostSiteResolver {
                 request_id,
             ))
         })
+    }
+
+    fn mode(&self) -> RuntimeMode {
+        RuntimeMode::Shard
     }
 }
 
@@ -130,6 +204,16 @@ where
         self.database.begin(context).await
     }
 
+    #[must_use]
+    pub fn mode(&self) -> RuntimeMode {
+        self.resolver.mode()
+    }
+
+    #[must_use]
+    pub fn manifest(&self, site_id: SiteId, api_contract_hash: String) -> RuntimeManifest {
+        RuntimeManifest::new(site_id, self.mode(), api_contract_hash)
+    }
+
     pub fn router<S>(&self) -> Router<S>
     where
         S: Clone + Send + Sync + 'static,
@@ -165,6 +249,7 @@ mod tests {
 
         assert_eq!(context.site_id, site_id);
         assert!(context.caller.is_public());
+        assert_eq!(resolver.mode(), RuntimeMode::FixedSite);
     }
 
     #[tokio::test]
@@ -179,6 +264,7 @@ mod tests {
             .await
             .expect("known host");
         assert_eq!(context.site_id, site_id);
+        assert_eq!(resolver.mode(), RuntimeMode::Shard);
 
         let mut unknown_headers = axum::http::HeaderMap::new();
         unknown_headers.insert(HOST, "other.example.com".parse().expect("host"));
@@ -196,5 +282,21 @@ mod tests {
             parse_site_id("not-an-id"),
             Err(MaviError::Validation { .. })
         ));
+    }
+
+    #[test]
+    fn manifest_is_explicit_about_release_scope_and_cursor_pagination() {
+        let site_id = SiteId::new();
+        let manifest = RuntimeManifest::new(
+            site_id,
+            RuntimeMode::FixedSite,
+            "sha256:contract".to_owned(),
+        );
+
+        assert_eq!(manifest.protocol, RUNTIME_PROTOCOL);
+        assert_eq!(manifest.site_id, site_id);
+        assert_eq!(manifest.pagination.style, PAGINATION_STYLE);
+        assert_eq!(manifest.pagination.max_limit, MAX_PAGE_LIMIT);
+        assert_eq!(manifest.storage_schema_version, CURRENT_SCHEMA_VERSION);
     }
 }

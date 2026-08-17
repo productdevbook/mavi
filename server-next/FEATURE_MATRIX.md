@@ -25,8 +25,17 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
 ## Setup, identity and access
 
 - [-] First-run setup and site bootstrap.
+  - [x] Public setup is site-scoped and serializes concurrent initialization.
+  - [x] Owner role, full initial grants and setup audit receipt are transactional.
 - [-] People, account sessions, password recovery and API keys.
+  - [x] Site-scoped people list/create/status endpoints use typed DTOs and cursors.
+  - [x] Passwords are Argon2id digests; setup and person DTO debug output redacts secrets.
+  - [x] Session and API-key authentication/revocation are site-scoped and audited.
+  - [ ] Password recovery, email verification and account security events.
 - [-] Roles, Cedar-backed grants, assistant delegation and revocation.
+  - [x] Site-scoped role list/create/grant replacement endpoints are canonicalized.
+  - [x] Cedar authorizes HTTP resources and role/person grant delegation cannot escalate.
+  - [ ] Role deletion, ownership invariants and full assistant lifecycle UI.
 - [ ] Student identity isolated from panel accounts.
 - [ ] Rate limits, request audit identity and security events.
 
@@ -70,5 +79,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
 - [ ] Panel generated client, stale-contract check and feature screens.
 - [ ] Per-domain unit, repository, migration, isolation, application, API,
   HTTP, permission and audit tests.
+  - [x] Identity unit, PostgreSQL scope/audit and negative delegation tests.
+  - [ ] Identity HTTP integration and generated client contract tests.
 - [ ] Release smoke test, migration rollback policy, backups and upgrade docs.
 - [ ] Operator consumes only a tagged Mavi release/API contract.

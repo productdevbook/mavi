@@ -164,6 +164,8 @@ jobs:
       - run: cargo fmt --all -- --check
       - run: cargo clippy --workspace --all-targets --all-features -- -D warnings
       - run: cargo nextest run --workspace
+      - run: cargo nextest run -p mavi-storage --test postgres --run-ignored all
+      - run: cargo nextest run -p mavi-identity --test postgres --run-ignored all
       - run: cargo test --workspace --doc
 
   client:

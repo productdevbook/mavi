@@ -161,7 +161,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [ ] Media bytes, shop/courses/forms/boards/automation provider state and encrypted secret handling in later bundle versions.
 - [-] MCP resources/tools generated from the canonical API with grant checks.
   - [x] Deterministic tool descriptors preserve authentication, scope and Cedar permission metadata.
-  - [ ] Stateless MCP transport and tool execution endpoint.
+  - [x] Stateless `2026-07-28` transport, `server/discover`, cursor-based `tools/list` and HTTP-routed `tools/call`.
 
 ## Runtime, panel and release
 

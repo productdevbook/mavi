@@ -9,14 +9,14 @@ use std::fmt;
 use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
 use chrono::{DateTime, Utc};
 use mavi_audit::{AuditEntry, AuditService};
-use mavi_contract::{Api, Endpoint, Method, Permission};
+use mavi_contract::{Api, Endpoint, Method, Permission, Shape};
 use mavi_core::{
     Action, Capability, ContentId, Cursor, MaviError, Page, PageRequest, Result, SiteContext,
     SiteId,
 };
 use mavi_storage::SiteTx;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use serde_json::{Value, json};
 use sqlx::Row;
 use uuid::Uuid;
 
@@ -51,8 +51,8 @@ pub fn api() -> Api {
             capability: Capability::Content,
             action: Action::View,
         })
-        .takes("ContentListQuery")
-        .returns(200, "Page<Content>"),
+        .takes_query("ContentListFilter")
+        .returns(200, "ContentPage"),
         Endpoint::new(
             Method::Get,
             "/api/v1/content/{id}",
@@ -168,6 +168,121 @@ pub fn api() -> Api {
         .public()
         .returns(200, "Content"),
     ])
+    .with_shapes(content_shapes())
+}
+
+#[allow(clippy::too_many_lines)]
+fn content_shapes() -> Vec<Shape> {
+    vec![
+        Shape::new(
+            "PublicationStatus",
+            json!({"type": "string", "enum": ["draft", "scheduled", "published", "archived"]}),
+        ),
+        Shape::new(
+            "ContentListFilter",
+            json!({
+                "type": "object",
+                "properties": {
+                    "after": {"type": ["string", "null"], "maxLength": 512},
+                    "limit": {"type": "integer", "minimum": 1, "maximum": 100},
+                    "kind": {"type": ["string", "null"], "maxLength": 31},
+                    "language": {"type": ["string", "null"], "maxLength": 35},
+                    "status": {"$ref": "#/components/schemas/PublicationStatus"},
+                },
+            }),
+        ),
+        Shape::new(
+            "Publication",
+            json!({
+                "oneOf": [
+                    {"type": "string", "enum": ["draft", "archived"]},
+                    {"type": "object", "required": ["scheduled"], "properties": {"scheduled": {"type": "object", "required": ["at"], "properties": {"at": {"type": "string", "format": "date-time"}}}}},
+                    {"type": "object", "required": ["published"], "properties": {"published": {"type": "object", "required": ["at"], "properties": {"at": {"type": "string", "format": "date-time"}}}}},
+                ],
+            }),
+        ),
+        Shape::new(
+            "PublicationInput",
+            json!({
+                "oneOf": [
+                    {"type": "string", "enum": ["draft", "publish", "archive"]},
+                    {"type": "object", "required": ["schedule"], "properties": {"schedule": {"type": "string", "format": "date-time"}}},
+                ],
+            }),
+        ),
+        Shape::new(
+            "CreateContent",
+            json!({
+                "type": "object",
+                "required": ["kind", "language", "slug", "title"],
+                "properties": {
+                    "kind": {"type": "string", "maxLength": 31},
+                    "language": {"type": "string", "maxLength": 35},
+                    "slug": {"type": "string", "maxLength": 160},
+                    "title": {"type": "string", "maxLength": 200},
+                    "excerpt": {"type": ["string", "null"]},
+                    "body": {"type": "string"},
+                    "fields": {"type": "object", "additionalProperties": true},
+                    "publication": {"$ref": "#/components/schemas/PublicationInput"},
+                },
+            }),
+        ),
+        Shape::new(
+            "UpdateContent",
+            json!({
+                "type": "object",
+                "properties": {
+                    "slug": {"type": ["string", "null"], "maxLength": 160},
+                    "title": {"type": ["string", "null"], "maxLength": 200},
+                    "excerpt": {"type": ["string", "null"]},
+                    "body": {"type": ["string", "null"]},
+                    "fields": {"type": ["object", "null"], "additionalProperties": true},
+                    "publication": {"$ref": "#/components/schemas/PublicationInput"},
+                },
+            }),
+        ),
+        Shape::new(
+            "ScheduleContent",
+            json!({
+                "type": "object",
+                "required": ["at"],
+                "properties": {"at": {"type": "string", "format": "date-time"}},
+            }),
+        ),
+        Shape::new(
+            "Content",
+            json!({
+                "type": "object",
+                "required": ["id", "site_id", "kind", "language", "slug", "title", "excerpt", "body", "fields", "publication", "revision", "created_at", "updated_at"],
+                "properties": {
+                    "id": {"type": "string", "format": "uuid"},
+                    "site_id": {"type": "string", "format": "uuid"},
+                    "kind": {"type": "string"},
+                    "language": {"type": "string"},
+                    "slug": {"type": "string"},
+                    "title": {"type": "string"},
+                    "excerpt": {"type": ["string", "null"]},
+                    "body": {"type": "string"},
+                    "fields": {"type": "object", "additionalProperties": true},
+                    "publication": {"$ref": "#/components/schemas/Publication"},
+                    "revision": {"type": "integer", "minimum": 1},
+                    "created_at": {"type": "string", "format": "date-time"},
+                    "updated_at": {"type": "string", "format": "date-time"},
+                },
+            }),
+        ),
+        Shape::new(
+            "ContentPage",
+            json!({
+                "type": "object",
+                "required": ["items", "next_cursor"],
+                "properties": {
+                    "items": {"type": "array", "items": {"$ref": "#/components/schemas/Content"}},
+                    "next_cursor": {"type": ["string", "null"], "maxLength": 512},
+                },
+            }),
+        ),
+    ]
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]

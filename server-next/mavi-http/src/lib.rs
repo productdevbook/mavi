@@ -30,6 +30,7 @@ use mavi_identity::{
 };
 use mavi_runtime::{Runtime, SiteResolver};
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 const REQUEST_ID_HEADER: &str = "x-request-id";
 
@@ -87,9 +88,16 @@ impl IntoResponse for HttpError {
 /// the only place that combines them into the application contract.
 #[must_use]
 pub fn api() -> Api {
-    let mut endpoints = mavi_identity::api().endpoints;
-    endpoints.extend(mavi_content::api().endpoints);
-    Api::new(endpoints)
+    let mut api = mavi_identity::api();
+    api.extend(mavi_content::api());
+    api
+}
+
+async fn openapi_document() -> Result<Json<Value>, HttpError> {
+    api()
+        .openapi("Mavi", "0.1.0")
+        .map(Json)
+        .map_err(|_| HttpError(MaviError::Internal))
 }
 
 /// Builds the shared router and admits every request into a site context.
@@ -105,6 +113,7 @@ where
     };
     Ok(runtime
         .router::<HttpState<R>>()
+        .route("/openapi.json", get(openapi_document))
         .route(
             "/api/v1/setup",
             get(setup_status::<R>).post(setup_initialize::<R>),

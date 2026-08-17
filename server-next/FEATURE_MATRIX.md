@@ -18,9 +18,9 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
 - [x] Fixed-site runtime composition for self-host.
 - [x] Request admission middleware creates and validates `SiteContext`.
 - [ ] Cloud shard runtime resolves a site without a per-site router/process.
-- [ ] OpenAPI, TypeScript client and MCP tool generation from the same contract.
+- [x] OpenAPI, TypeScript/Rust client and MCP tool generation from the same contract.
   - [x] HTTP composition root combines domain endpoint declarations into one validated catalog.
-  - [ ] OpenAPI snapshot, TypeScript/Rust client and MCP tool generation.
+  - [x] OpenAPI snapshot, typed TypeScript/Rust client artifacts and MCP tool generation.
 - [ ] RLS/DB guard, composite foreign keys and site-aware unique constraints across every domain table.
 - [ ] Migration and schema integration tests against PostgreSQL.
 
@@ -83,6 +83,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   HTTP, permission and audit tests.
   - [x] Identity unit, PostgreSQL scope/audit and negative delegation tests.
   - [x] Identity HTTP integration covers setup, login, cursor, 401/403 and Cedar behavior.
-  - [ ] Generated client contract tests and remaining domain HTTP suites.
+  - [x] Generated OpenAPI/TypeScript/Rust/MCP artifacts have stale-contract tests.
+  - [ ] Remaining domain HTTP suites.
 - [ ] Release smoke test, migration rollback policy, backups and upgrade docs.
 - [ ] Operator consumes only a tagged Mavi release/API contract.

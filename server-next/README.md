@@ -32,6 +32,8 @@ The same Mavi application runs in both modes:
 | `mavi-content` | content entries, publication state and site-declared content types |
 | `mavi-settings` | site settings, timezone and site language configuration |
 | `mavi-authz` | embedded Cedar policy evaluation with site-scope enforcement |
+| `mavi-files` | atomic local and in-memory site-scoped binary storage adapters |
+| `mavi-media` | file metadata, byte detection, upload/delete orchestration and media API |
 | `mavi` | executable composition root |
 
 Domains are added only after the foundation is stable. Each domain owns its
@@ -54,6 +56,10 @@ cargo run -p mavi-http --bin generate_contract -- mcp
 
 List inputs use opaque keyset cursors. The generated query contracts expose
 `after` and bounded `limit`; page/offset inputs are not part of this workspace.
+
+Self-host stores binary objects outside PostgreSQL. Set `MAVI_FILES_DIR` to a
+persistent directory (default: `./mavi-files`); object keys are generated from
+file IDs and are always namespaced by `SiteContext.site_id`.
 
 ## Dependency policy
 

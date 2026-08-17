@@ -132,5 +132,11 @@ mod tests {
             taxonomy_migration
                 .contains("alter table content_term_assignments force row level security")
         );
+
+        let media_migration = include_str!("../migrations/0009_media.sql");
+        assert!(media_migration.contains("primary key (site_id, id)"));
+        assert!(media_migration.contains("unique (site_id, storage_key)"));
+        assert!(media_migration.contains("media_files_site_kind_recent"));
+        assert!(media_migration.contains("alter table media_files force row level security"));
     }
 }

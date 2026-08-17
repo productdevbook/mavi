@@ -64,7 +64,11 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Category parent validation, recursive cycle protection and atomic content assignments.
   - [x] Content-to-term reads, replacement and term membership listing use canonical API contracts.
   - [ ] Taxonomy public archive URLs and localized fallback policy.
-- [ ] Media metadata, uploads, image variants, file storage and cleanup.
+- [-] Media metadata, uploads, image variants, file storage and cleanup.
+  - [x] Site-scoped file metadata, byte-sniffed allowlist, SHA-256 receipt and opaque cursor listing.
+  - [x] Raw binary upload contract, local atomic file adapter and in-memory test adapter.
+  - [x] RLS/composite keys, Cedar media grants, upload/delete audit receipts and retryable binary removal.
+  - [ ] Image variants, authenticated/public binary download and orphan cleanup worker.
 
 ## Operations and publishing
 

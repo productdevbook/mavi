@@ -1,4 +1,4 @@
-use std::env;
+use std::{env, sync::Arc};
 
 use axum::{
     Router,
@@ -7,6 +7,7 @@ use axum::{
     response::Response,
 };
 use mavi_core::SiteId;
+use mavi_files::InMemoryFileStore;
 use mavi_http::router;
 use mavi_runtime::{FixedSiteResolver, Runtime};
 use mavi_storage::Database;
@@ -22,7 +23,11 @@ pub async fn build_app() -> Router {
 
     let site_id = SiteId::new();
     database.ensure_site(site_id).await.expect("site");
-    router(Runtime::new(database, FixedSiteResolver::new(site_id))).expect("router")
+    router(
+        Runtime::new(database, FixedSiteResolver::new(site_id)),
+        Arc::new(InMemoryFileStore::default()),
+    )
+    .expect("router")
 }
 
 pub async fn bootstrap(app: &Router, site_name: &str) -> String {
@@ -81,6 +86,28 @@ pub async fn send(
     let body = payload.map_or_else(Body::empty, |payload| Body::from(payload.to_string()));
     app.clone()
         .oneshot(request.body(body).expect("request"))
+        .await
+        .expect("response")
+}
+
+#[allow(dead_code)]
+pub async fn send_raw(
+    app: &Router,
+    method: Method,
+    uri: &str,
+    token: Option<&str>,
+    content_type: &str,
+    body: impl Into<Body>,
+) -> Response {
+    let mut request = Request::builder()
+        .method(method)
+        .uri(uri)
+        .header("content-type", content_type);
+    if let Some(token) = token {
+        request = request.header(AUTHORIZATION, format!("Bearer {token}"));
+    }
+    app.clone()
+        .oneshot(request.body(body.into()).expect("request"))
         .await
         .expect("response")
 }

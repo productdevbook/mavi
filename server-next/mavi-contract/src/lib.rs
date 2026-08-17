@@ -42,6 +42,7 @@ impl Method {
 pub enum InputLocation {
     Json,
     Query,
+    Raw,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -64,6 +65,14 @@ impl RequestShape {
         Self {
             shape: shape.into(),
             location: InputLocation::Query,
+        }
+    }
+
+    #[must_use]
+    pub fn raw(shape: impl Into<String>) -> Self {
+        Self {
+            shape: shape.into(),
+            location: InputLocation::Raw,
         }
     }
 }
@@ -135,6 +144,7 @@ pub struct Endpoint {
     pub authentication: Authentication,
     pub permission: Option<Permission>,
     pub request: Option<RequestShape>,
+    pub query: Option<String>,
     pub response: Option<String>,
     pub status: u16,
     pub errors: Vec<ErrorCode>,
@@ -158,6 +168,7 @@ impl Endpoint {
             authentication: Authentication::Account,
             permission: None,
             request: None,
+            query: None,
             response: None,
             status: 200,
             errors: vec![ErrorCode::Internal],
@@ -211,6 +222,18 @@ impl Endpoint {
     #[must_use]
     pub fn takes_query(mut self, shape: impl Into<String>) -> Self {
         self.request = Some(RequestShape::query(shape));
+        self
+    }
+
+    #[must_use]
+    pub fn takes_raw(mut self, shape: impl Into<String>) -> Self {
+        self.request = Some(RequestShape::raw(shape));
+        self
+    }
+
+    #[must_use]
+    pub fn with_query(mut self, shape: impl Into<String>) -> Self {
+        self.query = Some(shape.into());
         self
     }
 
@@ -299,6 +322,18 @@ impl Api {
                     endpoint.operation_id
                 ));
             }
+
+            if endpoint.query.is_some()
+                && endpoint
+                    .request
+                    .as_ref()
+                    .is_some_and(|request| request.location == InputLocation::Query)
+            {
+                errors.push(format!(
+                    "endpoint declares query input twice: {}",
+                    endpoint.operation_id
+                ));
+            }
         }
 
         if errors.is_empty() {
@@ -368,47 +403,33 @@ impl Api {
                         );
                     }
                     InputLocation::Query => {
-                        let Some(shape) =
-                            self.shapes.iter().find(|shape| shape.name == request.shape)
-                        else {
-                            return Err(vec![format!("missing schema: {}", request.shape)]);
-                        };
-                        if shape.schema.get("type").and_then(Value::as_str) != Some("object") {
-                            return Err(vec![format!(
-                                "query schema is not an object: {}",
-                                request.shape
-                            )]);
-                        }
-                        let properties = shape
-                            .schema
-                            .get("properties")
-                            .and_then(Value::as_object)
-                            .cloned()
-                            .unwrap_or_default();
-                        let required = shape
-                            .schema
-                            .get("required")
-                            .and_then(Value::as_array)
-                            .map(|values| {
-                                values
-                                    .iter()
-                                    .filter_map(Value::as_str)
-                                    .collect::<BTreeSet<_>>()
-                            })
-                            .unwrap_or_default();
-                        let parameters = properties
-                            .iter()
-                            .map(|(name, schema)| {
-                                json!({
-                                    "name": name,
-                                    "in": "query",
-                                    "required": required.contains(name.as_str()),
-                                    "schema": schema,
-                                })
-                            })
-                            .collect::<Vec<_>>();
-                        operation.insert("parameters".to_owned(), Value::Array(parameters));
+                        operation.insert(
+                            "parameters".to_owned(),
+                            Value::Array(query_parameters(self, &request.shape)?),
+                        );
                     }
+                    InputLocation::Raw => {
+                        operation.insert(
+                            "requestBody".to_owned(),
+                            json!({
+                                "required": true,
+                                "content": {"application/octet-stream": {"schema": schema_ref(&request.shape)}}
+                            }),
+                        );
+                    }
+                }
+            }
+
+            if let Some(query) = &endpoint.query {
+                let generated = query_parameters(self, query)?;
+                operation
+                    .entry("parameters".to_owned())
+                    .or_insert_with(|| Value::Array(Vec::new()));
+                if let Some(parameters) = operation
+                    .get_mut("parameters")
+                    .and_then(Value::as_array_mut)
+                {
+                    parameters.extend(generated);
                 }
             }
 
@@ -524,6 +545,11 @@ impl Api {
             {
                 errors.push(format!("missing schema: {response}"));
             }
+            if let Some(query) = &endpoint.query
+                && !schemas.contains_key(query)
+            {
+                errors.push(format!("missing schema: {query}"));
+            }
         }
 
         let known = schemas.keys().collect::<BTreeSet<_>>();
@@ -560,7 +586,7 @@ impl Api {
         }
 
         output.push_str(
-            "export interface MaviOperation {\n  method: \"get\" | \"post\" | \"put\" | \"patch\" | \"delete\";\n  path: string;\n  input: { location: \"json\" | \"query\"; shape: string } | null;\n  output: string | null;\n  status: number;\n  authentication: string;\n  permission: { capability: string; action: string } | null;\n}\n\nexport const operations = {\n",
+            "export interface MaviOperation {\n  method: \"get\" | \"post\" | \"put\" | \"patch\" | \"delete\";\n  path: string;\n  input: { location: \"json\" | \"query\" | \"raw\"; shape: string } | null;\n  query: string | null;\n  output: string | null;\n  status: number;\n  authentication: string;\n  permission: { capability: string; action: string } | null;\n}\n\nexport const operations = {\n",
         );
         for endpoint in &self.endpoints {
             let input = endpoint.request.as_ref().map_or_else(
@@ -571,11 +597,16 @@ impl Api {
                         match request.location {
                             InputLocation::Json => "json",
                             InputLocation::Query => "query",
+                            InputLocation::Raw => "raw",
                         },
                         request.shape
                     )
                 },
             );
+            let query = endpoint
+                .query
+                .as_ref()
+                .map_or_else(|| "null".to_owned(), |shape| format!("\"{shape}\""));
             let response = endpoint
                 .response
                 .as_ref()
@@ -592,11 +623,12 @@ impl Api {
             );
             writeln!(
                 output,
-                "  \"{}\": {{ method: \"{}\", path: \"{}\", input: {}, output: {}, status: {}, authentication: \"{}\", permission: {} }},",
+                "  \"{}\": {{ method: \"{}\", path: \"{}\", input: {}, query: {}, output: {}, status: {}, authentication: \"{}\", permission: {} }},",
                 endpoint.operation_id,
                 endpoint.method.as_str(),
                 endpoint.path,
                 input,
+                query,
                 response,
                 endpoint.status,
                 authentication_name(endpoint.authentication),
@@ -650,13 +682,30 @@ impl Api {
         }
 
         output.push_str(
-            "#[derive(Clone, Copy, Debug, Eq, PartialEq)]\npub struct OperationDefinition {\n    pub name: &'static str,\n    pub method: &'static str,\n    pub path: &'static str,\n    pub request: Option<&'static str>,\n    pub response: Option<&'static str>,\n    pub status: u16,\n    pub authentication: &'static str,\n    pub capability: Option<&'static str>,\n    pub action: Option<&'static str>,\n}\n\npub const OPERATIONS: &[OperationDefinition] = &[\n",
+            "#[derive(Clone, Copy, Debug, Eq, PartialEq)]\npub struct OperationDefinition {\n    pub name: &'static str,\n    pub method: &'static str,\n    pub path: &'static str,\n    pub request: Option<&'static str>,\n    pub request_location: Option<&'static str>,\n    pub query: Option<&'static str>,\n    pub response: Option<&'static str>,\n    pub status: u16,\n    pub authentication: &'static str,\n    pub capability: Option<&'static str>,\n    pub action: Option<&'static str>,\n}\n\npub const OPERATIONS: &[OperationDefinition] = &[\n",
         );
         for endpoint in &self.endpoints {
             let request = endpoint.request.as_ref().map_or_else(
                 || "None".to_owned(),
                 |request| format!("Some(\"{}\")", request.shape),
             );
+            let request_location = endpoint.request.as_ref().map_or_else(
+                || "None".to_owned(),
+                |request| {
+                    format!(
+                        "Some(\"{}\")",
+                        match request.location {
+                            InputLocation::Json => "json",
+                            InputLocation::Query => "query",
+                            InputLocation::Raw => "raw",
+                        }
+                    )
+                },
+            );
+            let query = endpoint
+                .query
+                .as_ref()
+                .map_or_else(|| "None".to_owned(), |shape| format!("Some(\"{shape}\")"));
             let response = endpoint
                 .response
                 .as_ref()
@@ -672,11 +721,13 @@ impl Api {
             );
             writeln!(
                 output,
-                "    OperationDefinition {{ name: \"{}\", method: \"{}\", path: \"{}\", request: {}, response: {}, status: {}, authentication: \"{}\", capability: {}, action: {} }},",
+                "    OperationDefinition {{ name: \"{}\", method: \"{}\", path: \"{}\", request: {}, request_location: {}, query: {}, response: {}, status: {}, authentication: \"{}\", capability: {}, action: {} }},",
                 endpoint.operation_id,
                 endpoint.method.as_str(),
                 endpoint.path,
                 request,
+                request_location,
+                query,
                 response,
                 endpoint.status,
                 authentication_name(endpoint.authentication),
@@ -725,15 +776,25 @@ impl Api {
                     .ok_or_else(|| vec![format!("missing schema: {}", request.shape)])?;
                 properties.insert(
                     match request.location {
-                        InputLocation::Json => "body".to_owned(),
+                        InputLocation::Json | InputLocation::Raw => "body".to_owned(),
                         InputLocation::Query => "query".to_owned(),
                     },
                     schema,
                 );
                 required.push(match request.location {
-                    InputLocation::Json => "body",
+                    InputLocation::Json | InputLocation::Raw => "body",
                     InputLocation::Query => "query",
                 });
+            }
+
+            if let Some(query) = &endpoint.query {
+                let mut active = BTreeSet::new();
+                let schema = schemas
+                    .get(query)
+                    .map(|schema| inline_schema(schema, &schemas, &mut active))
+                    .ok_or_else(|| vec![format!("missing schema: {query}")])?;
+                properties.insert("query".to_owned(), schema);
+                required.push("query");
             }
 
             tools.push(json!({
@@ -755,6 +816,43 @@ impl Api {
         }
         Ok(json!({"tools": tools}))
     }
+}
+
+fn query_parameters(api: &Api, shape_name: &str) -> Result<Vec<Value>, Vec<String>> {
+    let Some(shape) = api.shapes.iter().find(|shape| shape.name == shape_name) else {
+        return Err(vec![format!("missing schema: {shape_name}")]);
+    };
+    if shape.schema.get("type").and_then(Value::as_str) != Some("object") {
+        return Err(vec![format!("query schema is not an object: {shape_name}")]);
+    }
+    let properties = shape
+        .schema
+        .get("properties")
+        .and_then(Value::as_object)
+        .cloned()
+        .unwrap_or_default();
+    let required = shape
+        .schema
+        .get("required")
+        .and_then(Value::as_array)
+        .map(|values| {
+            values
+                .iter()
+                .filter_map(Value::as_str)
+                .collect::<BTreeSet<_>>()
+        })
+        .unwrap_or_default();
+    Ok(properties
+        .iter()
+        .map(|(name, schema)| {
+            json!({
+                "name": name,
+                "in": "query",
+                "required": required.contains(name.as_str()),
+                "schema": schema,
+            })
+        })
+        .collect())
 }
 
 fn schema_ref(name: &str) -> Value {
@@ -1081,26 +1179,27 @@ fn render_operation_arguments(output: &mut String, endpoint: &Endpoint) {
         )
         .expect("String");
     }
+    let query_shape = endpoint.query.as_deref().or_else(|| {
+        endpoint.request.as_ref().and_then(|request| {
+            (request.location == InputLocation::Query).then_some(request.shape.as_str())
+        })
+    });
+    match query_shape {
+        Some(shape) => write!(output, " query: {shape};").expect("String"),
+        None => output.push_str(" query?: never;"),
+    }
     match endpoint.request.as_ref().map(|request| request.location) {
         Some(InputLocation::Json) => write!(
             output,
-            " query?: never; body: {};",
+            " body: {};",
             endpoint
                 .request
                 .as_ref()
                 .map_or("unknown", |request| request.shape.as_str())
         )
         .expect("String"),
-        Some(InputLocation::Query) => write!(
-            output,
-            " query: {}; body?: never;",
-            endpoint
-                .request
-                .as_ref()
-                .map_or("unknown", |request| request.shape.as_str())
-        )
-        .expect("String"),
-        None => output.push_str(" query?: never; body?: never;"),
+        Some(InputLocation::Raw) => output.push_str(" body: Blob | ArrayBuffer | Uint8Array;"),
+        Some(InputLocation::Query) | None => output.push_str(" body?: never;"),
     }
     output.push_str(" }\n");
 }
@@ -1153,13 +1252,20 @@ export class MaviClient {
     if (this.options.token) {
       headers.Authorization = `Bearer ${this.options.token}`;
     }
+    const rawBody = definition.input?.location === "raw";
+    let requestBody: BodyInit | undefined;
     if (values.body !== undefined) {
-      headers["Content-Type"] = "application/json";
+      headers["Content-Type"] = rawBody
+        ? "application/octet-stream"
+        : "application/json";
+      requestBody = rawBody
+        ? (values.body as BodyInit)
+        : JSON.stringify(values.body);
     }
     const response = await this.fetcher(url, {
       method: definition.method.toUpperCase(),
       headers,
-      body: values.body === undefined ? undefined : JSON.stringify(values.body),
+      body: requestBody,
     });
     if (!response.ok) {
       let payload: ErrorEnvelope | null = null;
@@ -1310,6 +1416,45 @@ mod tests {
         assert!(operation.get("requestBody").is_none());
         assert_eq!(operation["parameters"][0]["name"], "after");
         assert_eq!(operation["parameters"][1]["name"], "limit");
+    }
+
+    #[test]
+    fn raw_inputs_generate_binary_body_and_independent_query_parameters() {
+        let api = Api::new([Endpoint::new(
+            Method::Post,
+            "/api/v1/files",
+            "media.files.upload",
+            "Upload a file",
+        )
+        .account_or_assistant()
+        .takes_raw("FileBytes")
+        .with_query("UploadFileQuery")
+        .returns(201, "File")])
+        .with_shapes([
+            Shape::new("FileBytes", json!({"type": "string", "format": "binary"})),
+            Shape::new(
+                "UploadFileQuery",
+                json!({
+                    "type": "object",
+                    "required": ["name"],
+                    "properties": {"name": {"type": "string"}},
+                }),
+            ),
+            Shape::new("File", json!({"type": "object"})),
+        ]);
+
+        let document = api.openapi("Mavi", "0.1.0").expect("OpenAPI");
+        let operation = &document["paths"]["/api/v1/files"]["post"];
+        assert_eq!(
+            operation["requestBody"]["content"]["application/octet-stream"]["schema"]["$ref"],
+            "#/components/schemas/FileBytes"
+        );
+        assert_eq!(operation["parameters"][0]["name"], "name");
+        assert!(
+            api.typescript()
+                .expect("TypeScript")
+                .contains("location: \"raw\"")
+        );
     }
 
     #[test]

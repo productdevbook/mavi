@@ -17,6 +17,7 @@ pub trait FileStore: Debug + Send + Sync {
     ) -> BoxFuture<'a, Result<()>>;
     fn get<'a>(&'a self, context: &'a SiteContext, path: &'a str)
     -> BoxFuture<'a, Result<Vec<u8>>>;
+    fn remove<'a>(&'a self, context: &'a SiteContext, path: &'a str) -> BoxFuture<'a, Result<()>>;
 }
 
 pub trait Mailer: Debug + Send + Sync {

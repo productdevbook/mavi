@@ -175,6 +175,8 @@ jobs:
       - run: cargo nextest run -p mavi-http --test content_lifecycle --run-ignored all
       - run: cargo nextest run -p mavi-taxonomy --test postgres --run-ignored all
       - run: cargo nextest run -p mavi-http --test taxonomy --run-ignored all
+      - run: cargo nextest run -p mavi-media --test postgres --run-ignored all
+      - run: cargo nextest run -p mavi-http --test media --run-ignored all
       - run: cargo test --workspace --doc
 
   client:

@@ -36,6 +36,23 @@ Domains are added only after the foundation is stable. Each domain owns its
 application service, repository, migration, API declarations, Cedar action
 mapping and tests.
 
+## Generated contract artifacts
+
+`mavi-contract` is the only source of API shape metadata. The HTTP composition
+root exposes the generated OpenAPI document at `/openapi.json`, and the
+committed snapshots under [`mavi-http/contracts`](mavi-http/contracts) are
+checked in CI:
+
+```bash
+cargo run -p mavi-http --bin generate_contract -- openapi
+cargo run -p mavi-http --bin generate_contract -- typescript
+cargo run -p mavi-http --bin generate_contract -- rust
+cargo run -p mavi-http --bin generate_contract -- mcp
+```
+
+List inputs use opaque keyset cursors. The generated query contracts expose
+`after` and bounded `limit`; page/offset inputs are not part of this workspace.
+
 ## Dependency policy
 
 Direct Rust dependencies are pinned to the latest compatible releases when

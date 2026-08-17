@@ -13,7 +13,7 @@ use argon2::{
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use chrono::{DateTime, Duration, Utc};
 use mavi_audit::{AuditEntry, AuditService};
-use mavi_contract::{Api, Endpoint, Method, Permission};
+use mavi_contract::{Api, Endpoint, Method, Permission, Shape};
 use mavi_core::{
     Action, ApiKeyId, Caller, Capability, Cursor, ErrorCode, Grant, Grants, MaviError, Page,
     PageRequest, PersonId, Result, RoleId, SessionId, SiteContext, SiteId,
@@ -21,6 +21,7 @@ use mavi_core::{
 use mavi_storage::SiteTx;
 use rand::RngExt;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use sqlx::Row;
 use uuid::Uuid;
 
@@ -66,7 +67,7 @@ pub fn api() -> Api {
         )
         .public_mutation()
         .takes("LoginInput")
-        .returns(201, "Session"),
+        .returns(201, "SessionCreated"),
         Endpoint::new(
             Method::Delete,
             "/api/v1/auth/sessions/current",
@@ -112,8 +113,8 @@ pub fn api() -> Api {
             capability: Capability::People,
             action: Action::View,
         })
-        .takes("PeopleListFilter")
-        .returns(200, "Page<PersonRecord>")
+        .takes_query("PeopleListFilter")
+        .returns(200, "PersonPage")
         .refuses([
             ErrorCode::Forbidden,
             ErrorCode::Validation,
@@ -172,8 +173,8 @@ pub fn api() -> Api {
             capability: Capability::People,
             action: Action::View,
         })
-        .takes("RoleListFilter")
-        .returns(200, "Page<Role>")
+        .takes_query("RoleListFilter")
+        .returns(200, "RolePage")
         .refuses([
             ErrorCode::Forbidden,
             ErrorCode::Validation,
@@ -219,6 +220,227 @@ pub fn api() -> Api {
             ErrorCode::Internal,
         ]),
     ])
+    .with_shapes(identity_shapes())
+}
+
+#[allow(clippy::too_many_lines)]
+fn identity_shapes() -> Vec<Shape> {
+    vec![
+        Shape::new(
+            "SetupStatus",
+            json!({
+                "type": "object",
+                "required": ["initialized"],
+                "properties": {"initialized": {"type": "boolean"}},
+            }),
+        ),
+        Shape::new(
+            "SetupInput",
+            json!({
+                "type": "object",
+                "required": ["site_name", "email", "name", "password"],
+                "properties": {
+                    "site_name": {"type": "string", "maxLength": 200},
+                    "email": {"type": "string", "format": "email"},
+                    "name": {"type": "string", "maxLength": 120},
+                    "password": {"type": "string", "format": "password", "minLength": 12},
+                },
+            }),
+        ),
+        Shape::new(
+            "LoginInput",
+            json!({
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                    "email": {"type": "string", "format": "email"},
+                    "password": {"type": "string", "format": "password"},
+                },
+            }),
+        ),
+        Shape::new(
+            "Person",
+            json!({
+                "type": "object",
+                "required": ["id", "site_id", "email", "name"],
+                "properties": {
+                    "id": {"type": "string", "format": "uuid"},
+                    "site_id": {"type": "string", "format": "uuid"},
+                    "email": {"type": "string", "format": "email"},
+                    "name": {"type": "string"},
+                },
+            }),
+        ),
+        Shape::new(
+            "SessionCreated",
+            json!({
+                "type": "object",
+                "required": ["id", "token", "expires_at"],
+                "properties": {
+                    "id": {"type": "string", "format": "uuid"},
+                    "token": {"type": "string"},
+                    "expires_at": {"type": "string", "format": "date-time"},
+                },
+            }),
+        ),
+        Shape::new(
+            "Grant",
+            json!({
+                "type": "object",
+                "required": ["capability", "action"],
+                "properties": {
+                    "capability": {"type": "string"},
+                    "action": {"type": "string"},
+                },
+            }),
+        ),
+        Shape::new(
+            "CreateApiKey",
+            json!({
+                "type": "object",
+                "required": ["name", "grants"],
+                "properties": {
+                    "name": {"type": "string", "maxLength": 120},
+                    "grants": {"type": "array", "items": {"$ref": "#/components/schemas/Grant"}},
+                    "expires_at": {"type": ["string", "null"], "format": "date-time"},
+                },
+            }),
+        ),
+        Shape::new(
+            "ApiKeyCreated",
+            json!({
+                "type": "object",
+                "required": ["id", "name", "token", "grants"],
+                "properties": {
+                    "id": {"type": "string", "format": "uuid"},
+                    "name": {"type": "string"},
+                    "token": {"type": "string"},
+                    "grants": {"type": "array", "items": {"$ref": "#/components/schemas/Grant"}},
+                    "expires_at": {"type": ["string", "null"], "format": "date-time"},
+                },
+            }),
+        ),
+        Shape::new(
+            "PersonListFilterStatus",
+            json!({"type": "string", "enum": ["active", "suspended", "removed"]}),
+        ),
+        Shape::new(
+            "PeopleListFilter",
+            json!({
+                "type": "object",
+                "properties": {
+                    "after": {"type": ["string", "null"], "maxLength": 512},
+                    "limit": {"type": "integer", "minimum": 1, "maximum": 100},
+                    "status": {"$ref": "#/components/schemas/PersonListFilterStatus"},
+                },
+            }),
+        ),
+        Shape::new(
+            "CreatePerson",
+            json!({
+                "type": "object",
+                "required": ["email", "name", "password"],
+                "properties": {
+                    "email": {"type": "string", "format": "email"},
+                    "name": {"type": "string", "maxLength": 120},
+                    "password": {"type": "string", "format": "password", "minLength": 12},
+                    "role_ids": {"type": "array", "items": {"type": "string", "format": "uuid"}},
+                },
+            }),
+        ),
+        Shape::new(
+            "UpdatePersonStatus",
+            json!({
+                "type": "object",
+                "required": ["status"],
+                "properties": {"status": {"$ref": "#/components/schemas/PersonListFilterStatus"}},
+            }),
+        ),
+        Shape::new(
+            "PersonRecord",
+            json!({
+                "type": "object",
+                "required": ["id", "site_id", "email", "name", "status", "role_ids", "created_at", "updated_at"],
+                "properties": {
+                    "id": {"type": "string", "format": "uuid"},
+                    "site_id": {"type": "string", "format": "uuid"},
+                    "email": {"type": "string", "format": "email"},
+                    "name": {"type": "string"},
+                    "status": {"$ref": "#/components/schemas/PersonListFilterStatus"},
+                    "role_ids": {"type": "array", "items": {"type": "string", "format": "uuid"}},
+                    "created_at": {"type": "string", "format": "date-time"},
+                    "updated_at": {"type": "string", "format": "date-time"},
+                },
+            }),
+        ),
+        Shape::new(
+            "PersonPage",
+            json!({
+                "type": "object",
+                "required": ["items", "next_cursor"],
+                "properties": {
+                    "items": {"type": "array", "items": {"$ref": "#/components/schemas/PersonRecord"}},
+                    "next_cursor": {"type": ["string", "null"], "maxLength": 512},
+                },
+            }),
+        ),
+        Shape::new(
+            "RoleListFilter",
+            json!({
+                "type": "object",
+                "properties": {
+                    "after": {"type": ["string", "null"], "maxLength": 512},
+                    "limit": {"type": "integer", "minimum": 1, "maximum": 100},
+                },
+            }),
+        ),
+        Shape::new(
+            "Role",
+            json!({
+                "type": "object",
+                "required": ["id", "site_id", "name", "grants", "created_at"],
+                "properties": {
+                    "id": {"type": "string", "format": "uuid"},
+                    "site_id": {"type": "string", "format": "uuid"},
+                    "name": {"type": "string"},
+                    "grants": {"type": "array", "items": {"$ref": "#/components/schemas/Grant"}},
+                    "created_at": {"type": "string", "format": "date-time"},
+                },
+            }),
+        ),
+        Shape::new(
+            "RolePage",
+            json!({
+                "type": "object",
+                "required": ["items", "next_cursor"],
+                "properties": {
+                    "items": {"type": "array", "items": {"$ref": "#/components/schemas/Role"}},
+                    "next_cursor": {"type": ["string", "null"], "maxLength": 512},
+                },
+            }),
+        ),
+        Shape::new(
+            "CreateRole",
+            json!({
+                "type": "object",
+                "required": ["name"],
+                "properties": {
+                    "name": {"type": "string", "maxLength": 64},
+                    "grants": {"type": "array", "items": {"$ref": "#/components/schemas/Grant"}},
+                },
+            }),
+        ),
+        Shape::new(
+            "ReplaceRoleGrants",
+            json!({
+                "type": "object",
+                "required": ["grants"],
+                "properties": {
+                    "grants": {"type": "array", "items": {"$ref": "#/components/schemas/Grant"}},
+                },
+            }),
+        ),
+    ]
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]

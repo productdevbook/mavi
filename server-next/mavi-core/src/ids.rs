@@ -61,6 +61,8 @@ macro_rules! typed_id {
 
 typed_id!(SiteId);
 typed_id!(AuditEventId);
+typed_id!(DesignChangeId);
+typed_id!(DesignBuildId);
 typed_id!(ContentId);
 typed_id!(FileId);
 typed_id!(ApiKeyId);

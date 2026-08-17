@@ -7,6 +7,7 @@ use axum::{
     response::Response,
 };
 use mavi_core::SiteId;
+use mavi_design::StaticBuildEngine;
 use mavi_files::InMemoryFileStore;
 use mavi_http::router;
 use mavi_runtime::{FixedSiteResolver, Runtime};
@@ -26,6 +27,7 @@ pub async fn build_app() -> Router {
     router(
         Runtime::new(database, FixedSiteResolver::new(site_id)),
         Arc::new(InMemoryFileStore::default()),
+        Arc::new(StaticBuildEngine),
     )
     .expect("router")
 }
@@ -117,4 +119,12 @@ pub async fn response_json(response: Response) -> Value {
         .await
         .expect("response body");
     serde_json::from_slice(&bytes).expect("json response")
+}
+
+#[allow(dead_code)]
+pub async fn response_bytes(response: Response) -> Vec<u8> {
+    to_bytes(response.into_body(), 10 * 1024 * 1024)
+        .await
+        .expect("response body")
+        .to_vec()
 }

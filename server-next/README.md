@@ -36,6 +36,7 @@ The same Mavi application runs in both modes:
 | `mavi-media` | file metadata, byte detection, upload/trash orchestration and media API |
 | `mavi-audit` | immutable site-scoped mutation receipts and cursor-filtered audit reads |
 | `mavi-trash` | shared trash listing, restore, permanent deletion and media cleanup policy |
+| `mavi-design` | site-owned source files, immutable preview builds, publish/rollback and public asset metadata |
 | `mavi` | executable composition root |
 
 Domains are added only after the foundation is stable. Each domain owns its
@@ -62,6 +63,11 @@ List inputs use opaque keyset cursors. The generated query contracts expose
 Self-host stores binary objects outside PostgreSQL. Set `MAVI_FILES_DIR` to a
 persistent directory (default: `./mavi-files`); object keys are generated from
 file IDs and are always namespaced by `SiteContext.site_id`.
+
+Design builds use the same `FileStore` boundary. The self-host baseline exposes
+only `public/` source files through the static build engine; `src/` remains
+non-executable source. Preview and live assets are immutable build artifacts,
+and publish/rollback changes one site-scoped database pointer atomically.
 
 ## Dependency policy
 

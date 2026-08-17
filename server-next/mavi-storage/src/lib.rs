@@ -149,5 +149,16 @@ mod tests {
         let audit_immutable_migration = include_str!("../migrations/0011_audit_immutable.sql");
         assert!(audit_immutable_migration.contains("audit_events_append_only"));
         assert!(audit_immutable_migration.contains("revoke update, delete on audit_events"));
+
+        let design_migration = include_str!("../migrations/0012_design.sql");
+        assert!(design_migration.contains("primary key (site_id, id)"));
+        assert!(design_migration.contains("design_changes_one_published"));
+        assert!(
+            design_migration.contains(
+                "foreign key (site_id, change_id) references design_changes(site_id, id)"
+            )
+        );
+        assert!(design_migration.contains("force row level security"));
+        assert!(design_migration.contains("design_build_artifacts"));
     }
 }

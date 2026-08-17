@@ -51,7 +51,7 @@ jobs:
                 - 'client/**'
                 - '.github/workflows/ci.yml'
 
-  # The server: twenty-one crates, a hundred and one endpoints, and a schema
+  # The server: the legacy workspace, its endpoints, and a schema
   # that has to meet a real Postgres — because a check constraint nothing ever
   # ran is a claim rather than a rule.
   server:
@@ -179,6 +179,8 @@ jobs:
       - run: cargo nextest run -p mavi-trash --test postgres --run-ignored all
       - run: cargo nextest run -p mavi-media --test postgres --run-ignored all
       - run: cargo nextest run -p mavi-http --test media --run-ignored all
+      - run: cargo nextest run -p mavi-design --test postgres --run-ignored all
+      - run: cargo nextest run -p mavi-http --test design --run-ignored all
       - run: cargo nextest run -p mavi-http --test audit_trash --run-ignored all
       - run: cargo test --workspace --doc
 

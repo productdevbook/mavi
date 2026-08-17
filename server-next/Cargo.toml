@@ -15,6 +15,7 @@ members = [
   "mavi-files",
   "mavi-media",
   "mavi-trash",
+  "mavi-design",
   "mavi",
 ]
 

@@ -4,12 +4,13 @@ use mavi_core::{MaviError, Result, SiteId};
 use mavi_design::StaticBuildEngine;
 use mavi_files::DirectoryFileStore;
 use mavi_http::router;
-use mavi_runtime::{FixedSiteResolver, Runtime};
+use mavi_runtime::{
+    FixedSiteResolver, HostSiteResolver, Runtime, RuntimeMode, SiteResolver, parse_site_id,
+};
 use mavi_sealing::KeyringSealer;
-use mavi_storage::Database;
+use mavi_storage::{Database, SiteStatus};
 use tokio::net::TcpListener;
 use tracing_subscriber::EnvFilter;
-use uuid::Uuid;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -21,10 +22,6 @@ async fn main() -> Result<()> {
         .init();
 
     let database_url = required("DATABASE_URL")?;
-    let site_id = SiteId::from_uuid(
-        Uuid::parse_str(&required("MAVI_SITE_ID")?)
-            .map_err(|_| MaviError::validation("invalid_site_id"))?,
-    );
     let listen = env::var("LISTEN").unwrap_or_else(|_| "0.0.0.0:8080".to_owned());
     let connections = env::var("DATABASE_CONNECTIONS")
         .ok()
@@ -35,9 +32,6 @@ async fn main() -> Result<()> {
 
     let database = Database::connect(&database_url, connections).await?;
     database.migrate().await?;
-    database.ensure_site(site_id).await?;
-
-    let runtime = Runtime::new(database, FixedSiteResolver::new(site_id));
     let file_root = env::var("MAVI_FILES_DIR").unwrap_or_else(|_| "./mavi-files".to_owned());
     let file_store = Arc::new(DirectoryFileStore::at(file_root));
     let sealer = Arc::new(KeyringSealer::from_spec(&required("MAVI_KEYS")?)?);
@@ -48,7 +42,44 @@ async fn main() -> Result<()> {
         .await
         .map_err(|_| MaviError::Internal)?;
 
-    tracing::info!(%address, %site_id, "mavi runtime listening");
+    match runtime_mode()? {
+        RuntimeMode::FixedSite => {
+            let site_id = parse_site_id(&required("MAVI_SITE_ID")?)?;
+            database.ensure_site(site_id).await?;
+            tracing::info!(%address, %site_id, mode = "fixed_site", "mavi runtime listening");
+            serve(
+                listener,
+                database,
+                FixedSiteResolver::new(site_id),
+                file_store,
+                sealer,
+            )
+            .await
+        }
+        RuntimeMode::Shard => {
+            let entries = parse_site_hosts(&required("MAVI_SITE_HOSTS")?)?;
+            let resolver = HostSiteResolver::new(entries.clone())?;
+            let sites = entries
+                .iter()
+                .map(|(_, site_id)| (*site_id, SiteStatus::Active));
+            database.reconcile_sites(sites).await?;
+            tracing::info!(%address, mode = "shard", "mavi runtime listening");
+            serve(listener, database, resolver, file_store, sealer).await
+        }
+    }
+}
+
+async fn serve<R>(
+    listener: TcpListener,
+    database: Database,
+    resolver: R,
+    file_store: Arc<DirectoryFileStore>,
+    sealer: Arc<KeyringSealer>,
+) -> Result<()>
+where
+    R: SiteResolver,
+{
+    let runtime = Runtime::new(database, resolver);
     axum::serve(
         listener,
         router(runtime, file_store, Arc::new(StaticBuildEngine), sealer)?,
@@ -57,6 +88,77 @@ async fn main() -> Result<()> {
     .map_err(|_| MaviError::Internal)
 }
 
+fn runtime_mode() -> Result<RuntimeMode> {
+    parse_runtime_mode(env::var("MAVI_RUNTIME_MODE").ok().as_deref())
+}
+
+fn parse_runtime_mode(value: Option<&str>) -> Result<RuntimeMode> {
+    match value.unwrap_or("fixed_site") {
+        "fixed_site" => Ok(RuntimeMode::FixedSite),
+        "shard" => Ok(RuntimeMode::Shard),
+        _ => Err(MaviError::validation("invalid_runtime_mode")),
+    }
+}
+
+fn parse_site_hosts(value: &str) -> Result<Vec<(String, SiteId)>> {
+    if value.trim().is_empty() {
+        return Err(MaviError::validation("site_hosts_required"));
+    }
+
+    value
+        .split(',')
+        .map(|entry| {
+            let (host, site_id) = entry
+                .trim()
+                .split_once('=')
+                .ok_or_else(|| MaviError::validation("invalid_site_host_entry"))?;
+            let host = host.trim();
+            if host.is_empty() {
+                return Err(MaviError::validation("site_host_required"));
+            }
+            Ok((host.to_owned(), parse_site_id(site_id.trim())?))
+        })
+        .collect()
+}
+
 fn required(name: &str) -> Result<String> {
     env::var(name).map_err(|_| MaviError::validation(format!("{name}_is_required")))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn fixed_site_is_the_default_runtime_mode() {
+        assert_eq!(
+            parse_runtime_mode(None).expect("default mode"),
+            RuntimeMode::FixedSite
+        );
+    }
+
+    #[test]
+    fn shard_site_hosts_parse_into_typed_entries() {
+        let first = SiteId::new();
+        let second = SiteId::new();
+        let entries = parse_site_hosts(&format!(
+            "first.example.com={first}, second.example.com={second}"
+        ))
+        .expect("site host entries");
+
+        assert_eq!(
+            entries,
+            vec![
+                ("first.example.com".to_owned(), first),
+                ("second.example.com".to_owned(), second)
+            ]
+        );
+    }
+
+    #[test]
+    fn shard_site_hosts_reject_malformed_entries() {
+        assert!(parse_site_hosts("").is_err());
+        assert!(parse_site_hosts("example.com").is_err());
+        assert!(parse_site_hosts("example.com=not-a-uuid").is_err());
+    }
 }

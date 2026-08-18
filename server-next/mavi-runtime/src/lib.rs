@@ -208,6 +208,12 @@ pub struct Runtime<R> {
     resolver: Arc<R>,
 }
 
+/// Self-host runtime: one configured site and one shared application router.
+pub type FixedSiteRuntime = Runtime<FixedSiteResolver>;
+
+/// Cloud runtime: one shared application router resolves many sites by host.
+pub type ShardRuntime = Runtime<HostSiteResolver>;
+
 impl<R> Clone for Runtime<R> {
     fn clone(&self) -> Self {
         Self {

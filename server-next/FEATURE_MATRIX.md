@@ -85,7 +85,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [-] Scheduled publishing worker/queue and rollback/restore UX.
     - [x] Scheduling atomically enqueues a site-scoped, idempotent `content.publish_scheduled` job.
     - [x] Site-scoped content worker claims leases, publishes due content, defers early jobs and treats stale schedules as safe no-ops.
-    - [ ] Rollback/restore UX.
+    - [x] Revision restore creates a new audited draft revision; publishing the restored snapshot remains an explicit permissioned action.
 - [-] Taxonomy terms, trees, assignment and filtered listing.
   - [x] Site-scoped category/tag terms with language-aware slugs and opaque cursor listing.
   - [x] Category parent validation, recursive cycle protection and atomic content assignments.

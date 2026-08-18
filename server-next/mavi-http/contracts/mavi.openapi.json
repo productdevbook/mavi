@@ -2445,6 +2445,121 @@
         }
       }
     },
+    "/api/v1/content/{id}/revisions/{revision}/restore": {
+      "post": {
+        "operationId": "content.revisions.restore",
+        "summary": "Restore a content revision as a new draft",
+        "tags": [
+          "content"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Content"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "revision",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-mavi": {
+          "scope": "site",
+          "authentication": "account_or_assistant",
+          "mutation": {
+            "permissioned": {
+              "idempotent": true
+            }
+          },
+          "permission": {
+            "capability": "content",
+            "action": "write"
+          },
+          "errors": [
+            "forbidden",
+            "validation",
+            "not_found",
+            "conflict",
+            "internal"
+          ]
+        }
+      }
+    },
     "/api/v1/settings": {
       "get": {
         "operationId": "settings.read",

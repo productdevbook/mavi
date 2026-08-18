@@ -3,7 +3,7 @@ use std::env;
 use mavi_content::{
     CONTENT_FIELD_REQUIRED, CONTENT_NOT_FOUND, ContentRevisionListFilter, ContentService,
     ContentTypeField, ContentTypeListFilter, CreateContent, DeclareContentType, FieldKind,
-    PublicationInput, UpdateContent,
+    Publication, PublicationInput, UpdateContent,
 };
 use mavi_core::{MaviError, PageRequest, SiteContext, SiteId};
 use mavi_storage::Database;
@@ -350,4 +350,102 @@ async fn content_revisions_and_slug_history_are_site_scoped() {
         })
     ));
     second_tx.commit().await.expect("second commit");
+}
+
+#[tokio::test]
+#[ignore = "requires TEST_DATABASE_URL and a PostgreSQL role that is subject to RLS"]
+async fn restoring_a_revision_creates_a_new_draft_and_audit_receipt() {
+    let url = env::var("TEST_DATABASE_URL").expect("TEST_DATABASE_URL");
+    let database = Database::connect(&url, 2)
+        .await
+        .expect("database connection");
+    database.migrate().await.expect("migrations");
+
+    let site_id = SiteId::new();
+    database.ensure_site(site_id).await.expect("site");
+    let context = SiteContext::public(site_id);
+    let service = ContentService;
+    let mut tx = database.begin(&context).await.expect("scope");
+
+    let created = service
+        .create(
+            &mut tx,
+            &context,
+            &CreateContent {
+                kind: "post".to_owned(),
+                language: "en".to_owned(),
+                slug: "first-version".to_owned(),
+                title: "First version".to_owned(),
+                excerpt: Some("First excerpt".to_owned()),
+                body: "First body".to_owned(),
+                fields: json!({"version": 1}),
+                publication: PublicationInput::Draft,
+            },
+            chrono::Utc::now(),
+        )
+        .await
+        .expect("create content");
+
+    service
+        .update(
+            &mut tx,
+            &context,
+            created.id,
+            &UpdateContent {
+                slug: Some("second-version".to_owned()),
+                title: Some("Second version".to_owned()),
+                body: Some("Second body".to_owned()),
+                fields: Some(json!({"version": 2})),
+                ..UpdateContent::default()
+            },
+            chrono::Utc::now(),
+        )
+        .await
+        .expect("update content");
+    service
+        .publish(&mut tx, &context, created.id, chrono::Utc::now())
+        .await
+        .expect("publish content");
+
+    let restored = service
+        .restore_revision(&mut tx, &context, created.id, 1, chrono::Utc::now())
+        .await
+        .expect("restore revision");
+    assert_eq!(restored.revision, 4);
+    assert_eq!(restored.slug.as_str(), "first-version");
+    assert_eq!(restored.title, "First version");
+    assert_eq!(restored.body, "First body");
+    assert_eq!(restored.fields, json!({"version": 1}));
+    assert!(matches!(restored.publication, Publication::Draft));
+
+    let original = service
+        .read_revision(&mut tx, &context, created.id, 1)
+        .await
+        .expect("original revision remains");
+    assert_eq!(original.title, "First version");
+    assert!(matches!(original.publication, Publication::Draft));
+
+    let (payload,): (serde_json::Value,) = sqlx::query_as(
+        "select payload from audit_events
+           where site_id = $1 and resource_id = $2 and action = 'content.revision_restored'
+           order by created_at desc limit 1",
+    )
+    .bind(site_id.into_uuid())
+    .bind(created.id.into_uuid())
+    .fetch_one(tx.conn())
+    .await
+    .expect("restore audit");
+    assert_eq!(payload["source_revision"], 1);
+    assert_eq!(payload["revision"], 4);
+
+    let (history_count,): (i64,) = sqlx::query_as(
+        "select count(*) from content_slug_history where site_id = $1 and content_id = $2",
+    )
+    .bind(site_id.into_uuid())
+    .bind(created.id.into_uuid())
+    .fetch_one(tx.conn())
+    .await
+    .expect("slug history count");
+    assert_eq!(history_count, 2);
+    tx.commit().await.expect("commit");
 }

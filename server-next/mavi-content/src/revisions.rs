@@ -59,6 +59,26 @@ pub fn endpoints() -> Vec<Endpoint> {
             ErrorCode::NotFound,
             ErrorCode::Internal,
         ]),
+        Endpoint::new(
+            Method::Post,
+            "/api/v1/content/{id}/revisions/{revision}/restore",
+            "content.revisions.restore",
+            "Restore a content revision as a new draft",
+        )
+        .account_or_assistant()
+        .requires(Permission {
+            capability: Capability::Content,
+            action: Action::Write,
+        })
+        .returns(200, "Content")
+        .changes(true)
+        .refuses([
+            ErrorCode::Forbidden,
+            ErrorCode::Validation,
+            ErrorCode::NotFound,
+            ErrorCode::Conflict,
+            ErrorCode::Internal,
+        ]),
     ]
 }
 

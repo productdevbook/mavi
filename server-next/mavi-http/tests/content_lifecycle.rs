@@ -159,6 +159,119 @@ async fn content_lifecycle_exposes_revisions_and_keeps_old_public_paths() {
 
 #[tokio::test]
 #[ignore = "requires TEST_DATABASE_URL and a non-superuser PostgreSQL role"]
+async fn restoring_a_revision_is_permissioned_and_stays_draft_until_published() {
+    let app = support::build_app().await;
+    let owner_token = bootstrap(&app, "HTTP content revision restore test").await;
+    let reader_token = create_reader(&app, &owner_token).await;
+
+    let created = send(
+        &app,
+        Method::POST,
+        "/api/v1/content",
+        Some(&owner_token),
+        Some(json!({
+            "kind": "post",
+            "language": "en",
+            "slug": "first-version",
+            "title": "First version",
+            "body": "First body"
+        })),
+    )
+    .await;
+    assert_eq!(created.status(), StatusCode::CREATED);
+    let content_id = response_json(created).await["id"]
+        .as_str()
+        .expect("content id")
+        .to_owned();
+
+    let updated = send(
+        &app,
+        Method::PATCH,
+        &format!("/api/v1/content/{content_id}"),
+        Some(&owner_token),
+        Some(json!({
+            "slug": "second-version",
+            "title": "Second version",
+            "body": "Second body"
+        })),
+    )
+    .await;
+    assert_eq!(updated.status(), StatusCode::OK);
+
+    let published = send(
+        &app,
+        Method::POST,
+        &format!("/api/v1/content/{content_id}/publish"),
+        Some(&owner_token),
+        None,
+    )
+    .await;
+    assert_eq!(published.status(), StatusCode::OK);
+
+    let reader_restore = send(
+        &app,
+        Method::POST,
+        &format!("/api/v1/content/{content_id}/revisions/1/restore"),
+        Some(&reader_token),
+        None,
+    )
+    .await;
+    assert_eq!(reader_restore.status(), StatusCode::FORBIDDEN);
+
+    let restored = send(
+        &app,
+        Method::POST,
+        &format!("/api/v1/content/{content_id}/revisions/1/restore"),
+        Some(&owner_token),
+        None,
+    )
+    .await;
+    assert_eq!(restored.status(), StatusCode::OK);
+    let restored = response_json(restored).await;
+    assert_eq!(restored["revision"], 4);
+    assert_eq!(restored["slug"], "first-version");
+    assert_eq!(restored["title"], "First version");
+    assert_eq!(restored["body"], "First body");
+    assert_eq!(restored["publication"], "draft");
+
+    let private_until_published = send(
+        &app,
+        Method::GET,
+        "/public/v1/content/first-version",
+        None,
+        None,
+    )
+    .await;
+    assert_eq!(private_until_published.status(), StatusCode::NOT_FOUND);
+
+    let publish_restored = send(
+        &app,
+        Method::POST,
+        &format!("/api/v1/content/{content_id}/publish"),
+        Some(&owner_token),
+        None,
+    )
+    .await;
+    assert_eq!(publish_restored.status(), StatusCode::OK);
+    assert_eq!(response_json(publish_restored).await["revision"], 5);
+
+    let public_restored = send(
+        &app,
+        Method::GET,
+        "/public/v1/content/first-version",
+        None,
+        None,
+    )
+    .await;
+    assert_eq!(public_restored.status(), StatusCode::OK);
+    assert_eq!(
+        response_json(public_restored).await["title"],
+        "First version"
+    );
+}
+
+#[tokio::test]
+#[ignore = "requires TEST_DATABASE_URL and a non-superuser PostgreSQL role"]
 #[allow(clippy::too_many_lines)]
 async fn scheduling_enqueues_one_idempotent_job_per_target_time() {
     let app = support::build_app().await;

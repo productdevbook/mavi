@@ -16,7 +16,12 @@ use mavi_storage::Database;
 use serde_json::{Value, json};
 use tower::ServiceExt;
 
+#[allow(dead_code)]
 pub async fn build_app() -> Router {
+    build_app_with_database().await.0
+}
+
+pub async fn build_app_with_database() -> (Router, Database, SiteId) {
     let url = env::var("TEST_DATABASE_URL").expect("TEST_DATABASE_URL");
     let database = Database::connect(&url, 2)
         .await
@@ -25,13 +30,14 @@ pub async fn build_app() -> Router {
 
     let site_id = SiteId::new();
     database.ensure_site(site_id).await.expect("site");
-    router(
-        Runtime::new(database, FixedSiteResolver::new(site_id)),
+    let app = router(
+        Runtime::new(database.clone(), FixedSiteResolver::new(site_id)),
         Arc::new(InMemoryFileStore::default()),
         Arc::new(StaticBuildEngine),
         Arc::new(KeyringSealer::from_key([42; 32])),
     )
-    .expect("router")
+    .expect("router");
+    (app, database, site_id)
 }
 
 #[allow(dead_code)]

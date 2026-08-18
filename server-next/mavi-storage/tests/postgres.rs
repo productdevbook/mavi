@@ -1,6 +1,6 @@
 use std::env;
 
-use mavi_core::{SiteContext, SiteId};
+use mavi_core::{MaviError, SiteContext, SiteId};
 use mavi_storage::Database;
 
 #[tokio::test]
@@ -46,4 +46,43 @@ async fn migrations_and_site_scope_are_exercised_against_postgres() {
             .expect("cross-site lookup");
     assert!(first_id.is_none());
     second_tx.commit().await.expect("commit second site");
+}
+
+#[tokio::test]
+#[ignore = "requires TEST_DATABASE_URL and a PostgreSQL role that is subject to RLS"]
+async fn write_fence_is_token_owned_and_stale_release_is_harmless() {
+    let url = env::var("TEST_DATABASE_URL").expect("TEST_DATABASE_URL");
+    let database = Database::connect(&url, 2)
+        .await
+        .expect("database connection");
+    database.migrate().await.expect("migrations");
+
+    let site = SiteId::new();
+    database.ensure_site(site).await.expect("site");
+    let first_token = uuid::Uuid::now_v7();
+    let second_token = uuid::Uuid::now_v7();
+
+    database
+        .acquire_write_fence(site, first_token, "relocation-final-copy")
+        .await
+        .expect("first fence");
+    assert!(database.is_write_fenced(site).await.expect("fenced"));
+    assert!(matches!(
+        database
+            .acquire_write_fence(site, second_token, "stale-worker")
+            .await,
+        Err(MaviError::Conflict { code }) if code == "site_write_fence_owned"
+    ));
+
+    database
+        .release_write_fence(site, second_token)
+        .await
+        .expect("stale release");
+    assert!(database.is_write_fenced(site).await.expect("still fenced"));
+
+    database
+        .release_write_fence(site, first_token)
+        .await
+        .expect("owner release");
+    assert!(!database.is_write_fenced(site).await.expect("released"));
 }

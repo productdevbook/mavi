@@ -14,7 +14,7 @@ use axum::{
     body::{Body, Bytes, to_bytes},
     extract::{DefaultBodyLimit, Json, Path, Query, State},
     http::{
-        HeaderMap, HeaderValue, Request, StatusCode,
+        HeaderMap, HeaderValue, Method as HttpMethod, Request, StatusCode,
         header::{AUTHORIZATION, CACHE_CONTROL, CONTENT_TYPE, HOST},
     },
     middleware::{self, Next},
@@ -303,6 +303,10 @@ where
         .clone()
         .layer(middleware::from_fn_with_state(
             runtime.clone(),
+            write_fence::<R>,
+        ))
+        .layer(middleware::from_fn_with_state(
+            runtime.clone(),
             authenticate::<R>,
         ))
         .layer(middleware::from_fn_with_state(runtime.clone(), admit::<R>))
@@ -313,6 +317,10 @@ where
         .map_err(|_| MaviError::Internal)?;
     Ok(routes
         .route("/mcp", post(mcp_endpoint::<R>))
+        .layer(middleware::from_fn_with_state(
+            runtime.clone(),
+            write_fence::<R>,
+        ))
         .layer(middleware::from_fn_with_state(
             runtime.clone(),
             authenticate::<R>,
@@ -2015,6 +2023,35 @@ where
         public_context.request_id,
     ));
     next.run(request).await
+}
+
+/// Rejects request methods that can mutate a site while a relocation fence is
+/// held. The check runs after admission/authentication and before any domain
+/// handler, so all canonical HTTP and MCP writes share the same boundary.
+async fn write_fence<R>(
+    State(runtime): State<Runtime<R>>,
+    request: Request<Body>,
+    next: Next,
+) -> Response
+where
+    R: SiteResolver,
+{
+    if matches!(
+        *request.method(),
+        HttpMethod::GET | HttpMethod::HEAD | HttpMethod::OPTIONS
+    ) {
+        return next.run(request).await;
+    }
+
+    let Some(context) = request.extensions().get::<SiteContext>() else {
+        return HttpError(MaviError::Internal).into_response();
+    };
+
+    match runtime.is_write_fenced(context.site_id).await {
+        Ok(false) => next.run(request).await,
+        Ok(true) => HttpError(MaviError::conflict("site_write_fenced")).into_response(),
+        Err(error) => HttpError(error).into_response(),
+    }
 }
 
 fn authorization_token(request: &Request<axum::body::Body>) -> Result<Option<&str>, MaviError> {

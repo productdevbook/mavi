@@ -8,13 +8,14 @@
 use mavi_core::{MaviError, Result, SiteContext, SiteId};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use sqlx::{PgPool, Postgres, Transaction};
+use uuid::Uuid;
 
 /// The highest migration applied by this workspace.
 ///
 /// It is part of the runtime compatibility contract exposed to the operator.
 /// Keep it next to the migration runner so a release cannot advertise a
 /// storage version independently from the migrations it ships.
-pub const CURRENT_SCHEMA_VERSION: u32 = 23;
+pub const CURRENT_SCHEMA_VERSION: u32 = 24;
 
 /// The lifecycle state stored in the shared shard catalog.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -97,6 +98,76 @@ impl Database {
             .map_err(|_| MaviError::Internal)?;
 
         Ok(())
+    }
+
+    /// Acquires a site write fence for a relocation operation.
+    ///
+    /// A fence is token-owned. Repeating the same acquisition is idempotent;
+    /// a different token is refused so an old worker cannot take over or
+    /// replace a newer cutover operation.
+    pub async fn acquire_write_fence(
+        &self,
+        site_id: SiteId,
+        fence_token: Uuid,
+        reason: &str,
+    ) -> Result<()> {
+        if !(1..=120).contains(&reason.len()) || reason.chars().any(char::is_control) {
+            return Err(MaviError::validation("site_write_fence_reason_invalid"));
+        }
+
+        let mut transaction = self.pool.begin().await.map_err(|_| MaviError::Internal)?;
+        let existing: Option<Uuid> = sqlx::query_scalar(
+            "select fence_token from site_write_fences where site_id = $1 for update",
+        )
+        .bind(site_id.into_uuid())
+        .fetch_optional(&mut *transaction)
+        .await
+        .map_err(|_| MaviError::Internal)?;
+
+        match existing {
+            Some(existing) if existing != fence_token => {
+                return Err(MaviError::conflict("site_write_fence_owned"));
+            }
+            Some(_) => {}
+            None => {
+                sqlx::query(
+                    "insert into site_write_fences (site_id, fence_token, reason)
+                     values ($1, $2, $3)",
+                )
+                .bind(site_id.into_uuid())
+                .bind(fence_token)
+                .bind(reason)
+                .execute(&mut *transaction)
+                .await
+                .map_err(|_| MaviError::Internal)?;
+            }
+        }
+
+        transaction.commit().await.map_err(|_| MaviError::Internal)
+    }
+
+    /// Releases only the fence owned by `fence_token`. Releasing an already
+    /// gone fence is idempotent; a different active fence is left untouched.
+    pub async fn release_write_fence(&self, site_id: SiteId, fence_token: Uuid) -> Result<()> {
+        sqlx::query(
+            "delete from site_write_fences
+              where site_id = $1 and fence_token = $2",
+        )
+        .bind(site_id.into_uuid())
+        .bind(fence_token)
+        .execute(&self.pool)
+        .await
+        .map_err(|_| MaviError::Internal)?;
+        Ok(())
+    }
+
+    /// Reads the durable fence without opening a site-scoped transaction.
+    pub async fn is_write_fenced(&self, site_id: SiteId) -> Result<bool> {
+        sqlx::query_scalar("select exists(select 1 from site_write_fences where site_id = $1)")
+            .bind(site_id.into_uuid())
+            .fetch_one(&self.pool)
+            .await
+            .map_err(|_| MaviError::Internal)
     }
 
     pub async fn begin(&self, context: &SiteContext) -> Result<SiteTx> {
@@ -297,6 +368,10 @@ mod tests {
         assert!(credentials_migration.contains("force row level security"));
         assert!(credentials_migration.contains("'credentials'"));
 
+        let write_fence_migration = include_str!("../migrations/0024_site_write_fences.sql");
+        assert!(write_fence_migration.contains("create table site_write_fences"));
+        assert!(write_fence_migration.contains("fence_token uuid not null"));
+
         let boards_migration = include_str!("../migrations/0020_boards.sql");
         assert!(boards_migration.contains("primary key (site_id, id)"));
         assert!(boards_migration.contains("board_lists_site_position"));
@@ -309,6 +384,6 @@ mod tests {
         assert!(analytics_migration.contains("analytics_daily"));
         assert!(analytics_migration.contains("analytics_events_site_recent"));
         assert!(analytics_migration.contains("force row level security"));
-        assert_eq!(CURRENT_SCHEMA_VERSION, 23);
+        assert_eq!(CURRENT_SCHEMA_VERSION, 24);
     }
 }

@@ -241,6 +241,12 @@ where
         self.database.begin(context).await
     }
 
+    /// Returns whether a control-plane relocation currently fences writes for
+    /// this site. Reads remain available while the fence is held.
+    pub async fn is_write_fenced(&self, site_id: SiteId) -> Result<bool> {
+        self.database.is_write_fenced(site_id).await
+    }
+
     #[must_use]
     pub fn mode(&self) -> RuntimeMode {
         self.resolver.mode()

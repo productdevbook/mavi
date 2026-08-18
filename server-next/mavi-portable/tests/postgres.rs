@@ -135,6 +135,16 @@ async fn portable_bundles_export_cross_site_import_and_reject_conflicts() {
         )
         .await
         .expect("source media");
+    let live_media_file = MediaService
+        .upload(
+            &mut tx,
+            &source_context,
+            &files,
+            "live.png",
+            b"\x89PNG\r\n\x1a\nlive".to_vec(),
+        )
+        .await
+        .expect("live source media");
 
     let design = DesignService;
     let change = design
@@ -199,6 +209,35 @@ async fn portable_bundles_export_cross_site_import_and_reject_conflicts() {
     assert_eq!(bundle.revisions.len(), 1);
     assert_eq!(bundle.slug_history.len(), 1);
     assert_eq!(bundle.assignments.len(), 1);
+
+    sqlx::query(
+        "update content_entries set deleted_at = clock_timestamp()
+          where site_id = $1 and id = $2",
+    )
+    .bind(source_site.into_uuid())
+    .bind(content_id)
+    .execute(tx.conn())
+    .await
+    .expect("trash source content");
+    sqlx::query(
+        "update taxonomy_terms set deleted_at = clock_timestamp()
+          where site_id = $1 and id = $2",
+    )
+    .bind(source_site.into_uuid())
+    .bind(term_id)
+    .execute(tx.conn())
+    .await
+    .expect("trash source term");
+    sqlx::query(
+        "update media_files set deleted_at = clock_timestamp()
+          where site_id = $1 and id = $2",
+    )
+    .bind(source_site.into_uuid())
+    .bind(media_file.id.into_uuid())
+    .execute(tx.conn())
+    .await
+    .expect("trash source media");
+
     let relocation_bundle = portable
         .export_for_relocation(&mut tx, &source_context, &files)
         .await
@@ -207,12 +246,17 @@ async fn portable_bundles_export_cross_site_import_and_reject_conflicts() {
     assert_eq!(relocation_bundle.identity.roles.len(), 1);
     assert_eq!(relocation_bundle.credentials.len(), 1);
     assert_eq!(relocation_bundle.media.files.len(), 1);
-    assert_eq!(relocation_bundle.media.files[0].id, media_file.id);
+    assert_eq!(relocation_bundle.media.files[0].id, live_media_file.id);
     assert_eq!(relocation_bundle.design.changes.len(), 1);
     assert_eq!(relocation_bundle.design.files.len(), 1);
     assert_eq!(relocation_bundle.design.builds.len(), 1);
     assert_eq!(relocation_bundle.design.artifacts.len(), 1);
     assert!(!relocation_bundle.audit.events.is_empty());
+    assert_eq!(relocation_bundle.trash.content.len(), 1);
+    assert!(!relocation_bundle.trash.revisions.is_empty());
+    assert_eq!(relocation_bundle.trash.terms.len(), 1);
+    assert_eq!(relocation_bundle.trash.assignments.len(), 1);
+    assert_eq!(relocation_bundle.trash.files.len(), 1);
     let source_audit = relocation_bundle.audit.events.clone();
     tx.commit().await.expect("source commit");
 
@@ -295,6 +339,7 @@ async fn portable_bundles_export_cross_site_import_and_reject_conflicts() {
     let mut relocation_bundle = relocation_bundle;
     relocation_bundle.bundle.manifest.source_site_id = relocation_site;
     relocation_bundle.audit.source_site_id = relocation_site;
+    relocation_bundle.trash.source_site_id = relocation_site;
     let mut relocation_tx = database
         .begin(&relocation_context)
         .await
@@ -325,6 +370,18 @@ async fn portable_bundles_export_cross_site_import_and_reject_conflicts() {
             .get(&relocation_context, &relocated.media.files[0].storage_key)
             .await
             .expect("relocated media"),
+        b"\x89PNG\r\n\x1a\nlive"
+    );
+    assert_eq!(relocated.media.files[0].id, live_media_file.id);
+    assert_eq!(relocated.trash.content.len(), 1);
+    assert_eq!(relocated.trash.terms.len(), 1);
+    assert_eq!(relocated.trash.assignments.len(), 1);
+    assert_eq!(relocated.trash.files.len(), 1);
+    assert_eq!(
+        files
+            .get(&relocation_context, &relocated.trash.files[0].storage_key)
+            .await
+            .expect("relocated trashed media"),
         b"\x89PNG\r\n\x1a\n\x00\x00"
     );
     assert_eq!(relocated.design.changes.len(), 1);

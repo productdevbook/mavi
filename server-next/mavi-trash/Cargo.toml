@@ -12,9 +12,11 @@ chrono.workspace = true
 mavi-audit = { path = "../mavi-audit" }
 mavi-contract = { path = "../mavi-contract" }
 mavi-core = { path = "../mavi-core" }
+mavi-media = { path = "../mavi-media" }
 mavi-storage = { path = "../mavi-storage" }
 serde.workspace = true
 serde_json.workspace = true
+sha2.workspace = true
 sqlx.workspace = true
 uuid.workspace = true
 
@@ -24,6 +26,5 @@ workspace = true
 [dev-dependencies]
 mavi-content = { path = "../mavi-content" }
 mavi-files = { path = "../mavi-files" }
-mavi-media = { path = "../mavi-media" }
 mavi-taxonomy = { path = "../mavi-taxonomy" }
 tokio.workspace = true

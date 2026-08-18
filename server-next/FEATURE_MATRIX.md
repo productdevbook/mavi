@@ -161,7 +161,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [ ] Concrete mail, webhook and list-mutating executors plus event emission from every producer domain.
 - [-] Jobs, site-scoped queue leases and worker execution.
   - [x] Registered job kinds, site-scoped queue rows, composite idempotency and cursor-only admin lists.
-  - [x] `FOR UPDATE SKIP LOCKED` claims, lease heartbeat, stale-worker protection, bounded backoff and dead-letter retry.
+  - [x] `FOR UPDATE SKIP LOCKED` claims, per-claim fencing tokens, lease heartbeat, stale-worker protection, bounded backoff and dead-letter retry.
   - [ ] Shared worker supervisor/metrics and concrete self-host/cloud adapter wiring.
 - [-] Boards, lists, cards, assignments, comments and activity history.
   - [x] Board/list/card APIs use integer positions, transactional reorder/move operations and opaque keyset cursors.

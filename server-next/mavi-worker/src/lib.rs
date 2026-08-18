@@ -211,12 +211,7 @@ impl WorkerSupervisor {
         context: &SiteContext,
         claim: &JobClaim,
     ) -> Result<()> {
-        if self
-            .jobs
-            .complete(&mut transaction, context, claim.id, &self.config.worker_id)
-            .await?
-            == LeaseOutcome::Completed
-        {
+        if self.jobs.complete(&mut transaction, context, claim).await? == LeaseOutcome::Completed {
             transaction.commit().await?;
         }
         Ok(())
@@ -231,13 +226,7 @@ impl WorkerSupervisor {
         let mut transaction = self.database.begin(context).await?;
         if self
             .jobs
-            .defer(
-                &mut transaction,
-                context,
-                claim.id,
-                &self.config.worker_id,
-                run_at,
-            )
+            .defer(&mut transaction, context, claim, run_at)
             .await?
             == LeaseOutcome::Completed
         {
@@ -255,13 +244,7 @@ impl WorkerSupervisor {
         let mut transaction = self.database.begin(context).await?;
         if self
             .jobs
-            .fail(
-                &mut transaction,
-                context,
-                claim,
-                &self.config.worker_id,
-                &error,
-            )
+            .fail(&mut transaction, context, claim, &error)
             .await?
             == LeaseOutcome::Completed
         {

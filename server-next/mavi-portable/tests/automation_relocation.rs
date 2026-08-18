@@ -154,8 +154,9 @@ async fn automation_relocation_preserves_domain_state_and_resets_transient_claim
     sqlx::query(
         "insert into jobs
             (site_id, id, kind, payload, state, run_at, claimed_until, claimed_by,
-             attempts, idempotency_key, created_at)
-         values ($1, $2, 'automation.flow.step', $3, 'running', $4, $5, 'old-worker', 2, 'flow-step-1', $4)",
+             claim_token, attempts, idempotency_key, created_at)
+         values ($1, $2, 'automation.flow.step', $3, 'running', $4, $5, 'old-worker',
+                 $2, 2, 'flow-step-1', $4)",
     )
     .bind(source_site.into_uuid())
     .bind(job_id)

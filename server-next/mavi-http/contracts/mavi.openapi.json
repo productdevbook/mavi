@@ -151,6 +151,16 @@
               }
             }
           },
+          "429": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Request refused",
             "content": {
@@ -188,6 +198,7 @@
             "validation",
             "unauthenticated",
             "conflict",
+            "rate_limited",
             "internal"
           ]
         }
@@ -212,6 +223,16 @@
             }
           },
           "400": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
             "description": "Request refused",
             "content": {
               "application/json": {
@@ -256,6 +277,7 @@
           "permission": null,
           "errors": [
             "validation",
+            "rate_limited",
             "internal"
           ]
         }
@@ -283,6 +305,16 @@
             }
           },
           "409": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
             "description": "Request refused",
             "content": {
               "application/json": {
@@ -328,6 +360,7 @@
           "errors": [
             "validation",
             "conflict",
+            "rate_limited",
             "internal"
           ]
         }
@@ -352,6 +385,16 @@
             }
           },
           "400": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
             "description": "Request refused",
             "content": {
               "application/json": {
@@ -396,6 +439,7 @@
           "permission": null,
           "errors": [
             "validation",
+            "rate_limited",
             "internal"
           ]
         }
@@ -423,6 +467,16 @@
             }
           },
           "409": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
             "description": "Request refused",
             "content": {
               "application/json": {
@@ -468,6 +522,7 @@
           "errors": [
             "validation",
             "conflict",
+            "rate_limited",
             "internal"
           ]
         }

@@ -64,7 +64,8 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
 - [-] Rate limits, request audit identity and security events.
   - [x] Password-reset and email-verification requests have a site-scoped five-per-hour subject throttle and generic rate-limit audit outcomes.
   - [x] Failed logins and unverified-login blocks write anonymous-safe security audit events without storing raw email addresses.
-  - [ ] Edge IP/device throttles and the broader account-security event taxonomy remain open.
+  - [x] Authentication edge actions use bounded site+action IP/device windows, trusted-proxy parsing, `Retry-After`, hashed source signals and one audit receipt per source/action window.
+  - [x] Account-security audit actions use a canonical taxonomy for session, recovery, verification, API-key, subject-throttle and edge-throttle outcomes.
 
 ## Site configuration and content
 
@@ -203,6 +204,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Analytics PostgreSQL aggregate/retention/isolation tests and analytics HTTP ingest/export coverage.
   - [x] Portable cross-site PostgreSQL export/import/conflict tests, private identity/media/design relocation and HTTP contract acceptance coverage.
   - [x] Identity HTTP integration covers setup, login, cursor, 401/403 and Cedar behavior.
+  - [x] Identity edge throttling covers trusted-proxy behavior, 429/`Retry-After`, source redaction and one audit receipt per window.
   - [x] Generated OpenAPI/TypeScript/Rust/MCP artifacts have stale-contract tests.
   - [x] Credential sealing unit, PostgreSQL scope/audit/version and metadata-only HTTP acceptance tests.
   - [x] Runtime manifest HTTP contract and cursor-only compatibility assertions.

@@ -1,15 +1,17 @@
+use std::net::SocketAddr;
 use std::{env, sync::Arc};
 
 use axum::{
     Router,
     body::{Body, to_bytes},
+    extract::ConnectInfo,
     http::{Method, Request, header::AUTHORIZATION},
     response::Response,
 };
 use mavi_core::{SiteContext, SiteId, ports::Seals};
 use mavi_design::StaticBuildEngine;
 use mavi_files::InMemoryFileStore;
-use mavi_http::router;
+use mavi_http::{EdgeSecurityConfig, EdgeThrottlePolicy, TrustedProxySet, router_with_config};
 use mavi_runtime::{FixedSiteResolver, Runtime};
 use mavi_sealing::KeyringSealer;
 use mavi_storage::Database;
@@ -23,6 +25,11 @@ pub async fn build_app() -> Router {
 }
 
 pub async fn build_app_with_database() -> (Router, Database, SiteId) {
+    build_app_with_edge_policy(EdgeThrottlePolicy::default()).await
+}
+
+#[allow(dead_code)]
+pub async fn build_app_with_edge_policy(policy: EdgeThrottlePolicy) -> (Router, Database, SiteId) {
     let url = env::var("TEST_DATABASE_URL").expect("TEST_DATABASE_URL");
     let database = Database::connect(&url, 2)
         .await
@@ -31,11 +38,13 @@ pub async fn build_app_with_database() -> (Router, Database, SiteId) {
 
     let site_id = SiteId::new();
     database.ensure_site(site_id).await.expect("site");
-    let app = router(
+    let edge = EdgeSecurityConfig::new(TrustedProxySet::default(), policy).expect("edge policy");
+    let app = router_with_config(
         Runtime::new(database.clone(), FixedSiteResolver::new(site_id)),
         Arc::new(InMemoryFileStore::default()),
         Arc::new(StaticBuildEngine),
         Arc::new(KeyringSealer::from_key([42; 32])),
+        edge,
     )
     .expect("router");
     (app, database, site_id)
@@ -165,6 +174,24 @@ pub async fn send(
         .oneshot(request.body(body).expect("request"))
         .await
         .expect("response")
+}
+
+#[allow(dead_code)]
+pub async fn send_with_peer(
+    app: &Router,
+    method: Method,
+    uri: &str,
+    peer: SocketAddr,
+    payload: Option<Value>,
+) -> Response {
+    let mut request = Request::builder().method(method).uri(uri);
+    if payload.is_some() {
+        request = request.header("content-type", "application/json");
+    }
+    let body = payload.map_or_else(Body::empty, |payload| Body::from(payload.to_string()));
+    let mut request = request.body(body).expect("request");
+    request.extensions_mut().insert(ConnectInfo(peer));
+    app.clone().oneshot(request).await.expect("response")
 }
 
 #[allow(dead_code)]

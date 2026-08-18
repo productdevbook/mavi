@@ -34,6 +34,7 @@ mavi-taxonomy = { path = "../mavi-taxonomy" }
 mavi-trash = { path = "../mavi-trash" }
 serde.workspace = true
 serde_json.workspace = true
+sha2.workspace = true
 tower.workspace = true
 uuid.workspace = true
 

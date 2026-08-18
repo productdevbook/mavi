@@ -37,6 +37,20 @@ before authentication and every domain transaction remains site-scoped. A
 control-plane refresh must replace this snapshot through the deployment
 boundary; the process never accepts a site ID supplied by a request.
 
+Authentication endpoints also apply bounded site+action edge windows keyed by
+the direct peer IP and a privacy-preserving User-Agent digest. The process
+uses the socket peer by default. When a reverse proxy terminates connections,
+only explicitly trusted proxy networks may supply the client IP:
+
+```text
+MAVI_TRUSTED_PROXY_CIDRS=10.0.0.0/8,192.0.2.0/24
+```
+
+Forwarded headers from any other peer are ignored. Raw IP addresses and
+User-Agent values never enter the limiter buckets or security audit payloads;
+the in-process adapter is bounded and records only the first edge-limit event
+per source/action window.
+
 ## Workspace crates
 
 | Crate | Responsibility |
@@ -45,6 +59,7 @@ boundary; the process never accepts a site ID supplied by a request.
 | `mavi-storage` | PostgreSQL pool, migrations and scoped transactions |
 | `mavi-contract` | canonical endpoint declarations and contract validation |
 | `mavi-runtime` | self-host/cloud runtime composition and site resolution |
+| `mavi-http` | request admission, trusted edge signals, throttling and canonical HTTP composition |
 | `mavi-identity` | setup, people, roles and password identity primitives |
 | `mavi-content` | content entries, publication state and site-declared content types |
 | `mavi-settings` | site settings, timezone and site language configuration |

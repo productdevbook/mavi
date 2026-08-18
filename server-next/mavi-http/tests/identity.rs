@@ -3,11 +3,13 @@ use axum::{
     http::{Method, StatusCode},
 };
 use mavi_core::{SiteContext, SiteId};
+use mavi_http::EdgeThrottlePolicy;
 use mavi_storage::Database;
 use serde_json::json;
+use std::time::Duration;
 
 mod support;
-use support::{login, protected_mail_body, response_json, send};
+use support::{login, protected_mail_body, response_json, send, send_with_peer};
 
 #[tokio::test]
 #[ignore = "requires TEST_DATABASE_URL and a non-superuser PostgreSQL role"]
@@ -18,6 +20,82 @@ async fn identity_routes_enforce_authz_and_cursor_contracts() {
 
     assert_cursor_contract(&app, &owner_token).await;
     assert_permission_contract(&app, &reader_token).await;
+}
+
+#[tokio::test]
+#[ignore = "requires TEST_DATABASE_URL and a non-superuser PostgreSQL role"]
+async fn edge_auth_throttle_is_site_scoped_and_audited_without_raw_source_data() {
+    let (app, database, site_id) = support::build_app_with_edge_policy(EdgeThrottlePolicy {
+        ip_limit: 2,
+        ip_window: Duration::from_mins(1),
+        device_limit: 100,
+        device_window: Duration::from_mins(10),
+        max_buckets: 32,
+    })
+    .await;
+    let _owner_token = bootstrap(&app).await;
+    let peer = "198.51.100.10:4242".parse().expect("peer");
+
+    for _ in 0..2 {
+        let response = send_with_peer(
+            &app,
+            Method::POST,
+            "/api/v1/auth/sessions",
+            peer,
+            Some(json!({
+                "email": "missing@example.com",
+                "password": "long-enough-password"
+            })),
+        )
+        .await;
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    let limited = send_with_peer(
+        &app,
+        Method::POST,
+        "/api/v1/auth/sessions",
+        peer,
+        Some(json!({
+            "email": "missing@example.com",
+            "password": "long-enough-password"
+        })),
+    )
+    .await;
+    assert_eq!(limited.status(), StatusCode::TOO_MANY_REQUESTS);
+    assert_eq!(limited.headers()["retry-after"], "60");
+    assert_eq!(
+        response_json(limited).await["error"]["code"],
+        "rate_limited"
+    );
+
+    let public_context = SiteContext::public(site_id);
+    let mut audit_tx = database.begin(&public_context).await.expect("audit scope");
+    let (count, scope): (i64, Option<String>) = sqlx::query_as(
+        "select count(*), max(payload->>'scope')
+           from audit_events
+          where site_id = $1 and action = 'auth.security.edge_rate_limited'",
+    )
+    .bind(site_id.into_uuid())
+    .fetch_one(audit_tx.conn())
+    .await
+    .expect("edge audit");
+    let payload: serde_json::Value = sqlx::query_scalar(
+        "select payload
+           from audit_events
+          where site_id = $1 and action = 'auth.security.edge_rate_limited'
+          order by created_at desc limit 1",
+    )
+    .bind(site_id.into_uuid())
+    .fetch_one(audit_tx.conn())
+    .await
+    .expect("edge audit payload");
+    assert_eq!(count, 1);
+    assert_eq!(scope.as_deref(), Some("ip"));
+    assert_eq!(payload["action"], "auth.session.create");
+    assert!(payload["fingerprint"].as_str().is_some());
+    assert!(!payload.to_string().contains("198.51.100.10"));
+    audit_tx.commit().await.expect("audit commit");
 }
 
 async fn bootstrap(app: &Router) -> String {
@@ -359,7 +437,7 @@ async fn email_verification_response_is_generic_throttled_and_one_time() {
     let mut audit_tx = database.begin(&public_context).await.expect("audit scope");
     let rate_limited: i64 = sqlx::query_scalar(
         "select count(*) from audit_events
-          where site_id = $1 and action = 'auth.security.rate_limited'",
+          where site_id = $1 and action = 'auth.security.subject_rate_limited'",
     )
     .bind(site_id.into_uuid())
     .fetch_one(audit_tx.conn())

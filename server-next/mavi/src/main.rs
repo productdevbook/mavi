@@ -3,7 +3,7 @@ use std::{env, net::SocketAddr, sync::Arc};
 use mavi_core::{MaviError, Result, SiteId};
 use mavi_design::StaticBuildEngine;
 use mavi_files::DirectoryFileStore;
-use mavi_http::router;
+use mavi_http::{EdgeSecurityConfig, router_with_config};
 use mavi_runtime::{
     FixedSiteResolver, HostSiteResolver, Runtime, RuntimeMode, SiteResolver, parse_site_id,
 };
@@ -38,6 +38,9 @@ async fn main() -> Result<()> {
     let file_root = env::var("MAVI_FILES_DIR").unwrap_or_else(|_| "./mavi-files".to_owned());
     let file_store = Arc::new(DirectoryFileStore::at(file_root));
     let sealer = Arc::new(KeyringSealer::from_spec(&required("MAVI_KEYS")?)?);
+    let edge = EdgeSecurityConfig::from_trusted_proxy_spec(
+        env::var("MAVI_TRUSTED_PROXY_CIDRS").ok().as_deref(),
+    )?;
     let address: SocketAddr = listen
         .parse()
         .map_err(|_| MaviError::validation("invalid_listen_address"))?;
@@ -58,6 +61,7 @@ async fn main() -> Result<()> {
                 FixedSiteResolver::new(site_id),
                 file_store,
                 sealer,
+                edge.clone(),
             )
             .await
         }
@@ -68,7 +72,7 @@ async fn main() -> Result<()> {
                 .map(|(_, site_id)| (*site_id, SiteStatus::Active));
             database.reconcile_sites(sites).await?;
             tracing::info!(%address, mode = "shard", "mavi runtime listening");
-            serve(listener, database, resolver, file_store, sealer).await
+            serve(listener, database, resolver, file_store, sealer, edge).await
         }
     }
 }
@@ -79,6 +83,7 @@ async fn serve<R>(
     resolver: R,
     file_store: Arc<DirectoryFileStore>,
     sealer: Arc<KeyringSealer>,
+    edge: EdgeSecurityConfig,
 ) -> Result<()>
 where
     R: SiteResolver,
@@ -86,7 +91,14 @@ where
     let runtime = Runtime::new(database, resolver);
     axum::serve(
         listener,
-        router(runtime, file_store, Arc::new(StaticBuildEngine), sealer)?,
+        router_with_config(
+            runtime,
+            file_store,
+            Arc::new(StaticBuildEngine),
+            sealer,
+            edge,
+        )?
+        .into_make_service_with_connect_info::<SocketAddr>(),
     )
     .await
     .map_err(|_| MaviError::Internal)

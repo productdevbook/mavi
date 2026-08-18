@@ -1531,6 +1531,13 @@ pub struct PublicProductPage {
     pub next_cursor: Option<String>,
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct PublicTermArchiveQuery {
+    pub language: Option<String>,
+    pub after: Option<String>,
+    pub limit: Option<i64>,
+}
+
 pub type Publication = Value;
 
 pub type PublicationInput = Value;
@@ -2027,6 +2034,7 @@ pub const OPERATIONS: &[OperationDefinition] = &[
     OperationDefinition { name: "taxonomy.terms.read", method: "get", path: "/api/v1/terms/{id}", request: None, request_location: None, query: None, response: Some("Term"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("taxonomy"), action: Some("view") },
     OperationDefinition { name: "taxonomy.terms.update", method: "patch", path: "/api/v1/terms/{id}", request: Some("UpdateTerm"), request_location: Some("json"), query: None, response: Some("Term"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("taxonomy"), action: Some("write") },
     OperationDefinition { name: "taxonomy.terms.trash", method: "delete", path: "/api/v1/terms/{id}", request: None, request_location: None, query: None, response: Some("Empty"), response_location: None, status: 204, authentication: "account_or_assistant", capability: Some("taxonomy"), action: Some("delete") },
+    OperationDefinition { name: "taxonomy.public_archive", method: "get", path: "/public/v1/terms/{kind}/{slug}", request: Some("PublicTermArchiveQuery"), request_location: Some("query"), query: None, response: Some("ContentPage"), response_location: None, status: 200, authentication: "public", capability: None, action: None },
     OperationDefinition { name: "taxonomy.content_terms.list", method: "get", path: "/api/v1/content/{id}/terms", request: None, request_location: None, query: None, response: Some("TermList"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("taxonomy"), action: Some("view") },
     OperationDefinition { name: "taxonomy.content_terms.replace", method: "put", path: "/api/v1/content/{id}/terms", request: Some("ReplaceContentTerms"), request_location: Some("json"), query: None, response: Some("TermList"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("taxonomy"), action: Some("write") },
     OperationDefinition { name: "taxonomy.term_content.list", method: "get", path: "/api/v1/terms/{id}/content", request: Some("ContentTermAssignmentListFilter"), request_location: Some("query"), query: None, response: Some("ContentTermAssignmentPage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("taxonomy"), action: Some("view") },

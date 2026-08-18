@@ -87,7 +87,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Site-scoped category/tag terms with language-aware slugs and opaque cursor listing.
   - [x] Category parent validation, recursive cycle protection and atomic content assignments.
   - [x] Content-to-term reads, replacement and term membership listing use canonical API contracts.
-  - [ ] Taxonomy public archive URLs and localized fallback policy.
+  - [x] Public taxonomy archive URLs resolve exact/regional/default language terms and return only published content through opaque cursors.
 - [-] Media metadata, uploads, image variants, file storage and cleanup.
   - [x] Site-scoped file metadata, byte-sniffed allowlist, SHA-256 receipt and opaque cursor listing.
   - [x] Raw binary upload contract, local atomic file adapter and in-memory test adapter.

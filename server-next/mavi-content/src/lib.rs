@@ -15,7 +15,7 @@ use mavi_audit::{AuditEntry, AuditService};
 use mavi_contract::{Api, Endpoint, Method, Permission, Shape};
 use mavi_core::{
     Action, Capability, ContentId, Cursor, MaviError, Page, PageRequest, Result, SiteContext,
-    SiteId,
+    SiteId, TermId,
 };
 use mavi_storage::SiteTx;
 use serde::{Deserialize, Serialize};
@@ -959,6 +959,81 @@ impl ContentService {
         Err(MaviError::NotFound {
             resource: CONTENT_NOT_FOUND,
         })
+    }
+
+    /// Lists published content assigned to a resolved public taxonomy term.
+    ///
+    /// The taxonomy service resolves the term and its language first. The
+    /// content repository owns this read model so the HTTP layer does not
+    /// join domain tables or construct a second archive-specific query.
+    pub async fn public_list_for_term(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        term_id: TermId,
+        language: &str,
+        page: &PageRequest,
+    ) -> Result<Page<Content>> {
+        let language = LanguageTag::parse(language)?;
+        let after = page.after.as_ref().map(decode_cursor).transpose()?;
+        let limit = i64::from(page.effective_limit());
+        let mut query = sqlx::QueryBuilder::<sqlx::Postgres>::new(
+            "select c.id, c.site_id, c.kind, c.language, c.slug, c.title, c.excerpt,
+                    c.body, c.fields, c.status, c.scheduled_at, c.published_at,
+                    c.revision, c.created_at, c.updated_at
+               from content_entries c
+              where c.site_id = ",
+        );
+        query
+            .push_bind(context.site_id.into_uuid())
+            .push(" and c.language = ")
+            .push_bind(language.as_str())
+            .push(" and c.status = 'published'")
+            .push(" and c.published_at <= clock_timestamp()")
+            .push(" and c.deleted_at is null")
+            .push(" and exists (")
+            .push("select 1 from content_term_assignments a")
+            .push(" where a.site_id = c.site_id")
+            .push(" and a.content_id = c.id")
+            .push(" and a.term_id = ")
+            .push_bind(term_id.into_uuid())
+            .push(")");
+
+        if let Some(after) = after {
+            query
+                .push(" and (c.created_at, c.id) < (")
+                .push_bind(after.created_at)
+                .push(", ")
+                .push_bind(after.id)
+                .push(")");
+        }
+
+        let rows = query
+            .push(" order by c.created_at desc, c.id desc limit ")
+            .push_bind(limit + 1)
+            .build()
+            .fetch_all(tx.conn())
+            .await
+            .map_err(|_| MaviError::Internal)?;
+        let limit_usize = usize::try_from(limit).map_err(|_| MaviError::Internal)?;
+        let next_cursor = if rows.len() > limit_usize {
+            let row = rows
+                .get(limit_usize.saturating_sub(1))
+                .ok_or(MaviError::Internal)?;
+            Some(encode_cursor(
+                row.try_get("created_at").map_err(|_| MaviError::Internal)?,
+                row.try_get("id").map_err(|_| MaviError::Internal)?,
+            )?)
+        } else {
+            None
+        };
+        let items = rows
+            .into_iter()
+            .take(limit_usize)
+            .map(|row| from_row(&row))
+            .collect::<Result<Vec<_>>>()?;
+
+        Ok(Page::new(items, next_cursor))
     }
 
     pub async fn update(

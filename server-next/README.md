@@ -120,6 +120,9 @@ fragments and userinfo are refused, and PATCH can explicitly set or clear the
 value. Public content resolution first tries the requested language, then its
 regional base tag (for example `de-DE` to `de`), and finally the site's
 configured default language.
+Public taxonomy archives use `/public/v1/terms/{kind}/{slug}` and apply the same
+language candidates before returning only published content through the shared
+opaque cursor page contract.
 Public submission delivery is intentionally behind the existing `Mailer` port;
 provider selection, retries and an outbox worker belong to the mail/automation
 slice and are not performed inline in the public request. Mail templates render

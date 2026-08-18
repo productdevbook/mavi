@@ -10,6 +10,7 @@ use std::collections::BTreeSet;
 use std::fmt::{self, Write as _};
 
 use chrono::{DateTime, Utc};
+pub use mavi_audit::AuditRelocation;
 use mavi_audit::{AuditEntry, AuditService};
 use mavi_contract::{Endpoint, Method, Permission, Shape};
 use mavi_core::{
@@ -235,6 +236,7 @@ pub struct PortableRelocationBundle {
     pub media: MediaRelocation,
     #[serde(default)]
     pub design: DesignRelocation,
+    pub audit: AuditRelocation,
 }
 
 #[derive(Clone, Deserialize, Eq, PartialEq, Serialize)]
@@ -266,6 +268,7 @@ impl fmt::Debug for PortableRelocationBundle {
             )
             .field("media_files", &self.media.files.len())
             .field("design_changes", &self.design.changes.len())
+            .field("audit_events", &self.audit.events.len())
             .finish()
     }
 }
@@ -523,6 +526,7 @@ impl PortableRelocationBundle {
         validate_identity(&self.identity, &self.credentials)?;
         self.media.validate()?;
         self.design.validate()?;
+        self.audit.validate_for_relocation(target_site)?;
         let bytes = serde_json::to_vec(self).map_err(|_| MaviError::Internal)?;
         if bytes.len() > MAX_RELOCATION_BUNDLE_BYTES {
             return Err(MaviError::validation(
@@ -533,6 +537,8 @@ impl PortableRelocationBundle {
     }
 
     pub fn record_count(&self) -> Result<i64> {
+        let audit_count = usize::try_from(self.audit.record_count()?)
+            .map_err(|_| MaviError::validation("portable_record_count_overflow"))?;
         let count = self
             .bundle
             .manifest
@@ -551,6 +557,7 @@ impl PortableRelocationBundle {
             .and_then(|value| value.checked_add(self.credentials.len()))
             .and_then(|value| value.checked_add(self.media.files.len()))
             .and_then(|value| value.checked_add(self.design.record_count()))
+            .and_then(|value| value.checked_add(audit_count))
             .ok_or(MaviError::validation("portable_record_count_overflow"))?;
         i64::try_from(count).map_err(|_| MaviError::validation("portable_record_count_overflow"))
     }
@@ -772,12 +779,14 @@ impl PortableService {
         let design = DesignService
             .export_for_relocation(tx, context, store)
             .await?;
+        let audit = AuditService.export_for_relocation(tx, context).await?;
         let relocation = PortableRelocationBundle {
             bundle,
             identity,
             credentials,
             media,
             design,
+            audit,
         };
         relocation.validate_for_relocation(context.site_id)?;
         Ok(relocation)
@@ -839,6 +848,9 @@ impl PortableService {
             .await?;
         DesignService
             .import_for_relocation(tx, context, store, &request.bundle.design)
+            .await?;
+        AuditService
+            .import_for_relocation(tx, context, &request.bundle.audit)
             .await?;
         Ok(receipt)
     }
@@ -2158,8 +2170,10 @@ mod tests {
         let person_id = Uuid::now_v7();
         let role_id = Uuid::now_v7();
         let now = Utc::now();
+        let bundle = bundle();
+        let source_site = bundle.manifest.source_site_id;
         let envelope = PortableRelocationBundle {
-            bundle: bundle(),
+            bundle,
             identity: PortableIdentity {
                 people: vec![PortablePerson {
                     id: person_id,
@@ -2187,6 +2201,7 @@ mod tests {
             }],
             media: MediaRelocation::default(),
             design: DesignRelocation::default(),
+            audit: AuditRelocation::empty(source_site),
         };
         envelope
             .validate_for_relocation(envelope.bundle.manifest.source_site_id)

@@ -212,6 +212,8 @@ async fn portable_bundles_export_cross_site_import_and_reject_conflicts() {
     assert_eq!(relocation_bundle.design.files.len(), 1);
     assert_eq!(relocation_bundle.design.builds.len(), 1);
     assert_eq!(relocation_bundle.design.artifacts.len(), 1);
+    assert!(!relocation_bundle.audit.events.is_empty());
+    let source_audit = relocation_bundle.audit.events.clone();
     tx.commit().await.expect("source commit");
 
     let target_context = SiteContext::public(target_site);
@@ -292,6 +294,7 @@ async fn portable_bundles_export_cross_site_import_and_reject_conflicts() {
     let relocation_context = SiteContext::public(relocation_site);
     let mut relocation_bundle = relocation_bundle;
     relocation_bundle.bundle.manifest.source_site_id = relocation_site;
+    relocation_bundle.audit.source_site_id = relocation_site;
     let mut relocation_tx = database
         .begin(&relocation_context)
         .await
@@ -330,6 +333,10 @@ async fn portable_bundles_export_cross_site_import_and_reject_conflicts() {
         mavi_design::DesignState::Published
     );
     assert_eq!(relocated.design.artifacts.len(), 1);
+    assert!(!relocated.audit.events.is_empty());
+    for event in source_audit {
+        assert!(relocated.audit.events.contains(&event));
+    }
     assert_eq!(
         files
             .get(

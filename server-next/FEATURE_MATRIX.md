@@ -172,7 +172,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
 
 ## Runtime, panel and release
 
-- [ ] Shared HTTP router with request-level site scope.
+- [x] Shared HTTP router with request-level site scope.
 - [ ] Self-host configuration and upgrade path.
 - [-] Cloud/operator provisioning contract without direct database coupling.
   - [x] Mavi publishes a versioned runtime manifest for post-provision compatibility checks.

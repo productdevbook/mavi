@@ -2,7 +2,10 @@ use std::env;
 
 use chrono::Utc;
 use mavi_core::{SiteContext, SiteId};
-use mavi_portable::{ImportStrategy, PortableImportRequest, PortableService};
+use mavi_portable::{
+    ImportStrategy, PortableIdentity, PortableImportRequest, PortableRelocationBundle,
+    PortableRelocationRequest, PortableService,
+};
 use mavi_storage::Database;
 use serde_json::json;
 use uuid::Uuid;
@@ -200,8 +203,12 @@ async fn portable_bundles_export_cross_site_import_and_reject_conflicts() {
         .relocate(
             &mut relocation_tx,
             &relocation_context,
-            &PortableImportRequest {
-                bundle: relocation_bundle,
+            &PortableRelocationRequest {
+                bundle: PortableRelocationBundle {
+                    bundle: relocation_bundle,
+                    identity: PortableIdentity::default(),
+                    credentials: vec![],
+                },
                 strategy: ImportStrategy::Upsert,
             },
         )

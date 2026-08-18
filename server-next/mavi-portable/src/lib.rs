@@ -7,7 +7,7 @@
 //! cannot leave a partially migrated site behind.
 
 use std::collections::BTreeSet;
-use std::fmt::Write as _;
+use std::fmt::{self, Write as _};
 
 use chrono::{DateTime, Utc};
 use mavi_audit::{AuditEntry, AuditService};
@@ -25,6 +25,10 @@ pub const VERSION: u16 = 1;
 pub const MAX_RECORDS_PER_SECTION: usize = 10_000;
 pub const MAX_TOTAL_RECORDS: usize = 20_000;
 pub const MAX_BUNDLE_BYTES: usize = 16 * 1024 * 1024;
+/// Internal shard relocation bundles carry identity credential hashes in a
+/// separately authenticated envelope. They never appear in the public
+/// portable export/import DTO.
+pub const MAX_RELOCATION_BUNDLE_BYTES: usize = 32 * 1024 * 1024;
 pub const MAX_FIELDS_BYTES: usize = 64 * 1024;
 
 const SCHEMA_DESCRIPTOR: &str = concat!(
@@ -155,6 +159,113 @@ pub struct PortableAssignment {
     pub content_id: Uuid,
     pub term_id: Uuid,
     pub assigned_at: DateTime<Utc>,
+}
+
+/// Identity metadata used only by the internal shard relocation port.
+///
+/// Public portable bundles intentionally do not contain people, roles or
+/// credential material. The relocation envelope keeps this separate so a
+/// user-facing export can never accidentally disclose password hashes.
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct PortableIdentity {
+    pub people: Vec<PortablePerson>,
+    pub roles: Vec<PortableRole>,
+    pub role_grants: Vec<PortableRoleGrant>,
+    pub person_roles: Vec<PortablePersonRole>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct PortablePerson {
+    pub id: Uuid,
+    pub email: String,
+    pub name: String,
+    pub status: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct PortableRole {
+    pub id: Uuid,
+    pub name: String,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct PortableRoleGrant {
+    pub role_id: Uuid,
+    pub capability: String,
+    pub action: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct PortablePersonRole {
+    pub person_id: Uuid,
+    pub role_id: Uuid,
+}
+
+/// Password hashes are included only for authenticated shard relocation.
+/// Sessions and API keys are deliberately not represented: they are revoked
+/// at the target before the identity snapshot is applied.
+#[derive(Clone, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct PortablePersonCredential {
+    pub person_id: Uuid,
+    pub password_hash: String,
+}
+
+#[derive(Clone, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct PortableRelocationBundle {
+    pub bundle: PortableBundle,
+    pub identity: PortableIdentity,
+    pub credentials: Vec<PortablePersonCredential>,
+}
+
+#[derive(Clone, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct PortableRelocationRequest {
+    pub bundle: PortableRelocationBundle,
+    pub strategy: ImportStrategy,
+}
+
+impl fmt::Debug for PortablePersonCredential {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("PortablePersonCredential")
+            .field("person_id", &self.person_id)
+            .field("password_hash", &"<redacted>")
+            .finish()
+    }
+}
+
+impl fmt::Debug for PortableRelocationBundle {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("PortableRelocationBundle")
+            .field("bundle", &self.bundle)
+            .field("identity", &self.identity)
+            .field(
+                "credentials",
+                &format_args!("<{} redacted>", self.credentials.len()),
+            )
+            .finish()
+    }
+}
+
+impl fmt::Debug for PortableRelocationRequest {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("PortableRelocationRequest")
+            .field("bundle", &self.bundle)
+            .field("strategy", &self.strategy)
+            .finish()
+    }
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -394,6 +505,41 @@ impl PortableBundle {
     }
 }
 
+impl PortableRelocationBundle {
+    pub fn validate_for_relocation(&self, target_site: SiteId) -> Result<()> {
+        self.bundle.validate_for_relocation(target_site)?;
+        validate_identity(&self.identity, &self.credentials)?;
+        let bytes = serde_json::to_vec(self).map_err(|_| MaviError::Internal)?;
+        if bytes.len() > MAX_RELOCATION_BUNDLE_BYTES {
+            return Err(MaviError::validation(
+                "portable_relocation_bundle_too_large",
+            ));
+        }
+        Ok(())
+    }
+
+    pub fn record_count(&self) -> Result<i64> {
+        let count = self
+            .bundle
+            .manifest
+            .counts
+            .languages
+            .checked_add(self.bundle.manifest.counts.content_types)
+            .and_then(|value| value.checked_add(self.bundle.manifest.counts.terms))
+            .and_then(|value| value.checked_add(self.bundle.manifest.counts.content))
+            .and_then(|value| value.checked_add(self.bundle.manifest.counts.revisions))
+            .and_then(|value| value.checked_add(self.bundle.manifest.counts.slug_history))
+            .and_then(|value| value.checked_add(self.bundle.manifest.counts.assignments))
+            .and_then(|value| value.checked_add(self.identity.people.len()))
+            .and_then(|value| value.checked_add(self.identity.roles.len()))
+            .and_then(|value| value.checked_add(self.identity.role_grants.len()))
+            .and_then(|value| value.checked_add(self.identity.person_roles.len()))
+            .and_then(|value| value.checked_add(self.credentials.len()))
+            .ok_or(MaviError::validation("portable_record_count_overflow"))?;
+        i64::try_from(count).map_err(|_| MaviError::validation("portable_record_count_overflow"))
+    }
+}
+
 impl PortableService {
     #[allow(clippy::too_many_lines, clippy::similar_names)]
     pub async fn export(&self, tx: &mut SiteTx, context: &SiteContext) -> Result<PortableBundle> {
@@ -589,6 +735,29 @@ impl PortableService {
         Ok(bundle)
     }
 
+    /// Exports the public site snapshot together with identity metadata and
+    /// password hashes for the authenticated shard-to-shard relocation port.
+    ///
+    /// The public `export` method remains credential-free. This method is only
+    /// called by the operator's private transfer endpoint and its result must
+    /// never be exposed through the public HTTP API.
+    pub async fn export_for_relocation(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+    ) -> Result<PortableRelocationBundle> {
+        let bundle = self.export(tx, context).await?;
+        let identity = export_identity(tx, context).await?;
+        let credentials = export_credentials(tx, context).await?;
+        let relocation = PortableRelocationBundle {
+            bundle,
+            identity,
+            credentials,
+        };
+        relocation.validate_for_relocation(context.site_id)?;
+        Ok(relocation)
+    }
+
     #[allow(clippy::too_many_lines)]
     pub async fn import(
         &self,
@@ -611,7 +780,7 @@ impl PortableService {
         &self,
         tx: &mut SiteTx,
         context: &SiteContext,
-        request: &PortableImportRequest,
+        request: &PortableRelocationRequest,
     ) -> Result<ImportReceipt> {
         if request.strategy != ImportStrategy::Upsert {
             return Err(MaviError::validation(
@@ -619,8 +788,27 @@ impl PortableService {
             ));
         }
         request.bundle.validate_for_relocation(context.site_id)?;
-        self.import_validated(tx, context, request, "portable.bundle.relocated", true)
-            .await
+        let base_request = PortableImportRequest {
+            bundle: request.bundle.bundle.clone(),
+            strategy: request.strategy,
+        };
+        let receipt = self
+            .import_validated(
+                tx,
+                context,
+                &base_request,
+                "portable.bundle.relocated",
+                true,
+            )
+            .await?;
+        import_identity(
+            tx,
+            context,
+            &request.bundle.identity,
+            &request.bundle.credentials,
+        )
+        .await?;
+        Ok(receipt)
     }
 
     #[allow(clippy::too_many_lines)]
@@ -917,6 +1105,376 @@ impl PortableService {
             .await?;
         Ok(receipt)
     }
+}
+
+async fn export_identity(tx: &mut SiteTx, context: &SiteContext) -> Result<PortableIdentity> {
+    let people = sqlx::query(
+        "select id, email, name, status, created_at, updated_at
+           from people where site_id = $1 order by created_at asc, id asc",
+    )
+    .bind(context.site_id.into_uuid())
+    .fetch_all(tx.conn())
+    .await
+    .map_err(|_| MaviError::Internal)?
+    .iter()
+    .map(|row| {
+        Ok(PortablePerson {
+            id: row.try_get("id").map_err(|_| MaviError::Internal)?,
+            email: row.try_get("email").map_err(|_| MaviError::Internal)?,
+            name: row.try_get("name").map_err(|_| MaviError::Internal)?,
+            status: row.try_get("status").map_err(|_| MaviError::Internal)?,
+            created_at: row.try_get("created_at").map_err(|_| MaviError::Internal)?,
+            updated_at: row.try_get("updated_at").map_err(|_| MaviError::Internal)?,
+        })
+    })
+    .collect::<Result<Vec<_>>>()?;
+
+    let roles = sqlx::query(
+        "select id, name, created_at from roles
+         where site_id = $1 order by created_at asc, id asc",
+    )
+    .bind(context.site_id.into_uuid())
+    .fetch_all(tx.conn())
+    .await
+    .map_err(|_| MaviError::Internal)?
+    .iter()
+    .map(|row| {
+        Ok(PortableRole {
+            id: row.try_get("id").map_err(|_| MaviError::Internal)?,
+            name: row.try_get("name").map_err(|_| MaviError::Internal)?,
+            created_at: row.try_get("created_at").map_err(|_| MaviError::Internal)?,
+        })
+    })
+    .collect::<Result<Vec<_>>>()?;
+
+    let role_grants = sqlx::query(
+        "select role_id, capability, action from role_grants
+         where site_id = $1 order by role_id asc, capability asc, action asc",
+    )
+    .bind(context.site_id.into_uuid())
+    .fetch_all(tx.conn())
+    .await
+    .map_err(|_| MaviError::Internal)?
+    .iter()
+    .map(|row| {
+        Ok(PortableRoleGrant {
+            role_id: row.try_get("role_id").map_err(|_| MaviError::Internal)?,
+            capability: row.try_get("capability").map_err(|_| MaviError::Internal)?,
+            action: row.try_get("action").map_err(|_| MaviError::Internal)?,
+        })
+    })
+    .collect::<Result<Vec<_>>>()?;
+
+    let person_roles = sqlx::query(
+        "select person_id, role_id from person_roles
+         where site_id = $1 order by person_id asc, role_id asc",
+    )
+    .bind(context.site_id.into_uuid())
+    .fetch_all(tx.conn())
+    .await
+    .map_err(|_| MaviError::Internal)?
+    .iter()
+    .map(|row| {
+        Ok(PortablePersonRole {
+            person_id: row.try_get("person_id").map_err(|_| MaviError::Internal)?,
+            role_id: row.try_get("role_id").map_err(|_| MaviError::Internal)?,
+        })
+    })
+    .collect::<Result<Vec<_>>>()?;
+
+    Ok(PortableIdentity {
+        people,
+        roles,
+        role_grants,
+        person_roles,
+    })
+}
+
+async fn export_credentials(
+    tx: &mut SiteTx,
+    context: &SiteContext,
+) -> Result<Vec<PortablePersonCredential>> {
+    sqlx::query(
+        "select id, password_hash from people
+         where site_id = $1 order by id asc",
+    )
+    .bind(context.site_id.into_uuid())
+    .fetch_all(tx.conn())
+    .await
+    .map_err(|_| MaviError::Internal)?
+    .iter()
+    .map(|row| {
+        Ok(PortablePersonCredential {
+            person_id: row.try_get("id").map_err(|_| MaviError::Internal)?,
+            password_hash: row
+                .try_get("password_hash")
+                .map_err(|_| MaviError::Internal)?,
+        })
+    })
+    .collect()
+}
+
+fn validate_identity(
+    identity: &PortableIdentity,
+    credentials: &[PortablePersonCredential],
+) -> Result<()> {
+    let mut people = BTreeSet::new();
+    let mut emails = BTreeSet::new();
+    for person in &identity.people {
+        if person.id.is_nil()
+            || !people.insert(person.id)
+            || !valid_email(&person.email)
+            || !emails.insert(person.email.to_ascii_lowercase())
+            || person.name.trim().is_empty()
+            || person.name.chars().count() > 120
+            || !matches!(person.status.as_str(), "active" | "suspended" | "removed")
+        {
+            return Err(MaviError::validation("portable_identity_person_invalid"));
+        }
+    }
+
+    let mut roles = BTreeSet::new();
+    let mut role_names = BTreeSet::new();
+    for role in &identity.roles {
+        if role.id.is_nil()
+            || !roles.insert(role.id)
+            || !valid_role_name(&role.name)
+            || !role_names.insert(role.name.clone())
+        {
+            return Err(MaviError::validation("portable_identity_role_invalid"));
+        }
+    }
+
+    let mut grants = BTreeSet::new();
+    for grant in &identity.role_grants {
+        if !roles.contains(&grant.role_id)
+            || !valid_capability(&grant.capability)
+            || !matches!(grant.action.as_str(), "view" | "write" | "delete")
+            || !grants.insert((
+                grant.role_id,
+                grant.capability.clone(),
+                grant.action.clone(),
+            ))
+        {
+            return Err(MaviError::validation("portable_identity_grant_invalid"));
+        }
+    }
+
+    let mut assignments = BTreeSet::new();
+    for assignment in &identity.person_roles {
+        if !people.contains(&assignment.person_id)
+            || !roles.contains(&assignment.role_id)
+            || !assignments.insert((assignment.person_id, assignment.role_id))
+        {
+            return Err(MaviError::validation(
+                "portable_identity_assignment_invalid",
+            ));
+        }
+    }
+
+    let mut credential_people = BTreeSet::new();
+    for credential in credentials {
+        if !people.contains(&credential.person_id)
+            || credential.password_hash.trim().is_empty()
+            || credential.password_hash.len() > 1024
+            || !credential_people.insert(credential.person_id)
+        {
+            return Err(MaviError::validation(
+                "portable_identity_credential_invalid",
+            ));
+        }
+    }
+    if credential_people != people {
+        return Err(MaviError::validation(
+            "portable_identity_credentials_incomplete",
+        ));
+    }
+    Ok(())
+}
+
+#[allow(clippy::too_many_lines)]
+async fn import_identity(
+    tx: &mut SiteTx,
+    context: &SiteContext,
+    identity: &PortableIdentity,
+    credentials: &[PortablePersonCredential],
+) -> Result<()> {
+    validate_identity(identity, credentials)?;
+
+    // Sessions and API keys are transient credentials. They are intentionally
+    // not copied across a shard boundary and any target-side remnants from a
+    // retry are revoked before the durable people snapshot is applied.
+    sqlx::query("delete from api_key_grants where site_id = $1")
+        .bind(context.site_id.into_uuid())
+        .execute(tx.conn())
+        .await
+        .map_err(map_import_write_error)?;
+    sqlx::query("delete from api_keys where site_id = $1")
+        .bind(context.site_id.into_uuid())
+        .execute(tx.conn())
+        .await
+        .map_err(map_import_write_error)?;
+    sqlx::query("delete from sessions where site_id = $1")
+        .bind(context.site_id.into_uuid())
+        .execute(tx.conn())
+        .await
+        .map_err(map_import_write_error)?;
+    sqlx::query("delete from person_roles where site_id = $1")
+        .bind(context.site_id.into_uuid())
+        .execute(tx.conn())
+        .await
+        .map_err(map_import_write_error)?;
+    sqlx::query("delete from role_grants where site_id = $1")
+        .bind(context.site_id.into_uuid())
+        .execute(tx.conn())
+        .await
+        .map_err(map_import_write_error)?;
+
+    let credentials = credentials
+        .iter()
+        .map(|credential| (credential.person_id, credential.password_hash.as_str()))
+        .collect::<std::collections::HashMap<_, _>>();
+    for person in &identity.people {
+        let password_hash = credentials.get(&person.id).ok_or(MaviError::validation(
+            "portable_identity_credentials_incomplete",
+        ))?;
+        sqlx::query(
+            "insert into people
+                (site_id, id, email, name, password_hash, status, created_at, updated_at)
+             values ($1, $2, $3, $4, $5, $6, $7, $8)
+             on conflict (site_id, id) do update set
+                email = excluded.email, name = excluded.name,
+                password_hash = excluded.password_hash, status = excluded.status,
+                created_at = excluded.created_at, updated_at = excluded.updated_at",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(person.id)
+        .bind(&person.email)
+        .bind(&person.name)
+        .bind(password_hash)
+        .bind(&person.status)
+        .bind(person.created_at)
+        .bind(person.updated_at)
+        .execute(tx.conn())
+        .await
+        .map_err(map_import_write_error)?;
+    }
+
+    for role in &identity.roles {
+        sqlx::query(
+            "insert into roles (site_id, id, name, created_at)
+             values ($1, $2, $3, $4)
+             on conflict (site_id, id) do update set
+                name = excluded.name, created_at = excluded.created_at",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(role.id)
+        .bind(&role.name)
+        .bind(role.created_at)
+        .execute(tx.conn())
+        .await
+        .map_err(map_import_write_error)?;
+    }
+
+    for grant in &identity.role_grants {
+        sqlx::query(
+            "insert into role_grants (site_id, role_id, capability, action)
+             values ($1, $2, $3, $4)",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(grant.role_id)
+        .bind(&grant.capability)
+        .bind(&grant.action)
+        .execute(tx.conn())
+        .await
+        .map_err(map_import_write_error)?;
+    }
+
+    for assignment in &identity.person_roles {
+        sqlx::query(
+            "insert into person_roles (site_id, person_id, role_id)
+             values ($1, $2, $3)",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(assignment.person_id)
+        .bind(assignment.role_id)
+        .execute(tx.conn())
+        .await
+        .map_err(map_import_write_error)?;
+    }
+
+    AuditService
+        .record(
+            tx,
+            context,
+            &AuditEntry {
+                action: "portable.identity.relocated".to_owned(),
+                resource_type: "IdentitySnapshot".to_owned(),
+                resource_id: None,
+                payload: json!({
+                    "people": identity.people.len(),
+                    "roles": identity.roles.len(),
+                    "role_grants": identity.role_grants.len(),
+                    "person_roles": identity.person_roles.len(),
+                    "sessions": 0,
+                    "api_keys": 0,
+                }),
+            },
+        )
+        .await
+}
+
+fn valid_email(value: &str) -> bool {
+    let value = value.trim();
+    let mut parts = value.split('@');
+    let Some(local) = parts.next() else {
+        return false;
+    };
+    let Some(domain) = parts.next() else {
+        return false;
+    };
+    parts.next().is_none()
+        && !local.is_empty()
+        && local.len() <= 64
+        && !domain.is_empty()
+        && domain.contains('.')
+        && value.len() <= 254
+        && !value.chars().any(char::is_whitespace)
+}
+
+fn valid_role_name(value: &str) -> bool {
+    !value.is_empty()
+        && value.len() <= 64
+        && value.starts_with(|character: char| character.is_ascii_lowercase())
+        && value.chars().all(|character| {
+            character.is_ascii_lowercase()
+                || character.is_ascii_digit()
+                || character == '_'
+                || character == '-'
+        })
+}
+
+fn valid_capability(value: &str) -> bool {
+    matches!(
+        value,
+        "analytics"
+            | "automation"
+            | "audit"
+            | "boards"
+            | "content"
+            | "courses"
+            | "design"
+            | "forms"
+            | "mail"
+            | "media"
+            | "people"
+            | "portable"
+            | "publish"
+            | "settings"
+            | "shop"
+            | "taxonomy"
+            | "trash"
+    )
 }
 
 fn schema_hash() -> String {
@@ -1560,5 +2118,46 @@ mod tests {
                 .all(|shape| !shape.schema.to_string().contains("offset"))
         );
         api.validate().expect("portable API");
+    }
+
+    #[test]
+    fn relocation_credentials_are_internal_and_debug_redacted() {
+        let person_id = Uuid::now_v7();
+        let role_id = Uuid::now_v7();
+        let now = Utc::now();
+        let envelope = PortableRelocationBundle {
+            bundle: bundle(),
+            identity: PortableIdentity {
+                people: vec![PortablePerson {
+                    id: person_id,
+                    email: "owner@example.com".to_owned(),
+                    name: "Owner".to_owned(),
+                    status: "active".to_owned(),
+                    created_at: now,
+                    updated_at: now,
+                }],
+                roles: vec![PortableRole {
+                    id: role_id,
+                    name: "owner".to_owned(),
+                    created_at: now,
+                }],
+                role_grants: vec![PortableRoleGrant {
+                    role_id,
+                    capability: "people".to_owned(),
+                    action: "view".to_owned(),
+                }],
+                person_roles: vec![PortablePersonRole { person_id, role_id }],
+            },
+            credentials: vec![PortablePersonCredential {
+                person_id,
+                password_hash: "$argon2id$v=19$internal-secret-hash".to_owned(),
+            }],
+        };
+        envelope
+            .validate_for_relocation(envelope.bundle.manifest.source_site_id)
+            .expect("identity relocation envelope");
+        let debug = format!("{envelope:?}");
+        assert!(!debug.contains("internal-secret-hash"));
+        assert!(debug.contains("redacted"));
     }
 }

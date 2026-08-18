@@ -2,18 +2,19 @@ use axum::{
     Router,
     http::{Method, StatusCode},
 };
-use mavi_core::SiteContext;
+use mavi_core::{SiteContext, SiteId};
+use mavi_storage::Database;
 use serde_json::json;
 
 mod support;
-use support::{build_app, login, response_json, send};
+use support::{login, response_json, send};
 
 #[tokio::test]
 #[ignore = "requires TEST_DATABASE_URL and a non-superuser PostgreSQL role"]
 async fn identity_routes_enforce_authz_and_cursor_contracts() {
-    let app = build_app().await;
+    let (app, database, site_id) = support::build_app_with_database().await;
     let owner_token = bootstrap(&app).await;
-    let reader_token = create_reader(&app, &owner_token).await;
+    let reader_token = create_reader(&app, &database, site_id, &owner_token).await;
 
     assert_cursor_contract(&app, &owner_token).await;
     assert_permission_contract(&app, &reader_token).await;
@@ -23,7 +24,12 @@ async fn bootstrap(app: &Router) -> String {
     support::bootstrap(app, "HTTP identity test").await
 }
 
-async fn create_reader(app: &Router, owner_token: &str) -> String {
+async fn create_reader(
+    app: &Router,
+    database: &Database,
+    site_id: SiteId,
+    owner_token: &str,
+) -> String {
     let role = send(
         app,
         Method::POST,
@@ -55,6 +61,45 @@ async fn create_reader(app: &Router, owner_token: &str) -> String {
     )
     .await;
     assert_eq!(person.status(), StatusCode::CREATED);
+
+    let requested = send(
+        app,
+        Method::POST,
+        "/api/v1/auth/email-verifications",
+        None,
+        Some(json!({"email": "reader@example.com"})),
+    )
+    .await;
+    assert_eq!(requested.status(), StatusCode::ACCEPTED);
+
+    let public_context = SiteContext::public(site_id);
+    let mut mail_tx = database.begin(&public_context).await.expect("mail scope");
+    let body: String = sqlx::query_scalar(
+        "select body from mail_deliveries
+          where site_id = $1 and recipient = $2
+          order by created_at desc limit 1",
+    )
+    .bind(site_id.into_uuid())
+    .bind("reader@example.com")
+    .fetch_one(mail_tx.conn())
+    .await
+    .expect("reader verification mail");
+    let token = body
+        .lines()
+        .find(|line| line.starts_with("mavi_verify_"))
+        .expect("reader verification token")
+        .to_owned();
+    mail_tx.commit().await.expect("mail commit");
+
+    let verified = send(
+        app,
+        Method::POST,
+        "/api/v1/auth/email-verifications/redeem",
+        None,
+        Some(json!({"token": token})),
+    )
+    .await;
+    assert_eq!(verified.status(), StatusCode::NO_CONTENT);
 
     login(app, "reader@example.com").await
 }
@@ -188,4 +233,182 @@ async fn password_reset_response_is_generic_and_redeems_the_mail_outbox_token() 
     )
     .await;
     assert_eq!(new_password.status(), StatusCode::CREATED);
+}
+
+#[tokio::test]
+#[ignore = "requires TEST_DATABASE_URL and a non-superuser PostgreSQL role"]
+#[allow(clippy::too_many_lines)]
+async fn email_verification_response_is_generic_throttled_and_one_time() {
+    let (app, database, site_id) = support::build_app_with_database().await;
+    let owner_token = support::bootstrap(&app, "HTTP email verification test").await;
+
+    let created = send(
+        &app,
+        Method::POST,
+        "/api/v1/people",
+        Some(&owner_token),
+        Some(json!({
+            "email": "verify@example.com",
+            "name": "Verify",
+            "password": "long-enough-password"
+        })),
+    )
+    .await;
+    assert_eq!(created.status(), StatusCode::CREATED);
+    assert_eq!(response_json(created).await["email_verified"], false);
+
+    let blocked = send(
+        &app,
+        Method::POST,
+        "/api/v1/auth/sessions",
+        None,
+        Some(json!({
+            "email": "verify@example.com",
+            "password": "long-enough-password"
+        })),
+    )
+    .await;
+    assert_eq!(blocked.status(), StatusCode::CONFLICT);
+    assert_eq!(
+        response_json(blocked).await["error"]["code"],
+        "email_not_verified"
+    );
+
+    let known = send(
+        &app,
+        Method::POST,
+        "/api/v1/auth/email-verifications",
+        None,
+        Some(json!({"email": "verify@example.com"})),
+    )
+    .await;
+    let unknown = send(
+        &app,
+        Method::POST,
+        "/api/v1/auth/email-verifications",
+        None,
+        Some(json!({"email": "missing@example.com"})),
+    )
+    .await;
+    assert_eq!(known.status(), StatusCode::ACCEPTED);
+    assert_eq!(unknown.status(), StatusCode::ACCEPTED);
+    assert_eq!(response_json(known).await, response_json(unknown).await);
+
+    for _ in 0..4 {
+        let response = send(
+            &app,
+            Method::POST,
+            "/api/v1/auth/email-verifications",
+            None,
+            Some(json!({"email": "verify@example.com"})),
+        )
+        .await;
+        assert_eq!(response.status(), StatusCode::ACCEPTED);
+    }
+    let limited = send(
+        &app,
+        Method::POST,
+        "/api/v1/auth/email-verifications",
+        None,
+        Some(json!({"email": "verify@example.com"})),
+    )
+    .await;
+    assert_eq!(limited.status(), StatusCode::ACCEPTED);
+    assert_eq!(response_json(limited).await, json!({"accepted": true}));
+
+    let public_context = SiteContext::public(site_id);
+    let mut mail_tx = database.begin(&public_context).await.expect("mail scope");
+    let body: String = sqlx::query_scalar(
+        "select body from mail_deliveries
+          where site_id = $1 and recipient = $2
+          order by created_at desc limit 1",
+    )
+    .bind(site_id.into_uuid())
+    .bind("verify@example.com")
+    .fetch_one(mail_tx.conn())
+    .await
+    .expect("verification mail");
+    let token = body
+        .lines()
+        .find(|line| line.starts_with("mavi_verify_"))
+        .expect("verification token in provider-neutral mail")
+        .to_owned();
+    mail_tx.commit().await.expect("mail commit");
+
+    let redeemed = send(
+        &app,
+        Method::POST,
+        "/api/v1/auth/email-verifications/redeem",
+        None,
+        Some(json!({"token": token})),
+    )
+    .await;
+    assert_eq!(redeemed.status(), StatusCode::NO_CONTENT);
+
+    let signed_in = send(
+        &app,
+        Method::POST,
+        "/api/v1/auth/sessions",
+        None,
+        Some(json!({
+            "email": "verify@example.com",
+            "password": "long-enough-password"
+        })),
+    )
+    .await;
+    assert_eq!(signed_in.status(), StatusCode::CREATED);
+
+    let people = send(
+        &app,
+        Method::GET,
+        "/api/v1/people",
+        Some(&owner_token),
+        None,
+    )
+    .await;
+    let people = response_json(people).await;
+    assert!(
+        people["items"]
+            .as_array()
+            .expect("people")
+            .iter()
+            .any(|person| {
+                person["email"] == "verify@example.com" && person["email_verified"] == true
+            })
+    );
+
+    let replay = send(
+        &app,
+        Method::POST,
+        "/api/v1/auth/email-verifications/redeem",
+        None,
+        Some(json!({"token": body.lines().find(|line| line.starts_with("mavi_verify_")).expect("token")})),
+    )
+    .await;
+    assert_eq!(replay.status(), StatusCode::CONFLICT);
+    assert_eq!(
+        response_json(replay).await["error"]["code"],
+        "email_verification_token_invalid"
+    );
+
+    let mut audit_tx = database.begin(&public_context).await.expect("audit scope");
+    let rate_limited: i64 = sqlx::query_scalar(
+        "select count(*) from audit_events
+          where site_id = $1 and action = 'auth.security.rate_limited'",
+    )
+    .bind(site_id.into_uuid())
+    .fetch_one(audit_tx.conn())
+    .await
+    .expect("rate limit audit");
+    let blocked_login: i64 = sqlx::query_scalar(
+        "select count(*) from audit_events
+          where site_id = $1 and action = 'auth.session.blocked'",
+    )
+    .bind(site_id.into_uuid())
+    .fetch_one(audit_tx.conn())
+    .await
+    .expect("blocked login audit");
+    assert_eq!(rate_limited, 1);
+    assert_eq!(blocked_login, 1);
+    audit_tx.commit().await.expect("audit commit");
 }

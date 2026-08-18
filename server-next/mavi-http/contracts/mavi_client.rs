@@ -713,6 +713,21 @@ pub struct DesignFileSummary {
 
 pub type DesignState = String;
 
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct EmailVerificationRedeem {
+    pub token: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct EmailVerificationRequest {
+    pub email: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct EmailVerificationRequested {
+    pub accepted: bool,
+}
+
 pub type Empty = Value;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -1285,6 +1300,7 @@ pub struct Person {
     pub site_id: String,
     pub email: String,
     pub name: String,
+    pub email_verified: bool,
 }
 
 pub type PersonListFilterStatus = String;
@@ -1302,6 +1318,7 @@ pub struct PersonRecord {
     pub email: String,
     pub name: String,
     pub status: PersonListFilterStatus,
+    pub email_verified: bool,
     pub role_ids: Vec<String>,
     pub created_at: String,
     pub updated_at: String,
@@ -1960,6 +1977,8 @@ pub const OPERATIONS: &[OperationDefinition] = &[
     OperationDefinition { name: "auth.session.create", method: "post", path: "/api/v1/auth/sessions", request: Some("LoginInput"), request_location: Some("json"), query: None, response: Some("SessionCreated"), response_location: None, status: 201, authentication: "public", capability: None, action: None },
     OperationDefinition { name: "auth.password_reset.request", method: "post", path: "/api/v1/auth/password-resets", request: Some("PasswordResetRequest"), request_location: Some("json"), query: None, response: Some("PasswordResetRequested"), response_location: None, status: 202, authentication: "public", capability: None, action: None },
     OperationDefinition { name: "auth.password_reset.redeem", method: "post", path: "/api/v1/auth/password-resets/redeem", request: Some("PasswordResetRedeem"), request_location: Some("json"), query: None, response: Some("Empty"), response_location: None, status: 204, authentication: "public", capability: None, action: None },
+    OperationDefinition { name: "auth.email_verification.request", method: "post", path: "/api/v1/auth/email-verifications", request: Some("EmailVerificationRequest"), request_location: Some("json"), query: None, response: Some("EmailVerificationRequested"), response_location: None, status: 202, authentication: "public", capability: None, action: None },
+    OperationDefinition { name: "auth.email_verification.redeem", method: "post", path: "/api/v1/auth/email-verifications/redeem", request: Some("EmailVerificationRedeem"), request_location: Some("json"), query: None, response: Some("Empty"), response_location: None, status: 204, authentication: "public", capability: None, action: None },
     OperationDefinition { name: "auth.session.revoke", method: "delete", path: "/api/v1/auth/sessions/current", request: None, request_location: None, query: None, response: Some("Empty"), response_location: None, status: 204, authentication: "account", capability: None, action: None },
     OperationDefinition { name: "auth.api_key.create", method: "post", path: "/api/v1/auth/api-keys", request: Some("CreateApiKey"), request_location: Some("json"), query: None, response: Some("ApiKeyCreated"), response_location: None, status: 201, authentication: "account", capability: Some("people"), action: Some("write") },
     OperationDefinition { name: "auth.api_key.revoke", method: "delete", path: "/api/v1/auth/api-keys/{id}", request: None, request_location: None, query: None, response: Some("Empty"), response_location: None, status: 204, authentication: "account_or_assistant", capability: Some("people"), action: Some("delete") },

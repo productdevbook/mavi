@@ -70,7 +70,8 @@ use mavi_forms::{
     SubmissionListFilter, SubmissionReceipt, SubmitForm, UpdateForm,
 };
 use mavi_identity::{
-    ApiKeyCreated, CreateApiKey, CreatePerson, CreateRole, IdentityService, LoginInput,
+    ApiKeyCreated, CreateApiKey, CreatePerson, CreateRole, EmailVerificationRedeemInput,
+    EmailVerificationRequestInput, EmailVerificationRequested, IdentityService, LoginInput,
     PasswordResetRedeemInput, PasswordResetRequestInput, PasswordResetRequested, PeopleListFilter,
     Person, PersonRecord, ReplaceRoleGrants, Role, RoleListFilter, SessionCreated, SetupInput,
     SetupStatus, UpdatePersonStatus,
@@ -840,6 +841,14 @@ where
         .route(
             "/api/v1/auth/password-resets/redeem",
             post(redeem_password_reset::<R>),
+        )
+        .route(
+            "/api/v1/auth/email-verifications",
+            post(request_email_verification::<R>),
+        )
+        .route(
+            "/api/v1/auth/email-verifications/redeem",
+            post(redeem_email_verification::<R>),
         )
         .route("/api/v1/auth/sessions/current", delete(revoke_session::<R>))
         .route("/api/v1/auth/api-keys", post(create_api_key::<R>))
@@ -2129,13 +2138,28 @@ where
     R: SiteResolver,
 {
     let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
-    let session = state
+    let result = state
         .identity
         .create_session(&mut transaction, &context, &input, Utc::now())
-        .await
-        .map_err(HttpError)?;
-    transaction.commit().await.map_err(HttpError)?;
-    Ok((StatusCode::CREATED, Json(session)))
+        .await;
+    match result {
+        Ok(session) => {
+            transaction.commit().await.map_err(HttpError)?;
+            Ok((StatusCode::CREATED, Json(session)))
+        }
+        Err(error) => {
+            // Invalid credentials and a correct-but-unverified password both
+            // write security receipts. Commit those deliberate negative
+            // outcomes; other failures remain rolled back by dropping the tx.
+            if matches!(
+                &error,
+                MaviError::Unauthenticated | MaviError::Conflict { .. }
+            ) {
+                transaction.commit().await.map_err(HttpError)?;
+            }
+            Err(HttpError(error))
+        }
+    }
 }
 
 async fn request_password_reset<R>(
@@ -2194,6 +2218,68 @@ where
     state
         .identity
         .redeem_password_reset(&mut transaction, &context, &input, Utc::now())
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+async fn request_email_verification<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Json(input): Json<EmailVerificationRequestInput>,
+) -> Result<(StatusCode, Json<EmailVerificationRequested>), HttpError>
+where
+    R: SiteResolver,
+{
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let notification = state
+        .identity
+        .request_email_verification(&mut transaction, &context, &input, Utc::now())
+        .await
+        .map_err(HttpError)?;
+    if let Some(notification) = notification {
+        let idempotency_key = format!("email-verification:{}", notification.id);
+        let body = format!(
+            "Use this one-time Mavi email verification token before its expiry timestamp:\n\n{}\n\nThis token expires at {}. If you did not request email verification, you can ignore this message.",
+            notification.token,
+            notification.expires_at.to_rfc3339(),
+        );
+        state
+            .mail
+            .enqueue_transactional_message(
+                &mut transaction,
+                &context,
+                MailMessage {
+                    recipient: notification.recipient.as_str().to_owned(),
+                    subject: "Verify your Mavi email".to_owned(),
+                    body,
+                    content_type: MailContentType::Plain,
+                },
+                Some(&idempotency_key),
+            )
+            .await
+            .map_err(HttpError)?;
+    }
+    transaction.commit().await.map_err(HttpError)?;
+    Ok((
+        StatusCode::ACCEPTED,
+        Json(EmailVerificationRequested { accepted: true }),
+    ))
+}
+
+async fn redeem_email_verification<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Json(input): Json<EmailVerificationRedeemInput>,
+) -> Result<StatusCode, HttpError>
+where
+    R: SiteResolver,
+{
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    state
+        .identity
+        .redeem_email_verification(&mut transaction, &context, &input, Utc::now())
         .await
         .map_err(HttpError)?;
     transaction.commit().await.map_err(HttpError)?;

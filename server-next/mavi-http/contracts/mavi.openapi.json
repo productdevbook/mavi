@@ -121,6 +121,36 @@
               }
             }
           },
+          "400": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Request refused",
             "content": {
@@ -155,6 +185,9 @@
           },
           "permission": null,
           "errors": [
+            "validation",
+            "unauthenticated",
+            "conflict",
             "internal"
           ]
         }
@@ -276,6 +309,146 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/PasswordResetRedeem"
+              }
+            }
+          }
+        },
+        "security": [
+          {}
+        ],
+        "x-mavi": {
+          "scope": "site",
+          "authentication": "public",
+          "mutation": {
+            "public": {
+              "idempotent": false
+            }
+          },
+          "permission": null,
+          "errors": [
+            "validation",
+            "conflict",
+            "internal"
+          ]
+        }
+      }
+    },
+    "/api/v1/auth/email-verifications": {
+      "post": {
+        "operationId": "auth.email_verification.request",
+        "summary": "Request email verification without revealing account existence",
+        "tags": [
+          "auth"
+        ],
+        "responses": {
+          "202": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailVerificationRequested"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailVerificationRequest"
+              }
+            }
+          }
+        },
+        "security": [
+          {}
+        ],
+        "x-mavi": {
+          "scope": "site",
+          "authentication": "public",
+          "mutation": {
+            "public": {
+              "idempotent": false
+            }
+          },
+          "permission": null,
+          "errors": [
+            "validation",
+            "internal"
+          ]
+        }
+      }
+    },
+    "/api/v1/auth/email-verifications/redeem": {
+      "post": {
+        "operationId": "auth.email_verification.redeem",
+        "summary": "Redeem a one-time email verification token",
+        "tags": [
+          "auth"
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful response"
+          },
+          "400": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailVerificationRedeem"
               }
             }
           }
@@ -19248,6 +19421,46 @@
           "published"
         ]
       },
+      "EmailVerificationRedeem": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "token"
+        ],
+        "properties": {
+          "token": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        }
+      },
+      "EmailVerificationRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "email"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          }
+        }
+      },
+      "EmailVerificationRequested": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "accepted"
+        ],
+        "properties": {
+          "accepted": {
+            "type": "boolean",
+            "const": true
+          }
+        }
+      },
       "Empty": {
         "type": "object",
         "additionalProperties": false
@@ -21298,11 +21511,13 @@
       },
       "Person": {
         "type": "object",
+        "additionalProperties": false,
         "required": [
           "id",
           "site_id",
           "email",
-          "name"
+          "name",
+          "email_verified"
         ],
         "properties": {
           "id": {
@@ -21319,6 +21534,9 @@
           },
           "name": {
             "type": "string"
+          },
+          "email_verified": {
+            "type": "boolean"
           }
         }
       },
@@ -21354,12 +21572,14 @@
       },
       "PersonRecord": {
         "type": "object",
+        "additionalProperties": false,
         "required": [
           "id",
           "site_id",
           "email",
           "name",
           "status",
+          "email_verified",
           "role_ids",
           "created_at",
           "updated_at"
@@ -21382,6 +21602,9 @@
           },
           "status": {
             "$ref": "#/components/schemas/PersonListFilterStatus"
+          },
+          "email_verified": {
+            "type": "boolean"
           },
           "role_ids": {
             "type": "array",

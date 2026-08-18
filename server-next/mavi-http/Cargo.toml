@@ -28,6 +28,7 @@ mavi-portable = { path = "../mavi-portable" }
 mavi-shop = { path = "../mavi-shop" }
 mavi-identity = { path = "../mavi-identity" }
 mavi-runtime = { path = "../mavi-runtime" }
+mavi-secrets = { path = "../mavi-secrets" }
 mavi-settings = { path = "../mavi-settings" }
 mavi-taxonomy = { path = "../mavi-taxonomy" }
 mavi-trash = { path = "../mavi-trash" }
@@ -42,6 +43,7 @@ workspace = true
 [dev-dependencies]
 mavi-files = { path = "../mavi-files" }
 mavi-design = { path = "../mavi-design" }
+mavi-sealing = { path = "../mavi-sealing" }
 mavi-storage = { path = "../mavi-storage" }
 tokio.workspace = true
 tower.workspace = true

@@ -11,6 +11,8 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
 
 - [x] Typed IDs, `SiteId`, `SiteContext`, caller types and error codes.
 - [x] Grant/capability model, pagination, money and adapter ports.
+- [x] Provider credential IDs, metadata-only DTOs and the `Seals` adapter port.
+- [x] AES-GCM keyring adapter authenticates ciphertext to `SiteContext` and supports key rotation reads.
 - [x] Site catalog, site-scoped transaction and first migration.
 - [x] Canonical endpoint declaration with auth, permission, scope and mutation validation.
 - [x] Embedded Cedar authorizer with principal/resource/site-scope tests.
@@ -47,6 +49,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Site-scoped people list/create/status endpoints use typed DTOs and cursors.
   - [x] Passwords are Argon2id digests; setup and person DTO debug output redacts secrets.
   - [x] Session and API-key authentication/revocation are site-scoped and audited.
+  - [x] Provider credentials are site-scoped, sealed at rest, optimistic-versioned and never returned as values.
   - [ ] Password recovery, email verification and account security events.
 - [-] Roles, Cedar-backed grants, assistant delegation and revocation.
   - [x] Site-scoped role list/create/grant replacement endpoints are canonicalized.
@@ -194,6 +197,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Portable cross-site PostgreSQL export/import/conflict tests, private identity/media/design relocation and HTTP contract acceptance coverage.
   - [x] Identity HTTP integration covers setup, login, cursor, 401/403 and Cedar behavior.
   - [x] Generated OpenAPI/TypeScript/Rust/MCP artifacts have stale-contract tests.
+  - [x] Credential sealing unit, PostgreSQL scope/audit/version and metadata-only HTTP acceptance tests.
   - [x] Runtime manifest HTTP contract and cursor-only compatibility assertions.
   - [ ] Remaining domain HTTP suites.
 - [ ] Release smoke test, migration rollback policy, backups and upgrade docs.

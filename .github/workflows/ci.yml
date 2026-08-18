@@ -168,8 +168,10 @@ jobs:
       - run: cargo nextest run -p mavi-storage --test postgres --run-ignored all
       - run: cargo nextest run -p mavi-content --test postgres --run-ignored all
       - run: cargo nextest run -p mavi-identity --test postgres --run-ignored all
+      - run: cargo nextest run -p mavi-secrets --test postgres --run-ignored all
       - run: cargo nextest run -p mavi-settings --test postgres --run-ignored all
       - run: cargo nextest run -p mavi-http --test identity --run-ignored all
+      - run: cargo nextest run -p mavi-http --test credentials --run-ignored all
       - run: cargo nextest run -p mavi-http --test settings --run-ignored all
       - run: cargo nextest run -p mavi-http --test content_types --run-ignored all
       - run: cargo nextest run -p mavi-http --test content_lifecycle --run-ignored all

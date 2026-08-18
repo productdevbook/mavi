@@ -46,6 +46,8 @@ The same Mavi application runs in both modes:
 | `mavi-boards` | ordered site-scoped boards, lists, cards, assignments, comments and immutable activity |
 | `mavi-analytics` | bounded privacy-preserving events, daily rollups, cursor export and retention |
 | `mavi-portable` | versioned site bundles with schema hashes, validation and atomic import strategies |
+| `mavi-sealing` | AES-256-GCM keyring adapter with site-bound authenticated ciphertext |
+| `mavi-secrets` | site-scoped provider credential lifecycle, sealing boundary and metadata-only API |
 | `mavi` | executable composition root |
 
 Domains are added only after the foundation is stable. Each domain owns its
@@ -99,6 +101,14 @@ while that lease is still theirs. Repeated source events use an idempotency key,
 run definitions are snapshotted, and exhausted attempts remain visible as dead
 letters. The canonical automation and job management APIs expose only opaque
 keyset cursors.
+
+Provider credentials are a separate site-scoped domain. The API can create,
+rotate, list and revoke only credential metadata; values are sealed through the
+`Seals` port and are available only to trusted provider adapters. Self-host
+must provide `MAVI_KEYS` as an ordered keyring such as
+`1:<base64-32-byte-key>,2:<older-base64-32-byte-key>`. New ciphertext uses the
+first key, while older keys remain readable during rotation. The site ID is
+authenticated data, so copying ciphertext between sites fails closed.
 
 Boards use integer positions and transactional reindexing for drag-and-drop;
 floating-point midpoint positions are not part of the new contract. Card moves,

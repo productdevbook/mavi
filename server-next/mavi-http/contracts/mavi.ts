@@ -398,6 +398,12 @@ export interface CreateCourse {
   about?: string | null;
 }
 
+export interface CreateCredential {
+  provider: string;
+  name: string;
+  values: Record<string, unknown>;
+}
+
 export interface CreateFlow {
   name: string;
   trigger: Trigger;
@@ -476,6 +482,27 @@ export interface CreateTerm {
   slug: string;
   name: string;
   parent_id?: string | null;
+}
+
+export interface Credential {
+  id: string;
+  site_id: string;
+  provider: string;
+  name: string;
+  state: "active" | "revoked";
+  version: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CredentialListFilter {
+  after?: string | null;
+  limit?: number;
+}
+
+export interface CredentialPage {
+  items: Credential[];
+  next_cursor: string | null;
 }
 
 export interface DailyAggregate {
@@ -1338,6 +1365,11 @@ export interface RolePage {
   next_cursor: string | null;
 }
 
+export interface RotateCredential {
+  expected_version: number;
+  values: Record<string, unknown>;
+}
+
 export interface RunListFilter {
   after?: string | null;
   limit?: number;
@@ -1831,6 +1863,10 @@ export const operations = {
   "analytics.retention.prune": { method: "post", path: "/api/v1/analytics/prune", input: { location: "json", shape: "PruneAnalytics" }, query: null, output: "PruneReceipt", status: 200, authentication: "account_or_assistant", permission: { capability: "analytics", action: "delete" } },
   "portable.export": { method: "get", path: "/api/v1/portable/export", input: null, query: null, output: "PortableBundle", status: 200, authentication: "account_or_assistant", permission: { capability: "portable", action: "view" } },
   "portable.import": { method: "post", path: "/api/v1/portable/import", input: { location: "json", shape: "PortableImportRequest" }, query: null, output: "ImportReceipt", status: 200, authentication: "account_or_assistant", permission: { capability: "portable", action: "write" } },
+  "credentials.list": { method: "get", path: "/api/v1/credentials", input: { location: "query", shape: "CredentialListFilter" }, query: null, output: "CredentialPage", status: 200, authentication: "account_or_assistant", permission: { capability: "credentials", action: "view" } },
+  "credentials.create": { method: "post", path: "/api/v1/credentials", input: { location: "json", shape: "CreateCredential" }, query: null, output: "Credential", status: 201, authentication: "account_or_assistant", permission: { capability: "credentials", action: "write" } },
+  "credentials.rotate": { method: "put", path: "/api/v1/credentials/{id}", input: { location: "json", shape: "RotateCredential" }, query: null, output: "Credential", status: 200, authentication: "account_or_assistant", permission: { capability: "credentials", action: "write" } },
+  "credentials.revoke": { method: "delete", path: "/api/v1/credentials/{id}", input: null, query: null, output: "Empty", status: 204, authentication: "account_or_assistant", permission: { capability: "credentials", action: "delete" } },
   "runtime.manifest.read": { method: "get", path: "/api/v1/runtime/manifest", input: null, query: null, output: "RuntimeManifest", status: 200, authentication: "public", permission: null },
 } as const satisfies Record<string, MaviOperation>;
 
@@ -2008,6 +2044,10 @@ export interface OperationArguments {
   "analytics.retention.prune": { path?: never; query?: never; body: PruneAnalytics; }
   "portable.export": { path?: never; query?: never; body?: never; }
   "portable.import": { path?: never; query?: never; body: PortableImportRequest; }
+  "credentials.list": { path?: never; query: CredentialListFilter; body?: never; }
+  "credentials.create": { path?: never; query?: never; body: CreateCredential; }
+  "credentials.rotate": { path: { id: string }; query?: never; body: RotateCredential; }
+  "credentials.revoke": { path: { id: string }; query?: never; body?: never; }
   "runtime.manifest.read": { path?: never; query?: never; body?: never; }
 }
 
@@ -2183,6 +2223,10 @@ export interface OperationResponses {
   "analytics.retention.prune": PruneReceipt;
   "portable.export": PortableBundle;
   "portable.import": ImportReceipt;
+  "credentials.list": CredentialPage;
+  "credentials.create": Credential;
+  "credentials.rotate": Credential;
+  "credentials.revoke": void;
   "runtime.manifest.read": RuntimeManifest;
 }
 

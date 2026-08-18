@@ -18,11 +18,11 @@ pub use error::{ErrorCode, MaviError, Result};
 pub use grants::{Action, Capability, Grant, Grants};
 pub use ids::{
     AnalyticsEventId, ApiKeyId, AuditEventId, BoardCardId, BoardCommentId, BoardId, BoardListId,
-    ContentId, CouponId, CouponUseId, CourseId, DesignBuildId, DesignChangeId, EnrollmentId,
-    FileId, FlowId, FlowRunId, FlowRunStepId, FlowStepId, FormId, FormSubmissionId, JobId,
-    LessonId, MailAttemptId, MailDeliveryId, MailListId, MailReaderId, MailTemplateId, ModuleId,
-    OrderId, OrderLineId, PersonId, ProductId, RequestId, RoleId, SessionId, SiteId, StockHoldId,
-    StudentId, StudentSessionId, TermId,
+    ContentId, CouponId, CouponUseId, CourseId, CredentialId, DesignBuildId, DesignChangeId,
+    EnrollmentId, FileId, FlowId, FlowRunId, FlowRunStepId, FlowStepId, FormId, FormSubmissionId,
+    JobId, LessonId, MailAttemptId, MailDeliveryId, MailListId, MailReaderId, MailTemplateId,
+    ModuleId, OrderId, OrderLineId, PersonId, ProductId, RequestId, RoleId, SessionId, SiteId,
+    StockHoldId, StudentId, StudentSessionId, TermId,
 };
 pub use money::{Currency, Money};
 pub use pagination::{Cursor, Page, PageRequest};

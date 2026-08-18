@@ -1,0 +1,26 @@
+[package]
+name = "mavi-secrets"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+description = "Site-scoped provider credentials with sealed storage and metadata-only API contracts."
+
+[dependencies]
+base64.workspace = true
+chrono.workspace = true
+mavi-audit = { path = "../mavi-audit" }
+mavi-contract = { path = "../mavi-contract" }
+mavi-core = { path = "../mavi-core" }
+mavi-storage = { path = "../mavi-storage" }
+serde.workspace = true
+serde_json.workspace = true
+sqlx.workspace = true
+uuid.workspace = true
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+mavi-sealing = { path = "../mavi-sealing" }
+tokio.workspace = true

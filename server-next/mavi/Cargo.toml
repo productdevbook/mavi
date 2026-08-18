@@ -19,6 +19,7 @@ mavi-http = { path = "../mavi-http" }
 mavi-runtime = { path = "../mavi-runtime" }
 mavi-sealing = { path = "../mavi-sealing" }
 mavi-storage = { path = "../mavi-storage" }
+mavi-worker = { path = "../mavi-worker" }
 tokio.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true

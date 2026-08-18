@@ -34,6 +34,7 @@ pub enum AuditActorKind {
     Account,
     Student,
     Assistant,
+    System,
 }
 
 impl AuditActorKind {
@@ -44,6 +45,7 @@ impl AuditActorKind {
             Self::Account => "account",
             Self::Student => "student",
             Self::Assistant => "assistant",
+            Self::System => "system",
         }
     }
 
@@ -53,6 +55,7 @@ impl AuditActorKind {
             "account" => Ok(Self::Account),
             "student" => Ok(Self::Student),
             "assistant" => Ok(Self::Assistant),
+            "system" => Ok(Self::System),
             _ => Err(MaviError::Internal),
         }
     }
@@ -237,7 +240,7 @@ pub fn shapes() -> Vec<Shape> {
     vec![
         Shape::new(
             "AuditActorKind",
-            json!({"type": "string", "enum": ["public", "account", "student", "assistant"]}),
+            json!({"type": "string", "enum": ["public", "account", "student", "assistant", "system"]}),
         ),
         Shape::new(
             "AuditListFilter",
@@ -541,6 +544,7 @@ fn actor(context: &SiteContext) -> (&'static str, Option<String>) {
         Caller::Assistant { key_id, .. } => {
             (AuditActorKind::Assistant.as_str(), Some(key_id.to_string()))
         }
+        Caller::System { worker } => (AuditActorKind::System.as_str(), Some(worker.clone())),
     }
 }
 

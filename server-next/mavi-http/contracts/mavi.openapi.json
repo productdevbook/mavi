@@ -17459,7 +17459,8 @@
           "public",
           "account",
           "student",
-          "assistant"
+          "assistant",
+          "system"
         ]
       },
       "AuditEvent": {

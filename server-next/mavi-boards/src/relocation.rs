@@ -226,7 +226,7 @@ impl BoardsRelocation {
                 || activity.kind.chars().count() > 120
                 || !matches!(
                     activity.actor_kind.as_str(),
-                    "public" | "account" | "assistant" | "student"
+                    "public" | "account" | "assistant" | "student" | "system"
                 )
                 || activity
                     .actor_id

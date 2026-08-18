@@ -121,7 +121,7 @@ impl CedarAuthorizer {
             } => (person_id.to_string(), grants.clone()),
             Caller::Assistant { key_id, grants, .. } => (key_id.to_string(), grants.clone()),
             Caller::Public => return Err(MaviError::Unauthenticated),
-            Caller::Student { .. } => return Err(MaviError::Forbidden),
+            Caller::Student { .. } | Caller::System { .. } => return Err(MaviError::Forbidden),
         };
 
         self.authorize(&AuthorizationRequest {

@@ -1440,6 +1440,7 @@ dependencies = [
  "mavi-runtime",
  "mavi-sealing",
  "mavi-storage",
+ "mavi-worker",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -1900,6 +1901,23 @@ dependencies = [
  "sha2 0.11.0",
  "sqlx",
  "tokio",
+ "uuid",
+]
+
+[[package]]
+name = "mavi-worker"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "mavi-audit",
+ "mavi-content",
+ "mavi-core",
+ "mavi-jobs",
+ "mavi-storage",
+ "serde_json",
+ "sqlx",
+ "tokio",
+ "tracing",
  "uuid",
 ]
 

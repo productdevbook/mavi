@@ -1407,6 +1407,7 @@ fn actor(context: &SiteContext) -> (&'static str, Option<String>) {
             person_id.map_or_else(|| Some(key_id.to_string()), |id| Some(id.to_string())),
         ),
         Caller::Student { student_id, .. } => ("student", Some(student_id.to_string())),
+        Caller::System { worker } => ("system", Some(worker.clone())),
     }
 }
 
@@ -1414,7 +1415,7 @@ fn actor_person(context: &SiteContext) -> Option<Uuid> {
     match &context.caller {
         Caller::Account { person_id, .. } => Some(person_id.into_uuid()),
         Caller::Assistant { person_id, .. } => person_id.map(PersonId::into_uuid),
-        Caller::Public | Caller::Student { .. } => None,
+        Caller::Public | Caller::Student { .. } | Caller::System { .. } => None,
     }
 }
 

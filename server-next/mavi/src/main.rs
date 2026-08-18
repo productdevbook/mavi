@@ -1,4 +1,4 @@
-use std::{env, net::SocketAddr, sync::Arc};
+use std::{env, net::SocketAddr, sync::Arc, time::Duration};
 
 use mavi_core::{MaviError, Result, SiteId};
 use mavi_design::StaticBuildEngine;
@@ -9,6 +9,7 @@ use mavi_runtime::{
 };
 use mavi_sealing::KeyringSealer;
 use mavi_storage::{Database, SiteStatus};
+use mavi_worker::WorkerConfig;
 use tokio::net::TcpListener;
 use tracing_subscriber::EnvFilter;
 
@@ -59,9 +60,10 @@ async fn main() -> Result<()> {
                 listener,
                 database,
                 FixedSiteResolver::new(site_id),
+                vec![site_id],
                 file_store,
                 sealer,
-                edge.clone(),
+                edge,
             )
             .await
         }
@@ -72,7 +74,11 @@ async fn main() -> Result<()> {
                 .map(|(_, site_id)| (*site_id, SiteStatus::Active));
             database.reconcile_sites(sites).await?;
             tracing::info!(%address, mode = "shard", "mavi runtime listening");
-            serve(listener, database, resolver, file_store, sealer, edge).await
+            let site_ids = entries.into_iter().map(|(_, site_id)| site_id).collect();
+            serve(
+                listener, database, resolver, site_ids, file_store, sealer, edge,
+            )
+            .await
         }
     }
 }
@@ -81,6 +87,7 @@ async fn serve<R>(
     listener: TcpListener,
     database: Database,
     resolver: R,
+    sites: Vec<SiteId>,
     file_store: Arc<DirectoryFileStore>,
     sealer: Arc<KeyringSealer>,
     edge: EdgeSecurityConfig,
@@ -88,20 +95,48 @@ async fn serve<R>(
 where
     R: SiteResolver,
 {
+    let worker_database = database.clone();
     let runtime = Runtime::new(database, resolver);
-    axum::serve(
-        listener,
-        router_with_config(
-            runtime,
-            file_store,
-            Arc::new(StaticBuildEngine),
-            sealer,
-            edge,
-        )?
-        .into_make_service_with_connect_info::<SocketAddr>(),
-    )
-    .await
-    .map_err(|_| MaviError::Internal)
+    let router = router_with_config(
+        runtime,
+        file_store,
+        Arc::new(StaticBuildEngine),
+        sealer,
+        edge,
+    )?
+    .into_make_service_with_connect_info::<SocketAddr>();
+    let worker = mavi_worker::WorkerSupervisor::new(worker_database, sites, worker_config()?);
+    let worker_task = tokio::spawn(async move { worker.run().await });
+    let result = axum::serve(listener, router)
+        .await
+        .map_err(|_| MaviError::Internal);
+    worker_task.abort();
+    result
+}
+
+fn worker_config() -> Result<WorkerConfig> {
+    let defaults = WorkerConfig::default();
+    let default_poll_millis = u64::try_from(defaults.poll_interval.as_millis()).unwrap_or(u64::MAX);
+    let worker_id = env::var("MAVI_WORKER_ID").unwrap_or(defaults.worker_id);
+    let lease_seconds = env::var("MAVI_WORKER_LEASE_SECONDS")
+        .ok()
+        .map(|value| {
+            value
+                .parse::<i64>()
+                .map_err(|_| MaviError::validation("invalid_worker_lease_seconds"))
+        })
+        .transpose()?
+        .unwrap_or(defaults.lease_seconds);
+    let poll_millis = env::var("MAVI_WORKER_POLL_MILLIS")
+        .ok()
+        .map(|value| {
+            value
+                .parse::<u64>()
+                .map_err(|_| MaviError::validation("invalid_worker_poll_millis"))
+        })
+        .transpose()?
+        .unwrap_or(default_poll_millis);
+    WorkerConfig::new(worker_id, lease_seconds, Duration::from_millis(poll_millis))
 }
 
 fn runtime_mode() -> Result<RuntimeMode> {

@@ -22,7 +22,7 @@ use axum::{
     routing::{delete, get, patch, post, put},
 };
 use base64::Engine;
-use chrono::{SecondsFormat, Utc};
+use chrono::Utc;
 use mavi_analytics::{
     AnalyticsEvent, AnalyticsEventBatch, AnalyticsReceipt, AnalyticsService, DailyAggregate,
     DailyListFilter, EventListFilter, PruneAnalytics, PruneReceipt,
@@ -37,7 +37,7 @@ use mavi_boards::{
 use mavi_content::{
     Content, ContentListFilter, ContentRevision, ContentRevisionListFilter, ContentService,
     ContentType, ContentTypeListFilter, CreateContent, DeclareContentType, PublicationInput,
-    SCHEDULED_PUBLISH_JOB, ScheduleContent, ScheduledPublishJob, UpdateContent,
+    SCHEDULED_PUBLISH_JOB, ScheduleContent, UpdateContent,
 };
 use mavi_contract::{Api, Endpoint, InputLocation, Method, Shape};
 use mavi_core::{
@@ -564,7 +564,9 @@ where
     match context.caller {
         Caller::Account { .. } | Caller::Assistant { .. } => {}
         Caller::Public => return Err(HttpError(MaviError::Unauthenticated)),
-        Caller::Student { .. } => return Err(HttpError(MaviError::Forbidden)),
+        Caller::Student { .. } | Caller::System { .. } => {
+            return Err(HttpError(MaviError::Forbidden));
+        }
     }
 
     let id = request.id.clone();
@@ -3737,6 +3739,11 @@ where
         .create(&mut transaction, &site_context, &input, Utc::now())
         .await
         .map_err(HttpError)?;
+    state
+        .content
+        .enqueue_scheduled_publish(&mut transaction, &site_context, &state.jobs, &entry)
+        .await
+        .map_err(HttpError)?;
     transaction.commit().await.map_err(HttpError)?;
     Ok((StatusCode::CREATED, Json(entry)))
 }
@@ -3774,6 +3781,11 @@ where
     let entry = state
         .content
         .update(&mut transaction, &site_context, id, &input, Utc::now())
+        .await
+        .map_err(HttpError)?;
+    state
+        .content
+        .enqueue_scheduled_publish(&mut transaction, &site_context, &state.jobs, &entry)
         .await
         .map_err(HttpError)?;
     transaction.commit().await.map_err(HttpError)?;
@@ -3833,25 +3845,9 @@ where
         .schedule(&mut transaction, &site_context, id, input.at, Utc::now())
         .await
         .map_err(HttpError)?;
-    let payload = serde_json::to_value(ScheduledPublishJob {
-        content_id: id,
-        scheduled_at: input.at,
-    })
-    .map_err(|_| HttpError(MaviError::Internal))?;
-    let idempotency_key = format!(
-        "content.schedule:{id}:{}",
-        input.at.to_rfc3339_opts(SecondsFormat::AutoSi, true)
-    );
     state
-        .jobs
-        .enqueue(
-            &mut transaction,
-            &site_context,
-            SCHEDULED_PUBLISH_JOB.name,
-            &payload,
-            Some(input.at),
-            Some(&idempotency_key),
-        )
+        .content
+        .enqueue_scheduled_publish(&mut transaction, &site_context, &state.jobs, &entry)
         .await
         .map_err(HttpError)?;
     transaction.commit().await.map_err(HttpError)?;

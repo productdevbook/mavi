@@ -71,7 +71,7 @@ export interface AssignCard {
   assignee_id: string | null;
 }
 
-export type AuditActorKind = "public" | "account" | "student" | "assistant";
+export type AuditActorKind = "public" | "account" | "student" | "assistant" | "system";
 
 export interface AuditEvent {
   id: string;

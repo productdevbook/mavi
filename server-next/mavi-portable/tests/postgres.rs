@@ -340,6 +340,8 @@ async fn portable_bundles_export_cross_site_import_and_reject_conflicts() {
     relocation_bundle.bundle.manifest.source_site_id = relocation_site;
     relocation_bundle.audit.source_site_id = relocation_site;
     relocation_bundle.trash.source_site_id = relocation_site;
+    relocation_bundle.forms.source_site_id = relocation_site;
+    relocation_bundle.mail.source_site_id = relocation_site;
     let mut relocation_tx = database
         .begin(&relocation_context)
         .await

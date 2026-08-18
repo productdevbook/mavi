@@ -1664,6 +1664,7 @@ dependencies = [
  "mavi-audit",
  "mavi-contract",
  "mavi-core",
+ "mavi-identity",
  "mavi-storage",
  "serde",
  "serde_json",

@@ -2,9 +2,9 @@ use std::env;
 
 use chrono::Utc;
 use mavi_core::{SiteContext, SiteId};
+use mavi_identity::{IdentityService, LoginInput, SetupInput};
 use mavi_portable::{
-    ImportStrategy, PortableIdentity, PortableImportRequest, PortableRelocationBundle,
-    PortableRelocationRequest, PortableService,
+    ImportStrategy, PortableImportRequest, PortableRelocationRequest, PortableService,
 };
 use mavi_storage::Database;
 use serde_json::json;
@@ -105,6 +105,20 @@ async fn portable_bundles_export_cross_site_import_and_reject_conflicts() {
         .await
         .expect("source assignment");
 
+    IdentityService
+        .initialize(
+            &mut tx,
+            &source_context,
+            &SetupInput {
+                site_name: "Source site".to_owned(),
+                email: "owner@example.com".to_owned(),
+                name: "Owner".to_owned(),
+                password: "a-test-password-that-is-long-enough".to_owned(),
+            },
+        )
+        .await
+        .expect("source identity");
+
     let portable = PortableService;
     let bundle = portable
         .export(&mut tx, &source_context)
@@ -115,6 +129,13 @@ async fn portable_bundles_export_cross_site_import_and_reject_conflicts() {
     assert_eq!(bundle.revisions.len(), 1);
     assert_eq!(bundle.slug_history.len(), 1);
     assert_eq!(bundle.assignments.len(), 1);
+    let relocation_bundle = portable
+        .export_for_relocation(&mut tx, &source_context)
+        .await
+        .expect("identity relocation export");
+    assert_eq!(relocation_bundle.identity.people.len(), 1);
+    assert_eq!(relocation_bundle.identity.roles.len(), 1);
+    assert_eq!(relocation_bundle.credentials.len(), 1);
     tx.commit().await.expect("source commit");
 
     let target_context = SiteContext::public(target_site);
@@ -193,8 +214,8 @@ async fn portable_bundles_export_cross_site_import_and_reject_conflicts() {
         .await
         .expect("relocation site");
     let relocation_context = SiteContext::public(relocation_site);
-    let mut relocation_bundle = bundle;
-    relocation_bundle.manifest.source_site_id = relocation_site;
+    let mut relocation_bundle = relocation_bundle;
+    relocation_bundle.bundle.manifest.source_site_id = relocation_site;
     let mut relocation_tx = database
         .begin(&relocation_context)
         .await
@@ -204,20 +225,31 @@ async fn portable_bundles_export_cross_site_import_and_reject_conflicts() {
             &mut relocation_tx,
             &relocation_context,
             &PortableRelocationRequest {
-                bundle: PortableRelocationBundle {
-                    bundle: relocation_bundle,
-                    identity: PortableIdentity::default(),
-                    credentials: vec![],
-                },
+                bundle: relocation_bundle,
                 strategy: ImportStrategy::Upsert,
             },
         )
         .await
         .expect("relocation into a fresh site");
     let relocated = portable
-        .export(&mut relocation_tx, &relocation_context)
+        .export_for_relocation(&mut relocation_tx, &relocation_context)
         .await
         .expect("relocated export");
-    assert_eq!(relocated.site.name, "Source site");
+    assert_eq!(relocated.bundle.site.name, "Source site");
+    assert_eq!(relocated.identity.people.len(), 1);
+    assert_eq!(relocated.identity.roles.len(), 1);
+    assert_eq!(relocated.credentials.len(), 1);
+    IdentityService
+        .create_session(
+            &mut relocation_tx,
+            &relocation_context,
+            &LoginInput {
+                email: "owner@example.com".to_owned(),
+                password: "a-test-password-that-is-long-enough".to_owned(),
+            },
+            Utc::now(),
+        )
+        .await
+        .expect("relocated owner can log in");
     relocation_tx.commit().await.expect("relocation commit");
 }

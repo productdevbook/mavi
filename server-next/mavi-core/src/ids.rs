@@ -100,5 +100,6 @@ typed_id!(RoleId);
 typed_id!(RequestId);
 typed_id!(SessionId);
 typed_id!(PasswordResetTokenId);
+typed_id!(EmailVerificationTokenId);
 typed_id!(StudentId);
 typed_id!(TermId);

@@ -15,8 +15,9 @@ use chrono::{DateTime, Duration, Utc};
 use mavi_audit::{AuditEntry, AuditService};
 use mavi_contract::{Api, Endpoint, Method, Permission, Shape};
 use mavi_core::{
-    Action, ApiKeyId, Caller, Capability, Cursor, ErrorCode, Grant, Grants, MaviError, Page,
-    PageRequest, PasswordResetTokenId, PersonId, Result, RoleId, SessionId, SiteContext, SiteId,
+    Action, ApiKeyId, Caller, Capability, Cursor, EmailVerificationTokenId, ErrorCode, Grant,
+    Grants, MaviError, Page, PageRequest, PasswordResetTokenId, PersonId, Result, RoleId,
+    SessionId, SiteContext, SiteId,
 };
 use mavi_storage::SiteTx;
 use rand::RngExt;
@@ -32,12 +33,19 @@ pub const PASSWORD_INVALID: &str = "password_invalid";
 pub const API_KEY_NAME_INVALID: &str = "api_key_name_invalid";
 pub const API_KEY_GRANTS_INVALID: &str = "api_key_grants_invalid";
 pub const PASSWORD_RESET_TOKEN_INVALID: &str = "password_reset_token_invalid";
+pub const EMAIL_VERIFICATION_TOKEN_INVALID: &str = "email_verification_token_invalid";
+pub const EMAIL_NOT_VERIFIED: &str = "email_not_verified";
+pub const AUTH_REQUEST_RATE_LIMITED: &str = "auth_request_rate_limited";
 pub const SITE_NOT_FOUND: &str = "site_not_found";
 pub const PERSON_NOT_FOUND: &str = "person_not_found";
 pub const ROLE_NAME_INVALID: &str = "role_name_invalid";
 pub const ROLE_NOT_FOUND: &str = "role_not_found";
 const PASSWORD_RESET_TTL: Duration = Duration::hours(1);
 const MAX_PASSWORD_RESET_TOKEN_CHARS: usize = 256;
+const EMAIL_VERIFICATION_TTL: Duration = Duration::hours(24);
+const MAX_EMAIL_VERIFICATION_TOKEN_CHARS: usize = 256;
+const AUTH_REQUEST_WINDOW: Duration = Duration::hours(1);
+const MAX_AUTH_REQUESTS_PER_WINDOW: i32 = 5;
 
 /// Setup and authentication routes are public by design, but every mutation
 /// is explicitly marked in the canonical contract.
@@ -70,7 +78,13 @@ pub fn api() -> Api {
         )
         .public_mutation()
         .takes("LoginInput")
-        .returns(201, "SessionCreated"),
+        .returns(201, "SessionCreated")
+        .refuses([
+            ErrorCode::Validation,
+            ErrorCode::Unauthenticated,
+            ErrorCode::Conflict,
+            ErrorCode::Internal,
+        ]),
         Endpoint::new(
             Method::Post,
             "/api/v1/auth/password-resets",
@@ -89,6 +103,30 @@ pub fn api() -> Api {
         )
         .public_changes(false)
         .takes("PasswordResetRedeem")
+        .returns(204, "Empty")
+        .refuses([
+            ErrorCode::Validation,
+            ErrorCode::Conflict,
+            ErrorCode::Internal,
+        ]),
+        Endpoint::new(
+            Method::Post,
+            "/api/v1/auth/email-verifications",
+            "auth.email_verification.request",
+            "Request email verification without revealing account existence",
+        )
+        .public_mutation()
+        .takes("EmailVerificationRequest")
+        .returns(202, "EmailVerificationRequested")
+        .refuses([ErrorCode::Validation, ErrorCode::Internal]),
+        Endpoint::new(
+            Method::Post,
+            "/api/v1/auth/email-verifications/redeem",
+            "auth.email_verification.redeem",
+            "Redeem a one-time email verification token",
+        )
+        .public_changes(false)
+        .takes("EmailVerificationRedeem")
         .returns(204, "Empty")
         .refuses([
             ErrorCode::Validation,
@@ -316,15 +354,46 @@ fn identity_shapes() -> Vec<Shape> {
             }),
         ),
         Shape::new(
+            "EmailVerificationRequest",
+            json!({
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["email"],
+                "properties": {"email": {"type": "string", "format": "email"}},
+            }),
+        ),
+        Shape::new(
+            "EmailVerificationRedeem",
+            json!({
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["token"],
+                "properties": {
+                    "token": {"type": "string", "minLength": 1, "maxLength": MAX_EMAIL_VERIFICATION_TOKEN_CHARS},
+                },
+            }),
+        ),
+        Shape::new(
+            "EmailVerificationRequested",
+            json!({
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["accepted"],
+                "properties": {"accepted": {"type": "boolean", "const": true}},
+            }),
+        ),
+        Shape::new(
             "Person",
             json!({
                 "type": "object",
-                "required": ["id", "site_id", "email", "name"],
+                "additionalProperties": false,
+                "required": ["id", "site_id", "email", "name", "email_verified"],
                 "properties": {
                     "id": {"type": "string", "format": "uuid"},
                     "site_id": {"type": "string", "format": "uuid"},
                     "email": {"type": "string", "format": "email"},
                     "name": {"type": "string"},
+                    "email_verified": {"type": "boolean"},
                 },
             }),
         ),
@@ -417,13 +486,15 @@ fn identity_shapes() -> Vec<Shape> {
             "PersonRecord",
             json!({
                 "type": "object",
-                "required": ["id", "site_id", "email", "name", "status", "role_ids", "created_at", "updated_at"],
+                "additionalProperties": false,
+                "required": ["id", "site_id", "email", "name", "status", "email_verified", "role_ids", "created_at", "updated_at"],
                 "properties": {
                     "id": {"type": "string", "format": "uuid"},
                     "site_id": {"type": "string", "format": "uuid"},
                     "email": {"type": "string", "format": "email"},
                     "name": {"type": "string"},
                     "status": {"$ref": "#/components/schemas/PersonListFilterStatus"},
+                    "email_verified": {"type": "boolean"},
                     "role_ids": {"type": "array", "items": {"type": "string", "format": "uuid"}},
                     "created_at": {"type": "string", "format": "date-time"},
                     "updated_at": {"type": "string", "format": "date-time"},
@@ -659,6 +730,27 @@ impl fmt::Debug for PasswordResetRedeemInput {
     }
 }
 
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct EmailVerificationRequestInput {
+    pub email: String,
+}
+
+#[derive(Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct EmailVerificationRedeemInput {
+    pub token: String,
+}
+
+impl fmt::Debug for EmailVerificationRedeemInput {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("EmailVerificationRedeemInput")
+            .field("token", &"<redacted>")
+            .finish()
+    }
+}
+
 #[derive(Clone, Debug, Serialize)]
 pub struct SetupStatus {
     pub initialized: bool,
@@ -670,6 +762,7 @@ pub struct Person {
     pub site_id: mavi_core::SiteId,
     pub email: Email,
     pub name: PersonName,
+    pub email_verified: bool,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -706,6 +799,7 @@ pub struct PersonRecord {
     pub email: Email,
     pub name: PersonName,
     pub status: PersonStatus,
+    pub email_verified: bool,
     pub role_ids: Vec<RoleId>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -798,6 +892,11 @@ pub struct PasswordResetRequested {
     pub accepted: bool,
 }
 
+#[derive(Clone, Debug, Serialize)]
+pub struct EmailVerificationRequested {
+    pub accepted: bool,
+}
+
 /// Internal application output used by the HTTP composition root to enqueue
 /// a provider-neutral notification in the same site transaction. The raw
 /// token never crosses an API response or an audit record.
@@ -813,6 +912,29 @@ impl fmt::Debug for PasswordResetNotification {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter
             .debug_struct("PasswordResetNotification")
+            .field("id", &self.id)
+            .field("recipient", &self.recipient)
+            .field("token", &"<redacted>")
+            .field("expires_at", &self.expires_at)
+            .finish()
+    }
+}
+
+/// Internal application output used by the HTTP composition root to enqueue
+/// a provider-neutral verification notification in the same transaction.
+/// The raw token never crosses an API response or an audit record.
+#[derive(Clone)]
+pub struct EmailVerificationNotification {
+    pub id: EmailVerificationTokenId,
+    pub recipient: Email,
+    pub token: String,
+    pub expires_at: DateTime<Utc>,
+}
+
+impl fmt::Debug for EmailVerificationNotification {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("EmailVerificationNotification")
             .field("id", &self.id)
             .field("recipient", &self.recipient)
             .field("token", &"<redacted>")
@@ -916,8 +1038,9 @@ impl IdentityService {
             .map_err(|_| MaviError::Internal)?;
 
         sqlx::query(
-            "insert into people (site_id, id, email, name, password_hash)
-             values ($1, $2, $3, $4, $5)",
+            "insert into people
+                (site_id, id, email, name, password_hash, email_verified_at)
+             values ($1, $2, $3, $4, $5, now())",
         )
         .bind(context.site_id.into_uuid())
         .bind(person_id.into_uuid())
@@ -970,6 +1093,7 @@ impl IdentityService {
             site_id: context.site_id,
             email,
             name: person_name,
+            email_verified: true,
         })
     }
 
@@ -981,8 +1105,9 @@ impl IdentityService {
         now: DateTime<Utc>,
     ) -> Result<SessionCreated> {
         let email = Email::parse(&input.email)?;
-        let row = sqlx::query(
-            "select id, password_hash from people
+        let email_hash = URL_SAFE_NO_PAD.encode(hash_token(email.as_str()));
+        let Some(row) = sqlx::query(
+            "select id, password_hash, email_verified_at from people
               where site_id = $1 and email = $2 and status = 'active'",
         )
         .bind(context.site_id.into_uuid())
@@ -990,16 +1115,51 @@ impl IdentityService {
         .fetch_optional(tx.conn())
         .await
         .map_err(|_| MaviError::Internal)?
-        .ok_or(MaviError::Unauthenticated)?;
+        else {
+            record_auth_audit(
+                tx,
+                context,
+                "auth.session.failed",
+                "Site",
+                Some(context.site_id.into_uuid()),
+                json!({"outcome": "invalid_credentials", "email_hash": email_hash}),
+            )
+            .await?;
+            return Err(MaviError::Unauthenticated);
+        };
 
         let password_hash: String = row
             .try_get("password_hash")
             .map_err(|_| MaviError::Internal)?;
         if !self.verify_password(&input.password, &password_hash) {
+            record_auth_audit(
+                tx,
+                context,
+                "auth.session.failed",
+                "Site",
+                Some(context.site_id.into_uuid()),
+                json!({"outcome": "invalid_credentials", "email_hash": email_hash}),
+            )
+            .await?;
             return Err(MaviError::Unauthenticated);
         }
 
         let person_id = PersonId::from_uuid(row.try_get("id").map_err(|_| MaviError::Internal)?);
+        let email_verified_at: Option<DateTime<Utc>> = row
+            .try_get("email_verified_at")
+            .map_err(|_| MaviError::Internal)?;
+        if email_verified_at.is_none() {
+            record_auth_audit(
+                tx,
+                context,
+                "auth.session.blocked",
+                "Person",
+                Some(person_id.into_uuid()),
+                json!({"outcome": "email_unverified"}),
+            )
+            .await?;
+            return Err(MaviError::conflict(EMAIL_NOT_VERIFIED));
+        }
         let session_id = SessionId::new();
         let token = new_token();
         let expires_at = now + Duration::days(30);
@@ -1061,84 +1221,70 @@ impl IdentityService {
         .map_err(|_| MaviError::Internal)?;
 
         let Some(row) = row else {
-            AuditService
-                .record(
-                    tx,
-                    context,
-                    &AuditEntry {
-                        action: "auth.password_reset.requested".to_owned(),
-                        resource_type: "Site".to_owned(),
-                        resource_id: Some(context.site_id.into_uuid()),
-                        payload: json!({"outcome": "not_found", "email_hash": email_hash}),
-                    },
-                )
-                .await?;
+            record_auth_audit(
+                tx,
+                context,
+                "auth.password_reset.requested",
+                "Site",
+                Some(context.site_id.into_uuid()),
+                json!({"outcome": "not_found", "email_hash": email_hash}),
+            )
+            .await?;
             return Ok(None);
         };
 
         let person_id = PersonId::from_uuid(row.try_get("id").map_err(|_| MaviError::Internal)?);
         let status: String = row.try_get("status").map_err(|_| MaviError::Internal)?;
         if status != PersonStatus::Active.as_str() {
-            AuditService
-                .record(
-                    tx,
-                    context,
-                    &AuditEntry {
-                        action: "auth.password_reset.requested".to_owned(),
-                        resource_type: "Person".to_owned(),
-                        resource_id: Some(person_id.into_uuid()),
-                        payload: json!({"outcome": "ineligible", "email_hash": email_hash}),
-                    },
-                )
-                .await?;
+            record_auth_audit(
+                tx,
+                context,
+                "auth.password_reset.requested",
+                "Person",
+                Some(person_id.into_uuid()),
+                json!({"outcome": "ineligible", "email_hash": email_hash}),
+            )
+            .await?;
             return Ok(None);
         }
 
-        let token_id = PasswordResetTokenId::new();
-        let token = new_password_reset_token();
-        let expires_at = now + PASSWORD_RESET_TTL;
-        sqlx::query(
-            "update password_reset_tokens
-                set revoked_at = $3
-              where site_id = $1 and person_id = $2
-                and used_at is null and revoked_at is null",
+        if !allow_auth_request(
+            tx,
+            context.site_id,
+            "password_reset",
+            hash_token(email.as_str()),
+            now,
         )
-        .bind(context.site_id.into_uuid())
-        .bind(person_id.into_uuid())
-        .bind(now)
-        .execute(tx.conn())
-        .await
-        .map_err(|_| MaviError::Internal)?;
-        sqlx::query(
-            "insert into password_reset_tokens
-                (site_id, id, person_id, token_hash, expires_at)
-             values ($1, $2, $3, $4, $5)",
-        )
-        .bind(context.site_id.into_uuid())
-        .bind(token_id.into_uuid())
-        .bind(person_id.into_uuid())
-        .bind(hash_token(&token))
-        .bind(expires_at)
-        .execute(tx.conn())
-        .await
-        .map_err(|_| MaviError::Internal)?;
-
-        AuditService
-            .record(
+        .await?
+        {
+            record_auth_audit(
                 tx,
                 context,
-                &AuditEntry {
-                    action: "auth.password_reset.requested".to_owned(),
-                    resource_type: "Person".to_owned(),
-                    resource_id: Some(person_id.into_uuid()),
-                    payload: json!({
-                        "outcome": "issued",
-                        "email_hash": email_hash,
-                        "expires_at": expires_at,
-                    }),
-                },
+                "auth.security.rate_limited",
+                "Person",
+                Some(person_id.into_uuid()),
+                json!({"action": "password_reset", "email_hash": email_hash}),
             )
             .await?;
+            return Ok(None);
+        }
+
+        let (token_id, token, expires_at) =
+            issue_password_reset_token(tx, context.site_id, person_id, now).await?;
+
+        record_auth_audit(
+            tx,
+            context,
+            "auth.password_reset.requested",
+            "Person",
+            Some(person_id.into_uuid()),
+            json!({
+                "outcome": "issued",
+                "email_hash": email_hash,
+                "expires_at": expires_at,
+            }),
+        )
+        .await?;
 
         Ok(Some(PasswordResetNotification {
             id: token_id,
@@ -1150,6 +1296,216 @@ impl IdentityService {
             token,
             expires_at,
         }))
+    }
+
+    /// Starts email verification without disclosing whether the address is an
+    /// active, already verified account. The token and the audit receipt are
+    /// site-scoped; only the application layer receives the raw token so it
+    /// can enqueue the transactional message in this transaction.
+    pub async fn request_email_verification(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        input: &EmailVerificationRequestInput,
+        now: DateTime<Utc>,
+    ) -> Result<Option<EmailVerificationNotification>> {
+        let email = Email::parse(&input.email)?;
+        let email_hash = URL_SAFE_NO_PAD.encode(hash_token(email.as_str()));
+        let row = sqlx::query(
+            "select id, email, status, email_verified_at from people
+              where site_id = $1 and email = $2
+              for update",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(email.as_str())
+        .fetch_optional(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?;
+
+        let Some(row) = row else {
+            record_auth_audit(
+                tx,
+                context,
+                "auth.email_verification.requested",
+                "Site",
+                Some(context.site_id.into_uuid()),
+                json!({"outcome": "not_found", "email_hash": email_hash}),
+            )
+            .await?;
+            return Ok(None);
+        };
+
+        let person_id = PersonId::from_uuid(row.try_get("id").map_err(|_| MaviError::Internal)?);
+        let status: String = row.try_get("status").map_err(|_| MaviError::Internal)?;
+        if status != PersonStatus::Active.as_str() {
+            record_auth_audit(
+                tx,
+                context,
+                "auth.email_verification.requested",
+                "Person",
+                Some(person_id.into_uuid()),
+                json!({"outcome": "ineligible", "email_hash": email_hash}),
+            )
+            .await?;
+            return Ok(None);
+        }
+
+        let email_verified_at: Option<DateTime<Utc>> = row
+            .try_get("email_verified_at")
+            .map_err(|_| MaviError::Internal)?;
+        if email_verified_at.is_some() {
+            record_auth_audit(
+                tx,
+                context,
+                "auth.email_verification.requested",
+                "Person",
+                Some(person_id.into_uuid()),
+                json!({"outcome": "already_verified"}),
+            )
+            .await?;
+            return Ok(None);
+        }
+
+        if !allow_auth_request(
+            tx,
+            context.site_id,
+            "email_verification",
+            hash_token(email.as_str()),
+            now,
+        )
+        .await?
+        {
+            record_auth_audit(
+                tx,
+                context,
+                "auth.security.rate_limited",
+                "Person",
+                Some(person_id.into_uuid()),
+                json!({"action": "email_verification", "email_hash": email_hash}),
+            )
+            .await?;
+            return Ok(None);
+        }
+
+        let (token_id, token, expires_at) =
+            issue_email_verification_token(tx, context.site_id, person_id, now).await?;
+
+        record_auth_audit(
+            tx,
+            context,
+            "auth.email_verification.requested",
+            "Person",
+            Some(person_id.into_uuid()),
+            json!({
+                "outcome": "issued",
+                "email_hash": email_hash,
+                "expires_at": expires_at,
+            }),
+        )
+        .await?;
+
+        Ok(Some(EmailVerificationNotification {
+            id: token_id,
+            recipient: Email::parse(
+                row.try_get::<String, _>("email")
+                    .map_err(|_| MaviError::Internal)?
+                    .as_str(),
+            )?,
+            token,
+            expires_at,
+        }))
+    }
+
+    /// Redeems one email verification token under a row lock. Verification,
+    /// token consumption, token revocation and audit are one atomic operation.
+    pub async fn redeem_email_verification(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        input: &EmailVerificationRedeemInput,
+        now: DateTime<Utc>,
+    ) -> Result<()> {
+        let token = input.token.trim();
+        if token.is_empty()
+            || token.chars().count() > MAX_EMAIL_VERIFICATION_TOKEN_CHARS
+            || token.chars().any(char::is_control)
+            || !token.starts_with("mavi_verify_")
+        {
+            return Err(MaviError::conflict(EMAIL_VERIFICATION_TOKEN_INVALID));
+        }
+
+        let row = sqlx::query(
+            "select id, person_id from email_verification_tokens
+              where site_id = $1 and token_hash = $2 and expires_at > $3
+                and used_at is null and revoked_at is null
+              for update",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(hash_token(token))
+        .bind(now)
+        .fetch_optional(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?
+        .ok_or_else(|| MaviError::conflict(EMAIL_VERIFICATION_TOKEN_INVALID))?;
+        let token_id = EmailVerificationTokenId::from_uuid(
+            row.try_get("id").map_err(|_| MaviError::Internal)?,
+        );
+        let person_id =
+            PersonId::from_uuid(row.try_get("person_id").map_err(|_| MaviError::Internal)?);
+
+        let changed = sqlx::query(
+            "update people
+                set email_verified_at = $3, updated_at = $3
+              where site_id = $1 and id = $2 and status = 'active'
+                and email_verified_at is null",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(person_id.into_uuid())
+        .bind(now)
+        .execute(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?;
+        if changed.rows_affected() != 1 {
+            return Err(MaviError::conflict(EMAIL_VERIFICATION_TOKEN_INVALID));
+        }
+
+        sqlx::query(
+            "update email_verification_tokens
+                set used_at = $3
+              where site_id = $1 and id = $2 and used_at is null and revoked_at is null",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(token_id.into_uuid())
+        .bind(now)
+        .execute(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?;
+        sqlx::query(
+            "update email_verification_tokens
+                set revoked_at = $3
+              where site_id = $1 and person_id = $2 and id <> $4
+                and used_at is null and revoked_at is null",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(person_id.into_uuid())
+        .bind(now)
+        .bind(token_id.into_uuid())
+        .execute(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?;
+
+        AuditService
+            .record(
+                tx,
+                context,
+                &AuditEntry {
+                    action: "auth.email_verification.redeemed".to_owned(),
+                    resource_type: "Person".to_owned(),
+                    resource_id: Some(person_id.into_uuid()),
+                    payload: json!({"email_verification_token_id": token_id}),
+                },
+            )
+            .await
     }
 
     /// Redeems one reset token under a row lock. Password changes, session
@@ -1364,12 +1720,14 @@ impl IdentityService {
         person_id: PersonId,
     ) -> Result<PersonRecord> {
         let row = sqlx::query(
-            "select p.id, p.site_id, p.email, p.name, p.status, p.created_at, p.updated_at,
+            "select p.id, p.site_id, p.email, p.name, p.status, p.email_verified_at,
+                    p.created_at, p.updated_at,
                     coalesce(array_agg(pr.role_id) filter (where pr.role_id is not null), '{}'::uuid[]) as role_ids
                from people p
                left join person_roles pr on pr.site_id = p.site_id and pr.person_id = p.id
               where p.site_id = $1 and p.id = $2
-              group by p.id, p.site_id, p.email, p.name, p.status, p.created_at, p.updated_at",
+              group by p.id, p.site_id, p.email, p.name, p.status, p.email_verified_at,
+                       p.created_at, p.updated_at",
         )
         .bind(context.site_id.into_uuid())
         .bind(person_id.into_uuid())
@@ -1397,7 +1755,8 @@ impl IdentityService {
             .transpose()?;
         let limit = i64::from(filter.page.effective_limit());
         let mut query = sqlx::QueryBuilder::<sqlx::Postgres>::new(
-            "select p.id, p.site_id, p.email, p.name, p.status, p.created_at, p.updated_at,
+            "select p.id, p.site_id, p.email, p.name, p.status, p.email_verified_at,
+                    p.created_at, p.updated_at,
                     coalesce(array_agg(pr.role_id) filter (where pr.role_id is not null), '{}'::uuid[]) as role_ids
                from people p
                left join person_roles pr on pr.site_id = p.site_id and pr.person_id = p.id
@@ -1417,7 +1776,8 @@ impl IdentityService {
         }
         let rows = query
             .push(
-                " group by p.id, p.site_id, p.email, p.name, p.status, p.created_at, p.updated_at",
+                " group by p.id, p.site_id, p.email, p.name, p.status, p.email_verified_at,
+                            p.created_at, p.updated_at",
             )
             .push(" order by p.created_at desc, p.id desc limit ")
             .push_bind(limit + 1)
@@ -1462,8 +1822,9 @@ impl IdentityService {
 
         let person_id = PersonId::new();
         sqlx::query(
-            "insert into people (site_id, id, email, name, password_hash)
-             values ($1, $2, $3, $4, $5)",
+            "insert into people
+                (site_id, id, email, name, password_hash, email_verified_at)
+             values ($1, $2, $3, $4, $5, null)",
         )
         .bind(context.site_id.into_uuid())
         .bind(person_id.into_uuid())
@@ -1890,12 +2251,16 @@ fn person_from_row(row: &sqlx::postgres::PgRow) -> Result<PersonRecord> {
     let status: String = row.try_get("status").map_err(|_| MaviError::Internal)?;
     let email: String = row.try_get("email").map_err(|_| MaviError::Internal)?;
     let name: String = row.try_get("name").map_err(|_| MaviError::Internal)?;
+    let email_verified_at: Option<DateTime<Utc>> = row
+        .try_get("email_verified_at")
+        .map_err(|_| MaviError::Internal)?;
     Ok(PersonRecord {
         id: PersonId::from_uuid(row.try_get("id").map_err(|_| MaviError::Internal)?),
         site_id: SiteId::from_uuid(row.try_get("site_id").map_err(|_| MaviError::Internal)?),
         email: Email::parse(&email).map_err(|_| MaviError::Internal)?,
         name: PersonName::parse(&name).map_err(|_| MaviError::Internal)?,
         status: PersonStatus::parse(&status)?,
+        email_verified: email_verified_at.is_some(),
         role_ids: role_ids.into_iter().map(RoleId::from_uuid).collect(),
         created_at: row.try_get("created_at").map_err(|_| MaviError::Internal)?,
         updated_at: row.try_get("updated_at").map_err(|_| MaviError::Internal)?,
@@ -2133,6 +2498,10 @@ fn new_password_reset_token() -> String {
     format!("mavi_reset_{}", new_token())
 }
 
+fn new_email_verification_token() -> String {
+    format!("mavi_verify_{}", new_token())
+}
+
 fn api_key_prefix(token: &str) -> Option<&str> {
     token.strip_prefix("mavi_key_")?;
     token.get(..16)
@@ -2142,6 +2511,178 @@ fn hash_token(token: &str) -> Vec<u8> {
     use sha2::{Digest, Sha256};
 
     Sha256::digest(token.as_bytes()).to_vec()
+}
+
+async fn record_auth_audit(
+    tx: &mut SiteTx,
+    context: &SiteContext,
+    action: &str,
+    resource_type: &str,
+    resource_id: Option<Uuid>,
+    payload: serde_json::Value,
+) -> Result<()> {
+    AuditService
+        .record(
+            tx,
+            context,
+            &AuditEntry {
+                action: action.to_owned(),
+                resource_type: resource_type.to_owned(),
+                resource_id,
+                payload,
+            },
+        )
+        .await
+}
+
+async fn issue_password_reset_token(
+    tx: &mut SiteTx,
+    site_id: SiteId,
+    person_id: PersonId,
+    now: DateTime<Utc>,
+) -> Result<(PasswordResetTokenId, String, DateTime<Utc>)> {
+    let token_id = PasswordResetTokenId::new();
+    let token = new_password_reset_token();
+    let expires_at = now + PASSWORD_RESET_TTL;
+    sqlx::query(
+        "update password_reset_tokens
+            set revoked_at = $3
+          where site_id = $1 and person_id = $2
+            and used_at is null and revoked_at is null",
+    )
+    .bind(site_id.into_uuid())
+    .bind(person_id.into_uuid())
+    .bind(now)
+    .execute(tx.conn())
+    .await
+    .map_err(|_| MaviError::Internal)?;
+    sqlx::query(
+        "insert into password_reset_tokens
+            (site_id, id, person_id, token_hash, expires_at)
+         values ($1, $2, $3, $4, $5)",
+    )
+    .bind(site_id.into_uuid())
+    .bind(token_id.into_uuid())
+    .bind(person_id.into_uuid())
+    .bind(hash_token(&token))
+    .bind(expires_at)
+    .execute(tx.conn())
+    .await
+    .map_err(|_| MaviError::Internal)?;
+    Ok((token_id, token, expires_at))
+}
+
+async fn issue_email_verification_token(
+    tx: &mut SiteTx,
+    site_id: SiteId,
+    person_id: PersonId,
+    now: DateTime<Utc>,
+) -> Result<(EmailVerificationTokenId, String, DateTime<Utc>)> {
+    let token_id = EmailVerificationTokenId::new();
+    let token = new_email_verification_token();
+    let expires_at = now + EMAIL_VERIFICATION_TTL;
+    sqlx::query(
+        "update email_verification_tokens
+            set revoked_at = $3
+          where site_id = $1 and person_id = $2
+            and used_at is null and revoked_at is null",
+    )
+    .bind(site_id.into_uuid())
+    .bind(person_id.into_uuid())
+    .bind(now)
+    .execute(tx.conn())
+    .await
+    .map_err(|_| MaviError::Internal)?;
+    sqlx::query(
+        "insert into email_verification_tokens
+            (site_id, id, person_id, token_hash, expires_at)
+         values ($1, $2, $3, $4, $5)",
+    )
+    .bind(site_id.into_uuid())
+    .bind(token_id.into_uuid())
+    .bind(person_id.into_uuid())
+    .bind(hash_token(&token))
+    .bind(expires_at)
+    .execute(tx.conn())
+    .await
+    .map_err(|_| MaviError::Internal)?;
+    Ok((token_id, token, expires_at))
+}
+
+async fn allow_auth_request(
+    tx: &mut SiteTx,
+    site_id: SiteId,
+    action: &str,
+    subject_hash: Vec<u8>,
+    now: DateTime<Utc>,
+) -> Result<bool> {
+    let row = sqlx::query(
+        "select window_started_at, request_count
+           from auth_request_throttles
+          where site_id = $1 and action = $2 and subject_hash = $3
+          for update",
+    )
+    .bind(site_id.into_uuid())
+    .bind(action)
+    .bind(&subject_hash)
+    .fetch_optional(tx.conn())
+    .await
+    .map_err(|_| MaviError::Internal)?;
+
+    let Some(row) = row else {
+        sqlx::query(
+            "insert into auth_request_throttles
+                (site_id, action, subject_hash, window_started_at, request_count)
+             values ($1, $2, $3, $4, 1)",
+        )
+        .bind(site_id.into_uuid())
+        .bind(action)
+        .bind(subject_hash)
+        .bind(now)
+        .execute(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?;
+        return Ok(true);
+    };
+
+    let window_started_at: DateTime<Utc> = row
+        .try_get("window_started_at")
+        .map_err(|_| MaviError::Internal)?;
+    let request_count: i32 = row
+        .try_get("request_count")
+        .map_err(|_| MaviError::Internal)?;
+    if now.signed_duration_since(window_started_at) >= AUTH_REQUEST_WINDOW {
+        sqlx::query(
+            "update auth_request_throttles
+                set window_started_at = $4, request_count = 1, updated_at = $4
+              where site_id = $1 and action = $2 and subject_hash = $3",
+        )
+        .bind(site_id.into_uuid())
+        .bind(action)
+        .bind(subject_hash)
+        .bind(now)
+        .execute(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?;
+        return Ok(true);
+    }
+    if request_count >= MAX_AUTH_REQUESTS_PER_WINDOW {
+        return Ok(false);
+    }
+
+    sqlx::query(
+        "update auth_request_throttles
+            set request_count = request_count + 1, updated_at = $4
+          where site_id = $1 and action = $2 and subject_hash = $3",
+    )
+    .bind(site_id.into_uuid())
+    .bind(action)
+    .bind(subject_hash)
+    .bind(now)
+    .execute(tx.conn())
+    .await
+    .map_err(|_| MaviError::Internal)?;
+    Ok(true)
 }
 
 #[cfg(test)]
@@ -2221,6 +2762,24 @@ mod tests {
         assert!(debug.contains("<redacted>"));
         assert!(!debug.contains("mavi_reset_secret"));
         assert!(!debug.contains("super-secret-password"));
+    }
+
+    #[test]
+    fn email_verification_tokens_are_prefixed_and_hashed() {
+        let token = new_email_verification_token();
+        assert!(token.starts_with("mavi_verify_"));
+        assert_eq!(hash_token(&token), hash_token(&token));
+        assert_ne!(hash_token(&token), token.as_bytes());
+    }
+
+    #[test]
+    fn email_verification_redeem_debug_output_redacts_secrets() {
+        let input = EmailVerificationRedeemInput {
+            token: "mavi_verify_secret".to_owned(),
+        };
+        let debug = format!("{input:?}");
+        assert!(debug.contains("<redacted>"));
+        assert!(!debug.contains("mavi_verify_secret"));
     }
 
     #[test]

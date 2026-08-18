@@ -52,7 +52,8 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Session and API-key authentication/revocation are site-scoped and audited.
   - [x] Provider credentials are site-scoped, sealed at rest, optimistic-versioned and never returned as values.
   - [-] Password recovery uses hashed one-time tokens, atomic redemption, session revocation, generic responses and a transactional mail outbox.
-  - [ ] Email verification, reset-mail secrecy policy and broader account security events.
+  - [x] Email verification uses site-scoped hashed one-time tokens, generic request responses, transactional mail, an explicit login gate and atomic redemption.
+  - [ ] Reset-mail secrecy/encryption policy remains open; the provider-neutral outbox currently carries the token required by the email.
 - [-] Roles, Cedar-backed grants, assistant delegation and revocation.
   - [x] Site-scoped role list/create/grant replacement endpoints are canonicalized.
   - [x] Cedar authorizes HTTP resources and role/person grant delegation cannot escalate.
@@ -60,7 +61,10 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
 - [x] Student identity isolated from panel accounts.
   - [x] Invitation tokens are single-use hashes; activation creates a separate expiring student session.
   - [x] Student sessions carry no panel grants and are rejected by account/operator endpoints.
-- [ ] Rate limits, request audit identity and security events.
+- [-] Rate limits, request audit identity and security events.
+  - [x] Password-reset and email-verification requests have a site-scoped five-per-hour subject throttle and generic rate-limit audit outcomes.
+  - [x] Failed logins and unverified-login blocks write anonymous-safe security audit events without storing raw email addresses.
+  - [ ] Edge IP/device throttles and the broader account-security event taxonomy remain open.
 
 ## Site configuration and content
 

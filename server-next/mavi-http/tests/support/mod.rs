@@ -6,7 +6,7 @@ use axum::{
     http::{Method, Request, header::AUTHORIZATION},
     response::Response,
 };
-use mavi_core::SiteId;
+use mavi_core::{SiteContext, SiteId};
 use mavi_design::StaticBuildEngine;
 use mavi_files::InMemoryFileStore;
 use mavi_http::router;
@@ -15,6 +15,7 @@ use mavi_sealing::KeyringSealer;
 use mavi_storage::Database;
 use serde_json::{Value, json};
 use tower::ServiceExt;
+use uuid::Uuid;
 
 #[allow(dead_code)]
 pub async fn build_app() -> Router {
@@ -79,6 +80,55 @@ pub async fn login(app: &Router, email: &str) -> String {
         .as_str()
         .expect("session token")
         .to_owned()
+}
+
+#[allow(dead_code)]
+pub async fn verify_email(app: &Router, person: &Value, email: &str) {
+    let requested = send(
+        app,
+        Method::POST,
+        "/api/v1/auth/email-verifications",
+        None,
+        Some(json!({"email": email})),
+    )
+    .await;
+    assert_eq!(requested.status(), axum::http::StatusCode::ACCEPTED);
+
+    let site_id = person["site_id"].as_str().expect("person site id");
+    let site_id = SiteId::from_uuid(Uuid::parse_str(site_id).expect("person site id uuid"));
+    let database = Database::connect(
+        &env::var("TEST_DATABASE_URL").expect("TEST_DATABASE_URL"),
+        2,
+    )
+    .await
+    .expect("database connection");
+    let context = SiteContext::public(site_id);
+    let mut transaction = database.begin(&context).await.expect("mail scope");
+    let body: String = sqlx::query_scalar(
+        "select body from mail_deliveries
+          where site_id = $1 and recipient = $2
+          order by created_at desc limit 1",
+    )
+    .bind(site_id.into_uuid())
+    .bind(email)
+    .fetch_one(transaction.conn())
+    .await
+    .expect("verification mail");
+    let token = body
+        .lines()
+        .find(|line| line.starts_with("mavi_verify_"))
+        .expect("verification token");
+    drop(transaction);
+
+    let redeemed = send(
+        app,
+        Method::POST,
+        "/api/v1/auth/email-verifications/redeem",
+        None,
+        Some(json!({"token": token})),
+    )
+    .await;
+    assert_eq!(redeemed.status(), axum::http::StatusCode::NO_CONTENT);
 }
 
 pub async fn send(

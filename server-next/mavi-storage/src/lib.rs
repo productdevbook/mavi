@@ -15,7 +15,7 @@ use uuid::Uuid;
 /// It is part of the runtime compatibility contract exposed to the operator.
 /// Keep it next to the migration runner so a release cannot advertise a
 /// storage version independently from the migrations it ships.
-pub const CURRENT_SCHEMA_VERSION: u32 = 25;
+pub const CURRENT_SCHEMA_VERSION: u32 = 26;
 
 /// The lifecycle state stored in the shared shard catalog.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -377,6 +377,13 @@ mod tests {
         assert!(password_recovery_migration.contains("foreign key (site_id, person_id)"));
         assert!(password_recovery_migration.contains("force row level security"));
 
+        let email_verification_migration =
+            include_str!("../migrations/0026_email_verification.sql");
+        assert!(email_verification_migration.contains("email_verified_at"));
+        assert!(email_verification_migration.contains("create table email_verification_tokens"));
+        assert!(email_verification_migration.contains("create table auth_request_throttles"));
+        assert!(email_verification_migration.contains("force row level security"));
+
         let boards_migration = include_str!("../migrations/0020_boards.sql");
         assert!(boards_migration.contains("primary key (site_id, id)"));
         assert!(boards_migration.contains("board_lists_site_position"));
@@ -389,6 +396,6 @@ mod tests {
         assert!(analytics_migration.contains("analytics_daily"));
         assert!(analytics_migration.contains("analytics_events_site_recent"));
         assert!(analytics_migration.contains("force row level security"));
-        assert_eq!(CURRENT_SCHEMA_VERSION, 25);
+        assert_eq!(CURRENT_SCHEMA_VERSION, 26);
     }
 }

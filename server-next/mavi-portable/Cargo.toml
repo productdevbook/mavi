@@ -12,7 +12,9 @@ mavi-audit = { path = "../mavi-audit" }
 mavi-contract = { path = "../mavi-contract" }
 mavi-core = { path = "../mavi-core" }
 mavi-design = { path = "../mavi-design" }
+mavi-forms = { path = "../mavi-forms" }
 mavi-media = { path = "../mavi-media" }
+mavi-mail = { path = "../mavi-mail" }
 mavi-storage = { path = "../mavi-storage" }
 mavi-trash = { path = "../mavi-trash" }
 serde.workspace = true

@@ -12,6 +12,11 @@ use mavi_storage::{Database, SiteStatus};
 use tokio::net::TcpListener;
 use tracing_subscriber::EnvFilter;
 
+enum StartupConfig {
+    FixedSite(SiteId),
+    Shard(Vec<(String, SiteId)>),
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     tracing_subscriber::fmt()
@@ -22,6 +27,7 @@ async fn main() -> Result<()> {
         .init();
 
     let database_url = required("DATABASE_URL")?;
+    let startup_config = startup_config()?;
     let listen = env::var("LISTEN").unwrap_or_else(|_| "0.0.0.0:8080".to_owned());
     let connections = env::var("DATABASE_CONNECTIONS")
         .ok()
@@ -42,9 +48,8 @@ async fn main() -> Result<()> {
         .await
         .map_err(|_| MaviError::Internal)?;
 
-    match runtime_mode()? {
-        RuntimeMode::FixedSite => {
-            let site_id = parse_site_id(&required("MAVI_SITE_ID")?)?;
+    match startup_config {
+        StartupConfig::FixedSite(site_id) => {
             database.ensure_site(site_id).await?;
             tracing::info!(%address, %site_id, mode = "fixed_site", "mavi runtime listening");
             serve(
@@ -56,8 +61,7 @@ async fn main() -> Result<()> {
             )
             .await
         }
-        RuntimeMode::Shard => {
-            let entries = parse_site_hosts(&required("MAVI_SITE_HOSTS")?)?;
+        StartupConfig::Shard(entries) => {
             let resolver = HostSiteResolver::new(entries.clone())?;
             let sites = entries
                 .iter()
@@ -90,6 +94,17 @@ where
 
 fn runtime_mode() -> Result<RuntimeMode> {
     parse_runtime_mode(env::var("MAVI_RUNTIME_MODE").ok().as_deref())
+}
+
+fn startup_config() -> Result<StartupConfig> {
+    match runtime_mode()? {
+        RuntimeMode::FixedSite => Ok(StartupConfig::FixedSite(parse_site_id(&required(
+            "MAVI_SITE_ID",
+        )?)?)),
+        RuntimeMode::Shard => Ok(StartupConfig::Shard(parse_site_hosts(&required(
+            "MAVI_SITE_HOSTS",
+        )?)?)),
+    }
 }
 
 fn parse_runtime_mode(value: Option<&str>) -> Result<RuntimeMode> {

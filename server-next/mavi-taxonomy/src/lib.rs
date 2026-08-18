@@ -63,6 +63,33 @@ impl TaxonomyService {
         terms::get(tx, context, id).await
     }
 
+    pub async fn public_get_any(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        languages: &[String],
+        kind: &str,
+        slug: &str,
+    ) -> Result<Term> {
+        if languages.is_empty() {
+            return Err(mavi_core::MaviError::NotFound {
+                resource: TERM_NOT_FOUND,
+            });
+        }
+
+        for language in languages {
+            match terms::public_get(tx, context, kind, language, slug).await {
+                Ok(term) => return Ok(term),
+                Err(mavi_core::MaviError::NotFound { .. }) => {}
+                Err(error) => return Err(error),
+            }
+        }
+
+        Err(mavi_core::MaviError::NotFound {
+            resource: TERM_NOT_FOUND,
+        })
+    }
+
     pub async fn update_term(
         &self,
         tx: &mut SiteTx,
@@ -121,7 +148,8 @@ mod tests {
         let api = api();
         api.validate().expect("taxonomy API contract");
         assert!(api.endpoints.iter().all(|endpoint| {
-            endpoint.path.starts_with("/api/v1/") && endpoint.scope == mavi_contract::Scope::Site
+            (endpoint.path.starts_with("/api/v1/") || endpoint.path.starts_with("/public/v1/"))
+                && endpoint.scope == mavi_contract::Scope::Site
         }));
     }
 }

@@ -44,8 +44,8 @@ use mavi_core::{
     Action, AuditEventId, BoardCardId, BoardCommentId, BoardId, BoardListId, Caller, Capability,
     ContentId, CouponId, CourseId, CredentialId, DesignBuildId, DesignChangeId, EnrollmentId,
     ErrorCode, FileId, FlowId, FlowRunId, FormSubmissionId, Grant, JobId, LessonId, MailDeliveryId,
-    MailListId, MailReaderId, MailTemplateId, MaviError, ModuleId, OrderId, Page, PersonId,
-    ProductId, RequestId, RoleId, SiteContext, StudentId, TermId,
+    MailListId, MailReaderId, MailTemplateId, MaviError, ModuleId, OrderId, Page, PageRequest,
+    PersonId, ProductId, RequestId, RoleId, SiteContext, StudentId, TermId,
     ports::{FileStore, MailContentType, MailMessage, Seals},
 };
 use mavi_courses::{
@@ -1104,6 +1104,10 @@ where
         .route("/api/v1/content/{id}/archive", post(archive_content::<R>))
         .route("/api/v1/content/{id}/restore", post(restore_content::<R>))
         .route("/public/v1/content/{slug}", get(public_content::<R>))
+        .route(
+            "/public/v1/terms/{kind}/{slug}",
+            get(public_term_archive::<R>),
+        )
 }
 
 fn media_routes<R>() -> Router<HttpState<R>>
@@ -3918,6 +3922,13 @@ struct PublicContentQuery {
     language: Option<String>,
 }
 
+#[derive(Debug, Deserialize)]
+struct PublicTermArchiveQuery {
+    language: Option<String>,
+    #[serde(flatten)]
+    page: PageRequest,
+}
+
 async fn public_content<R>(
     State(state): State<HttpState<R>>,
     Extension(site_context): Extension<SiteContext>,
@@ -3944,6 +3955,45 @@ where
         .map_err(HttpError)?;
     transaction.commit().await.map_err(HttpError)?;
     Ok(Json(entry))
+}
+
+async fn public_term_archive<R>(
+    State(state): State<HttpState<R>>,
+    Extension(site_context): Extension<SiteContext>,
+    Path((kind, slug)): Path<(String, String)>,
+    Query(query): Query<PublicTermArchiveQuery>,
+) -> Result<Json<Page<Content>>, HttpError>
+where
+    R: SiteResolver,
+{
+    let mut transaction = state
+        .runtime
+        .begin(&site_context)
+        .await
+        .map_err(HttpError)?;
+    let languages = state
+        .settings
+        .public_language_candidates(&mut transaction, &site_context, query.language.as_deref())
+        .await
+        .map_err(HttpError)?;
+    let term = state
+        .taxonomy
+        .public_get_any(&mut transaction, &site_context, &languages, &kind, &slug)
+        .await
+        .map_err(HttpError)?;
+    let content = state
+        .content
+        .public_list_for_term(
+            &mut transaction,
+            &site_context,
+            term.id,
+            &term.language,
+            &query.page,
+        )
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(content))
 }
 
 async fn list_design_changes<R>(

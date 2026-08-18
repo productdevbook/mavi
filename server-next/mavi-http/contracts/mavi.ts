@@ -1343,6 +1343,12 @@ export interface PublicProductPage {
   next_cursor: string | null;
 }
 
+export interface PublicTermArchiveQuery {
+  language?: string | null;
+  after?: string | null;
+  limit?: number;
+}
+
 export type Publication = "draft" | "archived" | Record<string, unknown> | Record<string, unknown>;
 
 export type PublicationInput = "draft" | "publish" | "archive" | Record<string, unknown>;
@@ -1773,6 +1779,7 @@ export const operations = {
   "taxonomy.terms.read": { method: "get", path: "/api/v1/terms/{id}", input: null, query: null, output: "Term", status: 200, authentication: "account_or_assistant", permission: { capability: "taxonomy", action: "view" } },
   "taxonomy.terms.update": { method: "patch", path: "/api/v1/terms/{id}", input: { location: "json", shape: "UpdateTerm" }, query: null, output: "Term", status: 200, authentication: "account_or_assistant", permission: { capability: "taxonomy", action: "write" } },
   "taxonomy.terms.trash": { method: "delete", path: "/api/v1/terms/{id}", input: null, query: null, output: "Empty", status: 204, authentication: "account_or_assistant", permission: { capability: "taxonomy", action: "delete" } },
+  "taxonomy.public_archive": { method: "get", path: "/public/v1/terms/{kind}/{slug}", input: { location: "query", shape: "PublicTermArchiveQuery" }, query: null, output: "ContentPage", status: 200, authentication: "public", permission: null },
   "taxonomy.content_terms.list": { method: "get", path: "/api/v1/content/{id}/terms", input: null, query: null, output: "TermList", status: 200, authentication: "account_or_assistant", permission: { capability: "taxonomy", action: "view" } },
   "taxonomy.content_terms.replace": { method: "put", path: "/api/v1/content/{id}/terms", input: { location: "json", shape: "ReplaceContentTerms" }, query: null, output: "TermList", status: 200, authentication: "account_or_assistant", permission: { capability: "taxonomy", action: "write" } },
   "taxonomy.term_content.list": { method: "get", path: "/api/v1/terms/{id}/content", input: { location: "query", shape: "ContentTermAssignmentListFilter" }, query: null, output: "ContentTermAssignmentPage", status: 200, authentication: "account_or_assistant", permission: { capability: "taxonomy", action: "view" } },
@@ -1960,6 +1967,7 @@ export interface OperationArguments {
   "taxonomy.terms.read": { path: { id: string }; query?: never; body?: never; }
   "taxonomy.terms.update": { path: { id: string }; query?: never; body: UpdateTerm; }
   "taxonomy.terms.trash": { path: { id: string }; query?: never; body?: never; }
+  "taxonomy.public_archive": { path: { kind: string; slug: string }; query: PublicTermArchiveQuery; body?: never; }
   "taxonomy.content_terms.list": { path: { id: string }; query?: never; body?: never; }
   "taxonomy.content_terms.replace": { path: { id: string }; query?: never; body: ReplaceContentTerms; }
   "taxonomy.term_content.list": { path: { id: string }; query: ContentTermAssignmentListFilter; body?: never; }
@@ -2145,6 +2153,7 @@ export interface OperationResponses {
   "taxonomy.terms.read": Term;
   "taxonomy.terms.update": Term;
   "taxonomy.terms.trash": void;
+  "taxonomy.public_archive": ContentPage;
   "taxonomy.content_terms.list": TermList;
   "taxonomy.content_terms.replace": TermList;
   "taxonomy.term_content.list": ContentTermAssignmentPage;

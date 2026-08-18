@@ -34,6 +34,7 @@ const NAME_MAX: usize = 100;
 const MAX_ASSIGNMENTS: usize = 100;
 
 #[must_use]
+#[allow(clippy::too_many_lines)]
 pub fn endpoints() -> Vec<Endpoint> {
     vec![
         Endpoint::new(
@@ -131,6 +132,20 @@ pub fn endpoints() -> Vec<Endpoint> {
             ErrorCode::NotFound,
             ErrorCode::Internal,
         ]),
+        Endpoint::new(
+            Method::Get,
+            "/public/v1/terms/{kind}/{slug}",
+            "taxonomy.public_archive",
+            "List published content for a public taxonomy archive",
+        )
+        .public()
+        .takes_query("PublicTermArchiveQuery")
+        .returns(200, "ContentPage")
+        .refuses([
+            ErrorCode::NotFound,
+            ErrorCode::Validation,
+            ErrorCode::Internal,
+        ]),
     ]
 }
 
@@ -152,6 +167,17 @@ pub fn shapes() -> Vec<Shape> {
                     "language": {"type": ["string", "null"], "maxLength": 35},
                     "parent_id": {"type": ["string", "null"], "format": "uuid"},
                     "roots": {"type": "boolean"},
+                },
+            }),
+        ),
+        Shape::new(
+            "PublicTermArchiveQuery",
+            json!({
+                "type": "object",
+                "properties": {
+                    "language": {"type": ["string", "null"], "maxLength": 35},
+                    "after": {"type": ["string", "null"], "maxLength": 512},
+                    "limit": {"type": "integer", "minimum": 1, "maximum": 100},
                 },
             }),
         ),
@@ -526,6 +552,35 @@ pub(super) async fn get(tx: &mut SiteTx, context: &SiteContext, id: TermId) -> R
     )
     .bind(context.site_id.into_uuid())
     .bind(id.into_uuid())
+    .fetch_optional(tx.conn())
+    .await
+    .map_err(|_| MaviError::Internal)?
+    .ok_or(MaviError::NotFound {
+        resource: TERM_NOT_FOUND,
+    })?;
+    from_row(&row)
+}
+
+pub(super) async fn public_get(
+    tx: &mut SiteTx,
+    context: &SiteContext,
+    kind: &str,
+    language: &str,
+    slug: &str,
+) -> Result<Term> {
+    let kind = TermKind::parse(kind)?;
+    let language = parse_language(language)?;
+    let slug = parse_slug(slug)?;
+    let row = sqlx::query(
+        "select id, site_id, kind, language, slug, name, parent_id, created_at, updated_at
+           from taxonomy_terms
+          where site_id = $1 and kind = $2 and language = $3 and slug = $4
+            and deleted_at is null",
+    )
+    .bind(context.site_id.into_uuid())
+    .bind(kind.as_str())
+    .bind(language)
+    .bind(slug)
     .fetch_optional(tx.conn())
     .await
     .map_err(|_| MaviError::Internal)?

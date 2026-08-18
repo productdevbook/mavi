@@ -2,8 +2,8 @@ use std::env;
 
 use mavi_core::{MaviError, SiteContext, SiteId};
 use mavi_settings::{
-    CreateLanguage, DEFAULT_LANGUAGE_REQUIRED, LanguageListFilter, SettingsService, UpdateLanguage,
-    UpdateSiteSettings,
+    CanonicalSiteUrl, CanonicalUrlUpdate, CreateLanguage, DEFAULT_LANGUAGE_REQUIRED,
+    LanguageListFilter, SettingsService, UpdateLanguage, UpdateSiteSettings,
 };
 use mavi_storage::Database;
 
@@ -62,10 +62,46 @@ async fn settings_languages_are_site_scoped_and_audited() {
             &UpdateSiteSettings {
                 name: Some("Updated first site".to_owned()),
                 timezone: Some("Europe/Berlin".to_owned()),
+                canonical_url: CanonicalUrlUpdate::Set(
+                    "https://first.example.test/site/".to_owned(),
+                ),
             },
         )
         .await
         .expect("settings update");
+
+    let settings = service
+        .get_settings(&mut first_tx, &first_context)
+        .await
+        .expect("updated settings");
+    assert_eq!(
+        settings
+            .canonical_url
+            .as_ref()
+            .map(CanonicalSiteUrl::as_str),
+        Some("https://first.example.test/site")
+    );
+
+    service
+        .update_settings(
+            &mut first_tx,
+            &first_context,
+            &UpdateSiteSettings {
+                name: None,
+                timezone: None,
+                canonical_url: CanonicalUrlUpdate::Clear,
+            },
+        )
+        .await
+        .expect("clear canonical URL");
+    assert!(
+        service
+            .get_settings(&mut first_tx, &first_context)
+            .await
+            .expect("cleared settings")
+            .canonical_url
+            .is_none()
+    );
 
     service
         .update_language(
@@ -117,6 +153,25 @@ async fn settings_languages_are_site_scoped_and_audited() {
         .await
         .expect("second site languages");
     assert!(second_languages.items.is_empty());
+
+    service
+        .create_language(
+            &mut second_tx,
+            &second_context,
+            &CreateLanguage {
+                tag: "en".to_owned(),
+                name: "English".to_owned(),
+                is_default: true,
+            },
+        )
+        .await
+        .expect("second site default language");
+
+    let second_candidates = service
+        .public_language_candidates(&mut second_tx, &second_context, Some("de-DE"))
+        .await
+        .expect("second site default language");
+    assert_eq!(second_candidates, ["en"]);
     let cross_site = service
         .get_settings(&mut second_tx, &second_context)
         .await
@@ -133,7 +188,7 @@ async fn settings_languages_are_site_scoped_and_audited() {
     .fetch_one(audit_tx.conn())
     .await
     .expect("settings audit count");
-    assert_eq!(audited, 5);
+    assert_eq!(audited, 6);
     audit_tx.commit().await.expect("audit commit");
 }
 

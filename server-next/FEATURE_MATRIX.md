@@ -73,7 +73,8 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
 - [-] Site settings, URL, timezone and language configuration.
   - [x] Site settings and language list/create/update/delete APIs use typed DTOs, Cedar grants and audit receipts.
   - [x] Site language defaults are serialized per site and cannot be removed without a replacement.
-  - [ ] Canonical site URL and locale fallback policy.
+  - [x] Canonical site URLs are normalized, query-free absolute HTTP(S) values with explicit clear/set PATCH semantics.
+  - [x] Public content resolves exact language, regional base language and configured default language in order.
 - [x] Content types and validated custom fields.
   - [x] Site-scoped content type declarations use `PUT` upsert and opaque cursor listing.
   - [x] Declared custom fields validate required values, types, choices and unknown keys.
@@ -169,7 +170,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Raw and aggregate retention pruning is bounded, explicit and audit-recorded.
   - [ ] Rate limiting, scheduled retention worker, privacy documentation and panel charts.
 - [-] Portable export/import with versioned manifests and validation.
-  - [x] Explicit `mavi.portable` v1 bundles carry source-site provenance, counts and a schema hash.
+  - [x] Explicit `mavi.portable` v2 bundles carry source-site provenance, canonical site URL, counts and a schema hash.
   - [x] Settings/languages, content types, taxonomy, content/revisions, slug history and assignments export/import with typed records.
   - [x] Import validates references before writes, supports validate-only/create-only/upsert strategies and applies atomically.
   - [x] Private shard relocation adds identity credentials, live media and design/build data without exposing credentials or binary data through public portable export.

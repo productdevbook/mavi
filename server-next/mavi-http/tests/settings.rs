@@ -27,7 +27,9 @@ async fn settings_and_languages_enforce_cursor_authz_and_defaults() {
     )
     .await;
     assert_eq!(settings.status(), StatusCode::OK);
-    assert_eq!(response_json(settings).await["timezone"], "UTC");
+    let settings = response_json(settings).await;
+    assert_eq!(settings["timezone"], "UTC");
+    assert!(settings["canonical_url"].is_null());
 
     let updated = send(
         &app,
@@ -41,6 +43,46 @@ async fn settings_and_languages_enforce_cursor_authz_and_defaults() {
     let updated = response_json(updated).await;
     assert_eq!(updated["name"], "Updated settings site");
     assert_eq!(updated["timezone"], "Europe/Berlin");
+    assert!(updated["canonical_url"].is_null());
+
+    let canonical = send(
+        &app,
+        Method::PATCH,
+        "/api/v1/settings",
+        Some(&owner_token),
+        Some(json!({"canonical_url": "https://settings.example.test/site/"})),
+    )
+    .await;
+    assert_eq!(canonical.status(), StatusCode::OK);
+    assert_eq!(
+        response_json(canonical).await["canonical_url"],
+        "https://settings.example.test/site"
+    );
+
+    let invalid_canonical = send(
+        &app,
+        Method::PATCH,
+        "/api/v1/settings",
+        Some(&owner_token),
+        Some(json!({"canonical_url": "https://settings.example.test/?token=secret"})),
+    )
+    .await;
+    assert_eq!(invalid_canonical.status(), StatusCode::BAD_REQUEST);
+    assert_eq!(
+        response_json(invalid_canonical).await["error"]["code"],
+        "settings_canonical_url_invalid"
+    );
+
+    let cleared = send(
+        &app,
+        Method::PATCH,
+        "/api/v1/settings",
+        Some(&owner_token),
+        Some(json!({"canonical_url": null})),
+    )
+    .await;
+    assert_eq!(cleared.status(), StatusCode::OK);
+    assert!(response_json(cleared).await["canonical_url"].is_null());
 
     create_language(&app, &owner_token, "tr", "Türkçe", true).await;
     create_language(&app, &owner_token, "de", "Deutsch", false).await;

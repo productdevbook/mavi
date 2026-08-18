@@ -3852,12 +3852,7 @@ where
 
 #[derive(Debug, Deserialize)]
 struct PublicContentQuery {
-    #[serde(default = "default_language")]
-    language: String,
-}
-
-fn default_language() -> String {
-    "en".to_owned()
+    language: Option<String>,
 }
 
 async fn public_content<R>(
@@ -3874,9 +3869,14 @@ where
         .begin(&site_context)
         .await
         .map_err(HttpError)?;
+    let languages = state
+        .settings
+        .public_language_candidates(&mut transaction, &site_context, query.language.as_deref())
+        .await
+        .map_err(HttpError)?;
     let entry = state
         .content
-        .public_get(&mut transaction, &site_context, &query.language, &slug)
+        .public_get_any(&mut transaction, &site_context, &languages, &slug)
         .await
         .map_err(HttpError)?;
     transaction.commit().await.map_err(HttpError)?;

@@ -15,7 +15,7 @@ use uuid::Uuid;
 /// It is part of the runtime compatibility contract exposed to the operator.
 /// Keep it next to the migration runner so a release cannot advertise a
 /// storage version independently from the migrations it ships.
-pub const CURRENT_SCHEMA_VERSION: u32 = 28;
+pub const CURRENT_SCHEMA_VERSION: u32 = 29;
 
 /// The lifecycle state stored in the shared shard catalog.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -285,6 +285,10 @@ mod tests {
         assert!(audit_immutable_migration.contains("audit_events_append_only"));
         assert!(audit_immutable_migration.contains("revoke update, delete on audit_events"));
 
+        let canonical_url_migration = include_str!("../migrations/0029_canonical_site_url.sql");
+        assert!(canonical_url_migration.contains("add column canonical_url text"));
+        assert!(canonical_url_migration.contains("site_settings_canonical_url_length"));
+
         let design_migration = include_str!("../migrations/0012_design.sql");
         assert!(design_migration.contains("primary key (site_id, id)"));
         assert!(design_migration.contains("design_changes_one_published"));
@@ -413,6 +417,6 @@ mod tests {
         assert!(analytics_migration.contains("analytics_daily"));
         assert!(analytics_migration.contains("analytics_events_site_recent"));
         assert!(analytics_migration.contains("force row level security"));
-        assert_eq!(CURRENT_SCHEMA_VERSION, 28);
+        assert_eq!(CURRENT_SCHEMA_VERSION, 29);
     }
 }

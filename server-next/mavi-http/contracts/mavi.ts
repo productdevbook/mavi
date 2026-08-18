@@ -1251,6 +1251,7 @@ export interface PortableRevision {
 export interface PortableSite {
   name: string;
   timezone: string;
+  canonical_url: string | null;
 }
 
 export interface PortableSlugHistory {
@@ -1309,6 +1310,10 @@ export interface PruneAnalytics {
 export interface PruneReceipt {
   deleted_events: number;
   deleted_aggregates: number;
+}
+
+export interface PublicContentQuery {
+  language?: string | null;
 }
 
 export interface PublicForm {
@@ -1471,6 +1476,7 @@ export interface SiteSettings {
   site_id: string;
   name: string;
   timezone: string;
+  canonical_url: string | null;
   updated_at: string;
 }
 
@@ -1691,6 +1697,7 @@ export interface UpdateProduct {
 export interface UpdateSiteSettings {
   name?: string | null;
   timezone?: string | null;
+  canonical_url?: string | null;
 }
 
 export interface UpdateStudent {
@@ -1745,7 +1752,7 @@ export const operations = {
   "content.archive": { method: "post", path: "/api/v1/content/{id}/archive", input: null, query: null, output: "Content", status: 200, authentication: "account_or_assistant", permission: { capability: "publish", action: "write" } },
   "content.trash": { method: "delete", path: "/api/v1/content/{id}", input: null, query: null, output: "Empty", status: 204, authentication: "account_or_assistant", permission: { capability: "trash", action: "delete" } },
   "content.restore": { method: "post", path: "/api/v1/content/{id}/restore", input: null, query: null, output: "Content", status: 200, authentication: "account_or_assistant", permission: { capability: "trash", action: "write" } },
-  "content.public_read": { method: "get", path: "/public/v1/content/{slug}", input: null, query: null, output: "Content", status: 200, authentication: "public", permission: null },
+  "content.public_read": { method: "get", path: "/public/v1/content/{slug}", input: { location: "query", shape: "PublicContentQuery" }, query: null, output: "Content", status: 200, authentication: "public", permission: null },
   "content_types.list": { method: "get", path: "/api/v1/content-types", input: { location: "query", shape: "ContentTypeListFilter" }, query: null, output: "ContentTypePage", status: 200, authentication: "account_or_assistant", permission: { capability: "content", action: "view" } },
   "content_types.upsert": { method: "put", path: "/api/v1/content-types/{kind}", input: { location: "json", shape: "DeclareContentType" }, query: null, output: "ContentType", status: 200, authentication: "account_or_assistant", permission: { capability: "content", action: "write" } },
   "content_types.delete": { method: "delete", path: "/api/v1/content-types/{kind}", input: null, query: null, output: "Empty", status: 204, authentication: "account_or_assistant", permission: { capability: "content", action: "delete" } },
@@ -1930,7 +1937,7 @@ export interface OperationArguments {
   "content.archive": { path: { id: string }; query?: never; body?: never; }
   "content.trash": { path: { id: string }; query?: never; body?: never; }
   "content.restore": { path: { id: string }; query?: never; body?: never; }
-  "content.public_read": { path: { slug: string }; query?: never; body?: never; }
+  "content.public_read": { path: { slug: string }; query: PublicContentQuery; body?: never; }
   "content_types.list": { path?: never; query: ContentTypeListFilter; body?: never; }
   "content_types.upsert": { path: { kind: string }; query?: never; body: DeclareContentType; }
   "content_types.delete": { path: { kind: string }; query?: never; body?: never; }

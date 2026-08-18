@@ -115,6 +115,11 @@ returns `400` with `error.code = "unknown_field"` and the offending field path.
 Domain-owned maps such as content fields and flow configuration remain open
 only where their schema explicitly says so.
 Forms use the same rule for both form declarations and submission inboxes.
+Site settings store an optional normalized canonical HTTP(S) URL; query strings,
+fragments and userinfo are refused, and PATCH can explicitly set or clear the
+value. Public content resolution first tries the requested language, then its
+regional base tag (for example `de-DE` to `de`), and finally the site's
+configured default language.
 Public submission delivery is intentionally behind the existing `Mailer` port;
 provider selection, retries and an outbox worker belong to the mail/automation
 slice and are not performed inline in the public request. Mail templates render
@@ -156,8 +161,9 @@ events are an export surface with bounded retention, while daily aggregates are
 the stable reporting surface; both use opaque keyset cursors.
 
 Portable bundles are explicit application snapshots rather than database dumps.
-Version 1 carries site settings/languages, content type declarations, taxonomy,
-content and revision history, old slug paths and term assignments. Every bundle
+Version 2 carries site settings/languages (including the optional canonical
+site URL), content type declarations, taxonomy, content and revision history,
+old slug paths and term assignments. Every bundle
 contains source-site provenance, record counts and a schema hash. Import first
 validates references and conflicts, then applies in one site-scoped transaction
 using `validate_only`, `create_only` or `upsert` semantics.

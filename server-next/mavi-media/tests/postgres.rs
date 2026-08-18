@@ -1,6 +1,6 @@
 use mavi_core::{MaviError, PageRequest, SiteContext, SiteId, ports::FileStore};
 use mavi_files::InMemoryFileStore;
-use mavi_media::{FileListFilter, MediaService};
+use mavi_media::{FileListFilter, FileVisibility, MediaService};
 use mavi_storage::Database;
 
 const PNG: &[u8] = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR";
@@ -32,6 +32,7 @@ async fn media_metadata_and_audit_are_site_scoped_and_binary_cleanup_is_retryabl
             &first_context,
             &store,
             "first.png",
+            FileVisibility::Private,
             PNG.to_vec(),
         )
         .await
@@ -42,6 +43,7 @@ async fn media_metadata_and_audit_are_site_scoped_and_binary_cleanup_is_retryabl
             &first_context,
             &store,
             "second.png",
+            FileVisibility::Public,
             PNG.to_vec(),
         )
         .await
@@ -122,5 +124,20 @@ async fn media_metadata_and_audit_are_site_scoped_and_binary_cleanup_is_retryabl
         .get(&mut transaction, &first_context, second.id)
         .await;
     assert!(second_read.is_ok());
+    transaction.commit().await.expect("commit");
+
+    let mut transaction = database.begin(&first_context).await.expect("transaction");
+    let (_, public_bytes) = service
+        .read_public_bytes(&mut transaction, &first_context, &store, second.id)
+        .await
+        .expect("public bytes");
+    assert_eq!(public_bytes, PNG);
+    let private_public_read = service
+        .read_public_bytes(&mut transaction, &first_context, &store, first.id)
+        .await;
+    assert!(matches!(
+        private_public_read,
+        Err(MaviError::NotFound { .. })
+    ));
     transaction.commit().await.expect("commit");
 }

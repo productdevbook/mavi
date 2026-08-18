@@ -7,7 +7,7 @@ use mavi_design::{
 };
 use mavi_files::InMemoryFileStore;
 use mavi_identity::{IdentityService, LoginInput, SetupInput};
-use mavi_media::MediaService;
+use mavi_media::{FileVisibility, MediaService};
 use mavi_portable::{
     ImportStrategy, PortableImportRequest, PortableRelocationRequest, PortableService,
 };
@@ -131,6 +131,7 @@ async fn portable_bundles_export_cross_site_import_and_reject_conflicts() {
             &source_context,
             &files,
             "hero.png",
+            FileVisibility::Private,
             b"\x89PNG\r\n\x1a\n\x00\x00".to_vec(),
         )
         .await
@@ -141,6 +142,7 @@ async fn portable_bundles_export_cross_site_import_and_reject_conflicts() {
             &source_context,
             &files,
             "live.png",
+            FileVisibility::Public,
             b"\x89PNG\r\n\x1a\nlive".to_vec(),
         )
         .await

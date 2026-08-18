@@ -15,7 +15,7 @@ use uuid::Uuid;
 /// It is part of the runtime compatibility contract exposed to the operator.
 /// Keep it next to the migration runner so a release cannot advertise a
 /// storage version independently from the migrations it ships.
-pub const CURRENT_SCHEMA_VERSION: u32 = 29;
+pub const CURRENT_SCHEMA_VERSION: u32 = 30;
 
 /// The lifecycle state stored in the shared shard catalog.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -274,6 +274,10 @@ mod tests {
         assert!(media_migration.contains("media_files_site_kind_recent"));
         assert!(media_migration.contains("alter table media_files force row level security"));
 
+        let media_visibility_migration = include_str!("../migrations/0030_media_visibility.sql");
+        assert!(media_visibility_migration.contains("add column visibility text"));
+        assert!(media_visibility_migration.contains("visibility in ('private', 'public')"));
+
         let cleanup_migration = include_str!("../migrations/0010_media_cleanup.sql");
         assert!(cleanup_migration.contains("primary key (site_id, file_id)"));
         assert!(cleanup_migration.contains("media_cleanup_tasks_pending"));
@@ -417,6 +421,6 @@ mod tests {
         assert!(analytics_migration.contains("analytics_daily"));
         assert!(analytics_migration.contains("analytics_events_site_recent"));
         assert!(analytics_migration.contains("force row level security"));
-        assert_eq!(CURRENT_SCHEMA_VERSION, 29);
+        assert_eq!(CURRENT_SCHEMA_VERSION, 30);
     }
 }

@@ -5,7 +5,7 @@ use axum::{
 use serde_json::json;
 
 mod support;
-use support::{bootstrap, response_json, send, send_raw};
+use support::{bootstrap, response_bytes, response_json, send, send_raw};
 
 const PNG: &[u8] = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR";
 
@@ -28,6 +28,7 @@ async fn media_routes_detect_bytes_page_with_cursor_and_enforce_grants() {
     assert_eq!(first.status(), StatusCode::CREATED);
     let first = response_json(first).await;
     assert_eq!(first["kind"], "image");
+    assert_eq!(first["visibility"], "private");
     assert_eq!(first["mime"], "image/png");
     assert_eq!(first["name"], "holiday.png");
     assert_eq!(first["bytes"], PNG.len());
@@ -36,13 +37,16 @@ async fn media_routes_detect_bytes_page_with_cursor_and_enforce_grants() {
     let second = send_raw(
         &app,
         Method::POST,
-        "/api/v1/files?name=second.png",
+        "/api/v1/files?name=second.png&visibility=public",
         Some(&owner_token),
         "application/octet-stream",
         PNG.to_vec(),
     )
     .await;
     assert_eq!(second.status(), StatusCode::CREATED);
+    let second = response_json(second).await;
+    assert_eq!(second["visibility"], "public");
+    let second_id = second["id"].as_str().expect("second file id").to_owned();
 
     let page = send(
         &app,
@@ -87,6 +91,38 @@ async fn media_routes_detect_bytes_page_with_cursor_and_enforce_grants() {
     )
     .await;
     assert_eq!(read.status(), StatusCode::OK);
+
+    let private_download = send(
+        &app,
+        Method::GET,
+        &format!("/api/v1/files/{first_id}/content"),
+        Some(&owner_token),
+        None,
+    )
+    .await;
+    assert_eq!(private_download.status(), StatusCode::OK);
+    assert_eq!(response_bytes(private_download).await, PNG);
+
+    let public_download = send(
+        &app,
+        Method::GET,
+        &format!("/public/v1/files/{second_id}"),
+        None,
+        None,
+    )
+    .await;
+    assert_eq!(public_download.status(), StatusCode::OK);
+    assert_eq!(response_bytes(public_download).await, PNG);
+
+    let private_public_download = send(
+        &app,
+        Method::GET,
+        &format!("/public/v1/files/{first_id}"),
+        None,
+        None,
+    )
+    .await;
+    assert_eq!(private_public_download.status(), StatusCode::NOT_FOUND);
 
     let invalid = send_raw(
         &app,

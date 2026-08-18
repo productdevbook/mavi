@@ -789,6 +789,7 @@ pub struct EventListFilter {
 pub struct File {
     pub id: String,
     pub kind: FileKind,
+    pub visibility: FileVisibility,
     pub mime: String,
     pub name: String,
     pub bytes: i64,
@@ -812,6 +813,8 @@ pub struct FilePage {
     pub items: Vec<File>,
     pub next_cursor: Option<String>,
 }
+
+pub type FileVisibility = String;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Flow {
@@ -1962,6 +1965,7 @@ pub struct UpdateTerm {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct UploadFileQuery {
     pub name: String,
+    pub visibility: Option<FileVisibility>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -2029,6 +2033,8 @@ pub const OPERATIONS: &[OperationDefinition] = &[
     OperationDefinition { name: "media.files.list", method: "get", path: "/api/v1/files", request: Some("FileListFilter"), request_location: Some("query"), query: None, response: Some("FilePage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("media"), action: Some("view") },
     OperationDefinition { name: "media.files.upload", method: "post", path: "/api/v1/files", request: Some("FileBytes"), request_location: Some("raw"), query: Some("UploadFileQuery"), response: Some("File"), response_location: None, status: 201, authentication: "account_or_assistant", capability: Some("media"), action: Some("write") },
     OperationDefinition { name: "media.files.read", method: "get", path: "/api/v1/files/{id}", request: None, request_location: None, query: None, response: Some("File"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("media"), action: Some("view") },
+    OperationDefinition { name: "media.files.download", method: "get", path: "/api/v1/files/{id}/content", request: None, request_location: None, query: None, response: Some("FileBytes"), response_location: Some("raw"), status: 200, authentication: "account_or_assistant", capability: Some("media"), action: Some("view") },
+    OperationDefinition { name: "media.files.public_download", method: "get", path: "/public/v1/files/{id}", request: None, request_location: None, query: None, response: Some("FileBytes"), response_location: Some("raw"), status: 200, authentication: "public", capability: None, action: None },
     OperationDefinition { name: "media.files.trash", method: "delete", path: "/api/v1/files/{id}", request: None, request_location: None, query: None, response: Some("Empty"), response_location: None, status: 204, authentication: "account_or_assistant", capability: Some("media"), action: Some("delete") },
     OperationDefinition { name: "audit.events.list", method: "get", path: "/api/v1/audit", request: Some("AuditListFilter"), request_location: Some("query"), query: None, response: Some("AuditEventPage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("audit"), action: Some("view") },
     OperationDefinition { name: "audit.events.read", method: "get", path: "/api/v1/audit/{id}", request: None, request_location: None, query: None, response: Some("AuditEvent"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("audit"), action: Some("view") },

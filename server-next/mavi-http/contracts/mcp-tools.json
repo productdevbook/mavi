@@ -1814,6 +1814,13 @@
                 "type": "string",
                 "minLength": 1,
                 "maxLength": 255
+              },
+              "visibility": {
+                "type": "string",
+                "enum": [
+                  "private",
+                  "public"
+                ]
               }
             },
             "additionalProperties": false
@@ -1840,6 +1847,41 @@
     {
       "name": "media.files.read",
       "description": "Read file metadata",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ]
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true
+      },
+      "x-mavi": {
+        "authentication": "account_or_assistant",
+        "scope": "site",
+        "permission": {
+          "capability": "media",
+          "action": "view"
+        }
+      }
+    },
+    {
+      "name": "media.files.download",
+      "description": "Download file bytes for an authorized site caller",
       "inputSchema": {
         "type": "object",
         "properties": {

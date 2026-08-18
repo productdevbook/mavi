@@ -11,6 +11,7 @@ use std::{
     fmt,
 };
 
+use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
 use chrono::{DateTime, Utc};
 use mavi_audit::{AuditEntry, AuditService};
 use mavi_contract::{Endpoint, Method, Permission, Shape};
@@ -32,6 +33,8 @@ pub const CREDENTIAL_ALREADY_EXISTS: &str = "credential_already_exists";
 pub const CREDENTIAL_VERSION_CONFLICT: &str = "credential_version_conflict";
 pub const CREDENTIAL_REVOKED: &str = "credential_revoked";
 pub const CREDENTIAL_PAYLOAD_TOO_LARGE: &str = "credential_payload_too_large";
+pub const CREDENTIAL_RELOCATION_FORMAT: &str = "mavi.credentials.relocation";
+pub const CREDENTIAL_RELOCATION_VERSION: u16 = 1;
 
 const SEALED_PAYLOAD_VERSION: u16 = 1;
 const MAX_IDENTIFIER_CHARS: usize = 120;
@@ -40,6 +43,9 @@ const MAX_VALUE_KEY_CHARS: usize = 64;
 const MAX_VALUES: usize = 64;
 const MAX_VALUE_BYTES: usize = 16 * 1024;
 const MAX_SEALED_PAYLOAD_BYTES: usize = 256 * 1024;
+const MAX_RELOCATION_CREDENTIALS: usize = 10_000;
+const MAX_RELOCATION_CIPHERTEXT_BYTES: usize = MAX_SEALED_PAYLOAD_BYTES + 1024;
+const MAX_RELOCATION_TOTAL_BYTES: usize = 64 * 1024 * 1024;
 
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct CredentialListFilter {
@@ -136,6 +142,126 @@ impl CredentialMaterial {
     #[must_use]
     pub fn values(&self) -> &BTreeMap<String, String> {
         &self.values
+    }
+}
+
+/// Encrypted active provider credentials for a trusted operator-to-operator
+/// relocation. The ciphertext is sealed with the transfer keyring, not the
+/// source site's storage keyring. The target opens it with its matching
+/// transfer keyring and immediately re-seals the plaintext with its local
+/// storage keyring.
+#[derive(Clone, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct CredentialRelocation {
+    pub format: String,
+    pub version: u16,
+    pub site_id: SiteId,
+    pub items: Vec<CredentialRelocationItem>,
+}
+
+#[derive(Clone, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct CredentialRelocationItem {
+    pub id: CredentialId,
+    pub provider: String,
+    pub name: String,
+    pub version: i64,
+    pub ciphertext: String,
+}
+
+impl fmt::Debug for CredentialRelocation {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("CredentialRelocation")
+            .field("format", &self.format)
+            .field("version", &self.version)
+            .field("site_id", &self.site_id)
+            .field("items", &format_args!("<{} encrypted>", self.items.len()))
+            .finish()
+    }
+}
+
+impl fmt::Debug for CredentialRelocationItem {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("CredentialRelocationItem")
+            .field("id", &self.id)
+            .field("provider", &self.provider)
+            .field("name", &self.name)
+            .field("version", &self.version)
+            .field("ciphertext", &"<redacted>")
+            .finish()
+    }
+}
+
+impl CredentialRelocation {
+    #[must_use]
+    pub fn empty(site_id: SiteId) -> Self {
+        Self {
+            format: CREDENTIAL_RELOCATION_FORMAT.to_owned(),
+            version: CREDENTIAL_RELOCATION_VERSION,
+            site_id,
+            items: Vec::new(),
+        }
+    }
+
+    #[must_use]
+    pub const fn record_count(&self) -> usize {
+        self.items.len()
+    }
+
+    pub fn validate_for_site(&self, site_id: SiteId) -> Result<()> {
+        if self.format != CREDENTIAL_RELOCATION_FORMAT {
+            return Err(MaviError::validation(
+                "credential_relocation_format_invalid",
+            ));
+        }
+        if self.version != CREDENTIAL_RELOCATION_VERSION {
+            return Err(MaviError::validation(
+                "credential_relocation_version_unsupported",
+            ));
+        }
+        if self.site_id != site_id {
+            return Err(MaviError::conflict("credential_relocation_site_mismatch"));
+        }
+        if self.items.len() > MAX_RELOCATION_CREDENTIALS {
+            return Err(MaviError::validation(
+                "credential_relocation_too_many_credentials",
+            ));
+        }
+
+        let mut ids = BTreeSet::new();
+        let mut names = BTreeSet::new();
+        let mut total_bytes = 0usize;
+        for item in &self.items {
+            if item.id.into_uuid().is_nil()
+                || !ids.insert(item.id)
+                || item.version < 1
+                || !validate_provider(&item.provider).is_ok_and(|value| value == item.provider)
+                || !validate_name(&item.name).is_ok_and(|value| value == item.name)
+            {
+                return Err(MaviError::validation(
+                    "credential_relocation_metadata_invalid",
+                ));
+            }
+            let ciphertext = URL_SAFE_NO_PAD
+                .decode(&item.ciphertext)
+                .map_err(|_| MaviError::validation("credential_relocation_ciphertext_invalid"))?;
+            if ciphertext.is_empty() || ciphertext.len() > MAX_RELOCATION_CIPHERTEXT_BYTES {
+                return Err(MaviError::validation(
+                    "credential_relocation_ciphertext_invalid",
+                ));
+            }
+            total_bytes = total_bytes
+                .checked_add(ciphertext.len())
+                .ok_or(MaviError::validation("credential_relocation_too_large"))?;
+            if total_bytes > MAX_RELOCATION_TOTAL_BYTES
+                || !names.insert((item.provider.as_str(), item.name.as_str()))
+            {
+                return Err(MaviError::validation("credential_relocation_conflict"));
+            }
+        }
+        Ok(())
     }
 }
 
@@ -579,6 +705,158 @@ impl CredentialService {
             values: payload.values,
         })
     }
+
+    /// Exports active provider credentials for the trusted operator
+    /// relocation port. The source storage keyring is opened only inside this
+    /// method; the returned envelope contains transfer-key ciphertext, never
+    /// plaintext and never source-key ciphertext.
+    pub async fn export_for_relocation(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        local_sealer: &dyn Seals,
+        transfer_sealer: &dyn Seals,
+    ) -> Result<CredentialRelocation> {
+        let rows = sqlx::query(
+            "select id, provider, name, sealed_payload, version
+               from site_credentials
+              where site_id = $1 and revoked_at is null
+              order by id asc",
+        )
+        .bind(context.site_id.into_uuid())
+        .fetch_all(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?;
+
+        let mut relocation = CredentialRelocation::empty(context.site_id);
+        relocation.items.reserve(rows.len());
+        for row in rows {
+            let id = CredentialId::from_uuid(row.try_get("id").map_err(|_| MaviError::Internal)?);
+            let provider: String = row.try_get("provider").map_err(|_| MaviError::Internal)?;
+            let name: String = row.try_get("name").map_err(|_| MaviError::Internal)?;
+            let version: i64 = row.try_get("version").map_err(|_| MaviError::Internal)?;
+            if version < 1 {
+                return Err(MaviError::Internal);
+            }
+            let sealed_bytes: Vec<u8> = row
+                .try_get("sealed_payload")
+                .map_err(|_| MaviError::Internal)?;
+            let payload = local_sealer.unseal(context, &sealed_bytes).await?;
+            decode_sealed_payload(&payload)?;
+            let transferred = transfer_sealer.seal(context, &payload).await?;
+            if transferred.len() > MAX_RELOCATION_CIPHERTEXT_BYTES {
+                return Err(MaviError::validation(
+                    "credential_relocation_ciphertext_too_large",
+                ));
+            }
+            relocation.items.push(CredentialRelocationItem {
+                id,
+                provider,
+                name,
+                version,
+                ciphertext: URL_SAFE_NO_PAD.encode(transferred),
+            });
+        }
+        relocation.validate_for_site(context.site_id)?;
+        audit_relocation(
+            tx,
+            context,
+            "credentials.relocation.exported",
+            relocation.record_count(),
+        )
+        .await?;
+        Ok(relocation)
+    }
+
+    /// Imports an encrypted provider credential envelope at a trusted target.
+    /// Every value is opened with the shared transfer keyring and immediately
+    /// re-sealed with the target's local storage keyring in the same scoped
+    /// transaction as the rest of the relocation.
+    pub async fn import_for_relocation(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        local_sealer: &dyn Seals,
+        transfer_sealer: &dyn Seals,
+        relocation: &CredentialRelocation,
+    ) -> Result<usize> {
+        relocation.validate_for_site(context.site_id)?;
+        for item in &relocation.items {
+            let transferred = URL_SAFE_NO_PAD
+                .decode(&item.ciphertext)
+                .map_err(|_| MaviError::validation("credential_relocation_ciphertext_invalid"))?;
+            let payload = transfer_sealer.unseal(context, &transferred).await?;
+            decode_sealed_payload(&payload)
+                .map_err(|_| MaviError::validation("credential_relocation_payload_invalid"))?;
+            let sealed_payload = local_sealer.seal(context, &payload).await?;
+
+            let current = sqlx::query(
+                "select provider, name, version
+                   from site_credentials where site_id = $1 and id = $2",
+            )
+            .bind(context.site_id.into_uuid())
+            .bind(item.id.into_uuid())
+            .fetch_optional(tx.conn())
+            .await
+            .map_err(|_| MaviError::Internal)?;
+            if let Some(current) = current {
+                let current_provider: String = current
+                    .try_get("provider")
+                    .map_err(|_| MaviError::Internal)?;
+                let current_name: String =
+                    current.try_get("name").map_err(|_| MaviError::Internal)?;
+                let current_version: i64 = current
+                    .try_get("version")
+                    .map_err(|_| MaviError::Internal)?;
+                if current_provider != item.provider
+                    || current_name != item.name
+                    || current_version > item.version
+                {
+                    return Err(MaviError::conflict("credential_relocation_conflict"));
+                }
+
+                let updated = sqlx::query(
+                    "update site_credentials
+                        set sealed_payload = $3, version = $4, revoked_at = null, updated_at = now()
+                      where site_id = $1 and id = $2 and version <= $4",
+                )
+                .bind(context.site_id.into_uuid())
+                .bind(item.id.into_uuid())
+                .bind(sealed_payload)
+                .bind(item.version)
+                .execute(tx.conn())
+                .await
+                .map_err(|error| map_relocation_write_error(&error))?;
+                if updated.rows_affected() != 1 {
+                    return Err(MaviError::conflict("credential_relocation_conflict"));
+                }
+            } else {
+                sqlx::query(
+                    "insert into site_credentials
+                        (site_id, id, provider, name, sealed_payload, version)
+                     values ($1, $2, $3, $4, $5, $6)",
+                )
+                .bind(context.site_id.into_uuid())
+                .bind(item.id.into_uuid())
+                .bind(&item.provider)
+                .bind(&item.name)
+                .bind(sealed_payload)
+                .bind(item.version)
+                .execute(tx.conn())
+                .await
+                .map_err(|error| map_relocation_write_error(&error))?;
+            }
+        }
+
+        audit_relocation(
+            tx,
+            context,
+            "credentials.relocation.imported",
+            relocation.record_count(),
+        )
+        .await?;
+        Ok(relocation.record_count())
+    }
 }
 
 fn require_grant(context: &SiteContext, action: Action) -> Result<()> {
@@ -612,6 +890,47 @@ async fn seal_payload(
         return Err(MaviError::validation(CREDENTIAL_PAYLOAD_TOO_LARGE));
     }
     sealer.seal(context, &payload).await
+}
+
+fn decode_sealed_payload(bytes: &[u8]) -> Result<()> {
+    let payload: SealedCredentialPayload =
+        serde_json::from_slice(bytes).map_err(|_| MaviError::Internal)?;
+    if payload.version != SEALED_PAYLOAD_VERSION {
+        return Err(MaviError::Internal);
+    }
+    validate_values(&payload.values)
+}
+
+fn map_relocation_write_error(error: &sqlx::Error) -> MaviError {
+    if error
+        .as_database_error()
+        .and_then(|database| database.constraint())
+        == Some("site_credentials_active_name")
+    {
+        MaviError::conflict("credential_relocation_conflict")
+    } else {
+        MaviError::Internal
+    }
+}
+
+async fn audit_relocation(
+    tx: &mut SiteTx,
+    context: &SiteContext,
+    action: &str,
+    count: usize,
+) -> Result<()> {
+    AuditService
+        .record(
+            tx,
+            context,
+            &AuditEntry {
+                action: action.to_owned(),
+                resource_type: "CredentialRelocation".to_owned(),
+                resource_id: None,
+                payload: json!({"credentials": count, "encrypted": true}),
+            },
+        )
+        .await
 }
 
 fn validate_provider(value: &str) -> Result<String> {
@@ -734,7 +1053,10 @@ mod tests {
 
     use mavi_contract::Api;
 
-    use super::{CreateCredential, CredentialMaterial, RotateCredential, api};
+    use super::{
+        CREDENTIAL_RELOCATION_FORMAT, CREDENTIAL_RELOCATION_VERSION, CreateCredential,
+        CredentialMaterial, CredentialRelocation, CredentialRelocationItem, RotateCredential, api,
+    };
 
     #[test]
     fn credential_contract_is_metadata_only_and_cursor_based() {
@@ -771,5 +1093,30 @@ mod tests {
         assert!(!format!("{create:?}").contains("do-not-log-me"));
         assert!(!format!("{rotate:?}").contains("do-not-log-me"));
         assert!(!format!("{material:?}").contains("do-not-log-me"));
+    }
+
+    #[test]
+    fn relocation_envelope_is_versioned_site_bound_and_redacted() {
+        let site_id = mavi_core::SiteId::new();
+        let relocation = CredentialRelocation {
+            format: CREDENTIAL_RELOCATION_FORMAT.to_owned(),
+            version: CREDENTIAL_RELOCATION_VERSION,
+            site_id,
+            items: vec![CredentialRelocationItem {
+                id: mavi_core::CredentialId::new(),
+                provider: "mail".to_owned(),
+                name: "primary".to_owned(),
+                version: 2,
+                ciphertext: "c2VjcmV0".to_owned(),
+            }],
+        };
+
+        relocation.validate_for_site(site_id).expect("relocation");
+        assert!(
+            relocation
+                .validate_for_site(mavi_core::SiteId::new())
+                .is_err()
+        );
+        assert!(!format!("{relocation:?}").contains("c2VjcmV0"));
     }
 }

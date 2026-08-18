@@ -1,10 +1,11 @@
 //! Durable, site-scoped work.
 //!
 //! A job is claimed in a short transaction, executed outside that transaction,
-//! and finished with the worker identity and an unexpired lease. This keeps a
-//! slow provider from holding a database connection while also making a stale
-//! worker unable to overwrite a newer claim. Job kinds are registered by code;
-//! accepting an unknown kind would create work no process can ever execute.
+//! and finished with a per-claim fencing token and an unexpired lease. This
+//! keeps a slow provider from holding a database connection while also making
+//! a stale or restarted worker unable to overwrite a newer claim. Job kinds
+//! are registered by code; accepting an unknown kind would create work no
+//! process can ever execute.
 
 use std::{collections::BTreeMap, sync::Arc};
 
@@ -102,6 +103,11 @@ pub struct Job {
 }
 
 /// What a worker receives after claiming a job.
+///
+/// `worker` is a stable process identity, while `claim_token` fences one
+/// particular claim. Keeping both is intentional: the identity is useful in
+/// audit records, but only the token is strong enough to authorize a lease
+/// mutation after a process restart.
 #[derive(Clone, Debug)]
 pub struct JobClaim {
     pub id: JobId,
@@ -109,6 +115,8 @@ pub struct JobClaim {
     pub payload: Value,
     pub attempts: i32,
     pub claimed_until: DateTime<Utc>,
+    pub worker: String,
+    pub claim_token: Uuid,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -254,6 +262,7 @@ impl JobsService {
             return Ok(None);
         }
         let lease_seconds = lease_seconds.clamp(1, 86_400);
+        let claim_token = Uuid::now_v7();
         let row = sqlx::query(
             "with candidate as (
                  select site_id, id
@@ -269,15 +278,18 @@ impl JobsService {
                 set state = 'running',
                     claimed_until = now() + make_interval(secs => $2),
                     claimed_by = $3,
+                    claim_token = $4,
                     attempts = job.attempts + 1,
                     finished_at = null
                from candidate
               where job.site_id = candidate.site_id and job.id = candidate.id
-             returning job.id, job.kind, job.payload, job.attempts, job.claimed_until",
+             returning job.id, job.kind, job.payload, job.attempts,
+                       job.claimed_until, job.claim_token",
         )
         .bind(names)
         .bind(interval_seconds(lease_seconds))
         .bind(worker)
+        .bind(claim_token)
         .fetch_optional(tx.conn())
         .await
         .map_err(|_| MaviError::Internal)?;
@@ -291,6 +303,10 @@ impl JobsService {
                 claimed_until: row
                     .try_get("claimed_until")
                     .map_err(|_| MaviError::Internal)?,
+                worker: worker.to_owned(),
+                claim_token: row
+                    .try_get("claim_token")
+                    .map_err(|_| MaviError::Internal)?,
             })
         })
         .transpose()
@@ -299,20 +315,20 @@ impl JobsService {
     pub async fn heartbeat(
         &self,
         tx: &mut SiteTx,
-        id: JobId,
-        worker: &str,
+        claim: &JobClaim,
         lease_seconds: i64,
     ) -> Result<LeaseOutcome> {
-        validate_worker(worker)?;
         let rows = sqlx::query(
             "update jobs
                 set claimed_until = now() + make_interval(secs => $3)
-              where id = $1 and claimed_by = $2 and state = 'running'
+              where id = $1 and claimed_by = $2 and claim_token = $4
+                and state = 'running'
                 and claimed_until > now()",
         )
-        .bind(id.into_uuid())
-        .bind(worker)
+        .bind(claim.id.into_uuid())
+        .bind(&claim.worker)
         .bind(interval_seconds(lease_seconds))
+        .bind(claim.claim_token)
         .execute(tx.conn())
         .await
         .map_err(|_| MaviError::Internal)?;
@@ -327,19 +343,19 @@ impl JobsService {
         &self,
         tx: &mut SiteTx,
         context: &SiteContext,
-        id: JobId,
-        worker: &str,
+        claim: &JobClaim,
     ) -> Result<LeaseOutcome> {
-        validate_worker(worker)?;
         let rows = sqlx::query(
             "update jobs
                 set state = 'done', claimed_until = null, claimed_by = null,
-                    finished_at = now()
-              where id = $1 and claimed_by = $2 and state = 'running'
+                    claim_token = null, finished_at = now()
+              where id = $1 and claimed_by = $2 and claim_token = $3
+                and state = 'running'
                 and claimed_until > now()",
         )
-        .bind(id.into_uuid())
-        .bind(worker)
+        .bind(claim.id.into_uuid())
+        .bind(&claim.worker)
+        .bind(claim.claim_token)
         .execute(tx.conn())
         .await
         .map_err(|_| MaviError::Internal)?;
@@ -349,7 +365,7 @@ impl JobsService {
                 context,
                 "jobs.completed",
                 "Job",
-                id.into_uuid(),
+                claim.id.into_uuid(),
                 json!({}),
             )
             .await?;
@@ -367,20 +383,21 @@ impl JobsService {
         &self,
         tx: &mut SiteTx,
         context: &SiteContext,
-        id: JobId,
-        worker: &str,
+        claim: &JobClaim,
         run_at: DateTime<Utc>,
     ) -> Result<LeaseOutcome> {
-        validate_worker(worker)?;
         let rows = sqlx::query(
             "update jobs
                 set state = 'ready', claimed_until = null, claimed_by = null,
-                    run_at = $3, finished_at = null, last_error = null
-              where id = $1 and claimed_by = $2 and state = 'running'
+                    claim_token = null, run_at = $4, finished_at = null,
+                    last_error = null
+              where id = $1 and claimed_by = $2 and claim_token = $3
+                and state = 'running'
                 and claimed_until > now()",
         )
-        .bind(id.into_uuid())
-        .bind(worker)
+        .bind(claim.id.into_uuid())
+        .bind(&claim.worker)
+        .bind(claim.claim_token)
         .bind(run_at)
         .execute(tx.conn())
         .await
@@ -391,7 +408,7 @@ impl JobsService {
                 context,
                 "jobs.deferred",
                 "Job",
-                id.into_uuid(),
+                claim.id.into_uuid(),
                 json!({"run_at": run_at}),
             )
             .await?;
@@ -407,10 +424,8 @@ impl JobsService {
         tx: &mut SiteTx,
         context: &SiteContext,
         claim: &JobClaim,
-        worker: &str,
         error: &str,
     ) -> Result<LeaseOutcome> {
-        validate_worker(worker)?;
         let max_attempts = i32::from(
             self.max_attempts(&claim.kind)
                 .ok_or_else(|| MaviError::validation("unknown_job_kind"))?,
@@ -420,18 +435,21 @@ impl JobsService {
         let rows = sqlx::query(
             "update jobs
                 set state = case when $3 >= $4 then 'dead' else 'ready' end,
-                    claimed_until = null, claimed_by = null, last_error = $5,
+                    claimed_until = null, claimed_by = null, claim_token = null,
+                    last_error = $5,
                     run_at = case when $3 >= $4 then run_at else now() + make_interval(secs => $6) end,
                     finished_at = case when $3 >= $4 then now() else null end
-              where id = $1 and claimed_by = $2 and state = 'running'
+              where id = $1 and claimed_by = $2 and claim_token = $7
+                and state = 'running'
                 and claimed_until > now()",
         )
         .bind(claim.id.into_uuid())
-        .bind(worker)
+        .bind(&claim.worker)
         .bind(claim.attempts)
         .bind(max_attempts)
         .bind(&error)
         .bind(interval_seconds(delay))
+        .bind(claim.claim_token)
         .execute(tx.conn())
         .await
         .map_err(|_| MaviError::Internal)?;
@@ -458,7 +476,8 @@ impl JobsService {
         let row = sqlx::query(
             "update jobs
                 set state = 'ready', attempts = 0, run_at = now(),
-                    claimed_until = null, claimed_by = null, last_error = null,
+                    claimed_until = null, claimed_by = null, claim_token = null,
+                    last_error = null,
                     finished_at = null
               where id = $1 and state = 'dead'
              returning id, kind, payload, state, run_at, claimed_until, claimed_by,

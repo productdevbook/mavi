@@ -18,6 +18,10 @@ use mavi_core::{
 };
 pub use mavi_design::DesignRelocation;
 use mavi_design::DesignService;
+use mavi_forms::FormService;
+pub use mavi_forms::FormsRelocation;
+pub use mavi_mail::MailRelocation;
+use mavi_mail::MailService;
 pub use mavi_media::MediaRelocation;
 use mavi_media::MediaService;
 use mavi_storage::SiteTx;
@@ -240,6 +244,8 @@ pub struct PortableRelocationBundle {
     pub design: DesignRelocation,
     pub audit: AuditRelocation,
     pub trash: TrashRelocation,
+    pub forms: FormsRelocation,
+    pub mail: MailRelocation,
 }
 
 #[derive(Clone, Deserialize, Eq, PartialEq, Serialize)]
@@ -272,6 +278,14 @@ impl fmt::Debug for PortableRelocationBundle {
             .field("media_files", &self.media.files.len())
             .field("design_changes", &self.design.changes.len())
             .field("audit_events", &self.audit.events.len())
+            .field(
+                "forms_records",
+                &self.forms.record_count().unwrap_or_default(),
+            )
+            .field(
+                "mail_records",
+                &self.mail.record_count().unwrap_or_default(),
+            )
             .field(
                 "trash_records",
                 &(self.trash.content.len()
@@ -540,6 +554,8 @@ impl PortableRelocationBundle {
         self.design.validate()?;
         self.audit.validate_for_relocation(target_site)?;
         self.trash.validate_for_relocation(target_site)?;
+        self.forms.validate_for_relocation(target_site)?;
+        self.mail.validate_for_relocation(target_site)?;
         let bytes = serde_json::to_vec(self).map_err(|_| MaviError::Internal)?;
         if bytes.len() > MAX_RELOCATION_BUNDLE_BYTES {
             return Err(MaviError::validation(
@@ -553,6 +569,10 @@ impl PortableRelocationBundle {
         let audit_count = usize::try_from(self.audit.record_count()?)
             .map_err(|_| MaviError::validation("portable_record_count_overflow"))?;
         let trash_count = usize::try_from(self.trash.record_count()?)
+            .map_err(|_| MaviError::validation("portable_record_count_overflow"))?;
+        let forms_count = usize::try_from(self.forms.record_count()?)
+            .map_err(|_| MaviError::validation("portable_record_count_overflow"))?;
+        let mail_count = usize::try_from(self.mail.record_count()?)
             .map_err(|_| MaviError::validation("portable_record_count_overflow"))?;
         let count = self
             .bundle
@@ -574,6 +594,8 @@ impl PortableRelocationBundle {
             .and_then(|value| value.checked_add(self.design.record_count()))
             .and_then(|value| value.checked_add(audit_count))
             .and_then(|value| value.checked_add(trash_count))
+            .and_then(|value| value.checked_add(forms_count))
+            .and_then(|value| value.checked_add(mail_count))
             .ok_or(MaviError::validation("portable_record_count_overflow"))?;
         i64::try_from(count).map_err(|_| MaviError::validation("portable_record_count_overflow"))
     }
@@ -799,6 +821,8 @@ impl PortableService {
         let trash = TrashService
             .export_for_relocation(tx, context, store)
             .await?;
+        let forms = FormService.export_for_relocation(tx, context).await?;
+        let mail = MailService.export_for_relocation(tx, context).await?;
         let relocation = PortableRelocationBundle {
             bundle,
             identity,
@@ -807,6 +831,8 @@ impl PortableService {
             design,
             audit,
             trash,
+            forms,
+            mail,
         };
         relocation.validate_for_relocation(context.site_id)?;
         Ok(relocation)
@@ -871,6 +897,12 @@ impl PortableService {
             .await?;
         TrashService
             .import_for_relocation(tx, context, store, &request.bundle.trash)
+            .await?;
+        FormService
+            .import_for_relocation(tx, context, &request.bundle.forms)
+            .await?;
+        MailService
+            .import_for_relocation(tx, context, &request.bundle.mail)
             .await?;
         AuditService
             .import_for_relocation(tx, context, &request.bundle.audit)
@@ -2226,6 +2258,8 @@ mod tests {
             design: DesignRelocation::default(),
             audit: AuditRelocation::empty(source_site),
             trash: TrashRelocation::empty(source_site),
+            forms: FormsRelocation::empty(source_site),
+            mail: MailRelocation::empty(source_site),
         };
         envelope
             .validate_for_relocation(envelope.bundle.manifest.source_site_id)

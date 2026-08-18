@@ -7,6 +7,7 @@
 
 mod deliveries;
 mod lists;
+mod relocation;
 mod templates;
 
 use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
@@ -22,6 +23,12 @@ pub use deliveries::{
 pub use lists::{
     AddReader, CreateMailList, MailList, MailListListFilter, MailReader, MailReaderCreated,
     MailStanding, ReaderListFilter, UnsubscribeReceipt, UpdateMailList,
+};
+pub use relocation::{
+    MAIL_RELOCATION_FORMAT, MAIL_RELOCATION_VERSION, MAX_MAIL_RELOCATION_BYTES,
+    MAX_MAIL_RELOCATION_RECORDS, MailDeliveryAttemptRelocation, MailDeliveryRelocation,
+    MailListMemberRelocation, MailListRelocation, MailReaderRelocation, MailRelocation,
+    MailTemplateRelocation,
 };
 pub use templates::{
     CreateMailTemplate, MailContentType, MailTemplate, MailTemplateListFilter, MailTemplatePreview,

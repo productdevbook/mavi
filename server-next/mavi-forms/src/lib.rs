@@ -21,6 +21,14 @@ use serde_json::{Map, Value, json};
 use sqlx::Row;
 use uuid::Uuid;
 
+mod relocation;
+
+pub use relocation::{
+    FORMS_RELOCATION_CONFLICT, FORMS_RELOCATION_FORMAT, FORMS_RELOCATION_VERSION, FormRelocation,
+    FormSubmissionRelocation, FormsRelocation, MAX_FORMS_RELOCATION_BYTES,
+    MAX_FORMS_RELOCATION_RECORDS,
+};
+
 pub const FORM_NOT_FOUND: &str = "form_not_found";
 pub const FORM_SUBMISSION_NOT_FOUND: &str = "form_submission_not_found";
 pub const FORM_SLUG_INVALID: &str = "form_slug_invalid";

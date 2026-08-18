@@ -19,6 +19,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
 - [x] OpenAPI 3.1 document generation from canonical endpoint declarations.
 - [x] Fixed-site runtime composition for self-host.
 - [x] Request admission middleware creates and validates `SiteContext`.
+- [x] Site-scoped, token-owned write fences protect HTTP and MCP mutations during controlled relocation.
 - [ ] Cloud shard runtime resolves a site without a per-site router/process.
 - [x] Versioned runtime manifest exposes release/API fingerprint, storage schema,
   runtime mode and cursor-only pagination policy to operator and panel clients.
@@ -28,7 +29,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
 - [-] RLS/DB guard, composite foreign keys and site-aware unique constraints across every domain table.
   - [x] Site catalog, content, identity, audit and settings tables enforce RLS and site-aware keys.
   - [x] Design changes, files, builds and artifacts enforce RLS, composite foreign keys and site-aware keys.
-  - [-] Forms and submissions enforce RLS, composite foreign keys and site-aware keys.
+  - [x] Forms and submissions enforce RLS, composite foreign keys and site-aware keys.
   - [x] Mail templates, lists, readers, deliveries and delivery attempts enforce RLS, composite foreign keys and site-aware keys.
   - [x] Shop products, coupons, order counters, orders, lines, holds and coupon uses enforce RLS, composite foreign keys and site-aware keys.
   - [x] Courses, modules, lessons, students, sessions, enrollments and progress enforce RLS, composite foreign keys and site-aware keys.

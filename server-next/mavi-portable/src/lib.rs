@@ -15,6 +15,8 @@ use mavi_contract::{Endpoint, Method, Permission, Shape};
 use mavi_core::{
     Action, Capability, ErrorCode, MaviError, Result, SiteContext, SiteId, ports::FileStore,
 };
+pub use mavi_design::DesignRelocation;
+use mavi_design::DesignService;
 pub use mavi_media::MediaRelocation;
 use mavi_media::MediaService;
 use mavi_storage::SiteTx;
@@ -231,6 +233,8 @@ pub struct PortableRelocationBundle {
     pub credentials: Vec<PortablePersonCredential>,
     #[serde(default)]
     pub media: MediaRelocation,
+    #[serde(default)]
+    pub design: DesignRelocation,
 }
 
 #[derive(Clone, Deserialize, Eq, PartialEq, Serialize)]
@@ -261,6 +265,7 @@ impl fmt::Debug for PortableRelocationBundle {
                 &format_args!("<{} redacted>", self.credentials.len()),
             )
             .field("media_files", &self.media.files.len())
+            .field("design_changes", &self.design.changes.len())
             .finish()
     }
 }
@@ -517,6 +522,7 @@ impl PortableRelocationBundle {
         self.bundle.validate_for_relocation(target_site)?;
         validate_identity(&self.identity, &self.credentials)?;
         self.media.validate()?;
+        self.design.validate()?;
         let bytes = serde_json::to_vec(self).map_err(|_| MaviError::Internal)?;
         if bytes.len() > MAX_RELOCATION_BUNDLE_BYTES {
             return Err(MaviError::validation(
@@ -544,6 +550,7 @@ impl PortableRelocationBundle {
             .and_then(|value| value.checked_add(self.identity.person_roles.len()))
             .and_then(|value| value.checked_add(self.credentials.len()))
             .and_then(|value| value.checked_add(self.media.files.len()))
+            .and_then(|value| value.checked_add(self.design.record_count()))
             .ok_or(MaviError::validation("portable_record_count_overflow"))?;
         i64::try_from(count).map_err(|_| MaviError::validation("portable_record_count_overflow"))
     }
@@ -762,11 +769,15 @@ impl PortableService {
         let media = MediaService
             .export_for_relocation(tx, context, store)
             .await?;
+        let design = DesignService
+            .export_for_relocation(tx, context, store)
+            .await?;
         let relocation = PortableRelocationBundle {
             bundle,
             identity,
             credentials,
             media,
+            design,
         };
         relocation.validate_for_relocation(context.site_id)?;
         Ok(relocation)
@@ -825,6 +836,9 @@ impl PortableService {
         .await?;
         MediaService
             .import_for_relocation(tx, context, store, &request.bundle.media)
+            .await?;
+        DesignService
+            .import_for_relocation(tx, context, store, &request.bundle.design)
             .await?;
         Ok(receipt)
     }
@@ -2171,6 +2185,7 @@ mod tests {
                 password_hash: "$argon2id$v=19$internal-secret-hash".to_owned(),
             }],
             media: MediaRelocation::default(),
+            design: DesignRelocation::default(),
         };
         envelope
             .validate_for_relocation(envelope.bundle.manifest.source_site_id)

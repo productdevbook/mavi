@@ -99,6 +99,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Static self-host builds publish only `public/` files and require `public/index.html`; `src/` is never served.
   - [x] Ready builds are immutable; publish and rollback atomically switch the live build pointer and write audit receipts.
   - [x] Preview/live serving is routed through site-scoped `FileStore` metadata and Cedar protects management APIs.
+  - [x] Private shard relocation exports design history, source files, build metadata and verified artifact bytes; publish pointers are restored last.
   - [ ] Sandboxed cloud compiler adapter, panel design screens and asynchronous build worker.
 - [-] Forms, submissions, exports, spam controls and retention policy.
   - [x] Form declarations validate bounded fields, types, choices and site-local active slugs.
@@ -159,8 +160,8 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Explicit `mavi.portable` v1 bundles carry source-site provenance, counts and a schema hash.
   - [x] Settings/languages, content types, taxonomy, content/revisions, slug history and assignments export/import with typed records.
   - [x] Import validates references before writes, supports validate-only/create-only/upsert strategies and applies atomically.
-  - [x] Private shard relocation adds identity credentials and live media metadata/bytes without exposing them through public portable export.
-  - [ ] Public media bytes, shop/courses/forms/boards/automation provider state and encrypted secret handling in later bundle versions.
+  - [x] Private shard relocation adds identity credentials, live media and design/build data without exposing credentials or binary data through public portable export.
+  - [ ] Public media/design bytes, shop/courses/forms/boards/automation provider state and encrypted secret handling in later bundle versions.
 - [-] MCP resources/tools generated from the canonical API with grant checks.
   - [x] Deterministic tool descriptors preserve authentication, scope and Cedar permission metadata.
   - [x] Stateless `2026-07-28` transport, `server/discover`, cursor-based `tools/list` and HTTP-routed `tools/call`.
@@ -190,7 +191,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Jobs lease/idempotency/dead-letter PostgreSQL isolation and automation flow snapshot/event/run HTTP coverage.
   - [x] Boards PostgreSQL scope/order/activity tests and boards HTTP cursor/permission acceptance coverage.
   - [x] Analytics PostgreSQL aggregate/retention/isolation tests and analytics HTTP ingest/export coverage.
-  - [x] Portable cross-site PostgreSQL export/import/conflict tests, private identity/media relocation and HTTP contract acceptance coverage.
+  - [x] Portable cross-site PostgreSQL export/import/conflict tests, private identity/media/design relocation and HTTP contract acceptance coverage.
   - [x] Identity HTTP integration covers setup, login, cursor, 401/403 and Cedar behavior.
   - [x] Generated OpenAPI/TypeScript/Rust/MCP artifacts have stale-contract tests.
   - [x] Runtime manifest HTTP contract and cursor-only compatibility assertions.

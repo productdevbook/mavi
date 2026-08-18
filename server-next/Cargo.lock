@@ -1664,6 +1664,7 @@ dependencies = [
  "mavi-audit",
  "mavi-contract",
  "mavi-core",
+ "mavi-design",
  "mavi-files",
  "mavi-identity",
  "mavi-media",

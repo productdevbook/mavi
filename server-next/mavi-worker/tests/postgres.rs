@@ -91,6 +91,14 @@ async fn scheduled_worker_publishes_skips_stale_and_defers_early_jobs() {
         .expect("worker config"),
     );
     assert!(supervisor.run_once(site_id).await.expect("publish run"));
+    let metrics = supervisor.metrics().snapshot();
+    assert_eq!(metrics.polls, 1);
+    assert_eq!(metrics.claims, 1);
+    assert_eq!(metrics.completed, 1);
+    assert_eq!(metrics.failed, 0);
+    assert_eq!(metrics.deferred, 0);
+    assert_eq!(metrics.lost_leases, 0);
+    assert_eq!(metrics.errors, 0);
 
     let mut transaction = database
         .begin(&request_context)

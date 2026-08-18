@@ -7,9 +7,6 @@ alter table mail_deliveries
     add constraint mail_deliveries_body_protection_check
     check ((not body_protected) or body = '[protected]') not valid;
 
-alter table mail_deliveries
-    validate constraint mail_deliveries_body_protection_check;
-
 create table mail_delivery_secrets (
     site_id      uuid not null,
     delivery_id  uuid not null,

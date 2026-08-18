@@ -116,10 +116,11 @@ validates references and conflicts, then applies in one site-scoped transaction
 using `validate_only`, `create_only` or `upsert` semantics.
 
 The private operator relocation envelope extends that snapshot with identity
-credential hashes and live media metadata/bytes. Credentials are redacted from
-debug output; sessions and API keys are revoked at the target rather than
-copied. Media bytes stay behind the site-scoped `FileStore` and are verified by
-size and SHA-256 before import.
+credential hashes, live media metadata/bytes and design/build state. Credentials
+are redacted from debug output; sessions and API keys are revoked at the target
+rather than copied. Media and design artifact bytes stay behind the site-scoped
+`FileStore` and are verified by size and SHA-256 before import; publish pointers
+are restored only after their referenced builds exist.
 
 Self-host stores binary objects outside PostgreSQL. Set `MAVI_FILES_DIR` to a
 persistent directory (default: `./mavi-files`); object keys are generated from

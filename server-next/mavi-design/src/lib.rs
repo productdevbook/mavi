@@ -38,6 +38,9 @@ pub const DESIGN_PUBLIC_ASSET_NOT_FOUND: &str = "design_public_asset_not_found";
 pub const DESIGN_BUILD_FAILED: &str = "design_build_failed";
 
 pub const MAX_DESIGN_FILE_BYTES: usize = 5 * 1024 * 1024;
+/// Maximum raw design source and artifact bytes carried by one private shard
+/// relocation. The portable coordinator applies the outer JSON envelope cap.
+pub const MAX_DESIGN_RELOCATION_BYTES: usize = 128 * 1024 * 1024;
 const MAX_DESIGN_NAME_CHARS: usize = 120;
 const MAX_DESIGN_PATH_CHARS: usize = 200;
 
@@ -216,6 +219,173 @@ pub struct BuildRequest {
 pub struct PublicArtifact {
     pub storage_key: String,
     pub mime: String,
+}
+
+/// Design source, build metadata and immutable artifact bytes used by the
+/// authenticated shard relocation port. Public design APIs do not expose
+/// this snapshot shape.
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct DesignRelocation {
+    pub changes: Vec<DesignRelocationChange>,
+    pub files: Vec<DesignRelocationFile>,
+    pub builds: Vec<DesignRelocationBuild>,
+    pub artifacts: Vec<DesignRelocationArtifact>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct DesignRelocationChange {
+    pub id: DesignChangeId,
+    pub name: String,
+    pub state: DesignState,
+    pub ready_build_id: Option<DesignBuildId>,
+    pub published_build_id: Option<DesignBuildId>,
+    pub last_error: Option<String>,
+    pub published_at: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct DesignRelocationFile {
+    pub change_id: DesignChangeId,
+    pub path: String,
+    #[serde(with = "base64_bytes")]
+    pub contents: Vec<u8>,
+    pub bytes: u64,
+    pub sha256: String,
+    pub removed: bool,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct DesignRelocationBuild {
+    pub id: DesignBuildId,
+    pub change_id: DesignChangeId,
+    pub state: DesignBuildState,
+    pub error: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub completed_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct DesignRelocationArtifact {
+    pub build_id: DesignBuildId,
+    pub path: String,
+    pub storage_key: String,
+    pub mime: String,
+    pub bytes: u64,
+    pub sha256: String,
+    #[serde(with = "base64_bytes")]
+    pub contents: Vec<u8>,
+}
+
+impl DesignRelocation {
+    pub fn validate(&self) -> Result<()> {
+        let change_ids = self
+            .changes
+            .iter()
+            .map(|change| change.id)
+            .collect::<BTreeSet<_>>();
+        if change_ids.len() != self.changes.len()
+            || self
+                .changes
+                .iter()
+                .filter(|change| change.state == DesignState::Published)
+                .count()
+                > 1
+        {
+            return Err(MaviError::validation("design_relocation_changes_invalid"));
+        }
+
+        let build_ids = self
+            .builds
+            .iter()
+            .map(|build| build.id)
+            .collect::<BTreeSet<_>>();
+        if build_ids.len() != self.builds.len() {
+            return Err(MaviError::validation("design_relocation_builds_invalid"));
+        }
+        for change in &self.changes {
+            if change.name != validate_name(&change.name)? {
+                return Err(MaviError::validation(DESIGN_NAME_INVALID));
+            }
+            for build_id in [change.ready_build_id, change.published_build_id]
+                .into_iter()
+                .flatten()
+            {
+                if !self
+                    .builds
+                    .iter()
+                    .any(|build| build.id == build_id && build.change_id == change.id)
+                {
+                    return Err(MaviError::validation(
+                        "design_relocation_change_build_reference_invalid",
+                    ));
+                }
+            }
+            if change.state == DesignState::Published && change.published_build_id.is_none() {
+                return Err(MaviError::validation(
+                    "design_relocation_published_build_missing",
+                ));
+            }
+        }
+        for file in &self.files {
+            if !change_ids.contains(&file.change_id)
+                || validate_source_path(&file.path)? != file.path
+            {
+                return Err(MaviError::validation("design_relocation_file_invalid"));
+            }
+            validate_contents(
+                std::str::from_utf8(&file.contents)
+                    .map_err(|_| MaviError::validation(DESIGN_FILE_CONTENT_INVALID))?,
+            )?;
+            validate_digest_and_bytes(file.bytes, &file.sha256, &file.contents)?;
+        }
+        for build in &self.builds {
+            if !change_ids.contains(&build.change_id) {
+                return Err(MaviError::validation("design_relocation_build_invalid"));
+            }
+        }
+        let mut artifact_keys = BTreeSet::new();
+        for artifact in &self.artifacts {
+            if !build_ids.contains(&artifact.build_id)
+                || validate_artifact_path(&artifact.path)? != artifact.path
+                || artifact.storage_key != artifact_storage_key(artifact.build_id, &artifact.path)
+                || !artifact_keys.insert((artifact.build_id, artifact.path.clone()))
+                || !valid_relocation_mime(&artifact.mime)
+            {
+                return Err(MaviError::validation("design_relocation_artifact_invalid"));
+            }
+            validate_digest_and_bytes(artifact.bytes, &artifact.sha256, &artifact.contents)?;
+        }
+
+        let total_bytes = self
+            .files
+            .iter()
+            .map(|file| file.contents.len())
+            .chain(
+                self.artifacts
+                    .iter()
+                    .map(|artifact| artifact.contents.len()),
+            )
+            .try_fold(0usize, usize::checked_add)
+            .ok_or_else(|| MaviError::validation("design_relocation_size_overflow"))?;
+        if total_bytes > MAX_DESIGN_RELOCATION_BYTES {
+            return Err(MaviError::validation("design_relocation_too_large"));
+        }
+        Ok(())
+    }
+
+    #[must_use]
+    pub fn record_count(&self) -> usize {
+        self.changes.len() + self.files.len() + self.builds.len() + self.artifacts.len()
+    }
 }
 
 /// A runtime-specific design compiler.
@@ -759,6 +929,326 @@ impl DesignService {
             )
             .await?;
         Ok(change)
+    }
+
+    /// Exports all design history and immutable artifact bytes for the
+    /// authenticated shard relocation coordinator.
+    #[allow(clippy::too_many_lines)]
+    pub async fn export_for_relocation(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        store: &dyn FileStore,
+    ) -> Result<DesignRelocation> {
+        let change_rows = sqlx::query(
+            "select id, name, state, ready_build_id, published_build_id,
+                    last_error, published_at, created_at, updated_at
+               from design_changes where site_id = $1 order by created_at asc, id asc",
+        )
+        .bind(context.site_id.into_uuid())
+        .fetch_all(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?;
+        let changes = change_rows
+            .iter()
+            .map(|row| {
+                Ok(DesignRelocationChange {
+                    id: DesignChangeId::from_uuid(
+                        row.try_get("id").map_err(|_| MaviError::Internal)?,
+                    ),
+                    name: row.try_get("name").map_err(|_| MaviError::Internal)?,
+                    state: DesignState::parse(
+                        &row.try_get::<String, _>("state")
+                            .map_err(|_| MaviError::Internal)?,
+                    )?,
+                    ready_build_id: row
+                        .try_get::<Option<Uuid>, _>("ready_build_id")
+                        .map_err(|_| MaviError::Internal)?
+                        .map(DesignBuildId::from_uuid),
+                    published_build_id: row
+                        .try_get::<Option<Uuid>, _>("published_build_id")
+                        .map_err(|_| MaviError::Internal)?
+                        .map(DesignBuildId::from_uuid),
+                    last_error: row.try_get("last_error").map_err(|_| MaviError::Internal)?,
+                    published_at: row
+                        .try_get("published_at")
+                        .map_err(|_| MaviError::Internal)?,
+                    created_at: row.try_get("created_at").map_err(|_| MaviError::Internal)?,
+                    updated_at: row.try_get("updated_at").map_err(|_| MaviError::Internal)?,
+                })
+            })
+            .collect::<Result<Vec<_>>>()?;
+
+        let file_rows = sqlx::query(
+            "select change_id, path, contents, bytes, sha256, removed, created_at, updated_at
+               from design_files where site_id = $1 order by change_id asc, path asc",
+        )
+        .bind(context.site_id.into_uuid())
+        .fetch_all(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?;
+        let files = file_rows
+            .iter()
+            .map(|row| {
+                let contents: Vec<u8> = row.try_get("contents").map_err(|_| MaviError::Internal)?;
+                Ok(DesignRelocationFile {
+                    change_id: DesignChangeId::from_uuid(
+                        row.try_get("change_id").map_err(|_| MaviError::Internal)?,
+                    ),
+                    path: row.try_get("path").map_err(|_| MaviError::Internal)?,
+                    bytes: u64::try_from(
+                        row.try_get::<i64, _>("bytes")
+                            .map_err(|_| MaviError::Internal)?,
+                    )
+                    .map_err(|_| MaviError::Internal)?,
+                    sha256: row.try_get("sha256").map_err(|_| MaviError::Internal)?,
+                    removed: row.try_get("removed").map_err(|_| MaviError::Internal)?,
+                    created_at: row.try_get("created_at").map_err(|_| MaviError::Internal)?,
+                    updated_at: row.try_get("updated_at").map_err(|_| MaviError::Internal)?,
+                    contents,
+                })
+            })
+            .collect::<Result<Vec<_>>>()?;
+
+        let build_rows = sqlx::query(
+            "select id, change_id, state, error, created_at, completed_at
+               from design_builds where site_id = $1 order by created_at asc, id asc",
+        )
+        .bind(context.site_id.into_uuid())
+        .fetch_all(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?;
+        let builds = build_rows
+            .iter()
+            .map(|row| {
+                Ok(DesignRelocationBuild {
+                    id: DesignBuildId::from_uuid(
+                        row.try_get("id").map_err(|_| MaviError::Internal)?,
+                    ),
+                    change_id: DesignChangeId::from_uuid(
+                        row.try_get("change_id").map_err(|_| MaviError::Internal)?,
+                    ),
+                    state: DesignBuildState::parse(
+                        &row.try_get::<String, _>("state")
+                            .map_err(|_| MaviError::Internal)?,
+                    )?,
+                    error: row.try_get("error").map_err(|_| MaviError::Internal)?,
+                    created_at: row.try_get("created_at").map_err(|_| MaviError::Internal)?,
+                    completed_at: row
+                        .try_get("completed_at")
+                        .map_err(|_| MaviError::Internal)?,
+                })
+            })
+            .collect::<Result<Vec<_>>>()?;
+
+        let artifact_rows = sqlx::query(
+            "select build_id, path, storage_key, mime, bytes, sha256
+               from design_build_artifacts where site_id = $1
+              order by build_id asc, path asc",
+        )
+        .bind(context.site_id.into_uuid())
+        .fetch_all(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?;
+        let mut artifacts = Vec::with_capacity(artifact_rows.len());
+        for row in &artifact_rows {
+            let storage_key: String = row
+                .try_get("storage_key")
+                .map_err(|_| MaviError::Internal)?;
+            let contents = store.get(context, &storage_key).await?;
+            let bytes = u64::try_from(
+                row.try_get::<i64, _>("bytes")
+                    .map_err(|_| MaviError::Internal)?,
+            )
+            .map_err(|_| MaviError::Internal)?;
+            let sha256: String = row.try_get("sha256").map_err(|_| MaviError::Internal)?;
+            if usize::try_from(bytes).map_err(|_| MaviError::Internal)? != contents.len()
+                || sha256_hex(&contents) != sha256
+            {
+                return Err(MaviError::validation("design_storage_integrity_failed"));
+            }
+            artifacts.push(DesignRelocationArtifact {
+                build_id: DesignBuildId::from_uuid(
+                    row.try_get("build_id").map_err(|_| MaviError::Internal)?,
+                ),
+                path: row.try_get("path").map_err(|_| MaviError::Internal)?,
+                storage_key,
+                mime: row.try_get("mime").map_err(|_| MaviError::Internal)?,
+                bytes,
+                sha256,
+                contents,
+            });
+        }
+
+        let relocation = DesignRelocation {
+            changes,
+            files,
+            builds,
+            artifacts,
+        };
+        relocation.validate()?;
+        Ok(relocation)
+    }
+
+    /// Imports a validated design snapshot with idempotent metadata upserts
+    /// and replace-safe artifact writes. Pointers are applied last so all
+    /// composite foreign keys are present before a publish state is restored.
+    #[allow(clippy::too_many_lines)]
+    pub async fn import_for_relocation(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        store: &dyn FileStore,
+        relocation: &DesignRelocation,
+    ) -> Result<()> {
+        relocation.validate()?;
+        for artifact in &relocation.artifacts {
+            store
+                .put(context, &artifact.storage_key, artifact.contents.clone())
+                .await?;
+        }
+
+        sqlx::query(
+            "update design_changes set state = 'ready'
+              where site_id = $1 and state = 'published'",
+        )
+        .bind(context.site_id.into_uuid())
+        .execute(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?;
+
+        for change in &relocation.changes {
+            let staged_state = if change.state == DesignState::Published {
+                DesignState::Ready
+            } else {
+                change.state
+            };
+            sqlx::query(
+                "insert into design_changes
+                    (site_id, id, name, state, ready_build_id, published_build_id,
+                     last_error, published_at, created_at, updated_at)
+                 values ($1, $2, $3, $4, null, null, $5, $6, $7, $8)
+                 on conflict (site_id, id) do update set
+                    name = excluded.name, state = excluded.state,
+                    ready_build_id = null, published_build_id = null,
+                    last_error = excluded.last_error, published_at = excluded.published_at,
+                    created_at = excluded.created_at, updated_at = excluded.updated_at",
+            )
+            .bind(context.site_id.into_uuid())
+            .bind(change.id.into_uuid())
+            .bind(&change.name)
+            .bind(staged_state.as_str())
+            .bind(&change.last_error)
+            .bind(change.published_at)
+            .bind(change.created_at)
+            .bind(change.updated_at)
+            .execute(tx.conn())
+            .await
+            .map_err(|_| MaviError::Internal)?;
+        }
+
+        for file in &relocation.files {
+            sqlx::query(
+                "insert into design_files
+                    (site_id, change_id, path, contents, bytes, sha256, removed, created_at, updated_at)
+                 values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                 on conflict (site_id, change_id, path) do update set
+                    contents = excluded.contents, bytes = excluded.bytes,
+                    sha256 = excluded.sha256, removed = excluded.removed,
+                    created_at = excluded.created_at, updated_at = excluded.updated_at",
+            )
+            .bind(context.site_id.into_uuid())
+            .bind(file.change_id.into_uuid())
+            .bind(&file.path)
+            .bind(&file.contents)
+            .bind(i64::try_from(file.bytes).map_err(|_| MaviError::Internal)?)
+            .bind(&file.sha256)
+            .bind(file.removed)
+            .bind(file.created_at)
+            .bind(file.updated_at)
+            .execute(tx.conn())
+            .await
+            .map_err(|_| MaviError::Internal)?;
+        }
+
+        for build in &relocation.builds {
+            sqlx::query(
+                "insert into design_builds
+                    (site_id, id, change_id, state, error, created_at, completed_at)
+                 values ($1, $2, $3, $4, $5, $6, $7)
+                 on conflict (site_id, id) do update set
+                    change_id = excluded.change_id, state = excluded.state,
+                    error = excluded.error, created_at = excluded.created_at,
+                    completed_at = excluded.completed_at",
+            )
+            .bind(context.site_id.into_uuid())
+            .bind(build.id.into_uuid())
+            .bind(build.change_id.into_uuid())
+            .bind(build.state.as_str())
+            .bind(&build.error)
+            .bind(build.created_at)
+            .bind(build.completed_at)
+            .execute(tx.conn())
+            .await
+            .map_err(|_| MaviError::Internal)?;
+        }
+
+        for artifact in &relocation.artifacts {
+            sqlx::query(
+                "insert into design_build_artifacts
+                    (site_id, build_id, path, storage_key, mime, bytes, sha256)
+                 values ($1, $2, $3, $4, $5, $6, $7)
+                 on conflict (site_id, build_id, path) do update set
+                    storage_key = excluded.storage_key, mime = excluded.mime,
+                    bytes = excluded.bytes, sha256 = excluded.sha256",
+            )
+            .bind(context.site_id.into_uuid())
+            .bind(artifact.build_id.into_uuid())
+            .bind(&artifact.path)
+            .bind(&artifact.storage_key)
+            .bind(&artifact.mime)
+            .bind(i64::try_from(artifact.bytes).map_err(|_| MaviError::Internal)?)
+            .bind(&artifact.sha256)
+            .execute(tx.conn())
+            .await
+            .map_err(|_| MaviError::Internal)?;
+        }
+
+        for change in &relocation.changes {
+            sqlx::query(
+                "update design_changes
+                    set state = $3, ready_build_id = $4, published_build_id = $5,
+                        updated_at = $6
+                  where site_id = $1 and id = $2",
+            )
+            .bind(context.site_id.into_uuid())
+            .bind(change.id.into_uuid())
+            .bind(change.state.as_str())
+            .bind(change.ready_build_id.map(DesignBuildId::into_uuid))
+            .bind(change.published_build_id.map(DesignBuildId::into_uuid))
+            .bind(change.updated_at)
+            .execute(tx.conn())
+            .await
+            .map_err(|_| MaviError::Internal)?;
+        }
+
+        AuditService
+            .record(
+                tx,
+                context,
+                &AuditEntry {
+                    action: "portable.design.relocated".to_owned(),
+                    resource_type: "DesignSnapshot".to_owned(),
+                    resource_id: None,
+                    payload: json!({
+                        "changes": relocation.changes.len(),
+                        "files": relocation.files.len(),
+                        "builds": relocation.builds.len(),
+                        "artifacts": relocation.artifacts.len(),
+                    }),
+                },
+            )
+            .await
     }
 
     pub async fn list_changes(
@@ -1699,6 +2189,31 @@ fn validate_contents(value: &str) -> Result<()> {
     Ok(())
 }
 
+fn validate_digest_and_bytes(bytes: u64, sha256: &str, contents: &[u8]) -> Result<()> {
+    if bytes == 0
+        || bytes > MAX_DESIGN_FILE_BYTES as u64
+        || usize::try_from(bytes).map_err(|_| MaviError::Internal)? != contents.len()
+        || sha256.len() != 64
+        || !sha256.bytes().all(|byte| byte.is_ascii_hexdigit())
+        || sha256_hex(contents) != sha256
+    {
+        return Err(MaviError::validation("design_relocation_content_invalid"));
+    }
+    Ok(())
+}
+
+fn valid_relocation_mime(mime: &str) -> bool {
+    let Some((kind, subtype)) = mime.split_once('/') else {
+        return false;
+    };
+    !kind.is_empty()
+        && !subtype.is_empty()
+        && kind.bytes().all(|byte| byte.is_ascii_lowercase())
+        && subtype.bytes().all(|byte| {
+            byte.is_ascii_lowercase() || byte.is_ascii_digit() || b".+-".contains(&byte)
+        })
+}
+
 fn validate_source_path(value: &str) -> Result<String> {
     let value = value.trim();
     if value.is_empty()
@@ -1823,6 +2338,26 @@ fn mime_for_path(path: &str) -> &'static str {
         "woff2" => "font/woff2",
         "html" => "text/html",
         _ => "application/octet-stream",
+    }
+}
+
+mod base64_bytes {
+    use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
+    use serde::{Deserialize, Deserializer, Serializer, de::Error as _};
+
+    pub fn serialize<S>(bytes: &[u8], serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&URL_SAFE_NO_PAD.encode(bytes))
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Vec<u8>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let encoded = String::deserialize(deserializer)?;
+        URL_SAFE_NO_PAD.decode(encoded).map_err(D::Error::custom)
     }
 }
 

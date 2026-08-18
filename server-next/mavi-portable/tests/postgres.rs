@@ -2,6 +2,9 @@ use std::env;
 
 use chrono::Utc;
 use mavi_core::{SiteContext, SiteId, ports::FileStore};
+use mavi_design::{
+    BuildEngine, DesignFileInput, DesignService, StartDesignChange, StaticBuildEngine,
+};
 use mavi_files::InMemoryFileStore;
 use mavi_identity::{IdentityService, LoginInput, SetupInput};
 use mavi_media::MediaService;
@@ -133,6 +136,59 @@ async fn portable_bundles_export_cross_site_import_and_reject_conflicts() {
         .await
         .expect("source media");
 
+    let design = DesignService;
+    let change = design
+        .start_change(
+            &mut tx,
+            &source_context,
+            &StartDesignChange {
+                name: "Initial design".to_owned(),
+            },
+        )
+        .await
+        .expect("design change");
+    design
+        .write_file(
+            &mut tx,
+            &source_context,
+            change.id,
+            &DesignFileInput {
+                path: "public/index.html".to_owned(),
+                contents: "<h1>Source design</h1>".to_owned(),
+            },
+        )
+        .await
+        .expect("design source");
+    let build_request = design
+        .start_build(&mut tx, &source_context, change.id)
+        .await
+        .expect("design build start");
+    let artifacts = StaticBuildEngine
+        .build(
+            &source_context,
+            build_request.build.id,
+            &build_request.source,
+        )
+        .await
+        .expect("design build");
+    let stored_artifacts = design
+        .persist_artifacts(&source_context, &files, build_request.build.id, artifacts)
+        .await
+        .expect("design artifacts");
+    design
+        .finish_build_success(
+            &mut tx,
+            &source_context,
+            build_request.build.id,
+            &stored_artifacts,
+        )
+        .await
+        .expect("design build ready");
+    design
+        .publish(&mut tx, &source_context, change.id)
+        .await
+        .expect("design publish");
+
     let portable = PortableService;
     let bundle = portable
         .export(&mut tx, &source_context)
@@ -152,6 +208,10 @@ async fn portable_bundles_export_cross_site_import_and_reject_conflicts() {
     assert_eq!(relocation_bundle.credentials.len(), 1);
     assert_eq!(relocation_bundle.media.files.len(), 1);
     assert_eq!(relocation_bundle.media.files[0].id, media_file.id);
+    assert_eq!(relocation_bundle.design.changes.len(), 1);
+    assert_eq!(relocation_bundle.design.files.len(), 1);
+    assert_eq!(relocation_bundle.design.builds.len(), 1);
+    assert_eq!(relocation_bundle.design.artifacts.len(), 1);
     tx.commit().await.expect("source commit");
 
     let target_context = SiteContext::public(target_site);
@@ -263,6 +323,22 @@ async fn portable_bundles_export_cross_site_import_and_reject_conflicts() {
             .await
             .expect("relocated media"),
         b"\x89PNG\r\n\x1a\n\x00\x00"
+    );
+    assert_eq!(relocated.design.changes.len(), 1);
+    assert_eq!(
+        relocated.design.changes[0].state,
+        mavi_design::DesignState::Published
+    );
+    assert_eq!(relocated.design.artifacts.len(), 1);
+    assert_eq!(
+        files
+            .get(
+                &relocation_context,
+                &relocated.design.artifacts[0].storage_key
+            )
+            .await
+            .expect("relocated design artifact"),
+        b"<h1>Source design</h1>"
     );
     IdentityService
         .create_session(

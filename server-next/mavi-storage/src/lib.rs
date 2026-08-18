@@ -62,6 +62,18 @@ impl Database {
             .map_err(|_| MaviError::Internal)
     }
 
+    /// Checks the database connection used by runtime readiness probes.
+    ///
+    /// This intentionally does not open a site-scoped transaction: readiness
+    /// is a process/shard concern, not a request for one site's data.
+    pub async fn health_check(&self) -> Result<()> {
+        sqlx::query("select 1")
+            .execute(&self.pool)
+            .await
+            .map(|_| ())
+            .map_err(|_| MaviError::Internal)
+    }
+
     /// Creates a site catalog row without exposing an unscoped transaction to domains.
     pub async fn ensure_site(&self, site_id: SiteId) -> Result<()> {
         self.reconcile_sites([(site_id, SiteStatus::Active)]).await

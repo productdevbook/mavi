@@ -492,7 +492,7 @@ where
     mcp_dispatcher
         .set(api_only)
         .map_err(|_| MaviError::Internal)?;
-    Ok(routes
+    let scoped_routes = routes
         .route("/mcp", post(mcp_endpoint::<R>))
         .layer(middleware::from_fn_with_state(
             runtime.clone(),
@@ -506,9 +506,29 @@ where
             state.clone(),
             edge_throttle::<R>,
         ))
-        .layer(middleware::from_fn_with_state(runtime, admit::<R>))
-        .layer(DefaultBodyLimit::max(MAX_FILE_BYTES + 1))
-        .with_state(state))
+        .layer(middleware::from_fn_with_state(runtime.clone(), admit::<R>))
+        .layer(DefaultBodyLimit::max(MAX_FILE_BYTES + 1));
+    let operational_routes = Router::<HttpState<R>>::new()
+        .route("/healthz", get(liveness))
+        .route("/readyz", get(readiness::<R>))
+        .layer(Extension(runtime));
+
+    Ok(operational_routes.merge(scoped_routes).with_state(state))
+}
+
+async fn liveness() -> StatusCode {
+    StatusCode::OK
+}
+
+async fn readiness<R>(Extension(runtime): Extension<Runtime<R>>) -> StatusCode
+where
+    R: SiteResolver,
+{
+    if runtime.ready().await.is_ok() {
+        StatusCode::OK
+    } else {
+        StatusCode::SERVICE_UNAVAILABLE
+    }
 }
 
 fn api_routes<R>() -> Router<HttpState<R>>

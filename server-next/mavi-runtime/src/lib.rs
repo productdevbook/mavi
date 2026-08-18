@@ -247,6 +247,12 @@ where
         self.database.begin(context).await
     }
 
+    /// Checks the shared database dependency for a process/shard readiness
+    /// probe without inventing a site scope for the probe itself.
+    pub async fn ready(&self) -> Result<()> {
+        self.database.health_check().await
+    }
+
     /// Returns whether a control-plane relocation currently fences writes for
     /// this site. Reads remain available while the fence is held.
     pub async fn is_write_fenced(&self, site_id: SiteId) -> Result<bool> {
@@ -267,9 +273,7 @@ where
     where
         S: Clone + Send + Sync + 'static,
     {
-        Router::new()
-            .route("/healthz", get(health))
-            .route("/api/v1/health", get(health))
+        Router::new().route("/api/v1/health", get(health))
     }
 }
 

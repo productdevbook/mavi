@@ -192,6 +192,7 @@ async fn forms_and_mail_relocation_preserves_data_and_resets_delivery_leases() {
     relocation.trash.source_site_id = target_site;
     relocation.forms.source_site_id = target_site;
     relocation.mail.source_site_id = target_site;
+    relocation.shop.source_site_id = target_site;
 
     let target_context = SiteContext::public(target_site);
     let mut target_tx = database.begin(&target_context).await.expect("target scope");

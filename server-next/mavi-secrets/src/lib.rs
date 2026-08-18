@@ -35,6 +35,7 @@ pub const CREDENTIAL_REVOKED: &str = "credential_revoked";
 pub const CREDENTIAL_PAYLOAD_TOO_LARGE: &str = "credential_payload_too_large";
 pub const CREDENTIAL_RELOCATION_FORMAT: &str = "mavi.credentials.relocation";
 pub const CREDENTIAL_RELOCATION_VERSION: u16 = 1;
+pub const CREDENTIAL_RELOCATION_KEY_MISMATCH: &str = "credential_relocation_key_mismatch";
 
 const SEALED_PAYLOAD_VERSION: u16 = 1;
 const MAX_IDENTIFIER_CHARS: usize = 120;
@@ -785,7 +786,10 @@ impl CredentialService {
             let transferred = URL_SAFE_NO_PAD
                 .decode(&item.ciphertext)
                 .map_err(|_| MaviError::validation("credential_relocation_ciphertext_invalid"))?;
-            let payload = transfer_sealer.unseal(context, &transferred).await?;
+            let payload = transfer_sealer
+                .unseal(context, &transferred)
+                .await
+                .map_err(|_| MaviError::conflict(CREDENTIAL_RELOCATION_KEY_MISMATCH))?;
             decode_sealed_payload(&payload)
                 .map_err(|_| MaviError::validation("credential_relocation_payload_invalid"))?;
             let sealed_payload = local_sealer.seal(context, &payload).await?;

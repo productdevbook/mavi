@@ -24,6 +24,7 @@ async fn credentials_are_sealed_site_scoped_optimistic_and_audited() {
     let sealer = KeyringSealer::from_key([11; 32]);
     let transfer_sealer = KeyringSealer::from_key([12; 32]);
     let target_sealer = KeyringSealer::from_key([13; 32]);
+    let wrong_transfer_sealer = KeyringSealer::from_key([14; 32]);
     let service = CredentialService;
 
     let mut values = BTreeMap::new();
@@ -116,6 +117,24 @@ async fn credentials_are_sealed_site_scoped_optimistic_and_audited() {
         .expect("second list");
     assert!(second_list.items.is_empty());
     tx.commit().await.expect("second commit");
+
+    let mut tx = database.begin(&first_context).await.expect("scope");
+    let mismatch = service
+        .import_for_relocation(
+            &mut tx,
+            &first_context,
+            &target_sealer,
+            &wrong_transfer_sealer,
+            &relocation,
+        )
+        .await
+        .expect_err("wrong transfer key");
+    assert!(matches!(
+        mismatch,
+        mavi_core::MaviError::Conflict { ref code }
+            if code == "credential_relocation_key_mismatch"
+    ));
+    drop(tx);
 
     let mut tx = database.begin(&first_context).await.expect("scope");
     assert_eq!(

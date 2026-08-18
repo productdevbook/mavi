@@ -12,7 +12,7 @@ use std::{
 use axum::{
     Extension, Router,
     body::{Body, Bytes, to_bytes},
-    extract::{DefaultBodyLimit, Json, Path, Query, State},
+    extract::{DefaultBodyLimit, FromRequest, FromRequestParts, Path, State},
     http::{
         HeaderMap, HeaderValue, Method as HttpMethod, Request, StatusCode,
         header::{AUTHORIZATION, CACHE_CONTROL, CONTENT_TYPE, HOST},
@@ -103,7 +103,7 @@ use mavi_taxonomy::{
     TaxonomyService, Term, TermListFilter, UpdateTerm,
 };
 use mavi_trash::{TrashItem, TrashKind, TrashListFilter, TrashService};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use serde_json::{Value, json};
 use tower::ServiceExt;
 use uuid::Uuid;
@@ -179,6 +179,141 @@ impl IntoResponse for HttpError {
         let status = status_code(self.0.code());
         (status, axum::Json(ErrorEnvelope::from(self.0))).into_response()
     }
+}
+
+/// JSON boundary used by every HTTP handler.
+///
+/// Axum's normal JSON extractor deliberately follows Serde's default of
+/// ignoring unknown object keys. That is a poor API contract: a typo in a
+/// client request becomes a successful request with a different meaning.
+/// This wrapper keeps the transport behavior in one place and rejects the
+/// first unknown field with the same machine-readable error envelope as the
+/// rest of the API. Nested `serde_json::Value` fields remain intentionally
+/// open when their domain schema says they are open.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct Json<T>(pub T);
+
+impl<T, S> FromRequest<S> for Json<T>
+where
+    T: DeserializeOwned,
+    S: Send + Sync,
+{
+    type Rejection = Response;
+
+    async fn from_request(
+        request: Request<Body>,
+        state: &S,
+    ) -> std::result::Result<Self, Self::Rejection> {
+        if !is_json_content_type(request.headers()) {
+            return Err(input_rejection(MaviError::validation(
+                "json_content_type_required",
+            )));
+        }
+
+        let bytes = Bytes::from_request(request, state)
+            .await
+            .map_err(|_| input_rejection(MaviError::validation("invalid_json")))?;
+        let mut deserializer = serde_json::Deserializer::from_slice(&bytes);
+        let mut unknown_field = None;
+        let value = serde_ignored::deserialize(&mut deserializer, |path| {
+            if unknown_field.is_none() {
+                unknown_field = Some(path.to_string());
+            }
+        })
+        .map_err(|_| input_rejection(MaviError::validation("invalid_json")))?;
+        deserializer
+            .end()
+            .map_err(|_| input_rejection(MaviError::validation("invalid_json")))?;
+
+        if let Some(field) = unknown_field {
+            return Err(input_rejection(MaviError::validation_field(
+                "unknown_field",
+                field,
+            )));
+        }
+
+        Ok(Self(value))
+    }
+}
+
+impl<T> IntoResponse for Json<T>
+where
+    T: Serialize,
+{
+    fn into_response(self) -> Response {
+        axum::Json(self.0).into_response()
+    }
+}
+
+/// Query boundary paired with [`Json`]. Query structs are subject to the same
+/// closed-shape rule, including flattened cursor pagination fields.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct Query<T>(pub T);
+
+impl<T, S> FromRequestParts<S> for Query<T>
+where
+    T: DeserializeOwned,
+    S: Send + Sync,
+{
+    type Rejection = Response;
+
+    async fn from_request_parts(
+        parts: &mut axum::http::request::Parts,
+        _state: &S,
+    ) -> std::result::Result<Self, Self::Rejection> {
+        let query = parts.uri.query().unwrap_or_default();
+        let deserializer =
+            serde_urlencoded::Deserializer::new(form_urlencoded::parse(query.as_bytes()));
+        let mut unknown_field = None;
+        let value = serde_ignored::deserialize(deserializer, |path| {
+            if unknown_field.is_none() {
+                unknown_field = Some(path.to_string());
+            }
+        })
+        .map_err(|_| input_rejection(MaviError::validation("invalid_query")))?;
+
+        if let Some(field) = unknown_field {
+            return Err(input_rejection(MaviError::validation_field(
+                "unknown_field",
+                field,
+            )));
+        }
+
+        Ok(Self(value))
+    }
+}
+
+impl<T> std::ops::Deref for Json<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<T> std::ops::Deref for Query<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+fn input_rejection(error: MaviError) -> Response {
+    let status = status_code(error.code());
+    (status, axum::Json(ErrorEnvelope::from(error))).into_response()
+}
+
+fn is_json_content_type(headers: &HeaderMap) -> bool {
+    let Some(value) = headers.get(CONTENT_TYPE) else {
+        return false;
+    };
+    let Ok(value) = value.to_str() else {
+        return false;
+    };
+    let media_type = value.split(';').next().unwrap_or_default().trim();
+    media_type == "application/json"
+        || (media_type.starts_with("application/") && media_type.ends_with("+json"))
 }
 
 /// Returns the complete site API catalog used by documentation and clients.
@@ -2205,7 +2340,7 @@ fn authorization_token(request: &Request<axum::body::Body>) -> Result<Option<&st
 async fn setup_status<R>(
     State(state): State<HttpState<R>>,
     Extension(context): Extension<SiteContext>,
-) -> Result<axum::Json<SetupStatus>, HttpError>
+) -> Result<Json<SetupStatus>, HttpError>
 where
     R: SiteResolver,
 {
@@ -6352,5 +6487,54 @@ mod tests {
                 .iter()
                 .any(|endpoint| endpoint.operation_id == "content_types.upsert")
         );
+    }
+
+    #[tokio::test]
+    async fn json_boundary_rejects_unknown_fields_with_a_typed_error() {
+        #[derive(Debug, Deserialize)]
+        #[allow(dead_code)]
+        struct Input {
+            value: String,
+        }
+
+        let request = Request::builder()
+            .header(CONTENT_TYPE, "application/json")
+            .body(Body::from(r#"{"value":"ok","typo":true}"#))
+            .expect("request");
+        let response = Json::<Input>::from_request(request, &())
+            .await
+            .expect_err("unknown JSON field");
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+        let body = to_bytes(response.into_body(), 4096)
+            .await
+            .expect("error body");
+        let error: Value = serde_json::from_slice(&body).expect("JSON error");
+        assert_eq!(error["error"]["code"], "unknown_field");
+        assert_eq!(error["error"]["field"], "typo");
+    }
+
+    #[tokio::test]
+    async fn query_boundary_rejects_unknown_fields_with_a_typed_error() {
+        #[derive(Debug, Deserialize)]
+        #[allow(dead_code)]
+        struct Filter {
+            limit: Option<u32>,
+        }
+
+        let request = Request::builder()
+            .uri("/api/v1/content?limit=10&typo=1")
+            .body(Body::empty())
+            .expect("request");
+        let (mut parts, _) = request.into_parts();
+        let response = Query::<Filter>::from_request_parts(&mut parts, &())
+            .await
+            .expect_err("unknown query field");
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+        let body = to_bytes(response.into_body(), 4096)
+            .await
+            .expect("error body");
+        let error: Value = serde_json::from_slice(&body).expect("JSON error");
+        assert_eq!(error["error"]["code"], "unknown_field");
+        assert_eq!(error["error"]["field"], "typo");
     }
 }

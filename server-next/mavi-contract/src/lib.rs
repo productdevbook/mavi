@@ -574,6 +574,7 @@ impl Api {
                 "ErrorBody".to_owned(),
                 json!({
                     "type": "object",
+                    "additionalProperties": false,
                     "required": ["code", "message"],
                     "properties": {
                         "code": {"type": "string"},
@@ -586,6 +587,7 @@ impl Api {
                 "ErrorEnvelope".to_owned(),
                 json!({
                     "type": "object",
+                    "additionalProperties": false,
                     "required": ["error"],
                     "properties": {"error": {"$ref": "#/components/schemas/ErrorBody"}},
                 }),
@@ -594,10 +596,8 @@ impl Api {
         let mut errors = Vec::new();
 
         for shape in &self.shapes {
-            if schemas
-                .insert(shape.name.clone(), shape.schema.clone())
-                .is_some()
-            {
+            let schema = strict_object_schema(&shape.schema);
+            if schemas.insert(shape.name.clone(), schema).is_some() {
                 errors.push(format!("duplicate schema: {}", shape.name));
             }
         }
@@ -894,6 +894,25 @@ impl Api {
         }
         Ok(json!({"tools": tools}))
     }
+}
+
+/// Object-shaped contract inputs are closed at the boundary. Domains can
+/// still explicitly opt a nested value into arbitrary keys (for example
+/// content fields or flow configuration); only the named shape itself gets
+/// this default. The HTTP extractor applies the same rule at runtime.
+fn strict_object_schema(schema: &Value) -> Value {
+    let Value::Object(values) = schema else {
+        return schema.clone();
+    };
+    if values.get("type").and_then(Value::as_str) != Some("object")
+        || values.contains_key("additionalProperties")
+    {
+        return schema.clone();
+    }
+
+    let mut strict = values.clone();
+    strict.insert("additionalProperties".to_owned(), Value::Bool(false));
+    Value::Object(strict)
 }
 
 fn query_parameters(api: &Api, shape_name: &str) -> Result<Vec<Value>, Vec<String>> {
@@ -1514,6 +1533,10 @@ mod tests {
         assert!(operation.get("requestBody").is_none());
         assert_eq!(operation["parameters"][0]["name"], "after");
         assert_eq!(operation["parameters"][1]["name"], "limit");
+        assert_eq!(
+            document["components"]["schemas"]["PeopleListFilter"]["additionalProperties"],
+            false
+        );
     }
 
     #[test]
@@ -1589,6 +1612,41 @@ mod tests {
             api.typescript()
                 .expect("TypeScript")
                 .contains("location: \"raw\"")
+        );
+    }
+
+    #[test]
+    fn strict_top_level_shapes_keep_nested_open_maps_open() {
+        let api = Api::new([Endpoint::new(
+            Method::Post,
+            "/api/v1/content",
+            "content.create",
+            "Create content",
+        )
+        .public_mutation()
+        .takes("CreateContent")
+        .returns(201, "Content")])
+        .with_shapes([
+            Shape::new(
+                "CreateContent",
+                json!({
+                    "type": "object",
+                    "properties": {
+                        "fields": {"type": "object", "additionalProperties": true}
+                    }
+                }),
+            ),
+            Shape::new("Content", json!({"type": "object"})),
+        ]);
+
+        let document = api.openapi("Mavi", "0.1.0").expect("OpenAPI");
+        assert_eq!(
+            document["components"]["schemas"]["CreateContent"]["additionalProperties"],
+            false
+        );
+        assert_eq!(
+            document["components"]["schemas"]["CreateContent"]["properties"]["fields"]["additionalProperties"],
+            true
         );
     }
 

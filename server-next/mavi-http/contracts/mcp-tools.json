@@ -64,7 +64,8 @@
                   "removed"
                 ]
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -118,7 +119,8 @@
                   "format": "uuid"
                 }
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -169,7 +171,8 @@
                   "removed"
                 ]
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -211,7 +214,8 @@
                 "minimum": 1,
                 "maximum": 100
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -262,10 +266,12 @@
                     "action": {
                       "type": "string"
                     }
-                  }
+                  },
+                  "additionalProperties": false
                 }
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -323,10 +329,12 @@
                     "action": {
                       "type": "string"
                     }
-                  }
+                  },
+                  "additionalProperties": false
                 }
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -391,7 +399,8 @@
                   "archived"
                 ]
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -514,7 +523,8 @@
                   }
                 ]
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -611,7 +621,8 @@
                   }
                 ]
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -694,7 +705,8 @@
                 "type": "string",
                 "format": "date-time"
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -841,7 +853,8 @@
                 "minimum": 1,
                 "maximum": 100
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -930,10 +943,12 @@
                         "maxLength": 200
                       }
                     }
-                  }
+                  },
+                  "additionalProperties": false
                 }
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -1021,7 +1036,8 @@
                 "minimum": 1,
                 "maximum": 100
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -1125,7 +1141,8 @@
                 ],
                 "maxLength": 64
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -1166,7 +1183,8 @@
                 "minimum": 1,
                 "maximum": 100
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -1210,7 +1228,8 @@
               "is_default": {
                 "type": "boolean"
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -1263,7 +1282,8 @@
                   "null"
                 ]
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -1364,7 +1384,8 @@
               "roots": {
                 "type": "boolean"
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -1425,7 +1446,8 @@
                 ],
                 "format": "uuid"
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -1514,7 +1536,8 @@
                 ],
                 "format": "uuid"
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -1636,7 +1659,8 @@
                   "format": "uuid"
                 }
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -1689,7 +1713,8 @@
                 "minimum": 1,
                 "maximum": 100
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -1740,7 +1765,8 @@
                   "document"
                 ]
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -1781,7 +1807,8 @@
                 "minLength": 1,
                 "maxLength": 255
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -1930,7 +1957,8 @@
                 ],
                 "maxLength": 255
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -2014,7 +2042,8 @@
                   "term"
                 ]
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -2143,7 +2172,8 @@
                   "published"
                 ]
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -2268,7 +2298,8 @@
                 "minimum": 1,
                 "maximum": 100
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -2511,7 +2542,8 @@
                 "minimum": 1,
                 "maximum": 100
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -2623,7 +2655,8 @@
                 "minimum": 1,
                 "maximum": 100
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -2964,7 +2997,8 @@
               "unread": {
                 "type": "boolean"
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -3076,7 +3110,8 @@
                 "minimum": 1,
                 "maximum": 100
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -3366,7 +3401,8 @@
                 "minimum": 1,
                 "maximum": 100
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -3590,7 +3626,8 @@
                   "complained"
                 ]
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -3737,7 +3774,8 @@
                   "cancelled"
                 ]
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -3966,7 +4004,8 @@
                 "minimum": 1,
                 "maximum": 100
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -4235,7 +4274,8 @@
                 "minimum": 1,
                 "maximum": 100
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -4397,7 +4437,8 @@
                   "given_back"
                 ]
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -4563,7 +4604,8 @@
                   "closed"
                 ]
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -4995,7 +5037,8 @@
                 "minimum": 1,
                 "maximum": 100
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -5258,7 +5301,8 @@
                   "stopped"
                 ]
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -5452,7 +5496,8 @@
                 "minimum": 1,
                 "maximum": 100
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -5594,7 +5639,8 @@
                 ],
                 "maxLength": 120
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -5750,7 +5796,8 @@
                   "null"
                 ]
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -5824,10 +5871,12 @@
                       "type": "object",
                       "additionalProperties": true
                     }
-                  }
+                  },
+                  "additionalProperties": false
                 }
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -5959,10 +6008,12 @@
                       "type": "object",
                       "additionalProperties": true
                     }
-                  }
+                  },
+                  "additionalProperties": false
                 }
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -6042,7 +6093,8 @@
                 "type": "object",
                 "additionalProperties": true
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -6111,7 +6163,8 @@
                   }
                 ]
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -6194,7 +6247,8 @@
                   "null"
                 ]
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -6238,7 +6292,8 @@
                 ],
                 "maxLength": 10000
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -6332,7 +6387,8 @@
                   "null"
                 ]
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -6420,7 +6476,8 @@
                 "minimum": 1,
                 "maximum": 100
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -6469,7 +6526,8 @@
                 "minLength": 1,
                 "maxLength": 120
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -6520,7 +6578,8 @@
                   "format": "uuid"
                 }
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -6580,7 +6639,8 @@
                 ],
                 "format": "uuid"
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -6645,7 +6705,8 @@
                 ],
                 "format": "uuid"
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -6734,7 +6795,8 @@
                   "null"
                 ]
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -6790,7 +6852,8 @@
                 ],
                 "format": "uuid"
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -6841,7 +6904,8 @@
                 ],
                 "format": "uuid"
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -6894,7 +6958,8 @@
                 "minimum": 1,
                 "maximum": 100
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -6943,7 +7008,8 @@
                 "minLength": 1,
                 "maxLength": 10000
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -6992,7 +7058,8 @@
                 "minLength": 1,
                 "maxLength": 10000
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -7087,7 +7154,8 @@
                 ],
                 "format": "uuid"
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -7143,7 +7211,8 @@
                 ],
                 "maxLength": 500
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -7198,7 +7267,8 @@
                 ],
                 "maxLength": 500
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -7241,7 +7311,8 @@
                 "minimum": 1,
                 "maximum": 3650
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [
@@ -7379,9 +7450,11 @@
                             "type": "integer",
                             "minimum": 0
                           }
-                        }
+                        },
+                        "additionalProperties": false
                       }
-                    }
+                    },
+                    "additionalProperties": false
                   },
                   "site": {
                     "type": "object",
@@ -7398,7 +7471,8 @@
                         "type": "string",
                         "maxLength": 64
                       }
-                    }
+                    },
+                    "additionalProperties": false
                   },
                   "languages": {
                     "type": "array",
@@ -7421,7 +7495,8 @@
                         "is_default": {
                           "type": "boolean"
                         }
-                      }
+                      },
+                      "additionalProperties": false
                     }
                   },
                   "content_types": {
@@ -7445,7 +7520,8 @@
                         "fields": {
                           "type": "array"
                         }
-                      }
+                      },
+                      "additionalProperties": false
                     }
                   },
                   "terms": {
@@ -7491,7 +7567,8 @@
                           ],
                           "format": "uuid"
                         }
-                      }
+                      },
+                      "additionalProperties": false
                     }
                   },
                   "content": {
@@ -7579,7 +7656,8 @@
                           "type": "string",
                           "format": "date-time"
                         }
-                      }
+                      },
+                      "additionalProperties": false
                     }
                   },
                   "revisions": {
@@ -7655,7 +7733,8 @@
                           "type": "string",
                           "format": "date-time"
                         }
-                      }
+                      },
+                      "additionalProperties": false
                     }
                   },
                   "slug_history": {
@@ -7683,7 +7762,8 @@
                           "type": "string",
                           "format": "date-time"
                         }
-                      }
+                      },
+                      "additionalProperties": false
                     }
                   },
                   "assignments": {
@@ -7708,10 +7788,12 @@
                           "type": "string",
                           "format": "date-time"
                         }
-                      }
+                      },
+                      "additionalProperties": false
                     }
                   }
-                }
+                },
+                "additionalProperties": false
               },
               "strategy": {
                 "type": "string",
@@ -7721,7 +7803,8 @@
                   "upsert"
                 ]
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required": [

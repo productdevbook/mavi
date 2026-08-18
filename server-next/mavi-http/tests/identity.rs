@@ -2,6 +2,7 @@ use axum::{
     Router,
     http::{Method, StatusCode},
 };
+use mavi_core::SiteContext;
 use serde_json::json;
 
 mod support;
@@ -106,4 +107,85 @@ async fn assert_permission_contract(app: &Router, reader_token: &str) {
     )
     .await;
     assert_eq!(content_list.status(), StatusCode::OK);
+}
+
+#[tokio::test]
+#[ignore = "requires TEST_DATABASE_URL and a non-superuser PostgreSQL role"]
+async fn password_reset_response_is_generic_and_redeems_the_mail_outbox_token() {
+    let (app, database, site_id) = support::build_app_with_database().await;
+    support::bootstrap(&app, "HTTP password reset test").await;
+
+    let known = send(
+        &app,
+        Method::POST,
+        "/api/v1/auth/password-resets",
+        None,
+        Some(json!({"email": "owner@example.com"})),
+    )
+    .await;
+    let unknown = send(
+        &app,
+        Method::POST,
+        "/api/v1/auth/password-resets",
+        None,
+        Some(json!({"email": "missing@example.com"})),
+    )
+    .await;
+    assert_eq!(known.status(), StatusCode::ACCEPTED);
+    assert_eq!(unknown.status(), StatusCode::ACCEPTED);
+    assert_eq!(response_json(known).await, response_json(unknown).await);
+
+    let public_context = SiteContext::public(site_id);
+    let mut tx = database.begin(&public_context).await.expect("mail scope");
+    let body: String = sqlx::query_scalar(
+        "select body from mail_deliveries where site_id = $1 order by created_at desc limit 1",
+    )
+    .bind(site_id.into_uuid())
+    .fetch_one(tx.conn())
+    .await
+    .expect("password reset mail");
+    let token = body
+        .lines()
+        .find(|line| line.starts_with("mavi_reset_"))
+        .expect("reset token in provider-neutral mail")
+        .to_owned();
+    tx.commit().await.expect("mail commit");
+
+    let redeemed = send(
+        &app,
+        Method::POST,
+        "/api/v1/auth/password-resets/redeem",
+        None,
+        Some(json!({
+            "token": token,
+            "password": "new-long-enough-password"
+        })),
+    )
+    .await;
+    assert_eq!(redeemed.status(), StatusCode::NO_CONTENT);
+
+    let old_password = send(
+        &app,
+        Method::POST,
+        "/api/v1/auth/sessions",
+        None,
+        Some(json!({
+            "email": "owner@example.com",
+            "password": "long-enough-password"
+        })),
+    )
+    .await;
+    assert_eq!(old_password.status(), StatusCode::UNAUTHORIZED);
+    let new_password = send(
+        &app,
+        Method::POST,
+        "/api/v1/auth/sessions",
+        None,
+        Some(json!({
+            "email": "owner@example.com",
+            "password": "new-long-enough-password"
+        })),
+    )
+    .await;
+    assert_eq!(new_password.status(), StatusCode::CREATED);
 }

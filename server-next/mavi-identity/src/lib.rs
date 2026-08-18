@@ -16,7 +16,7 @@ use mavi_audit::{AuditEntry, AuditService};
 use mavi_contract::{Api, Endpoint, Method, Permission, Shape};
 use mavi_core::{
     Action, ApiKeyId, Caller, Capability, Cursor, ErrorCode, Grant, Grants, MaviError, Page,
-    PageRequest, PersonId, Result, RoleId, SessionId, SiteContext, SiteId,
+    PageRequest, PasswordResetTokenId, PersonId, Result, RoleId, SessionId, SiteContext, SiteId,
 };
 use mavi_storage::SiteTx;
 use rand::RngExt;
@@ -31,10 +31,13 @@ pub const PERSON_NAME_INVALID: &str = "person_name_invalid";
 pub const PASSWORD_INVALID: &str = "password_invalid";
 pub const API_KEY_NAME_INVALID: &str = "api_key_name_invalid";
 pub const API_KEY_GRANTS_INVALID: &str = "api_key_grants_invalid";
+pub const PASSWORD_RESET_TOKEN_INVALID: &str = "password_reset_token_invalid";
 pub const SITE_NOT_FOUND: &str = "site_not_found";
 pub const PERSON_NOT_FOUND: &str = "person_not_found";
 pub const ROLE_NAME_INVALID: &str = "role_name_invalid";
 pub const ROLE_NOT_FOUND: &str = "role_not_found";
+const PASSWORD_RESET_TTL: Duration = Duration::hours(1);
+const MAX_PASSWORD_RESET_TOKEN_CHARS: usize = 256;
 
 /// Setup and authentication routes are public by design, but every mutation
 /// is explicitly marked in the canonical contract.
@@ -68,6 +71,30 @@ pub fn api() -> Api {
         .public_mutation()
         .takes("LoginInput")
         .returns(201, "SessionCreated"),
+        Endpoint::new(
+            Method::Post,
+            "/api/v1/auth/password-resets",
+            "auth.password_reset.request",
+            "Request a password reset without revealing account existence",
+        )
+        .public_mutation()
+        .takes("PasswordResetRequest")
+        .returns(202, "PasswordResetRequested")
+        .refuses([ErrorCode::Validation, ErrorCode::Internal]),
+        Endpoint::new(
+            Method::Post,
+            "/api/v1/auth/password-resets/redeem",
+            "auth.password_reset.redeem",
+            "Redeem a one-time password reset token",
+        )
+        .public_changes(false)
+        .takes("PasswordResetRedeem")
+        .returns(204, "Empty")
+        .refuses([
+            ErrorCode::Validation,
+            ErrorCode::Conflict,
+            ErrorCode::Internal,
+        ]),
         Endpoint::new(
             Method::Delete,
             "/api/v1/auth/sessions/current",
@@ -256,6 +283,36 @@ fn identity_shapes() -> Vec<Shape> {
                     "email": {"type": "string", "format": "email"},
                     "password": {"type": "string", "format": "password"},
                 },
+            }),
+        ),
+        Shape::new(
+            "PasswordResetRequest",
+            json!({
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["email"],
+                "properties": {"email": {"type": "string", "format": "email"}},
+            }),
+        ),
+        Shape::new(
+            "PasswordResetRedeem",
+            json!({
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["token", "password"],
+                "properties": {
+                    "token": {"type": "string", "minLength": 1, "maxLength": MAX_PASSWORD_RESET_TOKEN_CHARS},
+                    "password": {"type": "string", "format": "password", "minLength": 12},
+                },
+            }),
+        ),
+        Shape::new(
+            "PasswordResetRequested",
+            json!({
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["accepted"],
+                "properties": {"accepted": {"type": "boolean", "const": true}},
             }),
         ),
         Shape::new(
@@ -579,6 +636,29 @@ impl fmt::Debug for LoginInput {
     }
 }
 
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PasswordResetRequestInput {
+    pub email: String,
+}
+
+#[derive(Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PasswordResetRedeemInput {
+    pub token: String,
+    pub password: String,
+}
+
+impl fmt::Debug for PasswordResetRedeemInput {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("PasswordResetRedeemInput")
+            .field("token", &"<redacted>")
+            .field("password", &"<redacted>")
+            .finish()
+    }
+}
+
 #[derive(Clone, Debug, Serialize)]
 pub struct SetupStatus {
     pub initialized: bool,
@@ -711,6 +791,34 @@ pub struct SessionCreated {
     pub id: SessionId,
     pub token: String,
     pub expires_at: DateTime<Utc>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct PasswordResetRequested {
+    pub accepted: bool,
+}
+
+/// Internal application output used by the HTTP composition root to enqueue
+/// a provider-neutral notification in the same site transaction. The raw
+/// token never crosses an API response or an audit record.
+#[derive(Clone)]
+pub struct PasswordResetNotification {
+    pub id: PasswordResetTokenId,
+    pub recipient: Email,
+    pub token: String,
+    pub expires_at: DateTime<Utc>,
+}
+
+impl fmt::Debug for PasswordResetNotification {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("PasswordResetNotification")
+            .field("id", &self.id)
+            .field("recipient", &self.recipient)
+            .field("token", &"<redacted>")
+            .field("expires_at", &self.expires_at)
+            .finish()
+    }
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -926,6 +1034,225 @@ impl IdentityService {
             token,
             expires_at,
         })
+    }
+
+    /// Starts a password reset without disclosing whether the address is an
+    /// account in this site. When an eligible person exists, the returned
+    /// notification is consumed by the application layer to enqueue mail in
+    /// this same transaction.
+    pub async fn request_password_reset(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        input: &PasswordResetRequestInput,
+        now: DateTime<Utc>,
+    ) -> Result<Option<PasswordResetNotification>> {
+        let email = Email::parse(&input.email)?;
+        let email_hash = URL_SAFE_NO_PAD.encode(hash_token(email.as_str()));
+        let row = sqlx::query(
+            "select id, email, status from people
+              where site_id = $1 and email = $2
+              for update",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(email.as_str())
+        .fetch_optional(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?;
+
+        let Some(row) = row else {
+            AuditService
+                .record(
+                    tx,
+                    context,
+                    &AuditEntry {
+                        action: "auth.password_reset.requested".to_owned(),
+                        resource_type: "Site".to_owned(),
+                        resource_id: Some(context.site_id.into_uuid()),
+                        payload: json!({"outcome": "not_found", "email_hash": email_hash}),
+                    },
+                )
+                .await?;
+            return Ok(None);
+        };
+
+        let person_id = PersonId::from_uuid(row.try_get("id").map_err(|_| MaviError::Internal)?);
+        let status: String = row.try_get("status").map_err(|_| MaviError::Internal)?;
+        if status != PersonStatus::Active.as_str() {
+            AuditService
+                .record(
+                    tx,
+                    context,
+                    &AuditEntry {
+                        action: "auth.password_reset.requested".to_owned(),
+                        resource_type: "Person".to_owned(),
+                        resource_id: Some(person_id.into_uuid()),
+                        payload: json!({"outcome": "ineligible", "email_hash": email_hash}),
+                    },
+                )
+                .await?;
+            return Ok(None);
+        }
+
+        let token_id = PasswordResetTokenId::new();
+        let token = new_password_reset_token();
+        let expires_at = now + PASSWORD_RESET_TTL;
+        sqlx::query(
+            "update password_reset_tokens
+                set revoked_at = $3
+              where site_id = $1 and person_id = $2
+                and used_at is null and revoked_at is null",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(person_id.into_uuid())
+        .bind(now)
+        .execute(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?;
+        sqlx::query(
+            "insert into password_reset_tokens
+                (site_id, id, person_id, token_hash, expires_at)
+             values ($1, $2, $3, $4, $5)",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(token_id.into_uuid())
+        .bind(person_id.into_uuid())
+        .bind(hash_token(&token))
+        .bind(expires_at)
+        .execute(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?;
+
+        AuditService
+            .record(
+                tx,
+                context,
+                &AuditEntry {
+                    action: "auth.password_reset.requested".to_owned(),
+                    resource_type: "Person".to_owned(),
+                    resource_id: Some(person_id.into_uuid()),
+                    payload: json!({
+                        "outcome": "issued",
+                        "email_hash": email_hash,
+                        "expires_at": expires_at,
+                    }),
+                },
+            )
+            .await?;
+
+        Ok(Some(PasswordResetNotification {
+            id: token_id,
+            recipient: Email::parse(
+                row.try_get::<String, _>("email")
+                    .map_err(|_| MaviError::Internal)?
+                    .as_str(),
+            )?,
+            token,
+            expires_at,
+        }))
+    }
+
+    /// Redeems one reset token under a row lock. Password changes, session
+    /// revocation, token consumption and audit are one atomic site-scoped
+    /// operation, so a retry can never consume the same token twice.
+    pub async fn redeem_password_reset(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        input: &PasswordResetRedeemInput,
+        now: DateTime<Utc>,
+    ) -> Result<()> {
+        let password = Password::parse(input.password.clone())?;
+        let token = input.token.trim();
+        if token.is_empty()
+            || token.chars().count() > MAX_PASSWORD_RESET_TOKEN_CHARS
+            || token.chars().any(char::is_control)
+        {
+            return Err(MaviError::conflict(PASSWORD_RESET_TOKEN_INVALID));
+        }
+
+        let row = sqlx::query(
+            "select id, person_id from password_reset_tokens
+              where site_id = $1 and token_hash = $2 and expires_at > $3
+                and used_at is null and revoked_at is null
+              for update",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(hash_token(token))
+        .bind(now)
+        .fetch_optional(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?
+        .ok_or_else(|| MaviError::conflict(PASSWORD_RESET_TOKEN_INVALID))?;
+        let token_id =
+            PasswordResetTokenId::from_uuid(row.try_get("id").map_err(|_| MaviError::Internal)?);
+        let person_id =
+            PersonId::from_uuid(row.try_get("person_id").map_err(|_| MaviError::Internal)?);
+        let digest = PasswordDigest::from_password(&password)?;
+
+        let changed = sqlx::query(
+            "update people
+                set password_hash = $3, updated_at = $4
+              where site_id = $1 and id = $2 and status = 'active'",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(person_id.into_uuid())
+        .bind(&digest.0)
+        .bind(now)
+        .execute(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?;
+        if changed.rows_affected() != 1 {
+            return Err(MaviError::conflict(PASSWORD_RESET_TOKEN_INVALID));
+        }
+
+        sqlx::query(
+            "update password_reset_tokens
+                set used_at = $3
+              where site_id = $1 and id = $2 and used_at is null and revoked_at is null",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(token_id.into_uuid())
+        .bind(now)
+        .execute(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?;
+        sqlx::query(
+            "update password_reset_tokens
+                set revoked_at = $3
+              where site_id = $1 and person_id = $2 and id <> $4
+                and used_at is null and revoked_at is null",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(person_id.into_uuid())
+        .bind(now)
+        .bind(token_id.into_uuid())
+        .execute(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?;
+        sqlx::query(
+            "update sessions set revoked_at = $3
+              where site_id = $1 and person_id = $2 and revoked_at is null",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(person_id.into_uuid())
+        .bind(now)
+        .execute(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?;
+
+        AuditService
+            .record(
+                tx,
+                context,
+                &AuditEntry {
+                    action: "auth.password_reset.redeemed".to_owned(),
+                    resource_type: "Person".to_owned(),
+                    resource_id: Some(person_id.into_uuid()),
+                    payload: json!({"password_reset_token_id": token_id}),
+                },
+            )
+            .await
     }
 
     pub async fn authenticate_bearer(
@@ -1802,6 +2129,10 @@ fn new_prefixed_token() -> String {
     format!("mavi_key_{}", new_token())
 }
 
+fn new_password_reset_token() -> String {
+    format!("mavi_reset_{}", new_token())
+}
+
 fn api_key_prefix(token: &str) -> Option<&str> {
     token.strip_prefix("mavi_key_")?;
     token.get(..16)
@@ -1870,6 +2201,26 @@ mod tests {
         let prefix = api_key_prefix(&token).expect("prefix");
         assert_ne!(prefix, token);
         assert!(token.starts_with(prefix));
+    }
+
+    #[test]
+    fn password_reset_tokens_are_prefixed_and_have_no_plaintext_hash_round_trip() {
+        let token = new_password_reset_token();
+        assert!(token.starts_with("mavi_reset_"));
+        assert_eq!(hash_token(&token), hash_token(&token));
+        assert_ne!(hash_token(&token), token.as_bytes());
+    }
+
+    #[test]
+    fn password_reset_redeem_debug_output_redacts_secrets() {
+        let input = PasswordResetRedeemInput {
+            token: "mavi_reset_secret".to_owned(),
+            password: "super-secret-password".to_owned(),
+        };
+        let debug = format!("{input:?}");
+        assert!(debug.contains("<redacted>"));
+        assert!(!debug.contains("mavi_reset_secret"));
+        assert!(!debug.contains("super-secret-password"));
     }
 
     #[test]

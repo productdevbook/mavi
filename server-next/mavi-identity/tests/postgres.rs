@@ -5,8 +5,9 @@ use mavi_core::{
     Action, Caller, Capability, Grant, Grants, MaviError, RequestId, SiteContext, SiteId,
 };
 use mavi_identity::{
-    CreatePerson, CreateRole, IdentityService, PeopleListFilter, PersonStatus, ReplaceRoleGrants,
-    RoleListFilter, SetupInput, UpdatePersonStatus,
+    CreatePerson, CreateRole, IdentityService, LoginInput, PasswordResetRedeemInput,
+    PasswordResetRequestInput, PeopleListFilter, PersonStatus, ReplaceRoleGrants, RoleListFilter,
+    SetupInput, UpdatePersonStatus,
 };
 use mavi_storage::Database;
 
@@ -173,4 +174,121 @@ async fn identity_people_and_roles_are_site_scoped_and_audited() {
     .expect("audit count");
     assert!(audit_count >= 3);
     tx.commit().await.expect("owner commit");
+}
+
+#[tokio::test]
+#[ignore = "requires TEST_DATABASE_URL and a non-superuser PostgreSQL role"]
+#[allow(clippy::too_many_lines)]
+async fn password_reset_is_generic_one_time_and_revokes_sessions() {
+    let url = env::var("TEST_DATABASE_URL").expect("TEST_DATABASE_URL");
+    let database = Database::connect(&url, 2)
+        .await
+        .expect("database connection");
+    database.migrate().await.expect("migrations");
+
+    let site_id = SiteId::new();
+    database.ensure_site(site_id).await.expect("site");
+    let public_context = SiteContext::public(site_id);
+    let service = IdentityService;
+
+    let mut setup_tx = database.begin(&public_context).await.expect("setup scope");
+    service
+        .initialize(
+            &mut setup_tx,
+            &public_context,
+            &SetupInput {
+                site_name: "Password reset test".to_owned(),
+                email: "owner@example.com".to_owned(),
+                name: "Owner".to_owned(),
+                password: "long-enough-password".to_owned(),
+            },
+        )
+        .await
+        .expect("setup");
+    setup_tx.commit().await.expect("setup commit");
+
+    let mut session_tx = database
+        .begin(&public_context)
+        .await
+        .expect("session scope");
+    let session = service
+        .create_session(
+            &mut session_tx,
+            &public_context,
+            &LoginInput {
+                email: "owner@example.com".to_owned(),
+                password: "long-enough-password".to_owned(),
+            },
+            chrono::Utc::now(),
+        )
+        .await
+        .expect("session");
+    session_tx.commit().await.expect("session commit");
+
+    let mut request_tx = database
+        .begin(&public_context)
+        .await
+        .expect("request scope");
+    let notification = service
+        .request_password_reset(
+            &mut request_tx,
+            &public_context,
+            &PasswordResetRequestInput {
+                email: "owner@example.com".to_owned(),
+            },
+            chrono::Utc::now(),
+        )
+        .await
+        .expect("reset request")
+        .expect("eligible account notification");
+    let stored_hash: Vec<u8> = sqlx::query_scalar(
+        "select token_hash from password_reset_tokens where site_id = $1 and id = $2",
+    )
+    .bind(site_id.into_uuid())
+    .bind(notification.id.into_uuid())
+    .fetch_one(request_tx.conn())
+    .await
+    .expect("stored token hash");
+    assert_ne!(stored_hash, notification.token.as_bytes());
+    request_tx.commit().await.expect("request commit");
+
+    let mut redeem_tx = database.begin(&public_context).await.expect("redeem scope");
+    service
+        .redeem_password_reset(
+            &mut redeem_tx,
+            &public_context,
+            &PasswordResetRedeemInput {
+                token: notification.token.clone(),
+                password: "new-long-enough-password".to_owned(),
+            },
+            chrono::Utc::now(),
+        )
+        .await
+        .expect("redeem");
+    redeem_tx.commit().await.expect("redeem commit");
+
+    let mut replay_tx = database.begin(&public_context).await.expect("replay scope");
+    let replay = service
+        .redeem_password_reset(
+            &mut replay_tx,
+            &public_context,
+            &PasswordResetRedeemInput {
+                token: notification.token,
+                password: "another-long-enough-password".to_owned(),
+            },
+            chrono::Utc::now(),
+        )
+        .await
+        .expect_err("a reset token is one-time");
+    assert!(matches!(replay, MaviError::Conflict { .. }));
+
+    let revoked: bool = sqlx::query_scalar(
+        "select revoked_at is not null from sessions where site_id = $1 and id = $2",
+    )
+    .bind(site_id.into_uuid())
+    .bind(session.id.into_uuid())
+    .fetch_one(replay_tx.conn())
+    .await
+    .expect("revoked session");
+    assert!(revoked);
 }

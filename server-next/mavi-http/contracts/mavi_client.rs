@@ -1251,6 +1251,22 @@ pub struct PaginationContract {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct PasswordResetRedeem {
+    pub token: String,
+    pub password: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct PasswordResetRequest {
+    pub email: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct PasswordResetRequested {
+    pub accepted: bool,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct PaymentReceiptInput {
     pub provider: String,
     pub reference: String,
@@ -1942,6 +1958,8 @@ pub const OPERATIONS: &[OperationDefinition] = &[
     OperationDefinition { name: "setup.status", method: "get", path: "/api/v1/setup", request: None, request_location: None, query: None, response: Some("SetupStatus"), response_location: None, status: 200, authentication: "public", capability: None, action: None },
     OperationDefinition { name: "setup.initialize", method: "post", path: "/api/v1/setup", request: Some("SetupInput"), request_location: Some("json"), query: None, response: Some("Person"), response_location: None, status: 201, authentication: "public", capability: None, action: None },
     OperationDefinition { name: "auth.session.create", method: "post", path: "/api/v1/auth/sessions", request: Some("LoginInput"), request_location: Some("json"), query: None, response: Some("SessionCreated"), response_location: None, status: 201, authentication: "public", capability: None, action: None },
+    OperationDefinition { name: "auth.password_reset.request", method: "post", path: "/api/v1/auth/password-resets", request: Some("PasswordResetRequest"), request_location: Some("json"), query: None, response: Some("PasswordResetRequested"), response_location: None, status: 202, authentication: "public", capability: None, action: None },
+    OperationDefinition { name: "auth.password_reset.redeem", method: "post", path: "/api/v1/auth/password-resets/redeem", request: Some("PasswordResetRedeem"), request_location: Some("json"), query: None, response: Some("Empty"), response_location: None, status: 204, authentication: "public", capability: None, action: None },
     OperationDefinition { name: "auth.session.revoke", method: "delete", path: "/api/v1/auth/sessions/current", request: None, request_location: None, query: None, response: Some("Empty"), response_location: None, status: 204, authentication: "account", capability: None, action: None },
     OperationDefinition { name: "auth.api_key.create", method: "post", path: "/api/v1/auth/api-keys", request: Some("CreateApiKey"), request_location: Some("json"), query: None, response: Some("ApiKeyCreated"), response_location: None, status: 201, authentication: "account", capability: Some("people"), action: Some("write") },
     OperationDefinition { name: "auth.api_key.revoke", method: "delete", path: "/api/v1/auth/api-keys/{id}", request: None, request_location: None, query: None, response: Some("Empty"), response_location: None, status: 204, authentication: "account_or_assistant", capability: Some("people"), action: Some("delete") },

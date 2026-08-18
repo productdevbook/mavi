@@ -51,7 +51,8 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Passwords are Argon2id digests; setup and person DTO debug output redacts secrets.
   - [x] Session and API-key authentication/revocation are site-scoped and audited.
   - [x] Provider credentials are site-scoped, sealed at rest, optimistic-versioned and never returned as values.
-  - [ ] Password recovery, email verification and account security events.
+  - [-] Password recovery uses hashed one-time tokens, atomic redemption, session revocation, generic responses and a transactional mail outbox.
+  - [ ] Email verification, reset-mail secrecy policy and broader account security events.
 - [-] Roles, Cedar-backed grants, assistant delegation and revocation.
   - [x] Site-scoped role list/create/grant replacement endpoints are canonicalized.
   - [x] Cedar authorizes HTTP resources and role/person grant delegation cannot escalate.

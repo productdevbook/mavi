@@ -1097,6 +1097,19 @@ export interface PaginationContract {
   max_limit: number;
 }
 
+export interface PasswordResetRedeem {
+  token: string;
+  password: string;
+}
+
+export interface PasswordResetRequest {
+  email: string;
+}
+
+export interface PasswordResetRequested {
+  accepted: boolean;
+}
+
 export interface PaymentReceiptInput {
   provider: string;
   reference: string;
@@ -1695,6 +1708,8 @@ export const operations = {
   "setup.status": { method: "get", path: "/api/v1/setup", input: null, query: null, output: "SetupStatus", status: 200, authentication: "public", permission: null },
   "setup.initialize": { method: "post", path: "/api/v1/setup", input: { location: "json", shape: "SetupInput" }, query: null, output: "Person", status: 201, authentication: "public", permission: null },
   "auth.session.create": { method: "post", path: "/api/v1/auth/sessions", input: { location: "json", shape: "LoginInput" }, query: null, output: "SessionCreated", status: 201, authentication: "public", permission: null },
+  "auth.password_reset.request": { method: "post", path: "/api/v1/auth/password-resets", input: { location: "json", shape: "PasswordResetRequest" }, query: null, output: "PasswordResetRequested", status: 202, authentication: "public", permission: null },
+  "auth.password_reset.redeem": { method: "post", path: "/api/v1/auth/password-resets/redeem", input: { location: "json", shape: "PasswordResetRedeem" }, query: null, output: "Empty", status: 204, authentication: "public", permission: null },
   "auth.session.revoke": { method: "delete", path: "/api/v1/auth/sessions/current", input: null, query: null, output: "Empty", status: 204, authentication: "account", permission: null },
   "auth.api_key.create": { method: "post", path: "/api/v1/auth/api-keys", input: { location: "json", shape: "CreateApiKey" }, query: null, output: "ApiKeyCreated", status: 201, authentication: "account", permission: { capability: "people", action: "write" } },
   "auth.api_key.revoke": { method: "delete", path: "/api/v1/auth/api-keys/{id}", input: null, query: null, output: "Empty", status: 204, authentication: "account_or_assistant", permission: { capability: "people", action: "delete" } },
@@ -1876,6 +1891,8 @@ export interface OperationArguments {
   "setup.status": { path?: never; query?: never; body?: never; }
   "setup.initialize": { path?: never; query?: never; body: SetupInput; }
   "auth.session.create": { path?: never; query?: never; body: LoginInput; }
+  "auth.password_reset.request": { path?: never; query?: never; body: PasswordResetRequest; }
+  "auth.password_reset.redeem": { path?: never; query?: never; body: PasswordResetRedeem; }
   "auth.session.revoke": { path?: never; query?: never; body?: never; }
   "auth.api_key.create": { path?: never; query?: never; body: CreateApiKey; }
   "auth.api_key.revoke": { path: { id: string }; query?: never; body?: never; }
@@ -2055,6 +2072,8 @@ export interface OperationResponses {
   "setup.status": SetupStatus;
   "setup.initialize": Person;
   "auth.session.create": SessionCreated;
+  "auth.password_reset.request": PasswordResetRequested;
+  "auth.password_reset.redeem": void;
   "auth.session.revoke": void;
   "auth.api_key.create": ApiKeyCreated;
   "auth.api_key.revoke": void;

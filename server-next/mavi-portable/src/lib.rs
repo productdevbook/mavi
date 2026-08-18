@@ -10,16 +10,26 @@ use std::collections::BTreeSet;
 use std::fmt::{self, Write as _};
 
 use chrono::{DateTime, Utc};
+pub use mavi_analytics::AnalyticsRelocation;
+use mavi_analytics::AnalyticsService;
 pub use mavi_audit::AuditRelocation;
 use mavi_audit::{AuditEntry, AuditService};
+use mavi_boards::BoardService;
+pub use mavi_boards::BoardsRelocation;
 use mavi_contract::{Endpoint, Method, Permission, Shape};
 use mavi_core::{
     Action, Capability, ErrorCode, MaviError, Result, SiteContext, SiteId, ports::FileStore,
 };
+pub use mavi_courses::CoursesRelocation;
+use mavi_courses::CoursesService;
 pub use mavi_design::DesignRelocation;
 use mavi_design::DesignService;
+use mavi_flows::FlowService;
+pub use mavi_flows::FlowsRelocation;
 use mavi_forms::FormService;
 pub use mavi_forms::FormsRelocation;
+pub use mavi_jobs::JobsRelocation;
+use mavi_jobs::JobsService;
 pub use mavi_mail::MailRelocation;
 use mavi_mail::MailService;
 pub use mavi_media::MediaRelocation;
@@ -249,6 +259,11 @@ pub struct PortableRelocationBundle {
     pub forms: FormsRelocation,
     pub mail: MailRelocation,
     pub shop: ShopRelocation,
+    pub courses: CoursesRelocation,
+    pub jobs: JobsRelocation,
+    pub flows: FlowsRelocation,
+    pub boards: BoardsRelocation,
+    pub analytics: AnalyticsRelocation,
 }
 
 #[derive(Clone, Deserialize, Eq, PartialEq, Serialize)]
@@ -292,6 +307,26 @@ impl fmt::Debug for PortableRelocationBundle {
             .field(
                 "shop_records",
                 &self.shop.record_count().unwrap_or_default(),
+            )
+            .field(
+                "courses_records",
+                &self.courses.record_count().unwrap_or_default(),
+            )
+            .field(
+                "jobs_records",
+                &self.jobs.record_count().unwrap_or_default(),
+            )
+            .field(
+                "flows_records",
+                &self.flows.record_count().unwrap_or_default(),
+            )
+            .field(
+                "boards_records",
+                &self.boards.record_count().unwrap_or_default(),
+            )
+            .field(
+                "analytics_records",
+                &self.analytics.record_count().unwrap_or_default(),
             )
             .field(
                 "trash_records",
@@ -564,6 +599,11 @@ impl PortableRelocationBundle {
         self.forms.validate_for_relocation(target_site)?;
         self.mail.validate_for_relocation(target_site)?;
         self.shop.validate_for_relocation(target_site)?;
+        self.courses.validate_for_relocation(target_site)?;
+        self.jobs.validate_for_relocation(target_site)?;
+        self.flows.validate_for_relocation(target_site)?;
+        self.boards.validate_for_relocation(target_site)?;
+        self.analytics.validate_for_relocation(target_site)?;
         let bytes = serde_json::to_vec(self).map_err(|_| MaviError::Internal)?;
         if bytes.len() > MAX_RELOCATION_BUNDLE_BYTES {
             return Err(MaviError::validation(
@@ -583,6 +623,16 @@ impl PortableRelocationBundle {
         let mail_count = usize::try_from(self.mail.record_count()?)
             .map_err(|_| MaviError::validation("portable_record_count_overflow"))?;
         let shop_count = usize::try_from(self.shop.record_count()?)
+            .map_err(|_| MaviError::validation("portable_record_count_overflow"))?;
+        let courses_count = usize::try_from(self.courses.record_count()?)
+            .map_err(|_| MaviError::validation("portable_record_count_overflow"))?;
+        let jobs_count = usize::try_from(self.jobs.record_count()?)
+            .map_err(|_| MaviError::validation("portable_record_count_overflow"))?;
+        let flows_count = usize::try_from(self.flows.record_count()?)
+            .map_err(|_| MaviError::validation("portable_record_count_overflow"))?;
+        let boards_count = usize::try_from(self.boards.record_count()?)
+            .map_err(|_| MaviError::validation("portable_record_count_overflow"))?;
+        let analytics_count = usize::try_from(self.analytics.record_count()?)
             .map_err(|_| MaviError::validation("portable_record_count_overflow"))?;
         let count = self
             .bundle
@@ -607,6 +657,11 @@ impl PortableRelocationBundle {
             .and_then(|value| value.checked_add(forms_count))
             .and_then(|value| value.checked_add(mail_count))
             .and_then(|value| value.checked_add(shop_count))
+            .and_then(|value| value.checked_add(courses_count))
+            .and_then(|value| value.checked_add(jobs_count))
+            .and_then(|value| value.checked_add(flows_count))
+            .and_then(|value| value.checked_add(boards_count))
+            .and_then(|value| value.checked_add(analytics_count))
             .ok_or(MaviError::validation("portable_record_count_overflow"))?;
         i64::try_from(count).map_err(|_| MaviError::validation("portable_record_count_overflow"))
     }
@@ -835,6 +890,13 @@ impl PortableService {
         let forms = FormService.export_for_relocation(tx, context).await?;
         let mail = MailService.export_for_relocation(tx, context).await?;
         let shop = ShopService.export_for_relocation(tx, context).await?;
+        let courses = CoursesService.export_for_relocation(tx, context).await?;
+        let jobs = JobsService::new([])
+            .export_for_relocation(tx, context)
+            .await?;
+        let flows = FlowService.export_for_relocation(tx, context).await?;
+        let boards = BoardService.export_for_relocation(tx, context).await?;
+        let analytics = AnalyticsService.export_for_relocation(tx, context).await?;
         let relocation = PortableRelocationBundle {
             bundle,
             identity,
@@ -846,6 +908,11 @@ impl PortableService {
             forms,
             mail,
             shop,
+            courses,
+            jobs,
+            flows,
+            boards,
+            analytics,
         };
         relocation.validate_for_relocation(context.site_id)?;
         Ok(relocation)
@@ -919,6 +986,21 @@ impl PortableService {
             .await?;
         ShopService
             .import_for_relocation(tx, context, &request.bundle.shop)
+            .await?;
+        CoursesService
+            .import_for_relocation(tx, context, &request.bundle.courses)
+            .await?;
+        FlowService
+            .import_for_relocation(tx, context, &request.bundle.flows)
+            .await?;
+        BoardService
+            .import_for_relocation(tx, context, &request.bundle.boards)
+            .await?;
+        AnalyticsService
+            .import_for_relocation(tx, context, &request.bundle.analytics)
+            .await?;
+        JobsService::new([])
+            .import_for_relocation(tx, context, &request.bundle.jobs)
             .await?;
         AuditService
             .import_for_relocation(tx, context, &request.bundle.audit)
@@ -2277,6 +2359,11 @@ mod tests {
             forms: FormsRelocation::empty(source_site),
             mail: MailRelocation::empty(source_site),
             shop: ShopRelocation::empty(source_site),
+            courses: CoursesRelocation::empty(source_site),
+            jobs: JobsRelocation::empty(source_site),
+            flows: FlowsRelocation::empty(source_site),
+            boards: BoardsRelocation::empty(source_site),
+            analytics: AnalyticsRelocation::empty(source_site),
         };
         envelope
             .validate_for_relocation(envelope.bundle.manifest.source_site_id)

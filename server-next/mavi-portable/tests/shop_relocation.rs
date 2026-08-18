@@ -293,6 +293,11 @@ async fn shop_relocation_preserves_catalog_orders_stock_and_redacts_live_payment
     relocation.forms.source_site_id = target_site;
     relocation.mail.source_site_id = target_site;
     relocation.shop.source_site_id = target_site;
+    relocation.courses.source_site_id = target_site;
+    relocation.jobs.source_site_id = target_site;
+    relocation.flows.source_site_id = target_site;
+    relocation.boards.source_site_id = target_site;
+    relocation.analytics.source_site_id = target_site;
 
     let target_context = SiteContext::public(target_site);
     let mut target_tx = database.begin(&target_context).await.expect("target scope");

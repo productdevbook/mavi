@@ -1746,13 +1746,18 @@ name = "mavi-portable"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "mavi-analytics",
  "mavi-audit",
+ "mavi-boards",
  "mavi-contract",
  "mavi-core",
+ "mavi-courses",
  "mavi-design",
  "mavi-files",
+ "mavi-flows",
  "mavi-forms",
  "mavi-identity",
+ "mavi-jobs",
  "mavi-mail",
  "mavi-media",
  "mavi-shop",

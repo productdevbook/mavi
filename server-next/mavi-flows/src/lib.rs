@@ -23,6 +23,12 @@ use serde_json::{Value, json};
 use sqlx::{Postgres, QueryBuilder, Row};
 use uuid::Uuid;
 
+mod relocation;
+
+pub use relocation::{
+    FlowRelocation, FlowRunRelocation, FlowRunStepRelocation, FlowStepRelocation, FlowsRelocation,
+};
+
 pub const FLOW_START_KIND: JobKind = JobKind::new("automation.flow.start", 5);
 pub const FLOW_STEP_KIND: JobKind = JobKind::new("automation.flow.step", 5);
 pub const MAX_FLOW_STEPS: usize = 32;

@@ -7,6 +7,7 @@
 mod auth;
 mod courses;
 mod learning;
+mod relocation;
 mod students;
 
 use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
@@ -23,6 +24,11 @@ pub use courses::{
     UpdateModule,
 };
 pub use learning::{LearningCourse, LearningCourseListFilter, LearningLesson, Progress};
+pub use relocation::{
+    CourseLessonRelocation, CourseModuleRelocation, CourseRelocation,
+    CourseStudentCredentialRelocation, CourseStudentRelocation, CoursesRelocation,
+    EnrollmentRelocation, ProgressRelocation,
+};
 pub use students::{
     CreateStudent, EnrollStudent, Enrollment, EnrollmentListFilter, Student, StudentInvitation,
     StudentListFilter, StudentStanding, UpdateStudent,

@@ -3996,6 +3996,14 @@
               "minLength": 1,
               "maxLength": 255
             }
+          },
+          {
+            "name": "visibility",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/FileVisibility"
+            }
           }
         ],
         "security": [
@@ -4175,6 +4183,152 @@
           },
           "errors": [
             "forbidden",
+            "not_found",
+            "internal"
+          ]
+        }
+      }
+    },
+    "/api/v1/files/{id}/content": {
+      "get": {
+        "operationId": "media.files.download",
+        "summary": "Download file bytes for an authorized site caller",
+        "tags": [
+          "media"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileBytes"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-mavi": {
+          "scope": "site",
+          "authentication": "account_or_assistant",
+          "mutation": "none",
+          "permission": {
+            "capability": "media",
+            "action": "view"
+          },
+          "errors": [
+            "forbidden",
+            "not_found",
+            "internal"
+          ]
+        }
+      }
+    },
+    "/public/v1/files/{id}": {
+      "get": {
+        "operationId": "media.files.public_download",
+        "summary": "Download a file explicitly marked public",
+        "tags": [
+          "media"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileBytes"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {}
+        ],
+        "x-mavi": {
+          "scope": "site",
+          "authentication": "public",
+          "mutation": "none",
+          "permission": null,
+          "errors": [
             "not_found",
             "internal"
           ]
@@ -19798,6 +19952,7 @@
         "required": [
           "id",
           "kind",
+          "visibility",
           "mime",
           "name",
           "bytes",
@@ -19811,6 +19966,9 @@
           },
           "kind": {
             "$ref": "#/components/schemas/FileKind"
+          },
+          "visibility": {
+            "$ref": "#/components/schemas/FileVisibility"
           },
           "mime": {
             "type": "string",
@@ -19892,6 +20050,13 @@
           }
         },
         "additionalProperties": false
+      },
+      "FileVisibility": {
+        "type": "string",
+        "enum": [
+          "private",
+          "public"
+        ]
       },
       "Flow": {
         "type": "object",
@@ -24156,6 +24321,9 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 255
+          },
+          "visibility": {
+            "$ref": "#/components/schemas/FileVisibility"
           }
         },
         "additionalProperties": false

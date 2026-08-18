@@ -91,9 +91,10 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
 - [-] Media metadata, uploads, image variants, file storage and cleanup.
   - [x] Site-scoped file metadata, byte-sniffed allowlist, SHA-256 receipt and opaque cursor listing.
   - [x] Raw binary upload contract, local atomic file adapter and in-memory test adapter.
+  - [x] Explicit private/public visibility, authenticated downloads and public downloads with integrity verification.
   - [x] RLS/composite keys, Cedar media grants, upload/trash audit receipts and durable cleanup tasks.
   - [x] Private shard relocation exports live metadata plus verified bytes and retries through the site-scoped `FileStore`.
-  - [ ] Image variants, authenticated/public binary download and orphan cleanup worker.
+  - [ ] Image variants and orphan cleanup worker.
 
 ## Operations and publishing
 

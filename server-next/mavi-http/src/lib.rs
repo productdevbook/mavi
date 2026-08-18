@@ -15,7 +15,7 @@ use axum::{
     extract::{DefaultBodyLimit, FromRequest, FromRequestParts, Path, State},
     http::{
         HeaderMap, HeaderValue, Method as HttpMethod, Request, StatusCode,
-        header::{AUTHORIZATION, CACHE_CONTROL, CONTENT_TYPE, HOST},
+        header::{AUTHORIZATION, CACHE_CONTROL, CONTENT_LENGTH, CONTENT_TYPE, HOST},
     },
     middleware::{self, Next},
     response::{IntoResponse, Response},
@@ -1116,6 +1116,8 @@ where
             "/api/v1/files/{id}",
             get(read_file::<R>).delete(delete_file::<R>),
         )
+        .route("/api/v1/files/{id}/content", get(download_file::<R>))
+        .route("/public/v1/files/{id}", get(public_file::<R>))
 }
 
 fn credentials_routes<R>() -> Router<HttpState<R>>
@@ -3241,6 +3243,7 @@ where
             &context,
             state.file_store.as_ref(),
             &query.name,
+            query.visibility,
             body.to_vec(),
         )
         .await
@@ -3272,6 +3275,66 @@ where
         .map_err(HttpError)?;
     transaction.commit().await.map_err(HttpError)?;
     Ok(Json(file))
+}
+
+async fn download_file<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<FileId>,
+) -> Result<Response, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Media, Action::View),
+        "File",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let (file, bytes) = state
+        .media
+        .read_bytes(&mut transaction, &context, state.file_store.as_ref(), id)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    media_response(file, bytes, false)
+}
+
+async fn public_file<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<FileId>,
+) -> Result<Response, HttpError>
+where
+    R: SiteResolver,
+{
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let (file, bytes) = state
+        .media
+        .read_public_bytes(&mut transaction, &context, state.file_store.as_ref(), id)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    media_response(file, bytes, true)
+}
+
+fn media_response(file: FileRecord, bytes: Vec<u8>, public: bool) -> Result<Response, HttpError> {
+    let cache_control = if public {
+        "public, max-age=31536000, immutable"
+    } else {
+        "private, no-store"
+    };
+    Response::builder()
+        .status(StatusCode::OK)
+        .header(CONTENT_TYPE, file.mime)
+        .header(CONTENT_LENGTH, bytes.len())
+        .header(CACHE_CONTROL, cache_control)
+        .header("content-disposition", "inline")
+        .header("x-content-type-options", "nosniff")
+        .body(Body::from(bytes))
+        .map_err(|_| HttpError(MaviError::Internal))
 }
 
 async fn delete_file<R>(

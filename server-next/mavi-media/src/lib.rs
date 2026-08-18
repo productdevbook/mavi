@@ -29,6 +29,7 @@ pub const FILE_TOO_LARGE: &str = "media_file_too_large";
 pub const FILE_KIND_UNSUPPORTED: &str = "media_file_kind_unsupported";
 pub const FILE_NAME_INVALID: &str = "media_file_name_invalid";
 pub const FILE_NAME_TOO_LONG: &str = "media_file_name_too_long";
+pub const FILE_VISIBILITY_INVALID: &str = "media_file_visibility_invalid";
 
 pub const MAX_FILE_BYTES: usize = 100 * 1024 * 1024;
 /// Maximum raw binary payload carried by one private shard relocation.
@@ -70,6 +71,32 @@ impl FileKind {
     }
 }
 
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum FileVisibility {
+    #[default]
+    Private,
+    Public,
+}
+
+impl FileVisibility {
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Private => "private",
+            Self::Public => "public",
+        }
+    }
+
+    fn parse(value: &str) -> Result<Self> {
+        match value {
+            "private" => Ok(Self::Private),
+            "public" => Ok(Self::Public),
+            _ => Err(MaviError::Internal),
+        }
+    }
+}
+
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct FileListFilter {
     #[serde(flatten)]
@@ -81,12 +108,15 @@ pub struct FileListFilter {
 #[serde(deny_unknown_fields)]
 pub struct UploadFileQuery {
     pub name: String,
+    #[serde(default)]
+    pub visibility: FileVisibility,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct FileRecord {
     pub id: FileId,
     pub kind: FileKind,
+    pub visibility: FileVisibility,
     pub mime: String,
     pub name: String,
     pub bytes: u64,
@@ -110,6 +140,7 @@ pub struct MediaRelocation {
 pub struct MediaRelocationFile {
     pub id: FileId,
     pub kind: FileKind,
+    pub visibility: FileVisibility,
     pub mime: String,
     pub name: String,
     pub storage_key: String,
@@ -179,6 +210,7 @@ pub fn api() -> mavi_contract::Api {
 }
 
 #[must_use]
+#[allow(clippy::too_many_lines)]
 pub fn endpoints() -> Vec<Endpoint> {
     vec![
         Endpoint::new(
@@ -238,6 +270,32 @@ pub fn endpoints() -> Vec<Endpoint> {
             ErrorCode::Internal,
         ]),
         Endpoint::new(
+            Method::Get,
+            "/api/v1/files/{id}/content",
+            "media.files.download",
+            "Download file bytes for an authorized site caller",
+        )
+        .account_or_assistant()
+        .requires(Permission {
+            capability: Capability::Media,
+            action: Action::View,
+        })
+        .returns_raw(200, "FileBytes")
+        .refuses([
+            ErrorCode::Forbidden,
+            ErrorCode::NotFound,
+            ErrorCode::Internal,
+        ]),
+        Endpoint::new(
+            Method::Get,
+            "/public/v1/files/{id}",
+            "media.files.public_download",
+            "Download a file explicitly marked public",
+        )
+        .public()
+        .returns_raw(200, "FileBytes")
+        .refuses([ErrorCode::NotFound, ErrorCode::Internal]),
+        Endpoint::new(
             Method::Delete,
             "/api/v1/files/{id}",
             "media.files.trash",
@@ -266,6 +324,10 @@ pub fn shapes() -> Vec<Shape> {
             json!({"type": "string", "enum": ["image", "video", "audio", "document"]}),
         ),
         Shape::new(
+            "FileVisibility",
+            json!({"type": "string", "enum": ["private", "public"]}),
+        ),
+        Shape::new(
             "FileListFilter",
             json!({
                 "type": "object",
@@ -281,7 +343,10 @@ pub fn shapes() -> Vec<Shape> {
             json!({
                 "type": "object",
                 "required": ["name"],
-                "properties": {"name": {"type": "string", "minLength": 1, "maxLength": 255}},
+                "properties": {
+                    "name": {"type": "string", "minLength": 1, "maxLength": 255},
+                    "visibility": {"$ref": "#/components/schemas/FileVisibility"},
+                },
             }),
         ),
         Shape::new("FileBytes", json!({"type": "string", "format": "binary"})),
@@ -289,10 +354,11 @@ pub fn shapes() -> Vec<Shape> {
             "File",
             json!({
                 "type": "object",
-                "required": ["id", "kind", "mime", "name", "bytes", "sha256", "created_at"],
+                "required": ["id", "kind", "visibility", "mime", "name", "bytes", "sha256", "created_at"],
                 "properties": {
                     "id": {"type": "string", "format": "uuid"},
                     "kind": {"$ref": "#/components/schemas/FileKind"},
+                    "visibility": {"$ref": "#/components/schemas/FileVisibility"},
                     "mime": {"type": "string", "maxLength": 127},
                     "name": {"type": "string", "maxLength": 255},
                     "bytes": {"type": "integer", "format": "int64", "minimum": 1},
@@ -345,6 +411,7 @@ impl MediaService {
         context: &SiteContext,
         store: &dyn FileStore,
         name: &str,
+        visibility: FileVisibility,
         bytes: Vec<u8>,
     ) -> Result<FileRecord> {
         let detected = detect(&bytes)?;
@@ -359,13 +426,14 @@ impl MediaService {
 
         let Ok(row) = sqlx::query(
             "insert into media_files
-                (site_id, id, kind, mime, name, storage_key, bytes, sha256)
-             values ($1, $2, $3, $4, $5, $6, $7, $8)
-             returning id, kind, mime, name, storage_key, bytes, sha256, created_at",
+                (site_id, id, kind, visibility, mime, name, storage_key, bytes, sha256)
+             values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+             returning id, kind, visibility, mime, name, storage_key, bytes, sha256, created_at",
         )
         .bind(context.site_id.into_uuid())
         .bind(id.into_uuid())
         .bind(detected.kind.as_str())
+        .bind(visibility.as_str())
         .bind(detected.mime)
         .bind(&name)
         .bind(&storage_key)
@@ -387,7 +455,7 @@ impl MediaService {
                     action: "media.file.uploaded".to_owned(),
                     resource_type: "File".to_owned(),
                     resource_id: Some(id.into_uuid()),
-                    payload: json!({"kind": file.record.kind, "bytes": file.record.bytes, "mime": file.record.mime}),
+                    payload: json!({"kind": file.record.kind, "visibility": file.record.visibility, "bytes": file.record.bytes, "mime": file.record.mime}),
                 },
             )
             .await
@@ -409,7 +477,7 @@ impl MediaService {
         store: &dyn FileStore,
     ) -> Result<MediaRelocation> {
         let rows = sqlx::query(
-            "select id, kind, mime, name, storage_key, bytes, sha256, created_at
+            "select id, kind, visibility, mime, name, storage_key, bytes, sha256, created_at
                from media_files
               where site_id = $1 and deleted_at is null
               order by created_at asc, id asc",
@@ -433,6 +501,7 @@ impl MediaService {
             files.push(MediaRelocationFile {
                 id: stored.record.id,
                 kind: stored.record.kind,
+                visibility: stored.record.visibility,
                 mime: stored.record.mime,
                 name: stored.record.name,
                 storage_key: stored.storage_key,
@@ -465,10 +534,11 @@ impl MediaService {
                 .await?;
             sqlx::query(
                 "insert into media_files
-                    (site_id, id, kind, mime, name, storage_key, bytes, sha256, created_at)
-                 values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                    (site_id, id, kind, visibility, mime, name, storage_key, bytes, sha256, created_at)
+                 values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
                  on conflict (site_id, id) do update set
-                    kind = excluded.kind, mime = excluded.mime, name = excluded.name,
+                    kind = excluded.kind, visibility = excluded.visibility,
+                    mime = excluded.mime, name = excluded.name,
                     storage_key = excluded.storage_key, bytes = excluded.bytes,
                     sha256 = excluded.sha256, created_at = excluded.created_at,
                     deleted_at = null",
@@ -476,6 +546,7 @@ impl MediaService {
             .bind(context.site_id.into_uuid())
             .bind(file.id.into_uuid())
             .bind(file.kind.as_str())
+            .bind(file.visibility.as_str())
             .bind(&file.mime)
             .bind(&file.name)
             .bind(&file.storage_key)
@@ -516,7 +587,7 @@ impl MediaService {
         let after = filter.page.after.as_ref().map(decode_cursor).transpose()?;
         let limit = i64::from(filter.page.effective_limit());
         let mut query = sqlx::QueryBuilder::<sqlx::Postgres>::new(
-            "select id, kind, mime, name, storage_key, bytes, sha256, created_at
+            "select id, kind, visibility, mime, name, storage_key, bytes, sha256, created_at
                from media_files where site_id = ",
         );
         query
@@ -567,7 +638,7 @@ impl MediaService {
         id: FileId,
     ) -> Result<FileRecord> {
         let row = sqlx::query(
-            "select id, kind, mime, name, storage_key, bytes, sha256, created_at
+            "select id, kind, visibility, mime, name, storage_key, bytes, sha256, created_at
                from media_files
               where site_id = $1 and id = $2 and deleted_at is null",
         )
@@ -593,28 +664,74 @@ impl MediaService {
         store: &dyn FileStore,
         id: FileId,
     ) -> Result<(FileRecord, Vec<u8>)> {
-        let row = sqlx::query(
-            "select id, kind, mime, name, storage_key, bytes, sha256, created_at
-               from media_files
-              where site_id = $1 and id = $2 and deleted_at is null",
-        )
-        .bind(context.site_id.into_uuid())
-        .bind(id.into_uuid())
-        .fetch_optional(tx.conn())
-        .await
+        self.read_bytes_for_visibility(tx, context, store, id, None)
+            .await
+    }
+
+    /// Reads bytes only when the file was explicitly marked public. Public
+    /// delivery never treats the absence of a visibility flag as permission;
+    /// the database default is private and this predicate stays at the
+    /// repository boundary.
+    pub async fn read_public_bytes(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        store: &dyn FileStore,
+        id: FileId,
+    ) -> Result<(FileRecord, Vec<u8>)> {
+        self.read_bytes_for_visibility(tx, context, store, id, Some(FileVisibility::Public))
+            .await
+    }
+
+    async fn read_bytes_for_visibility(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        store: &dyn FileStore,
+        id: FileId,
+        visibility: Option<FileVisibility>,
+    ) -> Result<(FileRecord, Vec<u8>)> {
+        let row = match visibility {
+            Some(visibility) => sqlx::query(
+                "select id, kind, visibility, mime, name, storage_key, bytes, sha256, created_at
+                       from media_files
+                      where site_id = $1 and id = $2 and visibility = $3 and deleted_at is null",
+            )
+            .bind(context.site_id.into_uuid())
+            .bind(id.into_uuid())
+            .bind(visibility.as_str())
+            .fetch_optional(tx.conn())
+            .await,
+            None => sqlx::query(
+                "select id, kind, visibility, mime, name, storage_key, bytes, sha256, created_at
+                       from media_files
+                      where site_id = $1 and id = $2 and deleted_at is null",
+            )
+            .bind(context.site_id.into_uuid())
+            .bind(id.into_uuid())
+            .fetch_optional(tx.conn())
+            .await,
+        }
         .map_err(|_| MaviError::Internal)?
         .ok_or(MaviError::NotFound {
             resource: FILE_NOT_FOUND,
         })?;
         let stored = from_row(&row)?;
         let bytes = store.get(context, &stored.storage_key).await?;
+        let expected_bytes = usize::try_from(stored.record.bytes)
+            .map_err(|_| MaviError::validation("media_storage_integrity_failed"))?;
+        if bytes.len() != expected_bytes
+            || hex_digest(&Sha256::digest(&bytes)) != stored.record.sha256
+        {
+            return Err(MaviError::validation("media_storage_integrity_failed"));
+        }
         Ok((stored.record, bytes))
     }
 
     /// Tombstones metadata while retaining the binary for trash restore.
     pub async fn trash(&self, tx: &mut SiteTx, context: &SiteContext, id: FileId) -> Result<()> {
         let row = sqlx::query(
-            "select id, kind, mime, name, storage_key, bytes, sha256, created_at
+            "select id, kind, visibility, mime, name, storage_key, bytes, sha256, created_at
                from media_files
               where site_id = $1 and id = $2 and deleted_at is null
               for update",
@@ -690,12 +807,15 @@ struct StoredFile {
 
 fn from_row(row: &sqlx::postgres::PgRow) -> Result<StoredFile> {
     let kind = FileKind::parse(row.try_get("kind").map_err(|_| MaviError::Internal)?)?;
+    let visibility =
+        FileVisibility::parse(row.try_get("visibility").map_err(|_| MaviError::Internal)?)?;
     let bytes: i64 = row.try_get("bytes").map_err(|_| MaviError::Internal)?;
     let bytes = u64::try_from(bytes).map_err(|_| MaviError::Internal)?;
     Ok(StoredFile {
         record: FileRecord {
             id: FileId::from_uuid(row.try_get("id").map_err(|_| MaviError::Internal)?),
             kind,
+            visibility,
             mime: row.try_get("mime").map_err(|_| MaviError::Internal)?,
             name: row.try_get("name").map_err(|_| MaviError::Internal)?,
             bytes,
@@ -867,6 +987,7 @@ mod tests {
             files: vec![MediaRelocationFile {
                 id,
                 kind: FileKind::Document,
+                visibility: FileVisibility::Private,
                 mime: "application/pdf".to_owned(),
                 name: "document.pdf".to_owned(),
                 storage_key: storage_key(id, "pdf"),
@@ -896,6 +1017,7 @@ mod tests {
             files: vec![MediaRelocationFile {
                 id,
                 kind: FileKind::Image,
+                visibility: FileVisibility::Public,
                 mime: "image/png".to_owned(),
                 name: "image.png".to_owned(),
                 storage_key: storage_key(id, "png"),

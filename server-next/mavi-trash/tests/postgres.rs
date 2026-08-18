@@ -3,7 +3,7 @@ use mavi_content::{ContentService, CreateContent, PublicationInput};
 use mavi_core::ports::FileStore;
 use mavi_core::{MaviError, PageRequest, SiteContext, SiteId};
 use mavi_files::InMemoryFileStore;
-use mavi_media::MediaService;
+use mavi_media::{FileVisibility, MediaService};
 use mavi_storage::Database;
 use mavi_taxonomy::{CreateTerm, TaxonomyService, TermKind};
 use mavi_trash::{TrashKind, TrashListFilter, TrashService};
@@ -77,6 +77,7 @@ async fn trash_lists_restores_and_permanently_deletes_site_resources() {
             &context,
             &store,
             "trash.png",
+            FileVisibility::Private,
             PNG.to_vec(),
         )
         .await

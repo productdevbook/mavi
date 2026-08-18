@@ -177,7 +177,11 @@ are restored only after their referenced builds exist.
 
 Self-host stores binary objects outside PostgreSQL. Set `MAVI_FILES_DIR` to a
 persistent directory (default: `./mavi-files`); object keys are generated from
-file IDs and are always namespaced by `SiteContext.site_id`.
+file IDs and are always namespaced by `SiteContext.site_id`. Uploads are
+private by default; an explicit `visibility=public` upload query is required
+before `/public/v1/files/{id}` can serve bytes. Authenticated callers with the
+media view grant use `/api/v1/files/{id}/content`. Both paths verify the stored
+byte count and SHA-256 receipt before responding.
 
 Design builds use the same `FileStore` boundary. The self-host baseline exposes
 only `public/` source files through the static build engine; `src/` remains

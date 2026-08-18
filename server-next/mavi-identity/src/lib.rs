@@ -35,11 +35,27 @@ pub const API_KEY_GRANTS_INVALID: &str = "api_key_grants_invalid";
 pub const PASSWORD_RESET_TOKEN_INVALID: &str = "password_reset_token_invalid";
 pub const EMAIL_VERIFICATION_TOKEN_INVALID: &str = "email_verification_token_invalid";
 pub const EMAIL_NOT_VERIFIED: &str = "email_not_verified";
-pub const AUTH_REQUEST_RATE_LIMITED: &str = "auth_request_rate_limited";
 pub const SITE_NOT_FOUND: &str = "site_not_found";
 pub const PERSON_NOT_FOUND: &str = "person_not_found";
 pub const ROLE_NAME_INVALID: &str = "role_name_invalid";
 pub const ROLE_NOT_FOUND: &str = "role_not_found";
+
+/// Stable audit action names for account-security events.
+pub mod audit_action {
+    pub const SETUP_INITIALIZED: &str = "auth.setup.initialized";
+    pub const SESSION_FAILED: &str = "auth.session.failed";
+    pub const SESSION_BLOCKED: &str = "auth.session.blocked";
+    pub const SESSION_CREATED: &str = "auth.session.created";
+    pub const SESSION_REVOKED: &str = "auth.session.revoked";
+    pub const PASSWORD_RESET_REQUESTED: &str = "auth.password_reset.requested";
+    pub const PASSWORD_RESET_REDEEMED: &str = "auth.password_reset.redeemed";
+    pub const EMAIL_VERIFICATION_REQUESTED: &str = "auth.email_verification.requested";
+    pub const EMAIL_VERIFICATION_REDEEMED: &str = "auth.email_verification.redeemed";
+    pub const SECURITY_SUBJECT_RATE_LIMITED: &str = "auth.security.subject_rate_limited";
+    pub const SECURITY_EDGE_RATE_LIMITED: &str = "auth.security.edge_rate_limited";
+    pub const API_KEY_CREATED: &str = "auth.api_key.created";
+    pub const API_KEY_REVOKED: &str = "auth.api_key.revoked";
+}
 const PASSWORD_RESET_TTL: Duration = Duration::hours(1);
 const MAX_PASSWORD_RESET_TOKEN_CHARS: usize = 256;
 const EMAIL_VERIFICATION_TTL: Duration = Duration::hours(24);
@@ -83,6 +99,7 @@ pub fn api() -> Api {
             ErrorCode::Validation,
             ErrorCode::Unauthenticated,
             ErrorCode::Conflict,
+            ErrorCode::RateLimited,
             ErrorCode::Internal,
         ]),
         Endpoint::new(
@@ -94,7 +111,11 @@ pub fn api() -> Api {
         .public_mutation()
         .takes("PasswordResetRequest")
         .returns(202, "PasswordResetRequested")
-        .refuses([ErrorCode::Validation, ErrorCode::Internal]),
+        .refuses([
+            ErrorCode::Validation,
+            ErrorCode::RateLimited,
+            ErrorCode::Internal,
+        ]),
         Endpoint::new(
             Method::Post,
             "/api/v1/auth/password-resets/redeem",
@@ -107,6 +128,7 @@ pub fn api() -> Api {
         .refuses([
             ErrorCode::Validation,
             ErrorCode::Conflict,
+            ErrorCode::RateLimited,
             ErrorCode::Internal,
         ]),
         Endpoint::new(
@@ -118,7 +140,11 @@ pub fn api() -> Api {
         .public_mutation()
         .takes("EmailVerificationRequest")
         .returns(202, "EmailVerificationRequested")
-        .refuses([ErrorCode::Validation, ErrorCode::Internal]),
+        .refuses([
+            ErrorCode::Validation,
+            ErrorCode::RateLimited,
+            ErrorCode::Internal,
+        ]),
         Endpoint::new(
             Method::Post,
             "/api/v1/auth/email-verifications/redeem",
@@ -131,6 +157,7 @@ pub fn api() -> Api {
         .refuses([
             ErrorCode::Validation,
             ErrorCode::Conflict,
+            ErrorCode::RateLimited,
             ErrorCode::Internal,
         ]),
         Endpoint::new(
@@ -1080,7 +1107,7 @@ impl IdentityService {
                 tx,
                 context,
                 &AuditEntry {
-                    action: "auth.setup.initialized".to_owned(),
+                    action: audit_action::SETUP_INITIALIZED.to_owned(),
                     resource_type: "Site".to_owned(),
                     resource_id: Some(context.site_id.into_uuid()),
                     payload: serde_json::json!({"owner_person_id": person_id}),
@@ -1119,7 +1146,7 @@ impl IdentityService {
             record_auth_audit(
                 tx,
                 context,
-                "auth.session.failed",
+                audit_action::SESSION_FAILED,
                 "Site",
                 Some(context.site_id.into_uuid()),
                 json!({"outcome": "invalid_credentials", "email_hash": email_hash}),
@@ -1135,7 +1162,7 @@ impl IdentityService {
             record_auth_audit(
                 tx,
                 context,
-                "auth.session.failed",
+                audit_action::SESSION_FAILED,
                 "Site",
                 Some(context.site_id.into_uuid()),
                 json!({"outcome": "invalid_credentials", "email_hash": email_hash}),
@@ -1152,7 +1179,7 @@ impl IdentityService {
             record_auth_audit(
                 tx,
                 context,
-                "auth.session.blocked",
+                audit_action::SESSION_BLOCKED,
                 "Person",
                 Some(person_id.into_uuid()),
                 json!({"outcome": "email_unverified"}),
@@ -1181,7 +1208,7 @@ impl IdentityService {
                 tx,
                 context,
                 &AuditEntry {
-                    action: "auth.session.created".to_owned(),
+                    action: audit_action::SESSION_CREATED.to_owned(),
                     resource_type: "Session".to_owned(),
                     resource_id: Some(session_id.into_uuid()),
                     payload: serde_json::json!({"person_id": person_id, "expires_at": expires_at}),
@@ -1224,7 +1251,7 @@ impl IdentityService {
             record_auth_audit(
                 tx,
                 context,
-                "auth.password_reset.requested",
+                audit_action::PASSWORD_RESET_REQUESTED,
                 "Site",
                 Some(context.site_id.into_uuid()),
                 json!({"outcome": "not_found", "email_hash": email_hash}),
@@ -1239,7 +1266,7 @@ impl IdentityService {
             record_auth_audit(
                 tx,
                 context,
-                "auth.password_reset.requested",
+                audit_action::PASSWORD_RESET_REQUESTED,
                 "Person",
                 Some(person_id.into_uuid()),
                 json!({"outcome": "ineligible", "email_hash": email_hash}),
@@ -1260,7 +1287,7 @@ impl IdentityService {
             record_auth_audit(
                 tx,
                 context,
-                "auth.security.rate_limited",
+                audit_action::SECURITY_SUBJECT_RATE_LIMITED,
                 "Person",
                 Some(person_id.into_uuid()),
                 json!({"action": "password_reset", "email_hash": email_hash}),
@@ -1275,7 +1302,7 @@ impl IdentityService {
         record_auth_audit(
             tx,
             context,
-            "auth.password_reset.requested",
+            audit_action::PASSWORD_RESET_REQUESTED,
             "Person",
             Some(person_id.into_uuid()),
             json!({
@@ -1326,7 +1353,7 @@ impl IdentityService {
             record_auth_audit(
                 tx,
                 context,
-                "auth.email_verification.requested",
+                audit_action::EMAIL_VERIFICATION_REQUESTED,
                 "Site",
                 Some(context.site_id.into_uuid()),
                 json!({"outcome": "not_found", "email_hash": email_hash}),
@@ -1341,7 +1368,7 @@ impl IdentityService {
             record_auth_audit(
                 tx,
                 context,
-                "auth.email_verification.requested",
+                audit_action::EMAIL_VERIFICATION_REQUESTED,
                 "Person",
                 Some(person_id.into_uuid()),
                 json!({"outcome": "ineligible", "email_hash": email_hash}),
@@ -1357,7 +1384,7 @@ impl IdentityService {
             record_auth_audit(
                 tx,
                 context,
-                "auth.email_verification.requested",
+                audit_action::EMAIL_VERIFICATION_REQUESTED,
                 "Person",
                 Some(person_id.into_uuid()),
                 json!({"outcome": "already_verified"}),
@@ -1378,7 +1405,7 @@ impl IdentityService {
             record_auth_audit(
                 tx,
                 context,
-                "auth.security.rate_limited",
+                audit_action::SECURITY_SUBJECT_RATE_LIMITED,
                 "Person",
                 Some(person_id.into_uuid()),
                 json!({"action": "email_verification", "email_hash": email_hash}),
@@ -1393,7 +1420,7 @@ impl IdentityService {
         record_auth_audit(
             tx,
             context,
-            "auth.email_verification.requested",
+            audit_action::EMAIL_VERIFICATION_REQUESTED,
             "Person",
             Some(person_id.into_uuid()),
             json!({
@@ -1499,7 +1526,7 @@ impl IdentityService {
                 tx,
                 context,
                 &AuditEntry {
-                    action: "auth.email_verification.redeemed".to_owned(),
+                    action: audit_action::EMAIL_VERIFICATION_REDEEMED.to_owned(),
                     resource_type: "Person".to_owned(),
                     resource_id: Some(person_id.into_uuid()),
                     payload: json!({"email_verification_token_id": token_id}),
@@ -1602,7 +1629,7 @@ impl IdentityService {
                 tx,
                 context,
                 &AuditEntry {
-                    action: "auth.password_reset.redeemed".to_owned(),
+                    action: audit_action::PASSWORD_RESET_REDEEMED.to_owned(),
                     resource_type: "Person".to_owned(),
                     resource_id: Some(person_id.into_uuid()),
                     payload: json!({"password_reset_token_id": token_id}),
@@ -1703,7 +1730,7 @@ impl IdentityService {
                 tx,
                 context,
                 &AuditEntry {
-                    action: "auth.session.revoked".to_owned(),
+                    action: audit_action::SESSION_REVOKED.to_owned(),
                     resource_type: "Session".to_owned(),
                     resource_id: Some(session_id.into_uuid()),
                     payload: serde_json::json!({}),
@@ -2145,7 +2172,7 @@ impl IdentityService {
                 tx,
                 context,
                 &AuditEntry {
-                    action: "auth.api_key.created".to_owned(),
+                    action: audit_action::API_KEY_CREATED.to_owned(),
                     resource_type: "ApiKey".to_owned(),
                     resource_id: Some(api_key_id.into_uuid()),
                     payload: serde_json::json!({"grant_count": requested.len()}),
@@ -2192,7 +2219,7 @@ impl IdentityService {
                 tx,
                 context,
                 &AuditEntry {
-                    action: "auth.api_key.revoked".to_owned(),
+                    action: audit_action::API_KEY_REVOKED.to_owned(),
                     resource_type: "ApiKey".to_owned(),
                     resource_id: Some(key_id.into_uuid()),
                     payload: serde_json::json!({}),

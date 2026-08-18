@@ -27,7 +27,7 @@ use mavi_analytics::{
     AnalyticsEvent, AnalyticsEventBatch, AnalyticsReceipt, AnalyticsService, DailyAggregate,
     DailyListFilter, EventListFilter, PruneAnalytics, PruneReceipt,
 };
-use mavi_audit::{AuditEvent, AuditListFilter, AuditService};
+use mavi_audit::{AuditEntry, AuditEvent, AuditListFilter, AuditService};
 use mavi_authz::CedarAuthorizer;
 use mavi_boards::{
     Activity, ActivityPageFilter, AssignCard, Board, BoardList, BoardListFilter, BoardService,
@@ -74,7 +74,7 @@ use mavi_identity::{
     EmailVerificationRequestInput, EmailVerificationRequested, IdentityService, LoginInput,
     PasswordResetRedeemInput, PasswordResetRequestInput, PasswordResetRequested, PeopleListFilter,
     Person, PersonRecord, ReplaceRoleGrants, Role, RoleListFilter, SessionCreated, SetupInput,
-    SetupStatus, UpdatePersonStatus,
+    SetupStatus, UpdatePersonStatus, audit_action,
 };
 use mavi_jobs::{Job, JobListFilter, JobsService};
 use mavi_mail::{
@@ -107,6 +107,12 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use tower::ServiceExt;
 use uuid::Uuid;
+
+mod edge;
+
+pub use edge::{
+    EdgeAction, EdgeRateLimiter, EdgeSecurityConfig, EdgeThrottlePolicy, TrustedProxySet,
+};
 
 const REQUEST_ID_HEADER: &str = "x-request-id";
 const MCP_PROTOCOL_VERSION: &str = "2026-07-28";
@@ -273,6 +279,31 @@ pub fn router<R>(
 where
     R: SiteResolver,
 {
+    router_with_config(
+        runtime,
+        file_store,
+        builder,
+        sealer,
+        EdgeSecurityConfig::default(),
+    )
+}
+
+/// Builds the shared router with explicit edge trust and throttling policy.
+///
+/// Self-host callers can use [`router`] for the safe default. Cloud or
+/// reverse-proxy deployments should use this constructor when they have an
+/// allowlisted proxy network from which forwarded client IP headers may be
+/// trusted.
+pub fn router_with_config<R>(
+    runtime: Runtime<R>,
+    file_store: Arc<dyn FileStore>,
+    builder: Arc<dyn BuildEngine>,
+    sealer: Arc<dyn Seals>,
+    edge: EdgeSecurityConfig,
+) -> Result<Router, MaviError>
+where
+    R: SiteResolver,
+{
     let mcp_dispatcher = Arc::new(OnceLock::new());
     let state = HttpState {
         runtime: runtime.clone(),
@@ -297,6 +328,7 @@ where
         file_store,
         builder,
         sealer,
+        edge,
         authorizer: CedarAuthorizer::new()?,
         mcp_dispatcher: Arc::clone(&mcp_dispatcher),
     };
@@ -310,6 +342,10 @@ where
         .layer(middleware::from_fn_with_state(
             runtime.clone(),
             authenticate::<R>,
+        ))
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            edge_throttle::<R>,
         ))
         .layer(middleware::from_fn_with_state(runtime.clone(), admit::<R>))
         .layer(DefaultBodyLimit::max(MAX_FILE_BYTES + 1))
@@ -326,6 +362,10 @@ where
         .layer(middleware::from_fn_with_state(
             runtime.clone(),
             authenticate::<R>,
+        ))
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            edge_throttle::<R>,
         ))
         .layer(middleware::from_fn_with_state(runtime, admit::<R>))
         .layer(DefaultBodyLimit::max(MAX_FILE_BYTES + 1))
@@ -1926,6 +1966,7 @@ struct HttpState<R> {
     file_store: Arc<dyn FileStore>,
     builder: Arc<dyn BuildEngine>,
     sealer: Arc<dyn Seals>,
+    edge: EdgeSecurityConfig,
     authorizer: CedarAuthorizer,
     mcp_dispatcher: Arc<OnceLock<Router>>,
 }
@@ -1955,6 +1996,7 @@ impl<R> Clone for HttpState<R> {
             file_store: Arc::clone(&self.file_store),
             builder: Arc::clone(&self.builder),
             sealer: Arc::clone(&self.sealer),
+            edge: self.edge.clone(),
             authorizer: self.authorizer.clone(),
             mcp_dispatcher: Arc::clone(&self.mcp_dispatcher),
         }
@@ -2041,6 +2083,82 @@ where
         public_context.request_id,
     ));
     next.run(request).await
+}
+
+async fn edge_throttle<R>(
+    State(state): State<HttpState<R>>,
+    request: Request<Body>,
+    next: Next,
+) -> Response
+where
+    R: SiteResolver,
+{
+    let Some(action) = edge::action_for(&request) else {
+        return next.run(request).await;
+    };
+    let Some(context) = request.extensions().get::<SiteContext>() else {
+        return HttpError(MaviError::Internal).into_response();
+    };
+    let source = edge::source_for(&request, &state.edge.trusted_proxies);
+    let decision =
+        match state
+            .edge
+            .limiter()
+            .check(context.site_id, action, source, std::time::Instant::now())
+        {
+            Ok(decision) => decision,
+            Err(error) => return HttpError(error).into_response(),
+        };
+
+    let Some(scope) = decision.limited_scope else {
+        return next.run(request).await;
+    };
+
+    if decision.audit_required {
+        let fingerprint = decision.fingerprint.map(edge::fingerprint_text);
+        if let Err(error) = record_edge_throttle(&state, context, action, scope, fingerprint).await
+        {
+            return HttpError(error).into_response();
+        }
+    }
+
+    let mut response = HttpError(MaviError::RateLimited).into_response();
+    if let Ok(value) = HeaderValue::from_str(&decision.retry_after_seconds.to_string()) {
+        response
+            .headers_mut()
+            .insert(axum::http::header::RETRY_AFTER, value);
+    }
+    response
+}
+
+async fn record_edge_throttle<R>(
+    state: &HttpState<R>,
+    context: &SiteContext,
+    action: EdgeAction,
+    scope: edge::ThrottleScope,
+    fingerprint: Option<String>,
+) -> Result<(), MaviError>
+where
+    R: SiteResolver,
+{
+    let mut transaction = state.runtime.begin(context).await?;
+    AuditService
+        .record(
+            &mut transaction,
+            context,
+            &AuditEntry {
+                action: audit_action::SECURITY_EDGE_RATE_LIMITED.to_owned(),
+                resource_type: "Site".to_owned(),
+                resource_id: Some(context.site_id.into_uuid()),
+                payload: json!({
+                    "action": action.as_str(),
+                    "scope": scope.as_str(),
+                    "fingerprint": fingerprint,
+                }),
+            },
+        )
+        .await?;
+    transaction.commit().await
 }
 
 /// Rejects request methods that can mutate a site while a relocation fence is

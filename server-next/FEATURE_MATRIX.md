@@ -82,7 +82,10 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
 - [-] Posts/pages, drafts, revisions, slugs, scheduling and public reads.
   - [x] Content create/update/public lifecycle and immutable revision history API.
   - [x] Slug history preserves old published public paths after a slug change.
-  - [ ] Scheduled publishing worker/queue and rollback/restore UX.
+  - [-] Scheduled publishing worker/queue and rollback/restore UX.
+    - [x] Scheduling atomically enqueues a site-scoped, idempotent `content.publish_scheduled` job.
+    - [ ] Worker supervisor claims leases and publishes due revisions; stale schedules no-op safely.
+    - [ ] Rollback/restore UX.
 - [-] Taxonomy terms, trees, assignment and filtered listing.
   - [x] Site-scoped category/tag terms with language-aware slugs and opaque cursor listing.
   - [x] Category parent validation, recursive cycle protection and atomic content assignments.

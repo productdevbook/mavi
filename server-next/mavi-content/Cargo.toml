@@ -12,6 +12,7 @@ chrono.workspace = true
 mavi-audit = { path = "../mavi-audit" }
 mavi-core = { path = "../mavi-core" }
 mavi-contract = { path = "../mavi-contract" }
+mavi-jobs = { path = "../mavi-jobs" }
 mavi-storage = { path = "../mavi-storage" }
 serde.workspace = true
 serde_json.workspace = true

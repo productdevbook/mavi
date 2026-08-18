@@ -163,7 +163,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Registered job kinds, site-scoped queue rows, composite idempotency and cursor-only admin lists.
   - [x] `FOR UPDATE SKIP LOCKED` claims, per-claim fencing tokens, lease heartbeat, stale-worker protection, bounded backoff and dead-letter retry.
   - [x] Shared worker supervisor owns one replaceable site snapshot and exports process-local metrics for polls, claims, outcomes, lease loss and errors.
-  - [ ] Concrete cloud adapter wiring in the private operator release.
+  - [x] Concrete cloud adapter wiring in the private operator release — vucodcom/mavi-operator#246 (`1fa6600`); shared supervisor, active-site snapshot reconciliation and process metrics are wired against public Mavi `0dfac94c`.
 - [-] Boards, lists, cards, assignments, comments and activity history.
   - [x] Board/list/card APIs use integer positions, transactional reorder/move operations and opaque keyset cursors.
   - [x] Card assignees are checked against active site people; comments support author-only editing and soft deletion.

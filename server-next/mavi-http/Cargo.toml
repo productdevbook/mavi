@@ -45,5 +45,6 @@ mavi-files = { path = "../mavi-files" }
 mavi-design = { path = "../mavi-design" }
 mavi-sealing = { path = "../mavi-sealing" }
 mavi-storage = { path = "../mavi-storage" }
+sqlx.workspace = true
 tokio.workspace = true
 tower.workspace = true

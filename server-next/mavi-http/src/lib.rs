@@ -46,7 +46,7 @@ use mavi_core::{
     ErrorCode, FileId, FlowId, FlowRunId, FormSubmissionId, Grant, JobId, LessonId, MailDeliveryId,
     MailListId, MailReaderId, MailTemplateId, MaviError, ModuleId, OrderId, Page, PersonId,
     ProductId, RequestId, RoleId, SiteContext, StudentId, TermId,
-    ports::{FileStore, Seals},
+    ports::{FileStore, MailContentType, MailMessage, Seals},
 };
 use mavi_courses::{
     Course, CourseListFilter, CourseSummary, CoursesService, CreateCourse, CreateLesson,
@@ -71,8 +71,9 @@ use mavi_forms::{
 };
 use mavi_identity::{
     ApiKeyCreated, CreateApiKey, CreatePerson, CreateRole, IdentityService, LoginInput,
-    PeopleListFilter, Person, PersonRecord, ReplaceRoleGrants, Role, RoleListFilter,
-    SessionCreated, SetupInput, SetupStatus, UpdatePersonStatus,
+    PasswordResetRedeemInput, PasswordResetRequestInput, PasswordResetRequested, PeopleListFilter,
+    Person, PersonRecord, ReplaceRoleGrants, Role, RoleListFilter, SessionCreated, SetupInput,
+    SetupStatus, UpdatePersonStatus,
 };
 use mavi_jobs::{Job, JobListFilter, JobsService};
 use mavi_mail::{
@@ -832,6 +833,14 @@ where
             get(setup_status::<R>).post(setup_initialize::<R>),
         )
         .route("/api/v1/auth/sessions", post(create_session::<R>))
+        .route(
+            "/api/v1/auth/password-resets",
+            post(request_password_reset::<R>),
+        )
+        .route(
+            "/api/v1/auth/password-resets/redeem",
+            post(redeem_password_reset::<R>),
+        )
         .route("/api/v1/auth/sessions/current", delete(revoke_session::<R>))
         .route("/api/v1/auth/api-keys", post(create_api_key::<R>))
         .route("/api/v1/auth/api-keys/{id}", delete(revoke_api_key::<R>))
@@ -2127,6 +2136,68 @@ where
         .map_err(HttpError)?;
     transaction.commit().await.map_err(HttpError)?;
     Ok((StatusCode::CREATED, Json(session)))
+}
+
+async fn request_password_reset<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Json(input): Json<PasswordResetRequestInput>,
+) -> Result<(StatusCode, Json<PasswordResetRequested>), HttpError>
+where
+    R: SiteResolver,
+{
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let notification = state
+        .identity
+        .request_password_reset(&mut transaction, &context, &input, Utc::now())
+        .await
+        .map_err(HttpError)?;
+    if let Some(notification) = notification {
+        let idempotency_key = format!("password-reset:{}", notification.id);
+        let body = format!(
+            "Use this one-time Mavi password reset token within one hour:\n\n{}\n\nThis token expires at {}. If you did not request a password reset, you can ignore this message.",
+            notification.token,
+            notification.expires_at.to_rfc3339(),
+        );
+        state
+            .mail
+            .enqueue_transactional_message(
+                &mut transaction,
+                &context,
+                MailMessage {
+                    recipient: notification.recipient.as_str().to_owned(),
+                    subject: "Reset your Mavi password".to_owned(),
+                    body,
+                    content_type: MailContentType::Plain,
+                },
+                Some(&idempotency_key),
+            )
+            .await
+            .map_err(HttpError)?;
+    }
+    transaction.commit().await.map_err(HttpError)?;
+    Ok((
+        StatusCode::ACCEPTED,
+        Json(PasswordResetRequested { accepted: true }),
+    ))
+}
+
+async fn redeem_password_reset<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Json(input): Json<PasswordResetRedeemInput>,
+) -> Result<StatusCode, HttpError>
+where
+    R: SiteResolver,
+{
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    state
+        .identity
+        .redeem_password_reset(&mut transaction, &context, &input, Utc::now())
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(StatusCode::NO_CONTENT)
 }
 
 async fn revoke_session<R>(

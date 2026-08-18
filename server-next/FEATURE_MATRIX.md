@@ -26,6 +26,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
 - [x] OpenAPI, TypeScript/Rust client and MCP tool generation from the same contract.
   - [x] HTTP composition root combines domain endpoint declarations into one validated catalog.
   - [x] OpenAPI snapshot, typed TypeScript/Rust client artifacts and MCP tool generation.
+  - [x] JSON and query inputs reject unknown top-level fields with a typed validation error; nested open maps remain explicit.
 - [-] RLS/DB guard, composite foreign keys and site-aware unique constraints across every domain table.
   - [x] Site catalog, content, identity, audit and settings tables enforce RLS and site-aware keys.
   - [x] Design changes, files, builds and artifacts enforce RLS, composite foreign keys and site-aware keys.

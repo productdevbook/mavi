@@ -16923,7 +16923,8 @@
             "type": "string",
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "ActivityPage": {
         "type": "object",
@@ -16944,7 +16945,8 @@
               "null"
             ]
           }
-        }
+        },
+        "additionalProperties": false
       },
       "ActivityPageFilter": {
         "type": "object",
@@ -16968,7 +16970,8 @@
             ],
             "format": "uuid"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "AddReader": {
         "type": "object",
@@ -17025,7 +17028,8 @@
             "type": "string",
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "AnalyticsEventBatch": {
         "type": "object",
@@ -17041,7 +17045,8 @@
               "$ref": "#/components/schemas/AnalyticsEventInput"
             }
           }
-        }
+        },
+        "additionalProperties": false
       },
       "AnalyticsEventInput": {
         "type": "object",
@@ -17076,7 +17081,8 @@
             ],
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "AnalyticsEventPage": {
         "type": "object",
@@ -17097,7 +17103,8 @@
               "null"
             ]
           }
-        }
+        },
+        "additionalProperties": false
       },
       "AnalyticsReceipt": {
         "type": "object",
@@ -17109,7 +17116,8 @@
             "type": "integer",
             "minimum": 0
           }
-        }
+        },
+        "additionalProperties": false
       },
       "ApiKeyCreated": {
         "type": "object",
@@ -17143,7 +17151,8 @@
             ],
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "AssignCard": {
         "type": "object",
@@ -17158,7 +17167,8 @@
             ],
             "format": "uuid"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "AuditActorKind": {
         "type": "string",
@@ -17224,7 +17234,8 @@
             "type": "string",
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "AuditEventPage": {
         "type": "object",
@@ -17246,7 +17257,8 @@
             ],
             "maxLength": 512
           }
-        }
+        },
+        "additionalProperties": false
       },
       "AuditListFilter": {
         "type": "object",
@@ -17294,7 +17306,8 @@
             ],
             "maxLength": 255
           }
-        }
+        },
+        "additionalProperties": false
       },
       "BasketItem": {
         "type": "object",
@@ -17350,7 +17363,8 @@
             "type": "string",
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "BoardList": {
         "type": "object",
@@ -17385,7 +17399,8 @@
             "type": "string",
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "BoardListFilter": {
         "type": "object",
@@ -17408,7 +17423,8 @@
               "null"
             ]
           }
-        }
+        },
+        "additionalProperties": false
       },
       "BoardListPage": {
         "type": "object",
@@ -17429,7 +17445,8 @@
               "null"
             ]
           }
-        }
+        },
+        "additionalProperties": false
       },
       "BoardPage": {
         "type": "object",
@@ -17450,7 +17467,8 @@
               "null"
             ]
           }
-        }
+        },
+        "additionalProperties": false
       },
       "Card": {
         "type": "object",
@@ -17505,7 +17523,8 @@
             "type": "string",
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "CardPage": {
         "type": "object",
@@ -17526,7 +17545,8 @@
               "null"
             ]
           }
-        }
+        },
+        "additionalProperties": false
       },
       "CardPageFilter": {
         "type": "object",
@@ -17550,7 +17570,8 @@
             ],
             "format": "uuid"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "CheckoutInput": {
         "type": "object",
@@ -17611,7 +17632,8 @@
           "total": {
             "$ref": "#/components/schemas/Money"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "Comment": {
         "type": "object",
@@ -17658,7 +17680,8 @@
             "type": "string",
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "CommentPage": {
         "type": "object",
@@ -17679,7 +17702,8 @@
               "null"
             ]
           }
-        }
+        },
+        "additionalProperties": false
       },
       "CommentPageFilter": {
         "type": "object",
@@ -17696,7 +17720,8 @@
             "minimum": 1,
             "maximum": 100
           }
-        }
+        },
+        "additionalProperties": false
       },
       "Content": {
         "type": "object",
@@ -17764,7 +17789,8 @@
             "type": "string",
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "ContentFieldKind": {
         "type": "string",
@@ -17809,7 +17835,8 @@
           "status": {
             "$ref": "#/components/schemas/PublicationStatus"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "ContentPage": {
         "type": "object",
@@ -17831,7 +17858,8 @@
             ],
             "maxLength": 512
           }
-        }
+        },
+        "additionalProperties": false
       },
       "ContentRevision": {
         "type": "object",
@@ -17893,7 +17921,8 @@
             "type": "string",
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "ContentRevisionListFilter": {
         "type": "object",
@@ -17910,7 +17939,8 @@
             "minimum": 1,
             "maximum": 100
           }
-        }
+        },
+        "additionalProperties": false
       },
       "ContentRevisionPage": {
         "type": "object",
@@ -17932,7 +17962,8 @@
             ],
             "maxLength": 512
           }
-        }
+        },
+        "additionalProperties": false
       },
       "ContentTermAssignment": {
         "type": "object",
@@ -17949,7 +17980,8 @@
             "type": "string",
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "ContentTermAssignmentListFilter": {
         "type": "object",
@@ -17966,7 +17998,8 @@
             "minimum": 1,
             "maximum": 100
           }
-        }
+        },
+        "additionalProperties": false
       },
       "ContentTermAssignmentPage": {
         "type": "object",
@@ -17988,7 +18021,8 @@
             ],
             "maxLength": 512
           }
-        }
+        },
+        "additionalProperties": false
       },
       "ContentType": {
         "type": "object",
@@ -18027,7 +18061,8 @@
             "type": "string",
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "ContentTypeField": {
         "type": "object",
@@ -18060,7 +18095,8 @@
               "maxLength": 200
             }
           }
-        }
+        },
+        "additionalProperties": false
       },
       "ContentTypeListFilter": {
         "type": "object",
@@ -18077,7 +18113,8 @@
             "minimum": 1,
             "maximum": 100
           }
-        }
+        },
+        "additionalProperties": false
       },
       "ContentTypePage": {
         "type": "object",
@@ -18099,7 +18136,8 @@
             ],
             "maxLength": 512
           }
-        }
+        },
+        "additionalProperties": false
       },
       "Coupon": {
         "type": "object",
@@ -18162,7 +18200,8 @@
             "type": "string",
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "CouponKind": {
         "type": "string",
@@ -18186,7 +18225,8 @@
             "minimum": 1,
             "maximum": 100
           }
-        }
+        },
+        "additionalProperties": false
       },
       "CouponPage": {
         "type": "object",
@@ -18208,7 +18248,8 @@
             ],
             "maxLength": 512
           }
-        }
+        },
+        "additionalProperties": false
       },
       "Course": {
         "type": "object",
@@ -18256,7 +18297,8 @@
             "type": "string",
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "CourseListFilter": {
         "type": "object",
@@ -18276,7 +18318,8 @@
           "state": {
             "$ref": "#/components/schemas/CourseState"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "CourseState": {
         "type": "string",
@@ -18325,7 +18368,8 @@
             "type": "string",
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "CourseSummaryPage": {
         "type": "object",
@@ -18347,7 +18391,8 @@
             ],
             "maxLength": 512
           }
-        }
+        },
+        "additionalProperties": false
       },
       "CreateApiKey": {
         "type": "object",
@@ -18373,7 +18418,8 @@
             ],
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "CreateBoard": {
         "type": "object",
@@ -18393,7 +18439,8 @@
             ],
             "maxLength": 10000
           }
-        }
+        },
+        "additionalProperties": false
       },
       "CreateCard": {
         "type": "object",
@@ -18422,7 +18469,8 @@
             ],
             "format": "uuid"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "CreateComment": {
         "type": "object",
@@ -18435,7 +18483,8 @@
             "minLength": 1,
             "maxLength": 10000
           }
-        }
+        },
+        "additionalProperties": false
       },
       "CreateContent": {
         "type": "object",
@@ -18478,7 +18527,8 @@
           "publication": {
             "$ref": "#/components/schemas/PublicationInput"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "CreateCoupon": {
         "type": "object",
@@ -18609,7 +18659,8 @@
               "$ref": "#/components/schemas/FlowStepInput"
             }
           }
-        }
+        },
+        "additionalProperties": false
       },
       "CreateForm": {
         "type": "object",
@@ -18664,7 +18715,8 @@
           "is_default": {
             "type": "boolean"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "CreateLesson": {
         "type": "object",
@@ -18702,7 +18754,8 @@
             "minLength": 1,
             "maxLength": 120
           }
-        }
+        },
+        "additionalProperties": false
       },
       "CreateMailList": {
         "type": "object",
@@ -18801,7 +18854,8 @@
               "format": "uuid"
             }
           }
-        }
+        },
+        "additionalProperties": false
       },
       "CreateProduct": {
         "type": "object",
@@ -18859,7 +18913,8 @@
               "$ref": "#/components/schemas/Grant"
             }
           }
-        }
+        },
+        "additionalProperties": false
       },
       "CreateStudent": {
         "type": "object",
@@ -18911,7 +18966,8 @@
             ],
             "format": "uuid"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "Credential": {
         "type": "object",
@@ -19037,7 +19093,8 @@
           "value_max": {
             "type": "integer"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "DailyAggregatePage": {
         "type": "object",
@@ -19058,7 +19115,8 @@
               "null"
             ]
           }
-        }
+        },
+        "additionalProperties": false
       },
       "DailyListFilter": {
         "type": "object",
@@ -19089,7 +19147,8 @@
             ],
             "maxLength": 500
           }
-        }
+        },
+        "additionalProperties": false
       },
       "DeclareContentType": {
         "type": "object",
@@ -19108,7 +19167,8 @@
               "$ref": "#/components/schemas/ContentTypeField"
             }
           }
-        }
+        },
+        "additionalProperties": false
       },
       "DeliveryListFilter": {
         "type": "object",
@@ -19128,7 +19188,8 @@
           "status": {
             "$ref": "#/components/schemas/MailDeliveryStatus"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "DesignAsset": {
         "type": "string",
@@ -19177,7 +19238,8 @@
             ],
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "DesignBuildListFilter": {
         "type": "object",
@@ -19194,7 +19256,8 @@
             "minimum": 1,
             "maximum": 100
           }
-        }
+        },
+        "additionalProperties": false
       },
       "DesignBuildPage": {
         "type": "object",
@@ -19216,7 +19279,8 @@
             ],
             "maxLength": 512
           }
-        }
+        },
+        "additionalProperties": false
       },
       "DesignBuildState": {
         "type": "string",
@@ -19286,7 +19350,8 @@
             "type": "string",
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "DesignChangeListFilter": {
         "type": "object",
@@ -19306,7 +19371,8 @@
           "state": {
             "$ref": "#/components/schemas/DesignState"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "DesignChangePage": {
         "type": "object",
@@ -19328,7 +19394,8 @@
             ],
             "maxLength": 512
           }
-        }
+        },
+        "additionalProperties": false
       },
       "DesignFile": {
         "type": "object",
@@ -19362,7 +19429,8 @@
             "type": "string",
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "DesignFileInput": {
         "type": "object",
@@ -19398,7 +19466,8 @@
             "minimum": 1,
             "maximum": 100
           }
-        }
+        },
+        "additionalProperties": false
       },
       "DesignFilePage": {
         "type": "object",
@@ -19420,7 +19489,8 @@
             ],
             "maxLength": 512
           }
-        }
+        },
+        "additionalProperties": false
       },
       "DesignFileQuery": {
         "type": "object",
@@ -19464,7 +19534,8 @@
             "type": "string",
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "DesignState": {
         "type": "string",
@@ -19600,7 +19671,8 @@
             "type": "string",
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "EnrollmentListFilter": {
         "type": "object",
@@ -19617,7 +19689,8 @@
             "minimum": 1,
             "maximum": 100
           }
-        }
+        },
+        "additionalProperties": false
       },
       "EnrollmentPage": {
         "type": "object",
@@ -19639,10 +19712,12 @@
             ],
             "maxLength": 512
           }
-        }
+        },
+        "additionalProperties": false
       },
       "ErrorBody": {
         "type": "object",
+        "additionalProperties": false,
         "required": [
           "code",
           "message"
@@ -19664,6 +19739,7 @@
       },
       "ErrorEnvelope": {
         "type": "object",
+        "additionalProperties": false,
         "required": [
           "error"
         ],
@@ -19702,7 +19778,8 @@
             ],
             "maxLength": 500
           }
-        }
+        },
+        "additionalProperties": false
       },
       "File": {
         "type": "object",
@@ -19744,7 +19821,8 @@
             "type": "string",
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "FileBytes": {
         "type": "string",
@@ -19777,7 +19855,8 @@
           "kind": {
             "$ref": "#/components/schemas/FileKind"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "FilePage": {
         "type": "object",
@@ -19799,7 +19878,8 @@
             ],
             "maxLength": 512
           }
-        }
+        },
+        "additionalProperties": false
       },
       "Flow": {
         "type": "object",
@@ -19844,7 +19924,8 @@
             "type": "string",
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "FlowListFilter": {
         "type": "object",
@@ -19877,7 +19958,8 @@
               "null"
             ]
           }
-        }
+        },
+        "additionalProperties": false
       },
       "FlowPage": {
         "type": "object",
@@ -19898,7 +19980,8 @@
               "null"
             ]
           }
-        }
+        },
+        "additionalProperties": false
       },
       "FlowRun": {
         "type": "object",
@@ -19970,7 +20053,8 @@
             ],
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "FlowRunPage": {
         "type": "object",
@@ -19991,7 +20075,8 @@
               "null"
             ]
           }
-        }
+        },
+        "additionalProperties": false
       },
       "FlowRunStep": {
         "type": "object",
@@ -20041,7 +20126,8 @@
             "type": "string",
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "FlowStep": {
         "type": "object",
@@ -20067,7 +20153,8 @@
             "type": "object",
             "additionalProperties": true
           }
-        }
+        },
+        "additionalProperties": false
       },
       "FlowStepInput": {
         "type": "object",
@@ -20083,7 +20170,8 @@
             "type": "object",
             "additionalProperties": true
           }
-        }
+        },
+        "additionalProperties": false
       },
       "Form": {
         "type": "object",
@@ -20130,7 +20218,8 @@
             "type": "string",
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "FormField": {
         "type": "object",
@@ -20195,7 +20284,8 @@
             "minimum": 1,
             "maximum": 100
           }
-        }
+        },
+        "additionalProperties": false
       },
       "FormPage": {
         "type": "object",
@@ -20217,7 +20307,8 @@
             ],
             "maxLength": 512
           }
-        }
+        },
+        "additionalProperties": false
       },
       "FormSubmission": {
         "type": "object",
@@ -20252,7 +20343,8 @@
             "type": "string",
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "Grant": {
         "type": "object",
@@ -20267,7 +20359,8 @@
           "action": {
             "type": "string"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "ImportReceipt": {
         "type": "object",
@@ -20313,7 +20406,8 @@
             "type": "integer",
             "minimum": 0
           }
-        }
+        },
+        "additionalProperties": false
       },
       "ImportStrategy": {
         "type": "string",
@@ -20398,7 +20492,8 @@
             ],
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "JobListFilter": {
         "type": "object",
@@ -20425,7 +20520,8 @@
             ],
             "maxLength": 120
           }
-        }
+        },
+        "additionalProperties": false
       },
       "JobPage": {
         "type": "object",
@@ -20446,7 +20542,8 @@
               "null"
             ]
           }
-        }
+        },
+        "additionalProperties": false
       },
       "JobState": {
         "type": "string",
@@ -20489,7 +20586,8 @@
             "type": "string",
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "LanguageListFilter": {
         "type": "object",
@@ -20506,7 +20604,8 @@
             "minimum": 1,
             "maximum": 100
           }
-        }
+        },
+        "additionalProperties": false
       },
       "LanguagePage": {
         "type": "object",
@@ -20528,7 +20627,8 @@
             ],
             "maxLength": 512
           }
-        }
+        },
+        "additionalProperties": false
       },
       "LearningCourse": {
         "type": "object",
@@ -20576,7 +20676,8 @@
             "type": "string",
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "LearningCourseListFilter": {
         "type": "object",
@@ -20593,7 +20694,8 @@
             "minimum": 1,
             "maximum": 100
           }
-        }
+        },
+        "additionalProperties": false
       },
       "LearningCoursePage": {
         "type": "object",
@@ -20615,7 +20717,8 @@
             ],
             "maxLength": 512
           }
-        }
+        },
+        "additionalProperties": false
       },
       "LearningLesson": {
         "type": "object",
@@ -20634,7 +20737,8 @@
             ],
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "Lesson": {
         "type": "object",
@@ -20682,7 +20786,8 @@
             "type": "string",
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "LessonListFilter": {
         "type": "object",
@@ -20699,7 +20804,8 @@
             "minimum": 1,
             "maximum": 100
           }
-        }
+        },
+        "additionalProperties": false
       },
       "LessonPage": {
         "type": "object",
@@ -20721,7 +20827,8 @@
             ],
             "maxLength": 512
           }
-        }
+        },
+        "additionalProperties": false
       },
       "ListPageFilter": {
         "type": "object",
@@ -20738,7 +20845,8 @@
             "minimum": 1,
             "maximum": 100
           }
-        }
+        },
+        "additionalProperties": false
       },
       "LoginInput": {
         "type": "object",
@@ -20755,7 +20863,8 @@
             "type": "string",
             "format": "password"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "MailContentType": {
         "type": "string",
@@ -20869,7 +20978,8 @@
             ],
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "MailDeliveryPage": {
         "type": "object",
@@ -20891,7 +21001,8 @@
             ],
             "maxLength": 512
           }
-        }
+        },
+        "additionalProperties": false
       },
       "MailDeliveryStatus": {
         "type": "string",
@@ -20938,7 +21049,8 @@
             "type": "string",
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "MailListListFilter": {
         "type": "object",
@@ -20955,7 +21067,8 @@
             "minimum": 1,
             "maximum": 100
           }
-        }
+        },
+        "additionalProperties": false
       },
       "MailListPage": {
         "type": "object",
@@ -20977,7 +21090,8 @@
             ],
             "maxLength": 512
           }
-        }
+        },
+        "additionalProperties": false
       },
       "MailPurpose": {
         "type": "string",
@@ -21017,7 +21131,8 @@
             "type": "string",
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "MailReaderCreated": {
         "type": "object",
@@ -21034,7 +21149,8 @@
             "minLength": 40,
             "maxLength": 64
           }
-        }
+        },
+        "additionalProperties": false
       },
       "MailReaderPage": {
         "type": "object",
@@ -21056,7 +21172,8 @@
             ],
             "maxLength": 512
           }
-        }
+        },
+        "additionalProperties": false
       },
       "MailStanding": {
         "type": "string",
@@ -21114,7 +21231,8 @@
             "type": "string",
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "MailTemplateListFilter": {
         "type": "object",
@@ -21131,7 +21249,8 @@
             "minimum": 1,
             "maximum": 100
           }
-        }
+        },
+        "additionalProperties": false
       },
       "MailTemplatePage": {
         "type": "object",
@@ -21153,7 +21272,8 @@
             ],
             "maxLength": 512
           }
-        }
+        },
+        "additionalProperties": false
       },
       "MailTemplatePreview": {
         "type": "object",
@@ -21206,7 +21326,8 @@
             "type": "string",
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "Money": {
         "type": "object",
@@ -21224,7 +21345,8 @@
             "type": "string",
             "pattern": "^[A-Z]{3}$"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "MoveCard": {
         "type": "object",
@@ -21244,7 +21366,8 @@
             ],
             "format": "uuid"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "Order": {
         "type": "object",
@@ -21306,7 +21429,8 @@
             "type": "string",
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "OrderLine": {
         "type": "object",
@@ -21340,7 +21464,8 @@
             "minimum": 1,
             "maximum": 1000
           }
-        }
+        },
+        "additionalProperties": false
       },
       "OrderListFilter": {
         "type": "object",
@@ -21360,7 +21485,8 @@
           "state": {
             "$ref": "#/components/schemas/OrderState"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "OrderState": {
         "type": "string",
@@ -21411,7 +21537,8 @@
             "type": "string",
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "OrderSummaryPage": {
         "type": "object",
@@ -21433,7 +21560,8 @@
             ],
             "maxLength": 512
           }
-        }
+        },
+        "additionalProperties": false
       },
       "OrderTransition": {
         "type": "object",
@@ -21566,7 +21694,8 @@
           "status": {
             "$ref": "#/components/schemas/PersonListFilterStatus"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "Person": {
         "type": "object",
@@ -21627,7 +21756,8 @@
             ],
             "maxLength": 512
           }
-        }
+        },
+        "additionalProperties": false
       },
       "PersonRecord": {
         "type": "object",
@@ -21702,7 +21832,8 @@
             "type": "string",
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "PortableBundle": {
         "type": "object",
@@ -21766,7 +21897,8 @@
               "$ref": "#/components/schemas/PortableAssignment"
             }
           }
-        }
+        },
+        "additionalProperties": false
       },
       "PortableContent": {
         "type": "object",
@@ -21851,7 +21983,8 @@
             "type": "string",
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "PortableContentType": {
         "type": "object",
@@ -21872,7 +22005,8 @@
           "fields": {
             "type": "array"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "PortableCounts": {
         "type": "object",
@@ -21914,7 +22048,8 @@
             "type": "integer",
             "minimum": 0
           }
-        }
+        },
+        "additionalProperties": false
       },
       "PortableImportRequest": {
         "type": "object",
@@ -21929,7 +22064,8 @@
           "strategy": {
             "$ref": "#/components/schemas/ImportStrategy"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "PortableLanguage": {
         "type": "object",
@@ -21950,7 +22086,8 @@
           "is_default": {
             "type": "boolean"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "PortableManifest": {
         "type": "object",
@@ -21985,7 +22122,8 @@
           "counts": {
             "$ref": "#/components/schemas/PortableCounts"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "PortableRevision": {
         "type": "object",
@@ -22058,7 +22196,8 @@
             "type": "string",
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "PortableSite": {
         "type": "object",
@@ -22075,7 +22214,8 @@
             "type": "string",
             "maxLength": 64
           }
-        }
+        },
+        "additionalProperties": false
       },
       "PortableSlugHistory": {
         "type": "object",
@@ -22100,7 +22240,8 @@
             "type": "string",
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "PortableTerm": {
         "type": "object",
@@ -22143,7 +22284,8 @@
             ],
             "format": "uuid"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "Product": {
         "type": "object",
@@ -22192,7 +22334,8 @@
             "type": "string",
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "ProductListFilter": {
         "type": "object",
@@ -22209,7 +22352,8 @@
             "minimum": 1,
             "maximum": 100
           }
-        }
+        },
+        "additionalProperties": false
       },
       "ProductPage": {
         "type": "object",
@@ -22231,7 +22375,8 @@
             ],
             "maxLength": 512
           }
-        }
+        },
+        "additionalProperties": false
       },
       "ProductPrice": {
         "type": "object",
@@ -22267,7 +22412,8 @@
             "type": "string",
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "PruneAnalytics": {
         "type": "object",
@@ -22286,7 +22432,8 @@
             "minimum": 1,
             "maximum": 3650
           }
-        }
+        },
+        "additionalProperties": false
       },
       "PruneReceipt": {
         "type": "object",
@@ -22303,7 +22450,8 @@
             "type": "integer",
             "minimum": 0
           }
-        }
+        },
+        "additionalProperties": false
       },
       "PublicForm": {
         "type": "object",
@@ -22325,7 +22473,8 @@
               "$ref": "#/components/schemas/FormField"
             }
           }
-        }
+        },
+        "additionalProperties": false
       },
       "PublicProduct": {
         "type": "object",
@@ -22355,7 +22504,8 @@
           "can_be_bought": {
             "type": "boolean"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "PublicProductListFilter": {
         "type": "object",
@@ -22372,7 +22522,8 @@
             "minimum": 1,
             "maximum": 100
           }
-        }
+        },
+        "additionalProperties": false
       },
       "PublicProductPage": {
         "type": "object",
@@ -22394,7 +22545,8 @@
             ],
             "maxLength": 512
           }
-        }
+        },
+        "additionalProperties": false
       },
       "Publication": {
         "oneOf": [
@@ -22498,7 +22650,8 @@
           "standing": {
             "$ref": "#/components/schemas/MailStanding"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "RenderedMail": {
         "type": "object",
@@ -22517,7 +22670,8 @@
           "content_type": {
             "$ref": "#/components/schemas/MailContentType"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "ReorderLessons": {
         "type": "object",
@@ -22550,7 +22704,8 @@
               "format": "uuid"
             }
           }
-        }
+        },
+        "additionalProperties": false
       },
       "ReorderModules": {
         "type": "object",
@@ -22584,7 +22739,8 @@
               "format": "uuid"
             }
           }
-        }
+        },
+        "additionalProperties": false
       },
       "ReplaceRoleGrants": {
         "type": "object",
@@ -22598,7 +22754,8 @@
               "$ref": "#/components/schemas/Grant"
             }
           }
-        }
+        },
+        "additionalProperties": false
       },
       "RetryDelivery": {
         "type": "object",
@@ -22635,7 +22792,8 @@
             "type": "string",
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "RoleListFilter": {
         "type": "object",
@@ -22652,7 +22810,8 @@
             "minimum": 1,
             "maximum": 100
           }
-        }
+        },
+        "additionalProperties": false
       },
       "RolePage": {
         "type": "object",
@@ -22674,7 +22833,8 @@
             ],
             "maxLength": 512
           }
-        }
+        },
+        "additionalProperties": false
       },
       "RotateCredential": {
         "type": "object",
@@ -22722,7 +22882,8 @@
               }
             ]
           }
-        }
+        },
+        "additionalProperties": false
       },
       "RunState": {
         "type": "string",
@@ -22792,7 +22953,8 @@
             "type": "string",
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "SeenCount": {
         "type": "object",
@@ -22805,7 +22967,8 @@
             "format": "int64",
             "minimum": 0
           }
-        }
+        },
+        "additionalProperties": false
       },
       "SendCampaign": {
         "type": "object",
@@ -22842,7 +23005,8 @@
             "format": "int64",
             "minimum": 0
           }
-        }
+        },
+        "additionalProperties": false
       },
       "SessionCreated": {
         "type": "object",
@@ -22863,7 +23027,8 @@
             "type": "string",
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "SetupInput": {
         "type": "object",
@@ -22891,7 +23056,8 @@
             "format": "password",
             "minLength": 12
           }
-        }
+        },
+        "additionalProperties": false
       },
       "SetupStatus": {
         "type": "object",
@@ -22902,7 +23068,8 @@
           "initialized": {
             "type": "boolean"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "SimulateFlow": {
         "type": "object",
@@ -22911,7 +23078,8 @@
             "type": "object",
             "additionalProperties": true
           }
-        }
+        },
+        "additionalProperties": false
       },
       "Simulation": {
         "type": "object",
@@ -22925,7 +23093,8 @@
               "$ref": "#/components/schemas/SimulationStep"
             }
           }
-        }
+        },
+        "additionalProperties": false
       },
       "SimulationStep": {
         "type": "object",
@@ -22950,7 +23119,8 @@
             "type": "object",
             "additionalProperties": true
           }
-        }
+        },
+        "additionalProperties": false
       },
       "SiteSettings": {
         "type": "object",
@@ -22977,7 +23147,8 @@
             "type": "string",
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "StartDesignChange": {
         "type": "object",
@@ -23035,7 +23206,8 @@
             "type": "string",
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "StudentActivationInput": {
         "type": "object",
@@ -23080,7 +23252,8 @@
             "type": "string",
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "StudentListFilter": {
         "type": "object",
@@ -23100,7 +23273,8 @@
           "standing": {
             "$ref": "#/components/schemas/StudentStanding"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "StudentLoginInput": {
         "type": "object",
@@ -23141,7 +23315,8 @@
             ],
             "maxLength": 512
           }
-        }
+        },
+        "additionalProperties": false
       },
       "StudentSessionCreated": {
         "type": "object",
@@ -23161,7 +23336,8 @@
             "type": "string",
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "StudentStanding": {
         "type": "string",
@@ -23189,7 +23365,8 @@
           "unread": {
             "type": "boolean"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "SubmissionPage": {
         "type": "object",
@@ -23211,7 +23388,8 @@
             ],
             "maxLength": 512
           }
-        }
+        },
+        "additionalProperties": false
       },
       "SubmissionReceipt": {
         "type": "object",
@@ -23223,7 +23401,8 @@
             "type": "string",
             "format": "uuid"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "SubmitForm": {
         "type": "object",
@@ -23290,7 +23469,8 @@
             "type": "string",
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "TermKind": {
         "type": "string",
@@ -23340,7 +23520,8 @@
           "roots": {
             "type": "boolean"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "TermPage": {
         "type": "object",
@@ -23362,7 +23543,8 @@
             ],
             "maxLength": 512
           }
-        }
+        },
+        "additionalProperties": false
       },
       "TrashItem": {
         "type": "object",
@@ -23388,7 +23570,8 @@
             "type": "string",
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "TrashKind": {
         "type": "string",
@@ -23416,7 +23599,8 @@
           "kind": {
             "$ref": "#/components/schemas/TrashKind"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "TrashPage": {
         "type": "object",
@@ -23438,7 +23622,8 @@
             ],
             "maxLength": 512
           }
-        }
+        },
+        "additionalProperties": false
       },
       "Trigger": {
         "type": "string",
@@ -23464,7 +23649,8 @@
           "emitted_by": {
             "type": "string"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "TriggerList": {
         "type": "array",
@@ -23481,7 +23667,8 @@
           "unsubscribed": {
             "type": "boolean"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "UpdateBoard": {
         "type": "object",
@@ -23505,7 +23692,8 @@
               "null"
             ]
           }
-        }
+        },
+        "additionalProperties": false
       },
       "UpdateCard": {
         "type": "object",
@@ -23523,7 +23711,8 @@
               "null"
             ]
           }
-        }
+        },
+        "additionalProperties": false
       },
       "UpdateComment": {
         "type": "object",
@@ -23536,7 +23725,8 @@
             "minLength": 1,
             "maxLength": 10000
           }
-        }
+        },
+        "additionalProperties": false
       },
       "UpdateContent": {
         "type": "object",
@@ -23577,7 +23767,8 @@
           "publication": {
             "$ref": "#/components/schemas/PublicationInput"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "UpdateCourse": {
         "type": "object",
@@ -23645,7 +23836,8 @@
               "$ref": "#/components/schemas/FlowStepInput"
             }
           }
-        }
+        },
+        "additionalProperties": false
       },
       "UpdateForm": {
         "type": "object",
@@ -23700,7 +23892,8 @@
               "null"
             ]
           }
-        }
+        },
+        "additionalProperties": false
       },
       "UpdateLesson": {
         "type": "object",
@@ -23794,7 +23987,8 @@
           "status": {
             "$ref": "#/components/schemas/PersonListFilterStatus"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "UpdateProduct": {
         "type": "object",
@@ -23855,7 +24049,8 @@
             ],
             "maxLength": 64
           }
-        }
+        },
+        "additionalProperties": false
       },
       "UpdateStudent": {
         "type": "object",
@@ -23897,7 +24092,8 @@
             ],
             "format": "uuid"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "UploadFileQuery": {
         "type": "object",
@@ -23910,7 +24106,8 @@
             "minLength": 1,
             "maxLength": 255
           }
-        }
+        },
+        "additionalProperties": false
       }
     }
   }

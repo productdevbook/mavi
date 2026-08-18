@@ -109,6 +109,10 @@ offsets are not accepted or advertised.
 
 List inputs use opaque keyset cursors. The generated query contracts expose
 `after` and bounded `limit`; page/offset inputs are not part of this workspace.
+JSON and query object inputs are closed by default: an unknown top-level field
+returns `400` with `error.code = "unknown_field"` and the offending field path.
+Domain-owned maps such as content fields and flow configuration remain open
+only where their schema explicitly says so.
 Forms use the same rule for both form declarations and submission inboxes.
 Public submission delivery is intentionally behind the existing `Mailer` port;
 provider selection, retries and an outbox worker belong to the mail/automation

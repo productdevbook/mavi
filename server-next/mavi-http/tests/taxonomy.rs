@@ -285,5 +285,11 @@ async fn create_reader(app: &Router, owner_token: &str) -> String {
     )
     .await;
     assert_eq!(person.status(), StatusCode::CREATED);
+    support::verify_email(
+        app,
+        &response_json(person).await,
+        "taxonomy-reader@example.com",
+    )
+    .await;
     login(app, "taxonomy-reader@example.com").await
 }

@@ -277,5 +277,11 @@ async fn create_reader(app: &Router, owner_token: &str) -> String {
     )
     .await;
     assert_eq!(person.status(), StatusCode::CREATED);
+    support::verify_email(
+        app,
+        &response_json(person).await,
+        "design-reader@example.com",
+    )
+    .await;
     login(app, "design-reader@example.com").await
 }

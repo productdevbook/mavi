@@ -1712,6 +1712,7 @@ dependencies = [
  "mavi-audit",
  "mavi-contract",
  "mavi-core",
+ "mavi-sealing",
  "mavi-storage",
  "rand",
  "serde",

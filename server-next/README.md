@@ -55,7 +55,7 @@ boundary; the process never accepts a site ID supplied by a request.
 | `mavi-trash` | shared trash listing, restore, permanent deletion and media cleanup policy |
 | `mavi-design` | site-owned source files, immutable preview builds, publish/rollback and public asset metadata |
 | `mavi-forms` | validated site form declarations, public submissions and cursor-based inbox management |
-| `mavi-mail` | strict templates, subscriber lists, unsubscribe tokens and provider-neutral outbox delivery |
+| `mavi-mail` | strict templates, subscriber lists, unsubscribe tokens and a provider-neutral outbox with sealed security messages |
 | `mavi-shop` | site-scoped products, money, stock holds, coupons, checkout and order state transitions |
 | `mavi-courses` | course authoring, ordered modules/lessons, isolated student sessions, enrollment, progress and protected lesson media |
 | `mavi-jobs` | site-scoped durable queue leases, idempotency keys, retry backoff and dead-letter state |

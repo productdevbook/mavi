@@ -1,12 +1,16 @@
 use std::env;
 
 use chrono::{Duration, Utc};
-use mavi_core::{MaviError, PageRequest, SiteContext, SiteId, ports::MailDeliveryReceipt};
+use mavi_core::{
+    MaviError, PageRequest, SiteContext, SiteId,
+    ports::{MailContentType as CoreMailContentType, MailDeliveryReceipt, MailMessage},
+};
 use mavi_mail::{
     AddReader, CreateMailList, CreateMailTemplate, DeliveryListFilter, EnqueueDelivery,
     MailContentType, MailDeliveryStatus, MailService, MailTemplatePreview, ReaderListFilter,
     SendCampaign, UpdateMailList,
 };
+use mavi_sealing::KeyringSealer;
 use mavi_storage::Database;
 use serde_json::{Map, json};
 
@@ -355,4 +359,143 @@ async fn mail_templates_lists_and_outbox_are_site_scoped_and_leaseable() {
         .await
         .expect_err("cross-site list update");
     second_transaction.commit().await.expect("second commit");
+
+    let sealer = KeyringSealer::from_key([7; 32]);
+    let secret_body = "Use this one-time token: mavi_reset_test-secret";
+    let mut protected_transaction = database
+        .begin(&second_context)
+        .await
+        .expect("protected enqueue scope");
+    let protected = service
+        .enqueue_protected_transactional_message(
+            &mut protected_transaction,
+            &second_context,
+            MailMessage {
+                recipient: "security@example.test".to_owned(),
+                subject: "Security message".to_owned(),
+                body: secret_body.to_owned(),
+                content_type: CoreMailContentType::Plain,
+            },
+            Some("protected-test-1"),
+            &sealer,
+        )
+        .await
+        .expect("protected delivery");
+    assert!(protected.body_protected);
+    assert_eq!(protected.body, mavi_mail::PROTECTED_BODY_REDACTION);
+    let (stored_body, stored_protected, ciphertext): (String, bool, Vec<u8>) = sqlx::query_as(
+        "select d.body, d.body_protected, s.ciphertext
+               from mail_deliveries d
+               join mail_delivery_secrets s on s.site_id = d.site_id and s.delivery_id = d.id
+              where d.site_id = $1 and d.id = $2",
+    )
+    .bind(second_site.into_uuid())
+    .bind(protected.id.into_uuid())
+    .fetch_one(protected_transaction.conn())
+    .await
+    .expect("protected storage");
+    assert_eq!(stored_body, mavi_mail::PROTECTED_BODY_REDACTION);
+    assert!(stored_protected);
+    assert_ne!(ciphertext, secret_body.as_bytes());
+    protected_transaction
+        .commit()
+        .await
+        .expect("protected enqueue commit");
+
+    let mut export_transaction = database
+        .begin(&second_context)
+        .await
+        .expect("protected export scope");
+    let relocation = service
+        .export_for_relocation(&mut export_transaction, &second_context)
+        .await
+        .expect("protected export");
+    let relocated = relocation
+        .deliveries
+        .iter()
+        .find(|delivery| delivery.id == protected.id.into_uuid())
+        .expect("relocated protected delivery");
+    assert_eq!(relocated.body, mavi_mail::PROTECTED_BODY_REDACTION);
+    assert!(relocated.body_protected);
+    assert_eq!(relocated.status, "cancelled");
+    export_transaction
+        .commit()
+        .await
+        .expect("protected export commit");
+
+    let mut no_key_transaction = database
+        .begin(&second_context)
+        .await
+        .expect("protected no-key scope");
+    assert!(
+        service
+            .claim_next(
+                &mut no_key_transaction,
+                &second_context,
+                "mail-worker-no-key",
+                Utc::now() + Duration::minutes(5),
+            )
+            .await
+            .is_err()
+    );
+    drop(no_key_transaction);
+
+    let mut protected_claim_transaction = database
+        .begin(&second_context)
+        .await
+        .expect("protected claim scope");
+    let claimed = service
+        .claim_next_with_sealer(
+            &mut protected_claim_transaction,
+            &second_context,
+            "mail-worker-protected",
+            Utc::now() + Duration::minutes(5),
+            &sealer,
+        )
+        .await
+        .expect("protected claim")
+        .expect("protected delivery claim");
+    assert_eq!(claimed.delivery.id, protected.id);
+    assert!(claimed.delivery.body_protected);
+    assert_eq!(claimed.delivery.body, mavi_mail::PROTECTED_BODY_REDACTION);
+    assert_eq!(claimed.message.body, secret_body);
+    protected_claim_transaction
+        .commit()
+        .await
+        .expect("protected claim commit");
+
+    let mut import_transaction = database
+        .begin(&second_context)
+        .await
+        .expect("protected import scope");
+    service
+        .import_for_relocation(&mut import_transaction, &second_context, &relocation)
+        .await
+        .expect("protected import");
+    import_transaction
+        .commit()
+        .await
+        .expect("protected import commit");
+
+    let mut cleanup_transaction = database
+        .begin(&second_context)
+        .await
+        .expect("protected cleanup scope");
+    let remaining_secrets: i64 =
+        sqlx::query_scalar("select count(*) from mail_delivery_secrets where site_id = $1")
+            .bind(second_site.into_uuid())
+            .fetch_one(cleanup_transaction.conn())
+            .await
+            .expect("protected secret count");
+    assert_eq!(remaining_secrets, 0);
+    assert!(matches!(
+        service
+            .retry_delivery(&mut cleanup_transaction, &second_context, protected.id)
+            .await,
+        Err(MaviError::Conflict { .. })
+    ));
+    cleanup_transaction
+        .commit()
+        .await
+        .expect("protected cleanup commit");
 }

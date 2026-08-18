@@ -1082,6 +1082,7 @@ pub struct MailDelivery {
     pub recipient: String,
     pub subject: String,
     pub body: String,
+    pub body_protected: bool,
     pub content_type: MailContentType,
     pub purpose: MailPurpose,
     pub status: MailDeliveryStatus,

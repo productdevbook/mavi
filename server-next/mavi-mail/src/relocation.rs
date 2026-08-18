@@ -10,7 +10,7 @@ use serde_json::json;
 use sqlx::Row;
 use uuid::Uuid;
 
-use super::MailService;
+use super::{MailService, PROTECTED_BODY_REDACTION};
 
 pub const MAIL_RELOCATION_FORMAT: &str = "mavi.mail.relocation";
 pub const MAIL_RELOCATION_VERSION: u16 = 1;
@@ -91,6 +91,10 @@ pub struct MailDeliveryRelocation {
     pub recipient: String,
     pub subject: String,
     pub body: String,
+    /// Protected bodies are intentionally relocated without their ciphertext
+    /// so a stale token cannot become sendable on the target runtime.
+    #[serde(default)]
+    pub body_protected: bool,
     pub content_type: String,
     pub purpose: String,
     pub status: String,
@@ -238,6 +242,7 @@ impl MailRelocation {
                 || !valid_email(&delivery.recipient)
                 || !valid_subject(&delivery.subject)
                 || !valid_body(&delivery.body)
+                || (delivery.body_protected && delivery.body != PROTECTED_BODY_REDACTION)
                 || !valid_content_type(&delivery.content_type)
                 || !matches!(delivery.purpose.as_str(), "transactional" | "campaign")
                 || !matches!(
@@ -402,9 +407,10 @@ impl MailService {
         .collect::<Result<Vec<_>>>()?;
 
         let deliveries = sqlx::query(
-            "select id, template_id, list_id, recipient, subject, body, content_type,
-                    purpose, status, attempts, available_at, provider, provider_reference,
-                    last_error, idempotency_key, created_at, updated_at, sent_at
+            "select id, template_id, list_id, recipient, subject, body, body_protected,
+                    content_type, purpose, status, attempts, available_at, provider,
+                    provider_reference, last_error, idempotency_key, created_at, updated_at,
+                    sent_at
                from mail_deliveries where site_id = $1 order by created_at asc, id asc",
         )
         .bind(context.site_id.into_uuid())
@@ -414,6 +420,9 @@ impl MailService {
         .iter()
         .map(|row| {
             let status: String = row.try_get("status").map_err(|_| MaviError::Internal)?;
+            let body_protected: bool = row
+                .try_get("body_protected")
+                .map_err(|_| MaviError::Internal)?;
             Ok(MailDeliveryRelocation {
                 id: row.try_get("id").map_err(|_| MaviError::Internal)?,
                 template_id: row
@@ -422,12 +431,17 @@ impl MailService {
                 list_id: row.try_get("list_id").map_err(|_| MaviError::Internal)?,
                 recipient: row.try_get("recipient").map_err(|_| MaviError::Internal)?,
                 subject: row.try_get("subject").map_err(|_| MaviError::Internal)?,
-                body: row.try_get("body").map_err(|_| MaviError::Internal)?,
+                body: if body_protected {
+                    PROTECTED_BODY_REDACTION.to_owned()
+                } else {
+                    row.try_get("body").map_err(|_| MaviError::Internal)?
+                },
+                body_protected,
                 content_type: row
                     .try_get("content_type")
                     .map_err(|_| MaviError::Internal)?,
                 purpose: row.try_get("purpose").map_err(|_| MaviError::Internal)?,
-                status: normalize_delivery_status(&status).to_owned(),
+                status: normalize_protected_delivery_status(&status, body_protected).to_owned(),
                 attempts: row.try_get("attempts").map_err(|_| MaviError::Internal)?,
                 available_at: row
                     .try_get("available_at")
@@ -605,19 +619,33 @@ impl MailService {
         }
 
         for delivery in &relocation.deliveries {
+            // Relocation snapshots intentionally never contain ciphertext.
+            // Remove any target-side secret for the same delivery id before
+            // upserting the redacted/plain snapshot so an old target row
+            // cannot make a stale token sendable after cutover.
+            sqlx::query(
+                "delete from mail_delivery_secrets
+                  where site_id = $1 and delivery_id = $2",
+            )
+            .bind(context.site_id.into_uuid())
+            .bind(delivery.id)
+            .execute(tx.conn())
+            .await
+            .map_err(|_| MaviError::Internal)?;
             sqlx::query(
                 "insert into mail_deliveries
-                    (site_id, id, template_id, list_id, recipient, subject, body, content_type,
-                     purpose, status, attempts, available_at, lease_owner, lease_until,
+                    (site_id, id, template_id, list_id, recipient, subject, body, body_protected,
+                     content_type, purpose, status, attempts, available_at, lease_owner, lease_until,
                      provider, provider_reference, last_error, idempotency_key,
                      created_at, updated_at, sent_at)
-                 values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, null, null,
-                         $13, $14, $15, $16, $17, $18, $19)
+                 values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, null, null,
+                         $14, $15, $16, $17, $18, $19, $20)
                  on conflict (site_id, id) do update set
                     template_id = excluded.template_id, list_id = excluded.list_id,
                     recipient = excluded.recipient, subject = excluded.subject,
                     body = excluded.body, content_type = excluded.content_type,
-                    purpose = excluded.purpose, status = excluded.status,
+                    body_protected = excluded.body_protected, purpose = excluded.purpose,
+                    status = excluded.status,
                     attempts = excluded.attempts, available_at = excluded.available_at,
                     lease_owner = null, lease_until = null, provider = excluded.provider,
                     provider_reference = excluded.provider_reference,
@@ -632,6 +660,7 @@ impl MailService {
             .bind(&delivery.recipient)
             .bind(&delivery.subject)
             .bind(&delivery.body)
+            .bind(delivery.body_protected)
             .bind(&delivery.content_type)
             .bind(&delivery.purpose)
             .bind(&delivery.status)
@@ -702,6 +731,14 @@ impl MailService {
 
 fn normalize_delivery_status(status: &str) -> &str {
     if status == "sending" { "retry" } else { status }
+}
+
+fn normalize_protected_delivery_status(status: &str, body_protected: bool) -> &str {
+    if body_protected && matches!(status, "queued" | "retry" | "sending") {
+        "cancelled"
+    } else {
+        normalize_delivery_status(status)
+    }
 }
 
 fn normalize_attempt_status(status: &str) -> &str {
@@ -822,6 +859,11 @@ mod tests {
         assert_eq!(normalize_delivery_status("sending"), "retry");
         assert_eq!(normalize_attempt_status("sending"), "retry");
         assert_eq!(normalize_delivery_status("sent"), "sent");
+        assert_eq!(
+            normalize_protected_delivery_status("queued", true),
+            "cancelled"
+        );
+        assert_eq!(normalize_protected_delivery_status("sent", true), "sent");
     }
 
     #[test]

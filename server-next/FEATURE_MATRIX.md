@@ -51,9 +51,9 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Passwords are Argon2id digests; setup and person DTO debug output redacts secrets.
   - [x] Session and API-key authentication/revocation are site-scoped and audited.
   - [x] Provider credentials are site-scoped, sealed at rest, optimistic-versioned and never returned as values.
-  - [-] Password recovery uses hashed one-time tokens, atomic redemption, session revocation, generic responses and a transactional mail outbox.
+  - [x] Password recovery uses hashed one-time tokens, atomic redemption, session revocation, generic responses and a transactional mail outbox.
   - [x] Email verification uses site-scoped hashed one-time tokens, generic request responses, transactional mail, an explicit login gate and atomic redemption.
-  - [ ] Reset-mail secrecy/encryption policy remains open; the provider-neutral outbox currently carries the token required by the email.
+  - [x] Reset and verification mail bodies are AES-GCM sealed with site-bound associated data; the outbox/API expose only a redaction marker and workers unseal only with the keyring capability.
 - [-] Roles, Cedar-backed grants, assistant delegation and revocation.
   - [x] Site-scoped role list/create/grant replacement endpoints are canonicalized.
   - [x] Cedar authorizes HTTP resources and role/person grant delegation cannot escalate.
@@ -121,6 +121,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Mailing lists/readers use normalized addresses, hashed unsubscribe tokens and explicit standing states.
   - [x] Transactional and campaign requests enqueue provider-neutral outbox rows; public/API requests never call a provider.
   - [x] Workers claim leases, record attempts, mark sent/retry/dead and support idempotency keys.
+  - [x] Security-sensitive transactional bodies are sealed at rest, fail closed without a sealer, and relocate as cancelled redacted records without ciphertext.
   - [x] Domain code uses the shared `Mailer` port and returns provider receipts without coupling to SMTP/cloud SDKs.
   - [ ] Concrete self-host/cloud providers, templated unsubscribe URL injection and rate-limit/deliverability policy.
 

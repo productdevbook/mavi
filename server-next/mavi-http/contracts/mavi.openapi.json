@@ -20718,6 +20718,7 @@
           "recipient",
           "subject",
           "body",
+          "body_protected",
           "content_type",
           "purpose",
           "status",
@@ -20758,6 +20759,9 @@
           },
           "body": {
             "type": "string"
+          },
+          "body_protected": {
+            "type": "boolean"
           },
           "content_type": {
             "$ref": "#/components/schemas/MailContentType"

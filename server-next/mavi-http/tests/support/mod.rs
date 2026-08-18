@@ -6,7 +6,7 @@ use axum::{
     http::{Method, Request, header::AUTHORIZATION},
     response::Response,
 };
-use mavi_core::{SiteContext, SiteId};
+use mavi_core::{SiteContext, SiteId, ports::Seals};
 use mavi_design::StaticBuildEngine;
 use mavi_files::InMemoryFileStore;
 use mavi_http::router;
@@ -83,6 +83,33 @@ pub async fn login(app: &Router, email: &str) -> String {
 }
 
 #[allow(dead_code)]
+pub async fn protected_mail_body(database: &Database, site_id: SiteId, recipient: &str) -> String {
+    let context = SiteContext::public(site_id);
+    let mut transaction = database.begin(&context).await.expect("mail scope");
+    let (stored_body, body_protected, ciphertext): (String, bool, Vec<u8>) = sqlx::query_as(
+        "select d.body, d.body_protected, s.ciphertext
+           from mail_delivery_secrets s
+           join mail_deliveries d on d.site_id = s.site_id and d.id = s.delivery_id
+          where d.site_id = $1 and d.recipient = $2 and d.body_protected
+          order by d.created_at desc limit 1",
+    )
+    .bind(site_id.into_uuid())
+    .bind(recipient)
+    .fetch_one(transaction.conn())
+    .await
+    .expect("protected mail secret");
+    transaction.commit().await.expect("mail commit");
+    assert_eq!(stored_body, "[protected]");
+    assert!(body_protected);
+
+    let plaintext = KeyringSealer::from_key([42; 32])
+        .unseal(&context, &ciphertext)
+        .await
+        .expect("protected mail unseal");
+    String::from_utf8(plaintext).expect("protected mail utf8")
+}
+
+#[allow(dead_code)]
 pub async fn verify_email(app: &Router, person: &Value, email: &str) {
     let requested = send(
         app,
@@ -102,23 +129,11 @@ pub async fn verify_email(app: &Router, person: &Value, email: &str) {
     )
     .await
     .expect("database connection");
-    let context = SiteContext::public(site_id);
-    let mut transaction = database.begin(&context).await.expect("mail scope");
-    let body: String = sqlx::query_scalar(
-        "select body from mail_deliveries
-          where site_id = $1 and recipient = $2
-          order by created_at desc limit 1",
-    )
-    .bind(site_id.into_uuid())
-    .bind(email)
-    .fetch_one(transaction.conn())
-    .await
-    .expect("verification mail");
+    let body = protected_mail_body(&database, site_id, email).await;
     let token = body
         .lines()
         .find(|line| line.starts_with("mavi_verify_"))
         .expect("verification token");
-    drop(transaction);
 
     let redeemed = send(
         app,

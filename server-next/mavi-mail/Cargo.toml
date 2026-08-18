@@ -24,4 +24,5 @@ uuid.workspace = true
 workspace = true
 
 [dev-dependencies]
+mavi-sealing = { path = "../mavi-sealing" }
 tokio.workspace = true

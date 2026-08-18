@@ -7,7 +7,7 @@ use mavi_storage::Database;
 use serde_json::json;
 
 mod support;
-use support::{login, response_json, send};
+use support::{login, protected_mail_body, response_json, send};
 
 #[tokio::test]
 #[ignore = "requires TEST_DATABASE_URL and a non-superuser PostgreSQL role"]
@@ -72,25 +72,12 @@ async fn create_reader(
     .await;
     assert_eq!(requested.status(), StatusCode::ACCEPTED);
 
-    let public_context = SiteContext::public(site_id);
-    let mut mail_tx = database.begin(&public_context).await.expect("mail scope");
-    let body: String = sqlx::query_scalar(
-        "select body from mail_deliveries
-          where site_id = $1 and recipient = $2
-          order by created_at desc limit 1",
-    )
-    .bind(site_id.into_uuid())
-    .bind("reader@example.com")
-    .fetch_one(mail_tx.conn())
-    .await
-    .expect("reader verification mail");
+    let body = protected_mail_body(database, site_id, "reader@example.com").await;
     let token = body
         .lines()
         .find(|line| line.starts_with("mavi_verify_"))
         .expect("reader verification token")
         .to_owned();
-    mail_tx.commit().await.expect("mail commit");
-
     let verified = send(
         app,
         Method::POST,
@@ -180,22 +167,12 @@ async fn password_reset_response_is_generic_and_redeems_the_mail_outbox_token() 
     assert_eq!(unknown.status(), StatusCode::ACCEPTED);
     assert_eq!(response_json(known).await, response_json(unknown).await);
 
-    let public_context = SiteContext::public(site_id);
-    let mut tx = database.begin(&public_context).await.expect("mail scope");
-    let body: String = sqlx::query_scalar(
-        "select body from mail_deliveries where site_id = $1 order by created_at desc limit 1",
-    )
-    .bind(site_id.into_uuid())
-    .fetch_one(tx.conn())
-    .await
-    .expect("password reset mail");
+    let body = protected_mail_body(&database, site_id, "owner@example.com").await;
     let token = body
         .lines()
         .find(|line| line.starts_with("mavi_reset_"))
         .expect("reset token in provider-neutral mail")
         .to_owned();
-    tx.commit().await.expect("mail commit");
-
     let redeemed = send(
         &app,
         Method::POST,
@@ -316,25 +293,12 @@ async fn email_verification_response_is_generic_throttled_and_one_time() {
     assert_eq!(limited.status(), StatusCode::ACCEPTED);
     assert_eq!(response_json(limited).await, json!({"accepted": true}));
 
-    let public_context = SiteContext::public(site_id);
-    let mut mail_tx = database.begin(&public_context).await.expect("mail scope");
-    let body: String = sqlx::query_scalar(
-        "select body from mail_deliveries
-          where site_id = $1 and recipient = $2
-          order by created_at desc limit 1",
-    )
-    .bind(site_id.into_uuid())
-    .bind("verify@example.com")
-    .fetch_one(mail_tx.conn())
-    .await
-    .expect("verification mail");
+    let body = protected_mail_body(&database, site_id, "verify@example.com").await;
     let token = body
         .lines()
         .find(|line| line.starts_with("mavi_verify_"))
         .expect("verification token in provider-neutral mail")
         .to_owned();
-    mail_tx.commit().await.expect("mail commit");
-
     let redeemed = send(
         &app,
         Method::POST,
@@ -391,6 +355,7 @@ async fn email_verification_response_is_generic_throttled_and_one_time() {
         "email_verification_token_invalid"
     );
 
+    let public_context = SiteContext::public(site_id);
     let mut audit_tx = database.begin(&public_context).await.expect("audit scope");
     let rate_limited: i64 = sqlx::query_scalar(
         "select count(*) from audit_events

@@ -2185,7 +2185,7 @@ where
         );
         state
             .mail
-            .enqueue_transactional_message(
+            .enqueue_protected_transactional_message(
                 &mut transaction,
                 &context,
                 MailMessage {
@@ -2195,6 +2195,7 @@ where
                     content_type: MailContentType::Plain,
                 },
                 Some(&idempotency_key),
+                state.sealer.as_ref(),
             )
             .await
             .map_err(HttpError)?;
@@ -2247,7 +2248,7 @@ where
         );
         state
             .mail
-            .enqueue_transactional_message(
+            .enqueue_protected_transactional_message(
                 &mut transaction,
                 &context,
                 MailMessage {
@@ -2257,6 +2258,7 @@ where
                     content_type: MailContentType::Plain,
                 },
                 Some(&idempotency_key),
+                state.sealer.as_ref(),
             )
             .await
             .map_err(HttpError)?;

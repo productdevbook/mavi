@@ -947,6 +947,7 @@ export interface MailDelivery {
   recipient: string;
   subject: string;
   body: string;
+  body_protected: boolean;
   content_type: MailContentType;
   purpose: MailPurpose;
   status: MailDeliveryStatus;

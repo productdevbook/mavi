@@ -15,7 +15,7 @@ use uuid::Uuid;
 /// It is part of the runtime compatibility contract exposed to the operator.
 /// Keep it next to the migration runner so a release cannot advertise a
 /// storage version independently from the migrations it ships.
-pub const CURRENT_SCHEMA_VERSION: u32 = 26;
+pub const CURRENT_SCHEMA_VERSION: u32 = 28;
 
 /// The lifecycle state stored in the shared shard catalog.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -383,6 +383,23 @@ mod tests {
         assert!(email_verification_migration.contains("create table email_verification_tokens"));
         assert!(email_verification_migration.contains("create table auth_request_throttles"));
         assert!(email_verification_migration.contains("force row level security"));
+        let protected_mail_migration =
+            include_str!("../migrations/0027_protected_mail_deliveries.sql");
+        assert!(protected_mail_migration.contains("body_protected boolean not null default false"));
+        assert!(
+            protected_mail_migration
+                .contains("check ((not body_protected) or body = '[protected]') not valid")
+        );
+        assert!(!protected_mail_migration.contains("validate constraint"));
+        assert!(protected_mail_migration.contains("mail_delivery_secrets"));
+        assert!(protected_mail_migration.contains("octet_length(ciphertext)"));
+        assert!(protected_mail_migration.contains("force row level security"));
+        let protected_mail_validation_migration =
+            include_str!("../migrations/0028_validate_protected_mail_deliveries.sql");
+        assert!(
+            protected_mail_validation_migration
+                .contains("validate constraint mail_deliveries_body_protection_check")
+        );
 
         let boards_migration = include_str!("../migrations/0020_boards.sql");
         assert!(boards_migration.contains("primary key (site_id, id)"));
@@ -396,6 +413,6 @@ mod tests {
         assert!(analytics_migration.contains("analytics_daily"));
         assert!(analytics_migration.contains("analytics_events_site_recent"));
         assert!(analytics_migration.contains("force row level security"));
-        assert_eq!(CURRENT_SCHEMA_VERSION, 26);
+        assert_eq!(CURRENT_SCHEMA_VERSION, 28);
     }
 }

@@ -3,7 +3,7 @@ use mavi_contract::{Endpoint, Method, Permission, Shape};
 use mavi_core::{
     Action, Capability, ErrorCode, MailDeliveryId, MailListId, MailTemplateId, MaviError, Page,
     PageRequest, Result, SiteContext,
-    ports::{MailContentType, MailDeliveryReceipt, MailMessage},
+    ports::{MailContentType, MailDeliveryReceipt, MailMessage, Seals},
 };
 use mavi_storage::SiteTx;
 use serde::{Deserialize, Serialize};
@@ -21,15 +21,18 @@ pub const MAIL_DELIVERY_PURPOSE_INVALID: &str = "mail_delivery_purpose_invalid";
 pub const MAIL_IDEMPOTENCY_KEY_INVALID: &str = "mail_idempotency_key_invalid";
 pub const MAIL_DELIVERY_ERROR_INVALID: &str = "mail_delivery_error_invalid";
 pub const MAIL_DELIVERY_ATTEMPTS_EXHAUSTED: &str = "mail_delivery_attempts_exhausted";
+pub const PROTECTED_BODY_REDACTION: &str = "[protected]";
 
 pub const MAX_DELIVERY_ATTEMPTS: i16 = 25;
 const MAX_IDEMPOTENCY_KEY_CHARS: usize = 128;
 const MAX_DELIVERY_ERROR_CHARS: usize = 2_000;
 
 const DELIVERY_COLUMNS: &str =
-    "id, template_id, list_id, recipient, subject, body, content_type, purpose, status,
+    "id, template_id, list_id, recipient, subject, body, body_protected, content_type, purpose, status,
      attempts, available_at, lease_owner, lease_until, provider, provider_reference,
      last_error, created_at, updated_at, sent_at";
+const MAX_MAIL_SUBJECT_CHARS: usize = 300;
+const MAX_MAIL_BODY_CHARS: usize = 100_000;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -131,6 +134,7 @@ pub struct MailDelivery {
     pub recipient: String,
     pub subject: String,
     pub body: String,
+    pub body_protected: bool,
     pub content_type: MailContentType,
     pub purpose: MailPurpose,
     pub status: MailDeliveryStatus,
@@ -298,13 +302,14 @@ fn shapes() -> Vec<Shape> {
         ),
         Shape::new(
             "MailDelivery",
-            json!({"type": "object", "required": ["id", "template_id", "list_id", "recipient", "subject", "body", "content_type", "purpose", "status", "attempts", "available_at", "provider", "provider_reference", "last_error", "created_at", "updated_at", "sent_at"], "properties": {
+            json!({"type": "object", "required": ["id", "template_id", "list_id", "recipient", "subject", "body", "body_protected", "content_type", "purpose", "status", "attempts", "available_at", "provider", "provider_reference", "last_error", "created_at", "updated_at", "sent_at"], "properties": {
                 "id": {"type": "string", "format": "uuid"},
                 "template_id": {"type": ["string", "null"], "format": "uuid"},
                 "list_id": {"type": ["string", "null"], "format": "uuid"},
                 "recipient": {"type": "string", "format": "email"},
                 "subject": {"type": "string"},
                 "body": {"type": "string"},
+                "body_protected": {"type": "boolean"},
                 "content_type": {"$ref": "#/components/schemas/MailContentType"},
                 "purpose": {"$ref": "#/components/schemas/MailPurpose"},
                 "status": {"$ref": "#/components/schemas/MailDeliveryStatus"},
@@ -482,39 +487,13 @@ impl MailService {
         idempotency_key: Option<&str>,
     ) -> Result<MailDelivery> {
         let idempotency_key = validate_idempotency_key(idempotency_key)?;
-        if let Some(key) = idempotency_key.as_deref()
-            && let Some(row) = sqlx::QueryBuilder::<sqlx::Postgres>::new("select ")
-                .push(DELIVERY_COLUMNS)
-                .push(" from mail_deliveries where site_id = ")
-                .push_bind(context.site_id.into_uuid())
-                .push(" and idempotency_key = ")
-                .push_bind(key)
-                .build()
-                .fetch_optional(tx.conn())
-                .await
-                .map_err(|_| MaviError::Internal)?
+        if let Some(delivery) =
+            find_delivery_by_idempotency_key(tx, context, idempotency_key.as_deref()).await?
         {
-            return from_row(&row);
+            return Ok(delivery);
         }
 
-        let recipient = mavi_core::Email::parse(&message.recipient)
-            .map_err(|_| MaviError::validation_field("invalid_email", "recipient"))?;
-        let subject = message.subject.trim();
-        if subject.is_empty()
-            || subject.chars().count() > 300
-            || subject.chars().any(char::is_control)
-        {
-            return Err(MaviError::validation_field(
-                "mail_subject_invalid",
-                "subject",
-            ));
-        }
-        if message.body.is_empty()
-            || message.body.chars().count() > 100_000
-            || message.body.chars().any(|character| character == '\0')
-        {
-            return Err(MaviError::validation_field("mail_body_invalid", "body"));
-        }
+        let (recipient, subject) = validate_system_message(&message)?;
 
         let id = MailDeliveryId::new();
         let row = sqlx::QueryBuilder::<sqlx::Postgres>::new(
@@ -549,6 +528,82 @@ impl MailService {
             "MailDelivery",
             id,
             json!({"purpose": "transactional", "system": true}),
+        )
+        .await?;
+        Ok(delivery)
+    }
+
+    /// Enqueues a system message whose body contains a one-time secret.
+    ///
+    /// The regular delivery row contains only a redaction marker. The sealed
+    /// body is kept in a separate site-scoped table and is unsealed only when
+    /// a worker claims the row with the keyring capability. This keeps the
+    /// token out of database snapshots, delivery APIs, and routine outbox
+    /// inspection queries.
+    pub async fn enqueue_protected_transactional_message(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        message: MailMessage,
+        idempotency_key: Option<&str>,
+        sealer: &dyn Seals,
+    ) -> Result<MailDelivery> {
+        let idempotency_key = validate_idempotency_key(idempotency_key)?;
+        if let Some(delivery) =
+            find_delivery_by_idempotency_key(tx, context, idempotency_key.as_deref()).await?
+        {
+            return Ok(delivery);
+        }
+
+        let (recipient, subject) = validate_system_message(&message)?;
+
+        let ciphertext = sealer.seal(context, message.body.as_bytes()).await?;
+        let id = MailDeliveryId::new();
+        let row = sqlx::QueryBuilder::<sqlx::Postgres>::new(
+            "insert into mail_deliveries
+                (site_id, id, template_id, list_id, recipient, subject, body,
+                 body_protected, content_type, purpose, idempotency_key)
+             values (",
+        )
+        .push_bind(context.site_id.into_uuid())
+        .push(", ")
+        .push_bind(id.into_uuid())
+        .push(", null, null, ")
+        .push_bind(recipient.as_str())
+        .push(", ")
+        .push_bind(subject)
+        .push(", ")
+        .push_bind(PROTECTED_BODY_REDACTION)
+        .push(", true, ")
+        .push_bind(message.content_type.as_str())
+        .push(", 'transactional', ")
+        .push_bind(idempotency_key.as_deref())
+        .push(") returning ")
+        .push(DELIVERY_COLUMNS)
+        .build()
+        .fetch_one(tx.conn())
+        .await
+        .map_err(|error| map_write_error(&error))?;
+
+        sqlx::query(
+            "insert into mail_delivery_secrets (site_id, delivery_id, ciphertext)
+             values ($1, $2, $3)",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(id.into_uuid())
+        .bind(ciphertext)
+        .execute(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?;
+
+        let delivery = from_row(&row)?;
+        audit(
+            tx,
+            context,
+            "mail.delivery.queued",
+            "MailDelivery",
+            id,
+            json!({"purpose": "transactional", "system": true, "body_protected": true}),
         )
         .await?;
         Ok(delivery)
@@ -644,7 +699,11 @@ impl MailService {
         .push_bind(context.site_id.into_uuid())
         .push(" and id = ")
         .push_bind(id.into_uuid())
-        .push(" and status in ('dead', 'cancelled') returning ")
+        .push(" and status in ('dead', 'cancelled')")
+        .push(" and (not body_protected or exists (")
+        .push("select 1 from mail_delivery_secrets")
+        .push(" where site_id = mail_deliveries.site_id and delivery_id = mail_deliveries.id")
+        .push(")) returning ")
         .push(DELIVERY_COLUMNS)
         .build()
         .fetch_optional(tx.conn())
@@ -673,6 +732,32 @@ impl MailService {
         worker_id: &str,
         lease_until: DateTime<Utc>,
     ) -> Result<Option<ClaimedDelivery>> {
+        self.claim_next_inner(tx, context, worker_id, lease_until, None)
+            .await
+    }
+
+    /// Claims a delivery and unseals protected system bodies with the
+    /// deployment keyring. Plain deliveries continue to work identically.
+    pub async fn claim_next_with_sealer(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        worker_id: &str,
+        lease_until: DateTime<Utc>,
+        sealer: &dyn Seals,
+    ) -> Result<Option<ClaimedDelivery>> {
+        self.claim_next_inner(tx, context, worker_id, lease_until, Some(sealer))
+            .await
+    }
+
+    async fn claim_next_inner(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        worker_id: &str,
+        lease_until: DateTime<Utc>,
+        sealer: Option<&dyn Seals>,
+    ) -> Result<Option<ClaimedDelivery>> {
         if worker_id.trim().is_empty() || worker_id.len() > 128 {
             return Err(MaviError::validation("invalid_worker_id"));
         }
@@ -681,8 +766,8 @@ impl MailService {
         }
         loop {
             let candidate = sqlx::query(
-                "select id, status, attempts from mail_deliveries
-                  where site_id = $1 and (
+                "select id, status, attempts, body_protected from mail_deliveries
+                  where site_id = $1 and (not body_protected or $2) and (
                         (status in ('queued', 'retry') and available_at <= clock_timestamp())
                      or (status = 'sending' and lease_until <= clock_timestamp())
                   )
@@ -690,6 +775,7 @@ impl MailService {
                   for update skip locked limit 1",
             )
             .bind(context.site_id.into_uuid())
+            .bind(sealer.is_some())
             .fetch_optional(tx.conn())
             .await
             .map_err(|_| MaviError::Internal)?;
@@ -707,6 +793,11 @@ impl MailService {
                 mark_exhausted_delivery(tx, context, id, attempts).await?;
                 continue;
             }
+            let body_protected: bool = candidate
+                .try_get("body_protected")
+                .map_err(|_| MaviError::Internal)?;
+            let protected_body =
+                unseal_delivery_body(tx, context, id, body_protected, sealer).await?;
             let row = sqlx::QueryBuilder::<sqlx::Postgres>::new(
                 "update mail_deliveries
                     set status = 'sending', attempts = attempts + 1, lease_owner = ",
@@ -754,7 +845,7 @@ impl MailService {
             let message = MailMessage {
                 recipient: delivery.recipient.clone(),
                 subject: delivery.subject.clone(),
-                body: delivery.body.clone(),
+                body: protected_body.unwrap_or_else(|| delivery.body.clone()),
                 content_type: delivery.content_type,
             };
             return Ok(Some(ClaimedDelivery {
@@ -904,6 +995,33 @@ impl MailService {
     }
 }
 
+async fn unseal_delivery_body(
+    tx: &mut SiteTx,
+    context: &SiteContext,
+    id: Uuid,
+    body_protected: bool,
+    sealer: Option<&dyn Seals>,
+) -> Result<Option<String>> {
+    if !body_protected {
+        return Ok(None);
+    }
+    let sealer = sealer.ok_or(MaviError::Internal)?;
+    let ciphertext: Vec<u8> = sqlx::query_scalar(
+        "select ciphertext from mail_delivery_secrets
+          where site_id = $1 and delivery_id = $2",
+    )
+    .bind(context.site_id.into_uuid())
+    .bind(id)
+    .fetch_optional(tx.conn())
+    .await
+    .map_err(|_| MaviError::Internal)?
+    .ok_or(MaviError::Internal)?;
+    let plaintext = sealer.unseal(context, &ciphertext).await?;
+    String::from_utf8(plaintext)
+        .map(Some)
+        .map_err(|_| MaviError::Internal)
+}
+
 async fn mark_exhausted_delivery(
     tx: &mut SiteTx,
     context: &SiteContext,
@@ -956,6 +1074,49 @@ fn validate_idempotency_key(value: Option<&str>) -> Result<Option<String>> {
     Ok(Some(value.to_owned()))
 }
 
+async fn find_delivery_by_idempotency_key(
+    tx: &mut SiteTx,
+    context: &SiteContext,
+    idempotency_key: Option<&str>,
+) -> Result<Option<MailDelivery>> {
+    let Some(idempotency_key) = idempotency_key else {
+        return Ok(None);
+    };
+    let row = sqlx::QueryBuilder::<sqlx::Postgres>::new("select ")
+        .push(DELIVERY_COLUMNS)
+        .push(" from mail_deliveries where site_id = ")
+        .push_bind(context.site_id.into_uuid())
+        .push(" and idempotency_key = ")
+        .push_bind(idempotency_key)
+        .build()
+        .fetch_optional(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?;
+    row.map(|row| from_row(&row)).transpose()
+}
+
+fn validate_system_message(message: &MailMessage) -> Result<(mavi_core::Email, &str)> {
+    let recipient = mavi_core::Email::parse(&message.recipient)
+        .map_err(|_| MaviError::validation_field("invalid_email", "recipient"))?;
+    let subject = message.subject.trim();
+    if subject.is_empty()
+        || subject.chars().count() > MAX_MAIL_SUBJECT_CHARS
+        || subject.chars().any(char::is_control)
+    {
+        return Err(MaviError::validation_field(
+            "mail_subject_invalid",
+            "subject",
+        ));
+    }
+    if message.body.is_empty()
+        || message.body.chars().count() > MAX_MAIL_BODY_CHARS
+        || message.body.chars().any(|character| character == '\0')
+    {
+        return Err(MaviError::validation_field("mail_body_invalid", "body"));
+    }
+    Ok((recipient, subject))
+}
+
 fn validate_error(value: &str) -> Result<String> {
     let value = value.trim();
     if value.is_empty()
@@ -982,6 +1143,9 @@ fn from_row(row: &sqlx::postgres::PgRow) -> Result<MailDelivery> {
         recipient: row.try_get("recipient").map_err(|_| MaviError::Internal)?,
         subject: row.try_get("subject").map_err(|_| MaviError::Internal)?,
         body: row.try_get("body").map_err(|_| MaviError::Internal)?,
+        body_protected: row
+            .try_get("body_protected")
+            .map_err(|_| MaviError::Internal)?,
         content_type: parse_content_type(
             &row.try_get::<String, _>("content_type")
                 .map_err(|_| MaviError::Internal)?,

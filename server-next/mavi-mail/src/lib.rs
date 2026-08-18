@@ -18,7 +18,8 @@ use uuid::Uuid;
 
 pub use deliveries::{
     ClaimedDelivery, DeliveryListFilter, EnqueueDelivery, MailDelivery, MailDeliveryStatus,
-    MailPurpose, MailServiceError, RetryDelivery, SendCampaign, SendCount,
+    MailPurpose, MailServiceError, PROTECTED_BODY_REDACTION, RetryDelivery, SendCampaign,
+    SendCount,
 };
 pub use lists::{
     AddReader, CreateMailList, MailList, MailListListFilter, MailReader, MailReaderCreated,

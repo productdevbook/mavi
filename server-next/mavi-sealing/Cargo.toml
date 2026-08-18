@@ -1,0 +1,18 @@
+[package]
+name = "mavi-sealing"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+description = "Authenticated encryption adapter for site-scoped Mavi secrets."
+
+[dependencies]
+aes-gcm = { version = "0.11.0", features = ["zeroize"] }
+base64.workspace = true
+mavi-core = { path = "../mavi-core" }
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+tokio.workspace = true

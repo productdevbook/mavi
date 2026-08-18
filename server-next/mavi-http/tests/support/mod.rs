@@ -11,6 +11,7 @@ use mavi_design::StaticBuildEngine;
 use mavi_files::InMemoryFileStore;
 use mavi_http::router;
 use mavi_runtime::{FixedSiteResolver, Runtime};
+use mavi_sealing::KeyringSealer;
 use mavi_storage::Database;
 use serde_json::{Value, json};
 use tower::ServiceExt;
@@ -28,6 +29,7 @@ pub async fn build_app() -> Router {
         Runtime::new(database, FixedSiteResolver::new(site_id)),
         Arc::new(InMemoryFileStore::default()),
         Arc::new(StaticBuildEngine),
+        Arc::new(KeyringSealer::from_key([42; 32])),
     )
     .expect("router")
 }

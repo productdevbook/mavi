@@ -5,6 +5,8 @@ members = [
   "mavi-storage",
   "mavi-contract",
   "mavi-runtime",
+  "mavi-sealing",
+  "mavi-secrets",
   "mavi-http",
   "mavi-content",
   "mavi-settings",

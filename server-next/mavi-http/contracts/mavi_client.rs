@@ -455,6 +455,13 @@ pub struct CreateCourse {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct CreateCredential {
+    pub provider: String,
+    pub name: String,
+    pub values: Value,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct CreateFlow {
     pub name: String,
     pub trigger: Trigger,
@@ -545,6 +552,30 @@ pub struct CreateTerm {
     pub slug: String,
     pub name: String,
     pub parent_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Credential {
+    pub id: String,
+    pub site_id: String,
+    pub provider: String,
+    pub name: String,
+    pub state: String,
+    pub version: i64,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct CredentialListFilter {
+    pub after: Option<String>,
+    pub limit: Option<i64>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct CredentialPage {
+    pub items: Vec<Credential>,
+    pub next_cursor: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -1526,6 +1557,12 @@ pub struct RolePage {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct RotateCredential {
+    pub expected_version: i64,
+    pub values: Value,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct RunListFilter {
     pub after: Option<String>,
     pub limit: Option<i64>,
@@ -2073,5 +2110,9 @@ pub const OPERATIONS: &[OperationDefinition] = &[
     OperationDefinition { name: "analytics.retention.prune", method: "post", path: "/api/v1/analytics/prune", request: Some("PruneAnalytics"), request_location: Some("json"), query: None, response: Some("PruneReceipt"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("analytics"), action: Some("delete") },
     OperationDefinition { name: "portable.export", method: "get", path: "/api/v1/portable/export", request: None, request_location: None, query: None, response: Some("PortableBundle"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("portable"), action: Some("view") },
     OperationDefinition { name: "portable.import", method: "post", path: "/api/v1/portable/import", request: Some("PortableImportRequest"), request_location: Some("json"), query: None, response: Some("ImportReceipt"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("portable"), action: Some("write") },
+    OperationDefinition { name: "credentials.list", method: "get", path: "/api/v1/credentials", request: Some("CredentialListFilter"), request_location: Some("query"), query: None, response: Some("CredentialPage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("credentials"), action: Some("view") },
+    OperationDefinition { name: "credentials.create", method: "post", path: "/api/v1/credentials", request: Some("CreateCredential"), request_location: Some("json"), query: None, response: Some("Credential"), response_location: None, status: 201, authentication: "account_or_assistant", capability: Some("credentials"), action: Some("write") },
+    OperationDefinition { name: "credentials.rotate", method: "put", path: "/api/v1/credentials/{id}", request: Some("RotateCredential"), request_location: Some("json"), query: None, response: Some("Credential"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("credentials"), action: Some("write") },
+    OperationDefinition { name: "credentials.revoke", method: "delete", path: "/api/v1/credentials/{id}", request: None, request_location: None, query: None, response: Some("Empty"), response_location: None, status: 204, authentication: "account_or_assistant", capability: Some("credentials"), action: Some("delete") },
     OperationDefinition { name: "runtime.manifest.read", method: "get", path: "/api/v1/runtime/manifest", request: None, request_location: None, query: None, response: Some("RuntimeManifest"), response_location: None, status: 200, authentication: "public", capability: None, action: None },
 ];

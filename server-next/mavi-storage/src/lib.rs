@@ -14,7 +14,7 @@ use sqlx::{PgPool, Postgres, Transaction};
 /// It is part of the runtime compatibility contract exposed to the operator.
 /// Keep it next to the migration runner so a release cannot advertise a
 /// storage version independently from the migrations it ships.
-pub const CURRENT_SCHEMA_VERSION: u32 = 22;
+pub const CURRENT_SCHEMA_VERSION: u32 = 23;
 
 /// The lifecycle state stored in the shared shard catalog.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -291,6 +291,12 @@ mod tests {
         assert!(portable_grant_migration.contains("'portable'"));
         assert!(portable_grant_migration.contains("role_grants_capability_check"));
 
+        let credentials_migration = include_str!("../migrations/0023_credentials.sql");
+        assert!(credentials_migration.contains("create table site_credentials"));
+        assert!(credentials_migration.contains("site_credentials_active_name"));
+        assert!(credentials_migration.contains("force row level security"));
+        assert!(credentials_migration.contains("'credentials'"));
+
         let boards_migration = include_str!("../migrations/0020_boards.sql");
         assert!(boards_migration.contains("primary key (site_id, id)"));
         assert!(boards_migration.contains("board_lists_site_position"));
@@ -303,6 +309,6 @@ mod tests {
         assert!(analytics_migration.contains("analytics_daily"));
         assert!(analytics_migration.contains("analytics_events_site_recent"));
         assert!(analytics_migration.contains("force row level security"));
-        assert_eq!(CURRENT_SCHEMA_VERSION, 22);
+        assert_eq!(CURRENT_SCHEMA_VERSION, 23);
     }
 }

@@ -42,10 +42,11 @@ use mavi_content::{
 use mavi_contract::{Api, Endpoint, InputLocation, Method, Shape};
 use mavi_core::{
     Action, AuditEventId, BoardCardId, BoardCommentId, BoardId, BoardListId, Caller, Capability,
-    ContentId, CouponId, CourseId, DesignBuildId, DesignChangeId, EnrollmentId, ErrorCode, FileId,
-    FlowId, FlowRunId, FormSubmissionId, Grant, JobId, LessonId, MailDeliveryId, MailListId,
-    MailReaderId, MailTemplateId, MaviError, ModuleId, OrderId, Page, PersonId, ProductId,
-    RequestId, RoleId, SiteContext, StudentId, TermId, ports::FileStore,
+    ContentId, CouponId, CourseId, CredentialId, DesignBuildId, DesignChangeId, EnrollmentId,
+    ErrorCode, FileId, FlowId, FlowRunId, FormSubmissionId, Grant, JobId, LessonId, MailDeliveryId,
+    MailListId, MailReaderId, MailTemplateId, MaviError, ModuleId, OrderId, Page, PersonId,
+    ProductId, RequestId, RoleId, SiteContext, StudentId, TermId,
+    ports::{FileStore, Seals},
 };
 use mavi_courses::{
     Course, CourseListFilter, CourseSummary, CoursesService, CreateCourse, CreateLesson,
@@ -83,6 +84,9 @@ use mavi_mail::{
 use mavi_media::{FileListFilter, FileRecord, MAX_FILE_BYTES, MediaService, UploadFileQuery};
 use mavi_portable::{ImportReceipt, PortableBundle, PortableImportRequest, PortableService};
 use mavi_runtime::{Runtime, RuntimeManifest, SiteResolver};
+use mavi_secrets::{
+    CreateCredential, Credential, CredentialListFilter, CredentialService, RotateCredential,
+};
 use mavi_settings::{
     CreateLanguage, Language, LanguageListFilter, SettingsService, SiteSettings, UpdateLanguage,
     UpdateSiteSettings,
@@ -192,6 +196,7 @@ pub fn api() -> Api {
     api.extend(mavi_boards::api());
     api.extend(mavi_analytics::api());
     api.extend(mavi_portable::api());
+    api.extend(mavi_secrets::api());
     api.extend(runtime_api());
     api
 }
@@ -261,6 +266,7 @@ pub fn router<R>(
     runtime: Runtime<R>,
     file_store: Arc<dyn FileStore>,
     builder: Arc<dyn BuildEngine>,
+    sealer: Arc<dyn Seals>,
 ) -> Result<Router, MaviError>
 where
     R: SiteResolver,
@@ -285,8 +291,10 @@ where
         boards: BoardService,
         analytics: AnalyticsService,
         portable: PortableService,
+        credentials: CredentialService,
         file_store,
         builder,
+        sealer,
         authorizer: CedarAuthorizer::new()?,
         mcp_dispatcher: Arc::clone(&mcp_dispatcher),
     };
@@ -334,6 +342,7 @@ where
         .merge(board_routes::<R>())
         .merge(analytics_routes::<R>())
         .merge(portable_routes::<R>())
+        .merge(credentials_routes::<R>())
         .route("/api/v1/runtime/manifest", get(runtime_manifest::<R>))
 }
 
@@ -905,6 +914,21 @@ where
         .route(
             "/api/v1/files/{id}",
             get(read_file::<R>).delete(delete_file::<R>),
+        )
+}
+
+fn credentials_routes<R>() -> Router<HttpState<R>>
+where
+    R: SiteResolver,
+{
+    Router::new()
+        .route(
+            "/api/v1/credentials",
+            get(list_credentials::<R>).post(create_credential::<R>),
+        )
+        .route(
+            "/api/v1/credentials/{id}",
+            put(rotate_credential::<R>).delete(revoke_credential::<R>),
         )
 }
 
@@ -1872,8 +1896,10 @@ struct HttpState<R> {
     boards: BoardService,
     analytics: AnalyticsService,
     portable: PortableService,
+    credentials: CredentialService,
     file_store: Arc<dyn FileStore>,
     builder: Arc<dyn BuildEngine>,
+    sealer: Arc<dyn Seals>,
     authorizer: CedarAuthorizer,
     mcp_dispatcher: Arc<OnceLock<Router>>,
 }
@@ -1899,8 +1925,10 @@ impl<R> Clone for HttpState<R> {
             boards: self.boards,
             analytics: self.analytics,
             portable: self.portable,
+            credentials: self.credentials,
             file_store: Arc::clone(&self.file_store),
             builder: Arc::clone(&self.builder),
+            sealer: Arc::clone(&self.sealer),
             authorizer: self.authorizer.clone(),
             mcp_dispatcher: Arc::clone(&self.mcp_dispatcher),
         }
@@ -2816,6 +2844,89 @@ where
     state
         .media
         .trash(&mut transaction, &context, id)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+async fn list_credentials<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Query(filter): Query<CredentialListFilter>,
+) -> Result<Json<Page<Credential>>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_credentials_grant(&state, &context, Action::View, "credentials_collection")?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let credentials = state
+        .credentials
+        .list(&mut transaction, &context, &filter)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(credentials))
+}
+
+async fn create_credential<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Json(input): Json<CreateCredential>,
+) -> Result<(StatusCode, Json<Credential>), HttpError>
+where
+    R: SiteResolver,
+{
+    require_credentials_grant(&state, &context, Action::Write, "credentials_collection")?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let credential = state
+        .credentials
+        .create(&mut transaction, &context, state.sealer.as_ref(), &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok((StatusCode::CREATED, Json(credential)))
+}
+
+async fn rotate_credential<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<CredentialId>,
+    Json(input): Json<RotateCredential>,
+) -> Result<Json<Credential>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_credentials_grant(&state, &context, Action::Write, id.to_string())?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let credential = state
+        .credentials
+        .rotate(
+            &mut transaction,
+            &context,
+            state.sealer.as_ref(),
+            id,
+            &input,
+        )
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(credential))
+}
+
+async fn revoke_credential<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<CredentialId>,
+) -> Result<StatusCode, HttpError>
+where
+    R: SiteResolver,
+{
+    require_credentials_grant(&state, &context, Action::Delete, id.to_string())?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    state
+        .credentials
+        .revoke(&mut transaction, &context, id)
         .await
         .map_err(HttpError)?;
     transaction.commit().await.map_err(HttpError)?;
@@ -5770,6 +5881,24 @@ where
         context,
         Grant::new(Capability::Portable, action),
         resource_type,
+        resource_id,
+    )
+}
+
+fn require_credentials_grant<R>(
+    state: &HttpState<R>,
+    context: &SiteContext,
+    action: Action,
+    resource_id: impl Into<String>,
+) -> Result<(), HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        state,
+        context,
+        Grant::new(Capability::Credentials, action),
+        "Credential",
         resource_id,
     )
 }

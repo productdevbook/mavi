@@ -17,6 +17,7 @@ mavi-design = { path = "../mavi-design" }
 mavi-files = { path = "../mavi-files" }
 mavi-http = { path = "../mavi-http" }
 mavi-runtime = { path = "../mavi-runtime" }
+mavi-sealing = { path = "../mavi-sealing" }
 mavi-storage = { path = "../mavi-storage" }
 tokio.workspace = true
 tracing.workspace = true

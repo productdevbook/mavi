@@ -5,6 +5,7 @@ use mavi_design::StaticBuildEngine;
 use mavi_files::DirectoryFileStore;
 use mavi_http::router;
 use mavi_runtime::{FixedSiteResolver, Runtime};
+use mavi_sealing::KeyringSealer;
 use mavi_storage::Database;
 use tokio::net::TcpListener;
 use tracing_subscriber::EnvFilter;
@@ -39,6 +40,7 @@ async fn main() -> Result<()> {
     let runtime = Runtime::new(database, FixedSiteResolver::new(site_id));
     let file_root = env::var("MAVI_FILES_DIR").unwrap_or_else(|_| "./mavi-files".to_owned());
     let file_store = Arc::new(DirectoryFileStore::at(file_root));
+    let sealer = Arc::new(KeyringSealer::from_spec(&required("MAVI_KEYS")?)?);
     let address: SocketAddr = listen
         .parse()
         .map_err(|_| MaviError::validation("invalid_listen_address"))?;
@@ -49,7 +51,7 @@ async fn main() -> Result<()> {
     tracing::info!(%address, %site_id, "mavi runtime listening");
     axum::serve(
         listener,
-        router(runtime, file_store, Arc::new(StaticBuildEngine))?,
+        router(runtime, file_store, Arc::new(StaticBuildEngine), sealer)?,
     )
     .await
     .map_err(|_| MaviError::Internal)

@@ -7740,6 +7740,190 @@
           "action": "write"
         }
       }
+    },
+    {
+      "name": "credentials.list",
+      "description": "List provider credential metadata",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "after": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 512
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100
+              }
+            }
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true
+      },
+      "x-mavi": {
+        "authentication": "account_or_assistant",
+        "scope": "site",
+        "permission": {
+          "capability": "credentials",
+          "action": "view"
+        }
+      }
+    },
+    {
+      "name": "credentials.create",
+      "description": "Create a sealed provider credential",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "provider",
+              "name",
+              "values"
+            ],
+            "properties": {
+              "provider": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+              },
+              "name": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_-]{0,119}$"
+              },
+              "values": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "minProperties": 1
+              }
+            }
+          }
+        },
+        "required": [
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false
+      },
+      "x-mavi": {
+        "authentication": "account_or_assistant",
+        "scope": "site",
+        "permission": {
+          "capability": "credentials",
+          "action": "write"
+        }
+      }
+    },
+    {
+      "name": "credentials.rotate",
+      "description": "Rotate a provider credential without exposing its value",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ]
+          },
+          "body": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "expected_version",
+              "values"
+            ],
+            "properties": {
+              "expected_version": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "values": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "minProperties": 1
+              }
+            }
+          }
+        },
+        "required": [
+          "path",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false
+      },
+      "x-mavi": {
+        "authentication": "account_or_assistant",
+        "scope": "site",
+        "permission": {
+          "capability": "credentials",
+          "action": "write"
+        }
+      }
+    },
+    {
+      "name": "credentials.revoke",
+      "description": "Revoke a provider credential",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ]
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false
+      },
+      "x-mavi": {
+        "authentication": "account_or_assistant",
+        "scope": "site",
+        "permission": {
+          "capability": "credentials",
+          "action": "delete"
+        }
+      }
     }
   ]
 }

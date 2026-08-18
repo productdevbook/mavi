@@ -229,7 +229,8 @@ impl MailRelocation {
         let mut delivery_ids = BTreeSet::new();
         let mut idempotency_keys = BTreeSet::new();
         for delivery in &self.deliveries {
-            if !delivery_ids.insert(delivery.id)
+            if delivery.id.is_nil()
+                || !delivery_ids.insert(delivery.id)
                 || delivery
                     .template_id
                     .is_some_and(|id| !template_ids.contains(&id))
@@ -260,7 +261,8 @@ impl MailRelocation {
         let mut attempt_ids = BTreeSet::new();
         let mut delivery_attempts = BTreeSet::new();
         for attempt in &self.attempts {
-            if !attempt_ids.insert(attempt.id)
+            if attempt.id.is_nil()
+                || !attempt_ids.insert(attempt.id)
                 || !delivery_ids.contains(&attempt.delivery_id)
                 || !(1..=25).contains(&attempt.attempt_number)
                 || !matches!(attempt.status.as_str(), "sent" | "retry" | "dead")

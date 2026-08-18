@@ -759,13 +759,6 @@ impl CredentialService {
             });
         }
         relocation.validate_for_site(context.site_id)?;
-        audit_relocation(
-            tx,
-            context,
-            "credentials.relocation.exported",
-            relocation.record_count(),
-        )
-        .await?;
         Ok(relocation)
     }
 

@@ -110,6 +110,25 @@ async fn credentials_are_sealed_site_scoped_optimistic_and_audited() {
     assert!(!format!("{relocation:?}").contains("rotated-value"));
     tx.commit().await.expect("relocation export commit");
 
+    let mut tx = database.begin(&first_context).await.expect("scope");
+    let repeated = service
+        .export_for_relocation(&mut tx, &first_context, &sealer, &transfer_sealer)
+        .await
+        .expect("repeated export provider credentials");
+    assert_eq!(repeated.record_count(), relocation.record_count());
+    let relocation_audits: i64 = sqlx::query_scalar(
+        "select count(*) from audit_events
+          where site_id = $1 and action = 'credentials.relocation.exported'",
+    )
+    .bind(first.into_uuid())
+    .fetch_one(tx.conn())
+    .await
+    .expect("relocation audit count");
+    assert_eq!(relocation_audits, 0);
+    tx.commit()
+        .await
+        .expect("repeated relocation export commit");
+
     let mut tx = database.begin(&second_context).await.expect("scope");
     let second_list = service
         .list(&mut tx, &second_context, &CredentialListFilter::default())

@@ -21,6 +21,10 @@ use serde_json::{Value, json};
 use sqlx::{Postgres, QueryBuilder, Row};
 use uuid::Uuid;
 
+mod relocation;
+
+pub use relocation::{JobRelocation, JobsRelocation};
+
 pub const DEFAULT_LEASE_SECONDS: i64 = 300;
 pub const MAX_WORKER_NAME: usize = 160;
 pub const MAX_KIND_NAME: usize = 120;

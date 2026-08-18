@@ -20,6 +20,10 @@ use serde_json::json;
 use sqlx::{Postgres, QueryBuilder, Row};
 use uuid::Uuid;
 
+mod relocation;
+
+pub use relocation::{AnalyticsDailyRelocation, AnalyticsEventRelocation, AnalyticsRelocation};
+
 pub const MAX_BATCH: usize = 100;
 pub const MAX_EVENT_NAME: usize = 120;
 pub const MAX_PATH: usize = 500;

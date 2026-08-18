@@ -23,6 +23,13 @@ use serde_json::{Value, json};
 use sqlx::{Postgres, QueryBuilder, Row};
 use uuid::Uuid;
 
+mod relocation;
+
+pub use relocation::{
+    BoardActivityRelocation, BoardCardRelocation, BoardCommentRelocation, BoardListRelocation,
+    BoardRelocation, BoardsRelocation,
+};
+
 pub const MAX_BOARD_NAME: usize = 200;
 pub const MAX_LIST_NAME: usize = 120;
 pub const MAX_CARD_TITLE: usize = 300;

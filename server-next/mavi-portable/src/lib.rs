@@ -21,6 +21,8 @@ use mavi_design::DesignService;
 pub use mavi_media::MediaRelocation;
 use mavi_media::MediaService;
 use mavi_storage::SiteTx;
+pub use mavi_trash::TrashRelocation;
+use mavi_trash::TrashService;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
@@ -237,6 +239,7 @@ pub struct PortableRelocationBundle {
     #[serde(default)]
     pub design: DesignRelocation,
     pub audit: AuditRelocation,
+    pub trash: TrashRelocation,
 }
 
 #[derive(Clone, Deserialize, Eq, PartialEq, Serialize)]
@@ -269,6 +272,15 @@ impl fmt::Debug for PortableRelocationBundle {
             .field("media_files", &self.media.files.len())
             .field("design_changes", &self.design.changes.len())
             .field("audit_events", &self.audit.events.len())
+            .field(
+                "trash_records",
+                &(self.trash.content.len()
+                    + self.trash.revisions.len()
+                    + self.trash.slug_history.len()
+                    + self.trash.assignments.len()
+                    + self.trash.terms.len()
+                    + self.trash.files.len()),
+            )
             .finish()
     }
 }
@@ -527,6 +539,7 @@ impl PortableRelocationBundle {
         self.media.validate()?;
         self.design.validate()?;
         self.audit.validate_for_relocation(target_site)?;
+        self.trash.validate_for_relocation(target_site)?;
         let bytes = serde_json::to_vec(self).map_err(|_| MaviError::Internal)?;
         if bytes.len() > MAX_RELOCATION_BUNDLE_BYTES {
             return Err(MaviError::validation(
@@ -538,6 +551,8 @@ impl PortableRelocationBundle {
 
     pub fn record_count(&self) -> Result<i64> {
         let audit_count = usize::try_from(self.audit.record_count()?)
+            .map_err(|_| MaviError::validation("portable_record_count_overflow"))?;
+        let trash_count = usize::try_from(self.trash.record_count()?)
             .map_err(|_| MaviError::validation("portable_record_count_overflow"))?;
         let count = self
             .bundle
@@ -558,6 +573,7 @@ impl PortableRelocationBundle {
             .and_then(|value| value.checked_add(self.media.files.len()))
             .and_then(|value| value.checked_add(self.design.record_count()))
             .and_then(|value| value.checked_add(audit_count))
+            .and_then(|value| value.checked_add(trash_count))
             .ok_or(MaviError::validation("portable_record_count_overflow"))?;
         i64::try_from(count).map_err(|_| MaviError::validation("portable_record_count_overflow"))
     }
@@ -780,6 +796,9 @@ impl PortableService {
             .export_for_relocation(tx, context, store)
             .await?;
         let audit = AuditService.export_for_relocation(tx, context).await?;
+        let trash = TrashService
+            .export_for_relocation(tx, context, store)
+            .await?;
         let relocation = PortableRelocationBundle {
             bundle,
             identity,
@@ -787,6 +806,7 @@ impl PortableService {
             media,
             design,
             audit,
+            trash,
         };
         relocation.validate_for_relocation(context.site_id)?;
         Ok(relocation)
@@ -848,6 +868,9 @@ impl PortableService {
             .await?;
         DesignService
             .import_for_relocation(tx, context, store, &request.bundle.design)
+            .await?;
+        TrashService
+            .import_for_relocation(tx, context, store, &request.bundle.trash)
             .await?;
         AuditService
             .import_for_relocation(tx, context, &request.bundle.audit)
@@ -2202,6 +2225,7 @@ mod tests {
             media: MediaRelocation::default(),
             design: DesignRelocation::default(),
             audit: AuditRelocation::empty(source_site),
+            trash: TrashRelocation::empty(source_site),
         };
         envelope
             .validate_for_relocation(envelope.bundle.manifest.source_site_id)

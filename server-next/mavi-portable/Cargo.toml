@@ -14,6 +14,7 @@ mavi-core = { path = "../mavi-core" }
 mavi-design = { path = "../mavi-design" }
 mavi-media = { path = "../mavi-media" }
 mavi-storage = { path = "../mavi-storage" }
+mavi-trash = { path = "../mavi-trash" }
 serde.workspace = true
 serde_json.workspace = true
 sha2.workspace = true

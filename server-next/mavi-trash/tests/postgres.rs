@@ -98,6 +98,80 @@ async fn trash_lists_restores_and_permanently_deletes_site_resources() {
         .expect("trash file");
     transaction.commit().await.expect("commit");
 
+    let relocation_site = SiteId::new();
+    database
+        .ensure_site(relocation_site)
+        .await
+        .expect("relocation site");
+    let mut transaction = database.begin(&context).await.expect("export transaction");
+    let relocation = trash_service
+        .export_for_relocation(&mut transaction, &context, &store)
+        .await
+        .expect("export trash relocation");
+    assert_eq!(relocation.source_site_id, first_site);
+    assert_eq!(relocation.content.len(), 1);
+    assert!(!relocation.revisions.is_empty());
+    assert_eq!(relocation.terms.len(), 1);
+    assert_eq!(relocation.files.len(), 1);
+    assert_eq!(relocation.files[0].id, file.id.into_uuid());
+    transaction.commit().await.expect("export commit");
+
+    let relocation_context = SiteContext::public(relocation_site);
+    let mut relocation = relocation;
+    relocation.source_site_id = relocation_site;
+    let mut transaction = database
+        .begin(&relocation_context)
+        .await
+        .expect("relocation transaction");
+    trash_service
+        .import_for_relocation(&mut transaction, &relocation_context, &store, &relocation)
+        .await
+        .expect("import trash relocation");
+    let imported = trash_service
+        .list(
+            &mut transaction,
+            &relocation_context,
+            &TrashListFilter::default(),
+        )
+        .await
+        .expect("imported trash list");
+    assert_eq!(imported.items.len(), 3);
+    trash_service
+        .restore(
+            &mut transaction,
+            &relocation_context,
+            TrashKind::Content,
+            content_entry.id.into_uuid(),
+        )
+        .await
+        .expect("restore imported content");
+    trash_service
+        .restore(
+            &mut transaction,
+            &relocation_context,
+            TrashKind::Term,
+            term.id.into_uuid(),
+        )
+        .await
+        .expect("restore imported term");
+    trash_service
+        .restore(
+            &mut transaction,
+            &relocation_context,
+            TrashKind::File,
+            file.id.into_uuid(),
+        )
+        .await
+        .expect("restore imported file");
+    assert_eq!(
+        store
+            .get(&relocation_context, &relocation.files[0].storage_key)
+            .await
+            .expect("imported file bytes"),
+        PNG
+    );
+    transaction.commit().await.expect("relocation commit");
+
     let mut transaction = database.begin(&context).await.expect("transaction");
     let first_page = trash_service
         .list(

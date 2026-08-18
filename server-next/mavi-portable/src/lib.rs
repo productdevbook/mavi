@@ -15,7 +15,8 @@ use mavi_contract::{Endpoint, Method, Permission, Shape};
 use mavi_core::{
     Action, Capability, ErrorCode, MaviError, Result, SiteContext, SiteId, ports::FileStore,
 };
-use mavi_media::{MediaRelocation, MediaService};
+pub use mavi_media::MediaRelocation;
+use mavi_media::MediaService;
 use mavi_storage::SiteTx;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};

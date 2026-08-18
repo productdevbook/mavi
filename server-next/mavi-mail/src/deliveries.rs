@@ -31,6 +31,8 @@ const DELIVERY_COLUMNS: &str =
     "id, template_id, list_id, recipient, subject, body, body_protected, content_type, purpose, status,
      attempts, available_at, lease_owner, lease_until, provider, provider_reference,
      last_error, created_at, updated_at, sent_at";
+const MAX_MAIL_SUBJECT_CHARS: usize = 300;
+const MAX_MAIL_BODY_CHARS: usize = 100_000;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -485,39 +487,13 @@ impl MailService {
         idempotency_key: Option<&str>,
     ) -> Result<MailDelivery> {
         let idempotency_key = validate_idempotency_key(idempotency_key)?;
-        if let Some(key) = idempotency_key.as_deref()
-            && let Some(row) = sqlx::QueryBuilder::<sqlx::Postgres>::new("select ")
-                .push(DELIVERY_COLUMNS)
-                .push(" from mail_deliveries where site_id = ")
-                .push_bind(context.site_id.into_uuid())
-                .push(" and idempotency_key = ")
-                .push_bind(key)
-                .build()
-                .fetch_optional(tx.conn())
-                .await
-                .map_err(|_| MaviError::Internal)?
+        if let Some(delivery) =
+            find_delivery_by_idempotency_key(tx, context, idempotency_key.as_deref()).await?
         {
-            return from_row(&row);
+            return Ok(delivery);
         }
 
-        let recipient = mavi_core::Email::parse(&message.recipient)
-            .map_err(|_| MaviError::validation_field("invalid_email", "recipient"))?;
-        let subject = message.subject.trim();
-        if subject.is_empty()
-            || subject.chars().count() > 300
-            || subject.chars().any(char::is_control)
-        {
-            return Err(MaviError::validation_field(
-                "mail_subject_invalid",
-                "subject",
-            ));
-        }
-        if message.body.is_empty()
-            || message.body.chars().count() > 100_000
-            || message.body.chars().any(|character| character == '\0')
-        {
-            return Err(MaviError::validation_field("mail_body_invalid", "body"));
-        }
+        let (recipient, subject) = validate_system_message(&message)?;
 
         let id = MailDeliveryId::new();
         let row = sqlx::QueryBuilder::<sqlx::Postgres>::new(
@@ -573,39 +549,13 @@ impl MailService {
         sealer: &dyn Seals,
     ) -> Result<MailDelivery> {
         let idempotency_key = validate_idempotency_key(idempotency_key)?;
-        if let Some(key) = idempotency_key.as_deref()
-            && let Some(row) = sqlx::QueryBuilder::<sqlx::Postgres>::new("select ")
-                .push(DELIVERY_COLUMNS)
-                .push(" from mail_deliveries where site_id = ")
-                .push_bind(context.site_id.into_uuid())
-                .push(" and idempotency_key = ")
-                .push_bind(key)
-                .build()
-                .fetch_optional(tx.conn())
-                .await
-                .map_err(|_| MaviError::Internal)?
+        if let Some(delivery) =
+            find_delivery_by_idempotency_key(tx, context, idempotency_key.as_deref()).await?
         {
-            return from_row(&row);
+            return Ok(delivery);
         }
 
-        let recipient = mavi_core::Email::parse(&message.recipient)
-            .map_err(|_| MaviError::validation_field("invalid_email", "recipient"))?;
-        let subject = message.subject.trim();
-        if subject.is_empty()
-            || subject.chars().count() > 300
-            || subject.chars().any(char::is_control)
-        {
-            return Err(MaviError::validation_field(
-                "mail_subject_invalid",
-                "subject",
-            ));
-        }
-        if message.body.is_empty()
-            || message.body.chars().count() > 100_000
-            || message.body.chars().any(|character| character == '\0')
-        {
-            return Err(MaviError::validation_field("mail_body_invalid", "body"));
-        }
+        let (recipient, subject) = validate_system_message(&message)?;
 
         let ciphertext = sealer.seal(context, message.body.as_bytes()).await?;
         let id = MailDeliveryId::new();
@@ -817,7 +767,7 @@ impl MailService {
         loop {
             let candidate = sqlx::query(
                 "select id, status, attempts, body_protected from mail_deliveries
-                  where site_id = $1 and (
+                  where site_id = $1 and (not body_protected or $2) and (
                         (status in ('queued', 'retry') and available_at <= clock_timestamp())
                      or (status = 'sending' and lease_until <= clock_timestamp())
                   )
@@ -825,6 +775,7 @@ impl MailService {
                   for update skip locked limit 1",
             )
             .bind(context.site_id.into_uuid())
+            .bind(sealer.is_some())
             .fetch_optional(tx.conn())
             .await
             .map_err(|_| MaviError::Internal)?;
@@ -1121,6 +1072,49 @@ fn validate_idempotency_key(value: Option<&str>) -> Result<Option<String>> {
         return Err(MaviError::validation(MAIL_IDEMPOTENCY_KEY_INVALID));
     }
     Ok(Some(value.to_owned()))
+}
+
+async fn find_delivery_by_idempotency_key(
+    tx: &mut SiteTx,
+    context: &SiteContext,
+    idempotency_key: Option<&str>,
+) -> Result<Option<MailDelivery>> {
+    let Some(idempotency_key) = idempotency_key else {
+        return Ok(None);
+    };
+    let row = sqlx::QueryBuilder::<sqlx::Postgres>::new("select ")
+        .push(DELIVERY_COLUMNS)
+        .push(" from mail_deliveries where site_id = ")
+        .push_bind(context.site_id.into_uuid())
+        .push(" and idempotency_key = ")
+        .push_bind(idempotency_key)
+        .build()
+        .fetch_optional(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?;
+    row.map(|row| from_row(&row)).transpose()
+}
+
+fn validate_system_message(message: &MailMessage) -> Result<(mavi_core::Email, &str)> {
+    let recipient = mavi_core::Email::parse(&message.recipient)
+        .map_err(|_| MaviError::validation_field("invalid_email", "recipient"))?;
+    let subject = message.subject.trim();
+    if subject.is_empty()
+        || subject.chars().count() > MAX_MAIL_SUBJECT_CHARS
+        || subject.chars().any(char::is_control)
+    {
+        return Err(MaviError::validation_field(
+            "mail_subject_invalid",
+            "subject",
+        ));
+    }
+    if message.body.is_empty()
+        || message.body.chars().count() > MAX_MAIL_BODY_CHARS
+        || message.body.chars().any(|character| character == '\0')
+    {
+        return Err(MaviError::validation_field("mail_body_invalid", "body"));
+    }
+    Ok((recipient, subject))
 }
 
 fn validate_error(value: &str) -> Result<String> {

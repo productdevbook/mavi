@@ -663,7 +663,10 @@ impl MailService {
             .bind(delivery.body_protected)
             .bind(&delivery.content_type)
             .bind(&delivery.purpose)
-            .bind(&delivery.status)
+            .bind(normalize_protected_delivery_status(
+                &delivery.status,
+                delivery.body_protected,
+            ))
             .bind(delivery.attempts)
             .bind(delivery.available_at)
             .bind(&delivery.provider)

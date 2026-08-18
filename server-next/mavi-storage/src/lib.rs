@@ -386,6 +386,14 @@ mod tests {
         let protected_mail_migration =
             include_str!("../migrations/0027_protected_mail_deliveries.sql");
         assert!(protected_mail_migration.contains("body_protected boolean not null default false"));
+        assert!(
+            protected_mail_migration
+                .contains("check ((not body_protected) or body = '[protected]') not valid")
+        );
+        assert!(
+            protected_mail_migration
+                .contains("validate constraint mail_deliveries_body_protection_check")
+        );
         assert!(protected_mail_migration.contains("mail_delivery_secrets"));
         assert!(protected_mail_migration.contains("octet_length(ciphertext)"));
         assert!(protected_mail_migration.contains("force row level security"));

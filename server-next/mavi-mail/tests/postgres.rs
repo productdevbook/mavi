@@ -359,17 +359,28 @@ async fn mail_templates_lists_and_outbox_are_site_scoped_and_leaseable() {
         .await
         .expect_err("cross-site list update");
     second_transaction.commit().await.expect("second commit");
+}
 
+#[tokio::test]
+#[ignore = "requires TEST_DATABASE_URL and a non-superuser PostgreSQL role"]
+#[allow(clippy::too_many_lines)]
+async fn protected_transactional_mail_is_sealed_redacted_and_unsealed_by_workers() {
+    let url = env::var("TEST_DATABASE_URL").expect("TEST_DATABASE_URL");
+    let database = Database::connect(&url, 2).await.expect("database");
+    database.migrate().await.expect("migrations");
+
+    let site_id = SiteId::new();
+    database.ensure_site(site_id).await.expect("site");
+    let context = SiteContext::public(site_id);
+    let service = MailService;
     let sealer = KeyringSealer::from_key([7; 32]);
     let secret_body = "Use this one-time token: mavi_reset_test-secret";
-    let mut protected_transaction = database
-        .begin(&second_context)
-        .await
-        .expect("protected enqueue scope");
+
+    let mut protected_transaction = database.begin(&context).await.expect("enqueue scope");
     let protected = service
         .enqueue_protected_transactional_message(
             &mut protected_transaction,
-            &second_context,
+            &context,
             MailMessage {
                 recipient: "security@example.test".to_owned(),
                 subject: "Security message".to_owned(),
@@ -381,33 +392,48 @@ async fn mail_templates_lists_and_outbox_are_site_scoped_and_leaseable() {
         )
         .await
         .expect("protected delivery");
+    let plain = service
+        .enqueue_transactional_message(
+            &mut protected_transaction,
+            &context,
+            MailMessage {
+                recipient: "plain@example.test".to_owned(),
+                subject: "Plain message".to_owned(),
+                body: "This is an ordinary message".to_owned(),
+                content_type: CoreMailContentType::Plain,
+            },
+            Some("plain-test-1"),
+        )
+        .await
+        .expect("plain delivery");
     assert!(protected.body_protected);
     assert_eq!(protected.body, mavi_mail::PROTECTED_BODY_REDACTION);
     let (stored_body, stored_protected, ciphertext): (String, bool, Vec<u8>) = sqlx::query_as(
         "select d.body, d.body_protected, s.ciphertext
-               from mail_deliveries d
-               join mail_delivery_secrets s on s.site_id = d.site_id and s.delivery_id = d.id
-              where d.site_id = $1 and d.id = $2",
+           from mail_deliveries d
+           join mail_delivery_secrets s on s.site_id = d.site_id and s.delivery_id = d.id
+          where d.site_id = $1 and d.id = $2",
     )
-    .bind(second_site.into_uuid())
+    .bind(site_id.into_uuid())
     .bind(protected.id.into_uuid())
     .fetch_one(protected_transaction.conn())
     .await
     .expect("protected storage");
     assert_eq!(stored_body, mavi_mail::PROTECTED_BODY_REDACTION);
     assert!(stored_protected);
-    assert_ne!(ciphertext, secret_body.as_bytes());
+    assert!(
+        !ciphertext
+            .windows(secret_body.len())
+            .any(|window| window == secret_body.as_bytes())
+    );
     protected_transaction
         .commit()
         .await
-        .expect("protected enqueue commit");
+        .expect("enqueue commit");
 
-    let mut export_transaction = database
-        .begin(&second_context)
-        .await
-        .expect("protected export scope");
+    let mut export_transaction = database.begin(&context).await.expect("export scope");
     let relocation = service
-        .export_for_relocation(&mut export_transaction, &second_context)
+        .export_for_relocation(&mut export_transaction, &context)
         .await
         .expect("protected export");
     let relocated = relocation
@@ -418,36 +444,44 @@ async fn mail_templates_lists_and_outbox_are_site_scoped_and_leaseable() {
     assert_eq!(relocated.body, mavi_mail::PROTECTED_BODY_REDACTION);
     assert!(relocated.body_protected);
     assert_eq!(relocated.status, "cancelled");
-    export_transaction
+    export_transaction.commit().await.expect("export commit");
+
+    let mut no_key_transaction = database.begin(&context).await.expect("no-key scope");
+    let plain_claimed = service
+        .claim_next(
+            &mut no_key_transaction,
+            &context,
+            "mail-worker-no-key",
+            Utc::now() + Duration::minutes(5),
+        )
+        .await
+        .expect("plain claim without sealer")
+        .expect("plain delivery remains claimable");
+    assert_eq!(plain_claimed.delivery.id, plain.id);
+    assert_eq!(plain_claimed.message.body, "This is an ordinary message");
+    service
+        .mark_sent(
+            &mut no_key_transaction,
+            &context,
+            plain.id,
+            "mail-worker-no-key",
+            &MailDeliveryReceipt {
+                provider: "test-provider".to_owned(),
+                reference: "plain-1".to_owned(),
+            },
+        )
+        .await
+        .expect("plain delivery sent");
+    no_key_transaction
         .commit()
         .await
-        .expect("protected export commit");
+        .expect("plain claim commit");
 
-    let mut no_key_transaction = database
-        .begin(&second_context)
-        .await
-        .expect("protected no-key scope");
-    assert!(
-        service
-            .claim_next(
-                &mut no_key_transaction,
-                &second_context,
-                "mail-worker-no-key",
-                Utc::now() + Duration::minutes(5),
-            )
-            .await
-            .is_err()
-    );
-    drop(no_key_transaction);
-
-    let mut protected_claim_transaction = database
-        .begin(&second_context)
-        .await
-        .expect("protected claim scope");
+    let mut protected_claim_transaction = database.begin(&context).await.expect("claim scope");
     let claimed = service
         .claim_next_with_sealer(
             &mut protected_claim_transaction,
-            &second_context,
+            &context,
             "mail-worker-protected",
             Utc::now() + Duration::minutes(5),
             &sealer,
@@ -464,38 +498,38 @@ async fn mail_templates_lists_and_outbox_are_site_scoped_and_leaseable() {
         .await
         .expect("protected claim commit");
 
-    let mut import_transaction = database
-        .begin(&second_context)
-        .await
-        .expect("protected import scope");
+    let mut supplied_relocation = relocation.clone();
+    supplied_relocation
+        .deliveries
+        .iter_mut()
+        .find(|delivery| delivery.id == protected.id.into_uuid())
+        .expect("supplied protected delivery")
+        .status = "queued".to_owned();
+    let mut import_transaction = database.begin(&context).await.expect("import scope");
     service
-        .import_for_relocation(&mut import_transaction, &second_context, &relocation)
+        .import_for_relocation(&mut import_transaction, &context, &supplied_relocation)
         .await
         .expect("protected import");
-    import_transaction
-        .commit()
-        .await
-        .expect("protected import commit");
+    import_transaction.commit().await.expect("import commit");
 
-    let mut cleanup_transaction = database
-        .begin(&second_context)
-        .await
-        .expect("protected cleanup scope");
+    let mut cleanup_transaction = database.begin(&context).await.expect("cleanup scope");
     let remaining_secrets: i64 =
         sqlx::query_scalar("select count(*) from mail_delivery_secrets where site_id = $1")
-            .bind(second_site.into_uuid())
+            .bind(site_id.into_uuid())
             .fetch_one(cleanup_transaction.conn())
             .await
             .expect("protected secret count");
     assert_eq!(remaining_secrets, 0);
+    let imported = service
+        .get_delivery(&mut cleanup_transaction, &context, protected.id)
+        .await
+        .expect("imported protected delivery");
+    assert_eq!(imported.status, MailDeliveryStatus::Cancelled);
     assert!(matches!(
         service
-            .retry_delivery(&mut cleanup_transaction, &second_context, protected.id)
+            .retry_delivery(&mut cleanup_transaction, &context, protected.id)
             .await,
         Err(MaviError::Conflict { .. })
     ));
-    cleanup_transaction
-        .commit()
-        .await
-        .expect("protected cleanup commit");
+    cleanup_transaction.commit().await.expect("cleanup commit");
 }

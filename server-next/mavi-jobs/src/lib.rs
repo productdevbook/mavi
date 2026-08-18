@@ -360,6 +360,48 @@ impl JobsService {
         Ok(outcome)
     }
 
+    /// Returns a claimed job to the ready queue without counting it as a
+    /// failure. Workers use this when a manually retried job was claimed
+    /// before its domain-specific target time.
+    pub async fn defer(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        id: JobId,
+        worker: &str,
+        run_at: DateTime<Utc>,
+    ) -> Result<LeaseOutcome> {
+        validate_worker(worker)?;
+        let rows = sqlx::query(
+            "update jobs
+                set state = 'ready', claimed_until = null, claimed_by = null,
+                    run_at = $3, finished_at = null, last_error = null
+              where id = $1 and claimed_by = $2 and state = 'running'
+                and claimed_until > now()",
+        )
+        .bind(id.into_uuid())
+        .bind(worker)
+        .bind(run_at)
+        .execute(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?;
+        let outcome = if rows.rows_affected() == 1 {
+            audit(
+                tx,
+                context,
+                "jobs.deferred",
+                "Job",
+                id.into_uuid(),
+                json!({"run_at": run_at}),
+            )
+            .await?;
+            LeaseOutcome::Completed
+        } else {
+            LeaseOutcome::Lost
+        };
+        Ok(outcome)
+    }
+
     pub async fn fail(
         &self,
         tx: &mut SiteTx,

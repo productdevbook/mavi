@@ -22,6 +22,12 @@ pub enum Caller {
         person_id: Option<PersonId>,
         grants: Grants,
     },
+    /// A trusted in-process worker. This caller is never admitted by the
+    /// HTTP authentication boundary; it exists so background mutations have
+    /// an explicit audit principal instead of being recorded as public.
+    System {
+        worker: String,
+    },
 }
 
 impl Caller {
@@ -34,7 +40,7 @@ impl Caller {
     pub fn grants(&self) -> Option<&Grants> {
         match self {
             Self::Account { grants, .. } | Self::Assistant { grants, .. } => Some(grants),
-            Self::Public | Self::Student { .. } => None,
+            Self::Public | Self::Student { .. } | Self::System { .. } => None,
         }
     }
 }
@@ -64,5 +70,16 @@ impl SiteContext {
             caller,
             request_id,
         }
+    }
+
+    #[must_use]
+    pub fn system(site_id: SiteId, worker: impl Into<String>, request_id: RequestId) -> Self {
+        Self::with_caller(
+            site_id,
+            Caller::System {
+                worker: worker.into(),
+            },
+            request_id,
+        )
     }
 }

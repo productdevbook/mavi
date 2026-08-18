@@ -145,7 +145,13 @@ short lease, execute outside the database transaction, and finish or fail only
 while that lease is still theirs. Repeated source events use an idempotency key,
 run definitions are snapshotted, and exhausted attempts remain visible as dead
 letters. The canonical automation and job management APIs expose only opaque
-keyset cursors.
+keyset cursors. The runtime starts the site-scoped content worker for
+`content.publish_scheduled`; it re-checks the current schedule while holding
+the content row lock, records system audit receipts, and safely no-ops stale
+jobs. Worker identity and polling are configurable with `MAVI_WORKER_ID`,
+`MAVI_WORKER_LEASE_SECONDS` and `MAVI_WORKER_POLL_MILLIS`. Mail, flow and
+provider-specific executors remain separate worker slices until their adapters
+are enabled.
 
 Provider credentials are a separate site-scoped domain. The API can create,
 rotate, list and revoke only credential metadata; values are sealed through the

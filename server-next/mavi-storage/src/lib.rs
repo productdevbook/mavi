@@ -15,7 +15,7 @@ use uuid::Uuid;
 /// It is part of the runtime compatibility contract exposed to the operator.
 /// Keep it next to the migration runner so a release cannot advertise a
 /// storage version independently from the migrations it ships.
-pub const CURRENT_SCHEMA_VERSION: u32 = 30;
+pub const CURRENT_SCHEMA_VERSION: u32 = 31;
 
 /// The lifecycle state stored in the shared shard catalog.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -421,6 +421,8 @@ mod tests {
         assert!(analytics_migration.contains("analytics_daily"));
         assert!(analytics_migration.contains("analytics_events_site_recent"));
         assert!(analytics_migration.contains("force row level security"));
-        assert_eq!(CURRENT_SCHEMA_VERSION, 30);
+        let system_actor_migration = include_str!("../migrations/0031_system_audit_actor.sql");
+        assert!(system_actor_migration.contains("'system'"));
+        assert_eq!(CURRENT_SCHEMA_VERSION, 31);
     }
 }

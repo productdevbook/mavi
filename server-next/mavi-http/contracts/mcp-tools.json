@@ -1997,7 +1997,8 @@
                   "public",
                   "account",
                   "student",
-                  "assistant"
+                  "assistant",
+                  "system"
                 ]
               },
               "actor_id": {

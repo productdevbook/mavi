@@ -84,7 +84,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Slug history preserves old published public paths after a slug change.
   - [-] Scheduled publishing worker/queue and rollback/restore UX.
     - [x] Scheduling atomically enqueues a site-scoped, idempotent `content.publish_scheduled` job.
-    - [ ] Worker supervisor claims leases and publishes due revisions; stale schedules no-op safely.
+    - [x] Site-scoped content worker claims leases, publishes due content, defers early jobs and treats stale schedules as safe no-ops.
     - [ ] Rollback/restore UX.
 - [-] Taxonomy terms, trees, assignment and filtered listing.
   - [x] Site-scoped category/tag terms with language-aware slugs and opaque cursor listing.

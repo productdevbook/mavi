@@ -163,6 +163,7 @@ async fn content_lifecycle_exposes_revisions_and_keeps_old_public_paths() {
 async fn scheduling_enqueues_one_idempotent_job_per_target_time() {
     let app = support::build_app().await;
     let owner_token = bootstrap(&app, "HTTP scheduled publishing test").await;
+    let first_at = "2099-01-01T00:00:00Z";
 
     let created = send(
         &app,
@@ -174,7 +175,8 @@ async fn scheduling_enqueues_one_idempotent_job_per_target_time() {
             "language": "en",
             "slug": "scheduled-publishing",
             "title": "Scheduled publishing",
-            "body": "Will be published by a worker"
+            "body": "Will be published by a worker",
+            "publication": {"schedule": first_at}
         })),
     )
     .await;
@@ -184,7 +186,6 @@ async fn scheduling_enqueues_one_idempotent_job_per_target_time() {
         .expect("content id")
         .to_owned();
 
-    let first_at = "2099-01-01T00:00:00Z";
     let scheduled = send(
         &app,
         Method::POST,

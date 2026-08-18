@@ -17,7 +17,7 @@ use mavi_core::{
     Action, Capability, ContentId, Cursor, MaviError, Page, PageRequest, Result, SiteContext,
     SiteId, TermId,
 };
-use mavi_jobs::JobKind;
+use mavi_jobs::{JobKind, JobsService};
 use mavi_storage::SiteTx;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -515,6 +515,32 @@ pub struct ScheduledPublishJob {
     pub scheduled_at: DateTime<Utc>,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ScheduledPublishSkipReason {
+    Missing,
+    Deleted,
+    NoLongerScheduled,
+    DifferentSchedule,
+}
+
+impl ScheduledPublishSkipReason {
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Missing => "missing",
+            Self::Deleted => "deleted",
+            Self::NoLongerScheduled => "no_longer_scheduled",
+            Self::DifferentSchedule => "different_schedule",
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ScheduledPublishOutcome {
+    Published(Box<Content>),
+    Skipped(ScheduledPublishSkipReason),
+}
+
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq)]
 pub struct UpdateContent {
     pub slug: Option<String>,
@@ -542,6 +568,29 @@ pub struct Content {
     pub updated_at: DateTime<Utc>,
 }
 
+impl ScheduledPublishJob {
+    #[must_use]
+    pub fn from_content(content: &Content) -> Option<Self> {
+        match &content.publication {
+            Publication::Scheduled { at } => Some(Self {
+                content_id: content.id,
+                scheduled_at: *at,
+            }),
+            Publication::Draft | Publication::Published { .. } | Publication::Archived => None,
+        }
+    }
+
+    #[must_use]
+    pub fn idempotency_key(&self) -> String {
+        format!(
+            "content.schedule:{}:{}",
+            self.content_id,
+            self.scheduled_at
+                .to_rfc3339_opts(chrono::SecondsFormat::AutoSi, true)
+        )
+    }
+}
+
 fn empty_fields() -> Value {
     Value::Object(serde_json::Map::new())
 }
@@ -557,11 +606,21 @@ fn validate_fields(fields: &Value) -> Result<()> {
 fn publication_input(input: &PublicationInput, now: DateTime<Utc>) -> Result<Publication> {
     match input {
         PublicationInput::Draft => Ok(Publication::Draft),
-        PublicationInput::Schedule(at) if *at > now => Ok(Publication::Scheduled { at: *at }),
-        PublicationInput::Schedule(_) => Err(MaviError::validation(CONTENT_STATE_INVALID)),
+        PublicationInput::Schedule(at) => {
+            let at = normalize_database_timestamp(*at)?;
+            if at > now {
+                Ok(Publication::Scheduled { at })
+            } else {
+                Err(MaviError::validation(CONTENT_STATE_INVALID))
+            }
+        }
         PublicationInput::Publish => Ok(Publication::Published { at: now }),
         PublicationInput::Archive => Ok(Publication::Archived),
     }
+}
+
+fn normalize_database_timestamp(value: DateTime<Utc>) -> Result<DateTime<Utc>> {
+    DateTime::from_timestamp_micros(value.timestamp_micros()).ok_or(MaviError::Internal)
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -683,6 +742,30 @@ pub struct ContentService;
 impl ContentService {
     pub async fn initialize(&self, tx: &mut SiteTx, context: &SiteContext) -> Result<()> {
         content_types::initialize(tx, context).await
+    }
+
+    pub async fn enqueue_scheduled_publish(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        jobs: &JobsService,
+        entry: &Content,
+    ) -> Result<()> {
+        let Some(job) = ScheduledPublishJob::from_content(entry) else {
+            return Ok(());
+        };
+        let payload = serde_json::to_value(&job).map_err(|_| MaviError::Internal)?;
+        let idempotency_key = job.idempotency_key();
+        jobs.enqueue(
+            tx,
+            context,
+            SCHEDULED_PUBLISH_JOB.name,
+            &payload,
+            Some(job.scheduled_at),
+            Some(&idempotency_key),
+        )
+        .await
+        .map(|_| ())
     }
 
     pub async fn list_content_types(
@@ -1207,6 +1290,62 @@ impl ContentService {
             "content.scheduled",
         )
         .await
+    }
+
+    /// Publishes a scheduled entry only when the job still describes its
+    /// current schedule. The row lock makes the check and state transition
+    /// one serialized operation, so a reschedule, edit or trash mutation can
+    /// safely turn an old job into a no-op.
+    pub async fn publish_scheduled(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        id: ContentId,
+        scheduled_at: DateTime<Utc>,
+        now: DateTime<Utc>,
+    ) -> Result<ScheduledPublishOutcome> {
+        let row = sqlx::query(
+            "select id, site_id, kind, language, slug, title, excerpt, body, fields,
+                    status, scheduled_at, published_at, revision, created_at, updated_at,
+                    deleted_at
+               from content_entries
+              where site_id = $1 and id = $2
+              for update",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(id.into_uuid())
+        .fetch_optional(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?;
+
+        let Some(row) = row else {
+            return Ok(ScheduledPublishOutcome::Skipped(
+                ScheduledPublishSkipReason::Missing,
+            ));
+        };
+        if row
+            .try_get::<Option<DateTime<Utc>>, _>("deleted_at")
+            .map_err(|_| MaviError::Internal)?
+            .is_some()
+        {
+            return Ok(ScheduledPublishOutcome::Skipped(
+                ScheduledPublishSkipReason::Deleted,
+            ));
+        }
+
+        let current = from_row(&row)?;
+        match current.publication {
+            Publication::Scheduled { at } if at == scheduled_at => self
+                .publish(tx, context, id, now)
+                .await
+                .map(|content| ScheduledPublishOutcome::Published(Box::new(content))),
+            Publication::Scheduled { .. } => Ok(ScheduledPublishOutcome::Skipped(
+                ScheduledPublishSkipReason::DifferentSchedule,
+            )),
+            Publication::Draft | Publication::Published { .. } | Publication::Archived => Ok(
+                ScheduledPublishOutcome::Skipped(ScheduledPublishSkipReason::NoLongerScheduled),
+            ),
+        }
     }
 
     pub async fn archive(

@@ -35,15 +35,15 @@ async fn main() -> Result<()> {
         .transpose()
         .map_err(|_| MaviError::validation("invalid_database_connections"))?
         .unwrap_or(10);
-
-    let database = Database::connect(&database_url, connections).await?;
-    database.migrate().await?;
     let file_root = env::var("MAVI_FILES_DIR").unwrap_or_else(|_| "./mavi-files".to_owned());
     let file_store = Arc::new(DirectoryFileStore::at(file_root));
     let sealer = Arc::new(KeyringSealer::from_spec(&required("MAVI_KEYS")?)?);
     let address: SocketAddr = listen
         .parse()
         .map_err(|_| MaviError::validation("invalid_listen_address"))?;
+
+    let database = Database::connect(&database_url, connections).await?;
+    database.migrate().await?;
     let listener = TcpListener::bind(address)
         .await
         .map_err(|_| MaviError::Internal)?;

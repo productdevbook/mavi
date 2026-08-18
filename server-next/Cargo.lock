@@ -1755,6 +1755,7 @@ dependencies = [
  "mavi-identity",
  "mavi-mail",
  "mavi-media",
+ "mavi-shop",
  "mavi-storage",
  "mavi-trash",
  "serde",

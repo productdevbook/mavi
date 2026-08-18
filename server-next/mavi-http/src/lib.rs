@@ -22,7 +22,7 @@ use axum::{
     routing::{delete, get, patch, post, put},
 };
 use base64::Engine;
-use chrono::Utc;
+use chrono::{SecondsFormat, Utc};
 use mavi_analytics::{
     AnalyticsEvent, AnalyticsEventBatch, AnalyticsReceipt, AnalyticsService, DailyAggregate,
     DailyListFilter, EventListFilter, PruneAnalytics, PruneReceipt,
@@ -37,7 +37,7 @@ use mavi_boards::{
 use mavi_content::{
     Content, ContentListFilter, ContentRevision, ContentRevisionListFilter, ContentService,
     ContentType, ContentTypeListFilter, CreateContent, DeclareContentType, PublicationInput,
-    ScheduleContent, UpdateContent,
+    SCHEDULED_PUBLISH_JOB, ScheduleContent, ScheduledPublishJob, UpdateContent,
 };
 use mavi_contract::{Api, Endpoint, InputLocation, Method, Shape};
 use mavi_core::{
@@ -454,7 +454,11 @@ where
         mail: MailService,
         shop: ShopService,
         courses: CoursesService,
-        jobs: JobsService::new(mavi_flows::job_kinds()),
+        jobs: JobsService::new(
+            mavi_flows::job_kinds()
+                .into_iter()
+                .chain([SCHEDULED_PUBLISH_JOB]),
+        ),
         flows: FlowService,
         boards: BoardService,
         analytics: AnalyticsService,
@@ -3827,6 +3831,27 @@ where
     let entry = state
         .content
         .schedule(&mut transaction, &site_context, id, input.at, Utc::now())
+        .await
+        .map_err(HttpError)?;
+    let payload = serde_json::to_value(ScheduledPublishJob {
+        content_id: id,
+        scheduled_at: input.at,
+    })
+    .map_err(|_| HttpError(MaviError::Internal))?;
+    let idempotency_key = format!(
+        "content.schedule:{id}:{}",
+        input.at.to_rfc3339_opts(SecondsFormat::AutoSi, true)
+    );
+    state
+        .jobs
+        .enqueue(
+            &mut transaction,
+            &site_context,
+            SCHEDULED_PUBLISH_JOB.name,
+            &payload,
+            Some(input.at),
+            Some(&idempotency_key),
+        )
         .await
         .map_err(HttpError)?;
     transaction.commit().await.map_err(HttpError)?;

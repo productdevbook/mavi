@@ -159,6 +159,122 @@ async fn content_lifecycle_exposes_revisions_and_keeps_old_public_paths() {
 
 #[tokio::test]
 #[ignore = "requires TEST_DATABASE_URL and a non-superuser PostgreSQL role"]
+#[allow(clippy::too_many_lines)]
+async fn scheduling_enqueues_one_idempotent_job_per_target_time() {
+    let app = support::build_app().await;
+    let owner_token = bootstrap(&app, "HTTP scheduled publishing test").await;
+
+    let created = send(
+        &app,
+        Method::POST,
+        "/api/v1/content",
+        Some(&owner_token),
+        Some(json!({
+            "kind": "post",
+            "language": "en",
+            "slug": "scheduled-publishing",
+            "title": "Scheduled publishing",
+            "body": "Will be published by a worker"
+        })),
+    )
+    .await;
+    assert_eq!(created.status(), StatusCode::CREATED);
+    let content_id = response_json(created).await["id"]
+        .as_str()
+        .expect("content id")
+        .to_owned();
+
+    let first_at = "2099-01-01T00:00:00Z";
+    let scheduled = send(
+        &app,
+        Method::POST,
+        &format!("/api/v1/content/{content_id}/schedule"),
+        Some(&owner_token),
+        Some(json!({"at": first_at})),
+    )
+    .await;
+    assert_eq!(scheduled.status(), StatusCode::OK);
+
+    let jobs = send(
+        &app,
+        Method::GET,
+        "/api/v1/jobs?kind=content.publish_scheduled&limit=10",
+        Some(&owner_token),
+        None,
+    )
+    .await;
+    assert_eq!(jobs.status(), StatusCode::OK);
+    let jobs = response_json(jobs).await;
+    let items = jobs["items"].as_array().expect("jobs");
+    assert_eq!(items.len(), 1);
+    assert_eq!(items[0]["kind"], "content.publish_scheduled");
+    assert_eq!(items[0]["state"], "ready");
+    assert_eq!(items[0]["payload"]["content_id"], content_id);
+    assert_eq!(items[0]["payload"]["scheduled_at"], first_at);
+    assert_eq!(
+        items[0]["idempotency_key"],
+        format!("content.schedule:{content_id}:{first_at}")
+    );
+
+    // A retried request for the same target time must not duplicate the
+    // durable work item, even though the command itself remains auditable.
+    let retried = send(
+        &app,
+        Method::POST,
+        &format!("/api/v1/content/{content_id}/schedule"),
+        Some(&owner_token),
+        Some(json!({"at": first_at})),
+    )
+    .await;
+    assert_eq!(retried.status(), StatusCode::OK);
+
+    let jobs = send(
+        &app,
+        Method::GET,
+        "/api/v1/jobs?kind=content.publish_scheduled&limit=10",
+        Some(&owner_token),
+        None,
+    )
+    .await;
+    assert_eq!(jobs.status(), StatusCode::OK);
+    assert_eq!(
+        response_json(jobs).await["items"]
+            .as_array()
+            .expect("jobs")
+            .len(),
+        1
+    );
+
+    let second_at = "2099-01-02T00:00:00Z";
+    let rescheduled = send(
+        &app,
+        Method::POST,
+        &format!("/api/v1/content/{content_id}/schedule"),
+        Some(&owner_token),
+        Some(json!({"at": second_at})),
+    )
+    .await;
+    assert_eq!(rescheduled.status(), StatusCode::OK);
+
+    let jobs = send(
+        &app,
+        Method::GET,
+        "/api/v1/jobs?kind=content.publish_scheduled&limit=10",
+        Some(&owner_token),
+        None,
+    )
+    .await;
+    assert_eq!(jobs.status(), StatusCode::OK);
+    let jobs = response_json(jobs).await;
+    let items = jobs["items"].as_array().expect("jobs");
+    assert_eq!(items.len(), 2);
+    assert!(items.iter().any(|job| {
+        job["payload"]["content_id"] == content_id && job["payload"]["scheduled_at"] == second_at
+    }));
+}
+
+#[tokio::test]
+#[ignore = "requires TEST_DATABASE_URL and a non-superuser PostgreSQL role"]
 async fn public_content_uses_exact_regional_and_default_language_fallbacks() {
     let app = support::build_app().await;
     let owner_token = bootstrap(&app, "HTTP locale fallback test").await;

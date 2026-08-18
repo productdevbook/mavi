@@ -17,6 +17,7 @@ use mavi_core::{
     Action, Capability, ContentId, Cursor, MaviError, Page, PageRequest, Result, SiteContext,
     SiteId, TermId,
 };
+use mavi_jobs::JobKind;
 use mavi_storage::SiteTx;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -42,6 +43,11 @@ pub const CONTENT_SLUG_INVALID: &str = "content_slug_invalid";
 pub const CONTENT_TITLE_INVALID: &str = "content_title_invalid";
 pub const CONTENT_FIELDS_INVALID: &str = "content_fields_invalid";
 pub const CONTENT_STATE_INVALID: &str = "content_state_invalid";
+
+/// Durable work that publishes an entry when its scheduled publication time
+/// is reached. The worker must re-check the entry's current scheduled state so
+/// a superseded schedule becomes a safe no-op.
+pub const SCHEDULED_PUBLISH_JOB: JobKind = JobKind::new("content.publish_scheduled", 5);
 
 /// Canonical content routes. Generated clients and documentation consume this
 /// declaration; handlers are not allowed to invent a parallel route shape.
@@ -497,6 +503,16 @@ pub struct ContentListFilter {
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct ScheduleContent {
     pub at: DateTime<Utc>,
+}
+
+/// Payload for [`SCHEDULED_PUBLISH_JOB`]. The timestamp is part of the
+/// payload and idempotency key so a rescheduled entry cannot be published by
+/// an older job.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct ScheduledPublishJob {
+    pub content_id: ContentId,
+    pub scheduled_at: DateTime<Utc>,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq)]
@@ -1376,6 +1392,29 @@ mod tests {
             publication_input(&PublicationInput::Schedule(now), now),
             Err(MaviError::Validation { code, field: None }) if code == CONTENT_STATE_INVALID
         ));
+    }
+
+    #[test]
+    fn scheduled_publish_job_payload_is_strict_and_stable() {
+        let content_id = ContentId::new();
+        let scheduled_at = Utc::now() + chrono::Duration::hours(1);
+        let payload = ScheduledPublishJob {
+            content_id,
+            scheduled_at,
+        };
+        let encoded = serde_json::to_value(&payload).expect("job payload");
+        assert_eq!(encoded["content_id"], content_id.to_string());
+        assert_eq!(
+            encoded["scheduled_at"],
+            scheduled_at.to_rfc3339_opts(chrono::SecondsFormat::AutoSi, true)
+        );
+        assert_eq!(SCHEDULED_PUBLISH_JOB.name, "content.publish_scheduled");
+        assert_eq!(SCHEDULED_PUBLISH_JOB.max_attempts, 5);
+        assert!(serde_json::from_value::<ScheduledPublishJob>(encoded).is_ok());
+        assert!(serde_json::from_str::<ScheduledPublishJob>(
+            r#"{"content_id":"00000000-0000-0000-0000-000000000000","scheduled_at":"2030-01-01T00:00:00Z","unexpected":true}"#
+        )
+        .is_err());
     }
 
     #[test]

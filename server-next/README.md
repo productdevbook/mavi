@@ -98,6 +98,7 @@ cargo run -p mavi-http --bin generate_contract -- openapi
 cargo run -p mavi-http --bin generate_contract -- typescript
 cargo run -p mavi-http --bin generate_contract -- rust
 cargo run -p mavi-http --bin generate_contract -- mcp
+cargo run -p mavi-http --bin generate_contract -- fingerprint
 ```
 
 After provisioning, an operator or panel checks `/api/v1/runtime/manifest`.

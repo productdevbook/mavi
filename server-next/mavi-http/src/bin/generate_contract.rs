@@ -14,8 +14,12 @@ fn main() -> ExitCode {
         "typescript" => catalog.typescript().map(serde_json::Value::String),
         "rust" => catalog.rust_client().map(serde_json::Value::String),
         "json" => catalog.as_json().map_err(|error| vec![error.to_string()]),
+        "fingerprint" => catalog
+            .fingerprint()
+            .map(serde_json::Value::String)
+            .map_err(|error| vec![error.to_string()]),
         _ => Err(vec![format!(
-            "unknown contract format: {format}; expected openapi, typescript, rust, mcp or json"
+            "unknown contract format: {format}; expected openapi, typescript, rust, mcp, json or fingerprint"
         )]),
     };
 

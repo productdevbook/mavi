@@ -12,7 +12,7 @@ use mavi_core::{SiteContext, SiteId, ports::Seals};
 use mavi_design::StaticBuildEngine;
 use mavi_files::InMemoryFileStore;
 use mavi_http::{EdgeSecurityConfig, EdgeThrottlePolicy, TrustedProxySet, router_with_config};
-use mavi_runtime::{FixedSiteResolver, Runtime};
+use mavi_runtime::{FixedSiteResolver, HostSiteResolver, Runtime};
 use mavi_sealing::KeyringSealer;
 use mavi_storage::Database;
 use serde_json::{Value, json};
@@ -26,6 +26,30 @@ pub async fn build_app() -> Router {
 
 pub async fn build_app_with_database() -> (Router, Database, SiteId) {
     build_app_with_edge_policy(EdgeThrottlePolicy::default()).await
+}
+
+#[allow(dead_code)]
+pub async fn build_shard_app() -> Router {
+    let url = env::var("TEST_DATABASE_URL").expect("TEST_DATABASE_URL");
+    let database = Database::connect(&url, 2)
+        .await
+        .expect("database connection");
+    database.migrate().await.expect("migrations");
+
+    let site_id = SiteId::new();
+    database.ensure_site(site_id).await.expect("site");
+    let resolver =
+        HostSiteResolver::new([(String::from("site.example"), site_id)]).expect("host resolver");
+    let edge = EdgeSecurityConfig::new(TrustedProxySet::default(), EdgeThrottlePolicy::default())
+        .expect("edge policy");
+    router_with_config(
+        Runtime::new(database, resolver),
+        Arc::new(InMemoryFileStore::default()),
+        Arc::new(StaticBuildEngine),
+        Arc::new(KeyringSealer::from_key([42; 32])),
+        edge,
+    )
+    .expect("router")
 }
 
 #[allow(dead_code)]

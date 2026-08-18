@@ -24,3 +24,15 @@ async fn runtime_manifest_is_public_site_scoped_and_cursor_only() {
     assert!(manifest.get("page").is_none());
     assert!(manifest.get("offset").is_none());
 }
+
+#[tokio::test]
+#[ignore = "requires TEST_DATABASE_URL and a non-superuser PostgreSQL role"]
+async fn liveness_and_readiness_are_global_in_shard_mode() {
+    let app = support::build_shard_app().await;
+
+    let liveness = support::send(&app, Method::GET, "/healthz", None, None).await;
+    assert_eq!(liveness.status(), StatusCode::OK);
+
+    let readiness = support::send(&app, Method::GET, "/readyz", None, None).await;
+    assert_eq!(readiness.status(), StatusCode::OK);
+}

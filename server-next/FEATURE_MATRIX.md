@@ -187,6 +187,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
 ## Runtime, panel and release
 
 - [x] Shared HTTP router with request-level site scope.
+- [x] Global `/healthz` liveness and database-backed `/readyz` readiness stay outside site admission middleware.
 - [ ] Self-host configuration and upgrade path.
 - [-] Cloud/operator provisioning contract without direct database coupling.
   - [x] Mavi publishes a versioned runtime manifest for post-provision compatibility checks.

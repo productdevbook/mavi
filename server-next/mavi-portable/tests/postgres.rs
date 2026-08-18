@@ -1,8 +1,10 @@
 use std::env;
 
 use chrono::Utc;
-use mavi_core::{SiteContext, SiteId};
+use mavi_core::{SiteContext, SiteId, ports::FileStore};
+use mavi_files::InMemoryFileStore;
 use mavi_identity::{IdentityService, LoginInput, SetupInput};
+use mavi_media::MediaService;
 use mavi_portable::{
     ImportStrategy, PortableImportRequest, PortableRelocationRequest, PortableService,
 };
@@ -35,6 +37,7 @@ async fn portable_bundles_export_cross_site_import_and_reject_conflicts() {
     let content_id = Uuid::now_v7();
     let term_id = Uuid::now_v7();
     let now = Utc::now();
+    let files = InMemoryFileStore::default();
     let source_context = SiteContext::public(source_site);
     let mut tx = database.begin(&source_context).await.expect("source scope");
     sqlx::query("insert into site_settings (site_id, name, timezone) values ($1, $2, $3)")
@@ -119,6 +122,17 @@ async fn portable_bundles_export_cross_site_import_and_reject_conflicts() {
         .await
         .expect("source identity");
 
+    let media_file = MediaService
+        .upload(
+            &mut tx,
+            &source_context,
+            &files,
+            "hero.png",
+            b"\x89PNG\r\n\x1a\n\x00\x00".to_vec(),
+        )
+        .await
+        .expect("source media");
+
     let portable = PortableService;
     let bundle = portable
         .export(&mut tx, &source_context)
@@ -130,12 +144,14 @@ async fn portable_bundles_export_cross_site_import_and_reject_conflicts() {
     assert_eq!(bundle.slug_history.len(), 1);
     assert_eq!(bundle.assignments.len(), 1);
     let relocation_bundle = portable
-        .export_for_relocation(&mut tx, &source_context)
+        .export_for_relocation(&mut tx, &source_context, &files)
         .await
         .expect("identity relocation export");
     assert_eq!(relocation_bundle.identity.people.len(), 1);
     assert_eq!(relocation_bundle.identity.roles.len(), 1);
     assert_eq!(relocation_bundle.credentials.len(), 1);
+    assert_eq!(relocation_bundle.media.files.len(), 1);
+    assert_eq!(relocation_bundle.media.files[0].id, media_file.id);
     tx.commit().await.expect("source commit");
 
     let target_context = SiteContext::public(target_site);
@@ -228,17 +244,26 @@ async fn portable_bundles_export_cross_site_import_and_reject_conflicts() {
                 bundle: relocation_bundle,
                 strategy: ImportStrategy::Upsert,
             },
+            &files,
         )
         .await
         .expect("relocation into a fresh site");
     let relocated = portable
-        .export_for_relocation(&mut relocation_tx, &relocation_context)
+        .export_for_relocation(&mut relocation_tx, &relocation_context, &files)
         .await
         .expect("relocated export");
     assert_eq!(relocated.bundle.site.name, "Source site");
     assert_eq!(relocated.identity.people.len(), 1);
     assert_eq!(relocated.identity.roles.len(), 1);
     assert_eq!(relocated.credentials.len(), 1);
+    assert_eq!(relocated.media.files.len(), 1);
+    assert_eq!(
+        files
+            .get(&relocation_context, &relocated.media.files[0].storage_key)
+            .await
+            .expect("relocated media"),
+        b"\x89PNG\r\n\x1a\n\x00\x00"
+    );
     IdentityService
         .create_session(
             &mut relocation_tx,

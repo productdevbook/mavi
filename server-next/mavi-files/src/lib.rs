@@ -65,14 +65,17 @@ impl FileStore for DirectoryFileStore {
                 .await
                 .map_err(|_| MaviError::Internal)?;
             if let Err(error) = tokio::fs::rename(&temporary, &target).await {
-                let _ = tokio::fs::remove_file(&temporary).await;
-                return Err(if error.kind() == std::io::ErrorKind::AlreadyExists {
-                    MaviError::Conflict {
-                        code: "file_storage_key_taken".to_owned(),
+                if error.kind() == std::io::ErrorKind::AlreadyExists {
+                    // Unix rename replaces atomically; this fallback keeps
+                    // the adapter usable on platforms where it does not.
+                    if tokio::fs::remove_file(&target).await.is_ok()
+                        && tokio::fs::rename(&temporary, &target).await.is_ok()
+                    {
+                        return Ok(());
                     }
-                } else {
-                    MaviError::Internal
-                });
+                }
+                let _ = tokio::fs::remove_file(&temporary).await;
+                return Err(MaviError::Internal);
             }
             Ok(())
         })
@@ -219,9 +222,13 @@ mod tests {
             .put(&context, "ab/file.png", b"bytes".to_vec())
             .await
             .expect("put");
+        store
+            .put(&context, "ab/file.png", b"replacement".to_vec())
+            .await
+            .expect("replace");
         assert_eq!(
             store.get(&context, "ab/file.png").await.expect("get"),
-            b"bytes"
+            b"replacement"
         );
         store.remove(&context, "ab/file.png").await.expect("remove");
         store

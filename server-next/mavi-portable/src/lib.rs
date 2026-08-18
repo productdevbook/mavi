@@ -12,7 +12,10 @@ use std::fmt::{self, Write as _};
 use chrono::{DateTime, Utc};
 use mavi_audit::{AuditEntry, AuditService};
 use mavi_contract::{Endpoint, Method, Permission, Shape};
-use mavi_core::{Action, Capability, ErrorCode, MaviError, Result, SiteContext, SiteId};
+use mavi_core::{
+    Action, Capability, ErrorCode, MaviError, Result, SiteContext, SiteId, ports::FileStore,
+};
+use mavi_media::{MediaRelocation, MediaService};
 use mavi_storage::SiteTx;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -25,10 +28,10 @@ pub const VERSION: u16 = 1;
 pub const MAX_RECORDS_PER_SECTION: usize = 10_000;
 pub const MAX_TOTAL_RECORDS: usize = 20_000;
 pub const MAX_BUNDLE_BYTES: usize = 16 * 1024 * 1024;
-/// Internal shard relocation bundles carry identity credential hashes in a
-/// separately authenticated envelope. They never appear in the public
-/// portable export/import DTO.
-pub const MAX_RELOCATION_BUNDLE_BYTES: usize = 32 * 1024 * 1024;
+/// Internal shard relocation bundles carry identity credential hashes and
+/// verified live media bytes in a separately authenticated envelope. They
+/// never appear in the public portable export/import DTO.
+pub const MAX_RELOCATION_BUNDLE_BYTES: usize = 256 * 1024 * 1024;
 pub const MAX_FIELDS_BYTES: usize = 64 * 1024;
 
 const SCHEMA_DESCRIPTOR: &str = concat!(
@@ -225,6 +228,8 @@ pub struct PortableRelocationBundle {
     pub bundle: PortableBundle,
     pub identity: PortableIdentity,
     pub credentials: Vec<PortablePersonCredential>,
+    #[serde(default)]
+    pub media: MediaRelocation,
 }
 
 #[derive(Clone, Deserialize, Eq, PartialEq, Serialize)]
@@ -254,6 +259,7 @@ impl fmt::Debug for PortableRelocationBundle {
                 "credentials",
                 &format_args!("<{} redacted>", self.credentials.len()),
             )
+            .field("media_files", &self.media.files.len())
             .finish()
     }
 }
@@ -509,6 +515,7 @@ impl PortableRelocationBundle {
     pub fn validate_for_relocation(&self, target_site: SiteId) -> Result<()> {
         self.bundle.validate_for_relocation(target_site)?;
         validate_identity(&self.identity, &self.credentials)?;
+        self.media.validate()?;
         let bytes = serde_json::to_vec(self).map_err(|_| MaviError::Internal)?;
         if bytes.len() > MAX_RELOCATION_BUNDLE_BYTES {
             return Err(MaviError::validation(
@@ -535,6 +542,7 @@ impl PortableRelocationBundle {
             .and_then(|value| value.checked_add(self.identity.role_grants.len()))
             .and_then(|value| value.checked_add(self.identity.person_roles.len()))
             .and_then(|value| value.checked_add(self.credentials.len()))
+            .and_then(|value| value.checked_add(self.media.files.len()))
             .ok_or(MaviError::validation("portable_record_count_overflow"))?;
         i64::try_from(count).map_err(|_| MaviError::validation("portable_record_count_overflow"))
     }
@@ -745,14 +753,19 @@ impl PortableService {
         &self,
         tx: &mut SiteTx,
         context: &SiteContext,
+        store: &dyn FileStore,
     ) -> Result<PortableRelocationBundle> {
         let bundle = self.export(tx, context).await?;
         let identity = export_identity(tx, context).await?;
         let credentials = export_credentials(tx, context).await?;
+        let media = MediaService
+            .export_for_relocation(tx, context, store)
+            .await?;
         let relocation = PortableRelocationBundle {
             bundle,
             identity,
             credentials,
+            media,
         };
         relocation.validate_for_relocation(context.site_id)?;
         Ok(relocation)
@@ -781,6 +794,7 @@ impl PortableService {
         tx: &mut SiteTx,
         context: &SiteContext,
         request: &PortableRelocationRequest,
+        store: &dyn FileStore,
     ) -> Result<ImportReceipt> {
         if request.strategy != ImportStrategy::Upsert {
             return Err(MaviError::validation(
@@ -808,6 +822,9 @@ impl PortableService {
             &request.bundle.credentials,
         )
         .await?;
+        MediaService
+            .import_for_relocation(tx, context, store, &request.bundle.media)
+            .await?;
         Ok(receipt)
     }
 
@@ -2152,6 +2169,7 @@ mod tests {
                 person_id,
                 password_hash: "$argon2id$v=19$internal-secret-hash".to_owned(),
             }],
+            media: MediaRelocation::default(),
         };
         envelope
             .validate_for_relocation(envelope.bundle.manifest.source_site_id)

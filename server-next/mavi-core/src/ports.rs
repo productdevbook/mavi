@@ -10,6 +10,8 @@ pub trait Clock: Debug + Send + Sync {
 }
 
 pub trait FileStore: Debug + Send + Sync {
+    /// Stores bytes under a site-scoped key, replacing an existing object.
+    /// Implementations must make retries safe for the same `(site, path)`.
     fn put<'a>(
         &'a self,
         context: &'a SiteContext,

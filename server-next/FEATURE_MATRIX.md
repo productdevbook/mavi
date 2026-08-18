@@ -80,6 +80,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Site-scoped file metadata, byte-sniffed allowlist, SHA-256 receipt and opaque cursor listing.
   - [x] Raw binary upload contract, local atomic file adapter and in-memory test adapter.
   - [x] RLS/composite keys, Cedar media grants, upload/trash audit receipts and durable cleanup tasks.
+  - [x] Private shard relocation exports live metadata plus verified bytes and retries through the site-scoped `FileStore`.
   - [ ] Image variants, authenticated/public binary download and orphan cleanup worker.
 
 ## Operations and publishing
@@ -158,7 +159,8 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Explicit `mavi.portable` v1 bundles carry source-site provenance, counts and a schema hash.
   - [x] Settings/languages, content types, taxonomy, content/revisions, slug history and assignments export/import with typed records.
   - [x] Import validates references before writes, supports validate-only/create-only/upsert strategies and applies atomically.
-  - [ ] Media bytes, shop/courses/forms/boards/automation provider state and encrypted secret handling in later bundle versions.
+  - [x] Private shard relocation adds identity credentials and live media metadata/bytes without exposing them through public portable export.
+  - [ ] Public media bytes, shop/courses/forms/boards/automation provider state and encrypted secret handling in later bundle versions.
 - [-] MCP resources/tools generated from the canonical API with grant checks.
   - [x] Deterministic tool descriptors preserve authentication, scope and Cedar permission metadata.
   - [x] Stateless `2026-07-28` transport, `server/discover`, cursor-based `tools/list` and HTTP-routed `tools/call`.
@@ -188,7 +190,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Jobs lease/idempotency/dead-letter PostgreSQL isolation and automation flow snapshot/event/run HTTP coverage.
   - [x] Boards PostgreSQL scope/order/activity tests and boards HTTP cursor/permission acceptance coverage.
   - [x] Analytics PostgreSQL aggregate/retention/isolation tests and analytics HTTP ingest/export coverage.
-  - [x] Portable cross-site PostgreSQL export/import/conflict tests and HTTP contract acceptance coverage.
+  - [x] Portable cross-site PostgreSQL export/import/conflict tests, private identity/media relocation and HTTP contract acceptance coverage.
   - [x] Identity HTTP integration covers setup, login, cursor, 401/403 and Cedar behavior.
   - [x] Generated OpenAPI/TypeScript/Rust/MCP artifacts have stale-contract tests.
   - [x] Runtime manifest HTTP contract and cursor-only compatibility assertions.

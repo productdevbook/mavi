@@ -22,6 +22,8 @@ async fn credentials_are_sealed_site_scoped_optimistic_and_audited() {
     let first_context = account_context(first);
     let second_context = account_context(second);
     let sealer = KeyringSealer::from_key([11; 32]);
+    let transfer_sealer = KeyringSealer::from_key([12; 32]);
+    let target_sealer = KeyringSealer::from_key([13; 32]);
     let service = CredentialService;
 
     let mut values = BTreeMap::new();
@@ -90,13 +92,22 @@ async fn credentials_are_sealed_site_scoped_optimistic_and_audited() {
             created.id,
             &RotateCredential {
                 expected_version: 1,
-                values: rotated,
+                values: rotated.clone(),
             },
         )
         .await
         .expect_err("stale version");
     assert!(matches!(conflict, mavi_core::MaviError::Conflict { .. }));
     drop(tx);
+
+    let mut tx = database.begin(&first_context).await.expect("scope");
+    let relocation = service
+        .export_for_relocation(&mut tx, &first_context, &sealer, &transfer_sealer)
+        .await
+        .expect("export provider credentials");
+    assert_eq!(relocation.record_count(), 1);
+    assert!(!format!("{relocation:?}").contains("rotated-value"));
+    tx.commit().await.expect("relocation export commit");
 
     let mut tx = database.begin(&second_context).await.expect("scope");
     let second_list = service
@@ -105,6 +116,30 @@ async fn credentials_are_sealed_site_scoped_optimistic_and_audited() {
         .expect("second list");
     assert!(second_list.items.is_empty());
     tx.commit().await.expect("second commit");
+
+    let mut tx = database.begin(&first_context).await.expect("scope");
+    assert_eq!(
+        service
+            .import_for_relocation(
+                &mut tx,
+                &first_context,
+                &target_sealer,
+                &transfer_sealer,
+                &relocation,
+            )
+            .await
+            .expect("import provider credentials"),
+        1
+    );
+    let target_material = service
+        .unseal(&mut tx, &first_context, &target_sealer, created.id)
+        .await
+        .expect("target unseal");
+    assert_eq!(
+        target_material.values().get("api_key"),
+        Some(&"rotated-value".to_owned())
+    );
+    tx.commit().await.expect("relocation import commit");
 
     let mut tx = database.begin(&first_context).await.expect("scope");
     service
@@ -129,7 +164,7 @@ async fn credentials_are_sealed_site_scoped_optimistic_and_audited() {
     .fetch_one(tx.conn())
     .await
     .expect("audit count");
-    assert_eq!(audit_count, 4);
+    assert_eq!(audit_count, 5);
     tx.commit().await.expect("audit commit");
 }
 

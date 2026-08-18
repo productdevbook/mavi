@@ -20,6 +20,23 @@ The same Mavi application runs in both modes:
 - site-owned tables use `site_id` and scoped transactions;
 - control-plane endpoints are explicit in the API contract.
 
+The executable selects the runtime at startup. Self-host keeps the default
+`MAVI_RUNTIME_MODE=fixed_site` and requires `MAVI_SITE_ID`. A cloud shard uses
+one process, one router and one PostgreSQL pool for an allowlisted host
+directory:
+
+```text
+MAVI_RUNTIME_MODE=shard
+MAVI_SITE_HOSTS=www.example.com=<site-uuid>,store.example.com=<site-uuid>
+```
+
+`MAVI_SITE_HOSTS` is a validated startup snapshot: hosts are normalized,
+duplicate claims are rejected and every mapped site is reconciled into the
+shard catalog as active. The request `Host` is resolved into a `SiteContext`
+before authentication and every domain transaction remains site-scoped. A
+control-plane refresh must replace this snapshot through the deployment
+boundary; the process never accepts a site ID supplied by a request.
+
 ## Workspace crates
 
 | Crate | Responsibility |

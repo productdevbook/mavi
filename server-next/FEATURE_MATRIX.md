@@ -20,7 +20,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
 - [x] Fixed-site runtime composition for self-host.
 - [x] Request admission middleware creates and validates `SiteContext`.
 - [x] Site-scoped, token-owned write fences protect HTTP and MCP mutations during controlled relocation.
-- [ ] Cloud shard runtime resolves a site without a per-site router/process.
+- [x] Cloud shard runtime resolves a site without a per-site router/process.
 - [x] Versioned runtime manifest exposes release/API fingerprint, storage schema,
   runtime mode and cursor-only pagination policy to operator and panel clients.
 - [x] OpenAPI, TypeScript/Rust client and MCP tool generation from the same contract.

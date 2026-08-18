@@ -406,7 +406,21 @@ impl Api {
     /// this same value, so an operator can reject a panel or client built for
     /// a different API without guessing from the product version alone.
     pub fn fingerprint(&self) -> Result<String, serde_json::Error> {
-        let bytes = serde_json::to_vec(self)?;
+        // Hash the emitted schema semantics, not only the authored shape
+        // syntax. A generator policy change (for example, closing object
+        // inputs by default) is an API compatibility change even when a
+        // domain author did not touch its DTO declaration.
+        let canonical = json!({
+            "endpoints": self.endpoints,
+            "shapes": self.shapes.iter().map(|shape| {
+                json!({
+                    "name": shape.name,
+                    "schema": canonical_json(&strict_object_schema(&shape.schema)),
+                })
+            }).collect::<Vec<_>>(),
+            "schema_policy": "top_level_object_closed_v1",
+        });
+        let bytes = serde_json::to_vec(&canonical)?;
         let digest = Sha256::digest(bytes);
         let mut hexadecimal = String::with_capacity(64);
         for byte in digest {
@@ -913,6 +927,22 @@ fn strict_object_schema(schema: &Value) -> Value {
     let mut strict = values.clone();
     strict.insert("additionalProperties".to_owned(), Value::Bool(false));
     Value::Object(strict)
+}
+
+fn canonical_json(value: &Value) -> Value {
+    match value {
+        Value::Object(values) => {
+            let mut keys = values.keys().collect::<Vec<_>>();
+            keys.sort_unstable();
+            let mut canonical = Map::new();
+            for key in keys {
+                canonical.insert(key.clone(), canonical_json(&values[key]));
+            }
+            Value::Object(canonical)
+        }
+        Value::Array(values) => Value::Array(values.iter().map(canonical_json).collect()),
+        Value::Null | Value::Bool(_) | Value::Number(_) | Value::String(_) => value.clone(),
+    }
 }
 
 fn query_parameters(api: &Api, shape_name: &str) -> Result<Vec<Value>, Vec<String>> {
@@ -1573,6 +1603,45 @@ mod tests {
                 .fingerprint()
                 .expect("fingerprint")
                 .starts_with("sha256:")
+        );
+    }
+
+    #[test]
+    fn fingerprint_tracks_emitted_schema_semantics() {
+        let endpoint = Endpoint::new(
+            Method::Post,
+            "/api/v1/content",
+            "content.create",
+            "Create content",
+        )
+        .public_mutation()
+        .takes("Input")
+        .returns(201, "Output");
+        let without_explicit_policy = Api::new([endpoint.clone()]).with_shapes([
+            Shape::new(
+                "Input",
+                json!({"type": "object", "properties": {"value": {"type": "string"}}}),
+            ),
+            Shape::new("Output", json!({"type": "object"})),
+        ]);
+        let with_explicit_policy = Api::new([endpoint]).with_shapes([
+            Shape::new(
+                "Input",
+                json!({
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {"value": {"type": "string"}}
+                }),
+            ),
+            Shape::new(
+                "Output",
+                json!({"type": "object", "additionalProperties": false}),
+            ),
+        ]);
+
+        assert_eq!(
+            without_explicit_policy.fingerprint().expect("fingerprint"),
+            with_explicit_policy.fingerprint().expect("fingerprint")
         );
     }
 

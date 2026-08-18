@@ -739,6 +739,12 @@ fn from_row(row: &sqlx::postgres::PgRow) -> Result<Content> {
 #[derive(Clone, Copy, Debug, Default)]
 pub struct ContentService;
 
+#[derive(Clone, Copy, Debug)]
+struct UpdateAudit<'a> {
+    action: &'a str,
+    source_revision: Option<u32>,
+}
+
 impl ContentService {
     pub async fn initialize(&self, tx: &mut SiteTx, context: &SiteContext) -> Result<()> {
         content_types::initialize(tx, context).await
@@ -969,18 +975,42 @@ impl ContentService {
         context: &SiteContext,
         id: ContentId,
     ) -> Result<Content> {
-        let row = sqlx::query(
+        self.get_with_lock(tx, context, id, false).await
+    }
+
+    async fn get_for_update(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        id: ContentId,
+    ) -> Result<Content> {
+        self.get_with_lock(tx, context, id, true).await
+    }
+
+    async fn get_with_lock(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        id: ContentId,
+        lock: bool,
+    ) -> Result<Content> {
+        let query = if lock {
             "select id, site_id, kind, language, slug, title, excerpt, body, fields, status, scheduled_at, published_at, revision, created_at, updated_at
-               from content_entries where site_id = $1 and id = $2 and deleted_at is null",
-        )
-        .bind(context.site_id.into_uuid())
-        .bind(id.into_uuid())
-        .fetch_optional(tx.conn())
-        .await
-        .map_err(|_| MaviError::Internal)?
-        .ok_or(MaviError::NotFound {
-            resource: CONTENT_NOT_FOUND,
-        })?;
+               from content_entries where site_id = $1 and id = $2 and deleted_at is null
+               for update"
+        } else {
+            "select id, site_id, kind, language, slug, title, excerpt, body, fields, status, scheduled_at, published_at, revision, created_at, updated_at
+               from content_entries where site_id = $1 and id = $2 and deleted_at is null"
+        };
+        let row = sqlx::query(query)
+            .bind(context.site_id.into_uuid())
+            .bind(id.into_uuid())
+            .fetch_optional(tx.conn())
+            .await
+            .map_err(|_| MaviError::Internal)?
+            .ok_or(MaviError::NotFound {
+                resource: CONTENT_NOT_FOUND,
+            })?;
 
         from_row(&row)
     }
@@ -1147,6 +1177,39 @@ impl ContentService {
             .await
     }
 
+    /// Restores an immutable historical snapshot into a new draft revision.
+    /// Publication is deliberately not copied from history: a caller must
+    /// explicitly publish the restored content after reviewing it.
+    pub async fn restore_revision(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        id: ContentId,
+        revision: u32,
+        now: DateTime<Utc>,
+    ) -> Result<Content> {
+        let source = self.read_revision(tx, context, id, revision).await?;
+        self.update_internal_with_source(
+            tx,
+            context,
+            id,
+            &UpdateContent {
+                slug: Some(source.slug.as_str().to_owned()),
+                title: Some(source.title.clone()),
+                excerpt: Some(source.excerpt.clone()),
+                body: Some(source.body.clone()),
+                fields: Some(source.fields.clone()),
+                publication: Some(PublicationInput::Draft),
+            },
+            now,
+            UpdateAudit {
+                action: "content.revision_restored",
+                source_revision: Some(source.revision),
+            },
+        )
+        .await
+    }
+
     async fn update_internal(
         &self,
         tx: &mut SiteTx,
@@ -1156,7 +1219,30 @@ impl ContentService {
         now: DateTime<Utc>,
         audit_action: &str,
     ) -> Result<Content> {
-        let current = self.get(tx, context, id).await?;
+        self.update_internal_with_source(
+            tx,
+            context,
+            id,
+            input,
+            now,
+            UpdateAudit {
+                action: audit_action,
+                source_revision: None,
+            },
+        )
+        .await
+    }
+
+    async fn update_internal_with_source(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        id: ContentId,
+        input: &UpdateContent,
+        now: DateTime<Utc>,
+        audit: UpdateAudit<'_>,
+    ) -> Result<Content> {
+        let current = self.get_for_update(tx, context, id).await?;
         let previous_slug = current.slug.as_str().to_owned();
         let slug = match &input.slug {
             Some(value) => Slug::parse(value)?,
@@ -1233,15 +1319,24 @@ impl ContentService {
         .await
         .map_err(|_| MaviError::Internal)?;
 
+        let mut audit_payload = serde_json::Map::new();
+        audit_payload.insert("revision".to_owned(), serde_json::json!(updated.revision));
+        if let Some(source_revision) = audit.source_revision {
+            audit_payload.insert(
+                "source_revision".to_owned(),
+                serde_json::json!(source_revision),
+            );
+        }
+
         AuditService
             .record(
                 tx,
                 context,
                 &AuditEntry {
-                    action: audit_action.to_owned(),
+                    action: audit.action.to_owned(),
                     resource_type: "Content".to_owned(),
                     resource_id: Some(updated.id.into_uuid()),
-                    payload: serde_json::json!({"revision": updated.revision}),
+                    payload: Value::Object(audit_payload),
                 },
             )
             .await?;

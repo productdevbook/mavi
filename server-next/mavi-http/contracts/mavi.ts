@@ -1768,6 +1768,7 @@ export const operations = {
   "content_types.delete": { method: "delete", path: "/api/v1/content-types/{kind}", input: null, query: null, output: "Empty", status: 204, authentication: "account_or_assistant", permission: { capability: "content", action: "delete" } },
   "content.revisions.list": { method: "get", path: "/api/v1/content/{id}/revisions", input: { location: "query", shape: "ContentRevisionListFilter" }, query: null, output: "ContentRevisionPage", status: 200, authentication: "account_or_assistant", permission: { capability: "content", action: "view" } },
   "content.revisions.read": { method: "get", path: "/api/v1/content/{id}/revisions/{revision}", input: null, query: null, output: "ContentRevision", status: 200, authentication: "account_or_assistant", permission: { capability: "content", action: "view" } },
+  "content.revisions.restore": { method: "post", path: "/api/v1/content/{id}/revisions/{revision}/restore", input: null, query: null, output: "Content", status: 200, authentication: "account_or_assistant", permission: { capability: "content", action: "write" } },
   "settings.read": { method: "get", path: "/api/v1/settings", input: null, query: null, output: "SiteSettings", status: 200, authentication: "account_or_assistant", permission: { capability: "settings", action: "view" } },
   "settings.update": { method: "patch", path: "/api/v1/settings", input: { location: "json", shape: "UpdateSiteSettings" }, query: null, output: "SiteSettings", status: 200, authentication: "account_or_assistant", permission: { capability: "settings", action: "write" } },
   "languages.list": { method: "get", path: "/api/v1/languages", input: { location: "query", shape: "LanguageListFilter" }, query: null, output: "LanguagePage", status: 200, authentication: "account_or_assistant", permission: { capability: "settings", action: "view" } },
@@ -1956,6 +1957,7 @@ export interface OperationArguments {
   "content_types.delete": { path: { kind: string }; query?: never; body?: never; }
   "content.revisions.list": { path: { id: string }; query: ContentRevisionListFilter; body?: never; }
   "content.revisions.read": { path: { id: string; revision: string }; query?: never; body?: never; }
+  "content.revisions.restore": { path: { id: string; revision: string }; query?: never; body?: never; }
   "settings.read": { path?: never; query?: never; body?: never; }
   "settings.update": { path?: never; query?: never; body: UpdateSiteSettings; }
   "languages.list": { path?: never; query: LanguageListFilter; body?: never; }
@@ -2142,6 +2144,7 @@ export interface OperationResponses {
   "content_types.delete": void;
   "content.revisions.list": ContentRevisionPage;
   "content.revisions.read": ContentRevision;
+  "content.revisions.restore": Content;
   "settings.read": SiteSettings;
   "settings.update": SiteSettings;
   "languages.list": LanguagePage;

@@ -1098,6 +1098,45 @@
       }
     },
     {
+      "name": "content.revisions.restore",
+      "description": "Restore a content revision as a new draft",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "revision": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "revision"
+            ]
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false
+      },
+      "x-mavi": {
+        "authentication": "account_or_assistant",
+        "scope": "site",
+        "permission": {
+          "capability": "content",
+          "action": "write"
+        }
+      }
+    },
+    {
       "name": "settings.read",
       "description": "Read site settings",
       "inputSchema": {

@@ -1096,6 +1096,10 @@ where
             get(read_content_revision::<R>),
         )
         .route(
+            "/api/v1/content/{id}/revisions/{revision}/restore",
+            post(restore_content_revision::<R>),
+        )
+        .route(
             "/api/v1/content/{id}",
             get(read_content::<R>)
                 .patch(update_content::<R>)
@@ -3649,6 +3653,30 @@ where
         .map_err(HttpError)?;
     transaction.commit().await.map_err(HttpError)?;
     Ok(Json(revision))
+}
+
+async fn restore_content_revision<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path((id, revision)): Path<(ContentId, u32)>,
+) -> Result<Json<Content>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant(
+        &state,
+        &context,
+        Grant::new(Capability::Content, Action::Write),
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let entry = state
+        .content
+        .restore_revision(&mut transaction, &context, id, revision, Utc::now())
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(entry))
 }
 
 async fn read_content<R>(

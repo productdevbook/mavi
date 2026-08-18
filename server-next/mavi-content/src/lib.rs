@@ -175,6 +175,7 @@ pub fn api() -> Api {
             "Read published content",
         )
         .public()
+        .takes_query("PublicContentQuery")
         .returns(200, "Content"),
     ]);
     api.endpoints.extend(content_types::endpoints());
@@ -202,6 +203,15 @@ fn content_shapes() -> Vec<Shape> {
                     "kind": {"type": ["string", "null"], "maxLength": 31},
                     "language": {"type": ["string", "null"], "maxLength": 35},
                     "status": {"$ref": "#/components/schemas/PublicationStatus"},
+                },
+            }),
+        ),
+        Shape::new(
+            "PublicContentQuery",
+            json!({
+                "type": "object",
+                "properties": {
+                    "language": {"type": ["string", "null"], "maxLength": 35},
                 },
             }),
         ),
@@ -921,6 +931,34 @@ impl ContentService {
         })?;
 
         from_row(&historical_row)
+    }
+
+    /// Reads the first published entry available in the ordered language
+    /// candidates supplied by the settings policy.
+    pub async fn public_get_any(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        languages: &[String],
+        slug: &str,
+    ) -> Result<Content> {
+        if languages.is_empty() {
+            return Err(MaviError::NotFound {
+                resource: CONTENT_NOT_FOUND,
+            });
+        }
+
+        for language in languages {
+            match self.public_get(tx, context, language, slug).await {
+                Ok(entry) => return Ok(entry),
+                Err(MaviError::NotFound { .. }) => {}
+                Err(error) => return Err(error),
+            }
+        }
+
+        Err(MaviError::NotFound {
+            resource: CONTENT_NOT_FOUND,
+        })
     }
 
     pub async fn update(

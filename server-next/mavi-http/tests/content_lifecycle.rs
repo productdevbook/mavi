@@ -157,6 +157,81 @@ async fn content_lifecycle_exposes_revisions_and_keeps_old_public_paths() {
     assert_eq!(reader_update.status(), StatusCode::FORBIDDEN);
 }
 
+#[tokio::test]
+#[ignore = "requires TEST_DATABASE_URL and a non-superuser PostgreSQL role"]
+async fn public_content_uses_exact_regional_and_default_language_fallbacks() {
+    let app = support::build_app().await;
+    let owner_token = bootstrap(&app, "HTTP locale fallback test").await;
+
+    let language = send(
+        &app,
+        Method::POST,
+        "/api/v1/languages",
+        Some(&owner_token),
+        Some(json!({
+            "tag": "de",
+            "name": "Deutsch",
+            "is_default": false
+        })),
+    )
+    .await;
+    assert_eq!(language.status(), StatusCode::CREATED);
+
+    for (language, title) in [("de", "Deutsche Seite"), ("en", "English page")] {
+        let created = send(
+            &app,
+            Method::POST,
+            "/api/v1/content",
+            Some(&owner_token),
+            Some(json!({
+                "kind": "post",
+                "language": language,
+                "slug": "locale-fallback",
+                "title": title,
+                "body": "published body"
+            })),
+        )
+        .await;
+        assert_eq!(created.status(), StatusCode::CREATED);
+        let id = response_json(created).await["id"]
+            .as_str()
+            .expect("content id")
+            .to_owned();
+
+        let published = send(
+            &app,
+            Method::POST,
+            &format!("/api/v1/content/{id}/publish"),
+            Some(&owner_token),
+            None,
+        )
+        .await;
+        assert_eq!(published.status(), StatusCode::OK);
+    }
+
+    let regional = send(
+        &app,
+        Method::GET,
+        "/public/v1/content/locale-fallback?language=de-DE",
+        None,
+        None,
+    )
+    .await;
+    assert_eq!(regional.status(), StatusCode::OK);
+    assert_eq!(response_json(regional).await["language"], "de");
+
+    let default = send(
+        &app,
+        Method::GET,
+        "/public/v1/content/locale-fallback?language=fr-FR",
+        None,
+        None,
+    )
+    .await;
+    assert_eq!(default.status(), StatusCode::OK);
+    assert_eq!(response_json(default).await["language"], "en");
+}
+
 async fn create_reader(app: &Router, owner_token: &str) -> String {
     let role = send(
         app,

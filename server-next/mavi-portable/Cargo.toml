@@ -21,6 +21,7 @@ mavi-jobs = { path = "../mavi-jobs" }
 mavi-media = { path = "../mavi-media" }
 mavi-mail = { path = "../mavi-mail" }
 mavi-shop = { path = "../mavi-shop" }
+mavi-settings = { path = "../mavi-settings" }
 mavi-storage = { path = "../mavi-storage" }
 mavi-trash = { path = "../mavi-trash" }
 serde.workspace = true

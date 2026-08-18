@@ -46,7 +46,7 @@ use sqlx::Row;
 use uuid::Uuid;
 
 pub const FORMAT: &str = "mavi.portable";
-pub const VERSION: u16 = 1;
+pub const VERSION: u16 = 2;
 pub const MAX_RECORDS_PER_SECTION: usize = 10_000;
 pub const MAX_TOTAL_RECORDS: usize = 20_000;
 pub const MAX_BUNDLE_BYTES: usize = 16 * 1024 * 1024;
@@ -57,8 +57,8 @@ pub const MAX_RELOCATION_BUNDLE_BYTES: usize = 256 * 1024 * 1024;
 pub const MAX_FIELDS_BYTES: usize = 64 * 1024;
 
 const SCHEMA_DESCRIPTOR: &str = concat!(
-    "mavi.portable:v1:",
-    "site,languages,content_types,terms,content,revisions,slug_history,assignments"
+    "mavi.portable:v2:",
+    "site(canonical_url),languages,content_types,terms,content,revisions,slug_history,assignments"
 );
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -103,6 +103,7 @@ pub struct PortableCounts {
 pub struct PortableSite {
     pub name: String,
     pub timezone: String,
+    pub canonical_url: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -457,12 +458,12 @@ pub fn shapes() -> Vec<Shape> {
             json!({
                 "type":"object",
                 "required":["format","version","source_site_id","exported_at","schema_hash","counts"],
-                "properties":{"format":{"type":"string","const":"mavi.portable"},"version":{"type":"integer","const":1},"source_site_id":{"type":"string","format":"uuid"},"exported_at":{"type":"string","format":"date-time"},"schema_hash":{"type":"string"},"counts":{"$ref":"#/components/schemas/PortableCounts"}}
+                "properties":{"format":{"type":"string","const":"mavi.portable"},"version":{"type":"integer","const":2},"source_site_id":{"type":"string","format":"uuid"},"exported_at":{"type":"string","format":"date-time"},"schema_hash":{"type":"string"},"counts":{"$ref":"#/components/schemas/PortableCounts"}}
             }),
         ),
         Shape::new(
             "PortableSite",
-            json!({"type":"object","required":["name","timezone"],"properties":{"name":{"type":"string","maxLength":200},"timezone":{"type":"string","maxLength":64}}}),
+            json!({"type":"object","required":["name","timezone","canonical_url"],"properties":{"name":{"type":"string","maxLength":200},"timezone":{"type":"string","maxLength":64},"canonical_url":{"type":["string","null"],"maxLength":2048,"format":"uri"}}}),
         ),
         Shape::new(
             "PortableLanguage",
@@ -670,17 +671,22 @@ impl PortableRelocationBundle {
 impl PortableService {
     #[allow(clippy::too_many_lines, clippy::similar_names)]
     pub async fn export(&self, tx: &mut SiteTx, context: &SiteContext) -> Result<PortableBundle> {
-        let site = sqlx::query("select name, timezone from site_settings where site_id = $1")
-            .bind(context.site_id.into_uuid())
-            .fetch_optional(tx.conn())
-            .await
-            .map_err(|_| MaviError::Internal)?
-            .ok_or(MaviError::NotFound {
-                resource: "site_settings",
-            })?;
+        let site = sqlx::query(
+            "select name, timezone, canonical_url from site_settings where site_id = $1",
+        )
+        .bind(context.site_id.into_uuid())
+        .fetch_optional(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?
+        .ok_or(MaviError::NotFound {
+            resource: "site_settings",
+        })?;
         let site = PortableSite {
             name: site.try_get("name").map_err(|_| MaviError::Internal)?,
             timezone: site.try_get("timezone").map_err(|_| MaviError::Internal)?,
+            canonical_url: site
+                .try_get("canonical_url")
+                .map_err(|_| MaviError::Internal)?,
         };
 
         let languages = sqlx::query(
@@ -1029,14 +1035,15 @@ impl PortableService {
 
         let settings = if initialize_site_settings {
             sqlx::query(
-                "insert into site_settings (site_id, name, timezone)
-                 values ($1, $2, $3)
+                "insert into site_settings (site_id, name, timezone, canonical_url)
+                 values ($1, $2, $3, $4)
                  on conflict (site_id) do update set
-                    name = excluded.name, timezone = excluded.timezone, updated_at = now()",
+                    name = excluded.name, timezone = excluded.timezone,
+                    canonical_url = excluded.canonical_url, updated_at = now()",
             )
         } else {
             sqlx::query(
-                "update site_settings set name = $2, timezone = $3, updated_at = now()
+                "update site_settings set name = $2, timezone = $3, canonical_url = $4, updated_at = now()
                  where site_id = $1",
             )
         };
@@ -1044,6 +1051,7 @@ impl PortableService {
             .bind(context.site_id.into_uuid())
             .bind(&request.bundle.site.name)
             .bind(&request.bundle.site.timezone)
+            .bind(&request.bundle.site.canonical_url)
             .execute(tx.conn())
             .await
             .map_err(map_import_write_error)?;
@@ -1704,6 +1712,10 @@ fn validate_site(site: &PortableSite) -> Result<()> {
     {
         return Err(MaviError::validation("portable_timezone_invalid"));
     }
+    if let Some(canonical_url) = &site.canonical_url {
+        mavi_settings::CanonicalSiteUrl::parse(canonical_url)
+            .map_err(|_| MaviError::validation("portable_canonical_url_invalid"))?;
+    }
     Ok(())
 }
 
@@ -2232,6 +2244,7 @@ mod tests {
             site: PortableSite {
                 name: "Demo".to_owned(),
                 timezone: "UTC".to_owned(),
+                canonical_url: None,
             },
             languages: vec![PortableLanguage {
                 tag: "en".to_owned(),
@@ -2268,6 +2281,22 @@ mod tests {
         assert!(bundle.validate_for_site(SiteId::new()).is_ok());
         bundle.manifest.schema_hash = "bad".to_owned();
         assert!(bundle.validate_for_site(SiteId::new()).is_err());
+    }
+
+    #[test]
+    fn portable_site_accepts_a_canonical_url_but_rejects_query_data() {
+        let mut site = bundle().site;
+        site.canonical_url = Some("https://portable.example.test/site/".to_owned());
+        assert!(validate_site(&site).is_ok());
+        assert_eq!(
+            mavi_settings::CanonicalSiteUrl::parse(site.canonical_url.as_deref().unwrap())
+                .expect("canonical URL")
+                .as_str(),
+            "https://portable.example.test/site"
+        );
+
+        site.canonical_url = Some("https://portable.example.test/?secret=1".to_owned());
+        assert!(validate_site(&site).is_err());
     }
 
     #[test]

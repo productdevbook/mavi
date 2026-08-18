@@ -1140,6 +1140,14 @@
                   "null"
                 ],
                 "maxLength": 64
+              },
+              "canonical_url": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 2048,
+                "format": "uri"
               }
             },
             "additionalProperties": false
@@ -7397,7 +7405,7 @@
                       },
                       "version": {
                         "type": "integer",
-                        "const": 1
+                        "const": 2
                       },
                       "source_site_id": {
                         "type": "string",
@@ -7460,7 +7468,8 @@
                     "type": "object",
                     "required": [
                       "name",
-                      "timezone"
+                      "timezone",
+                      "canonical_url"
                     ],
                     "properties": {
                       "name": {
@@ -7470,6 +7479,14 @@
                       "timezone": {
                         "type": "string",
                         "maxLength": 64
+                      },
+                      "canonical_url": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "maxLength": 2048,
+                        "format": "uri"
                       }
                     },
                     "additionalProperties": false

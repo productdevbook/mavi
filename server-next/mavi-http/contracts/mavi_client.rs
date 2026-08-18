@@ -1425,6 +1425,7 @@ pub struct PortableRevision {
 pub struct PortableSite {
     pub name: String,
     pub timezone: String,
+    pub canonical_url: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -1492,6 +1493,11 @@ pub struct PruneAnalytics {
 pub struct PruneReceipt {
     pub deleted_events: i64,
     pub deleted_aggregates: i64,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct PublicContentQuery {
+    pub language: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -1682,6 +1688,7 @@ pub struct SiteSettings {
     pub site_id: String,
     pub name: String,
     pub timezone: String,
+    pub canonical_url: Option<String>,
     pub updated_at: String,
 }
 
@@ -1937,6 +1944,7 @@ pub struct UpdateProduct {
 pub struct UpdateSiteSettings {
     pub name: Option<String>,
     pub timezone: Option<String>,
+    pub canonical_url: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -1998,7 +2006,7 @@ pub const OPERATIONS: &[OperationDefinition] = &[
     OperationDefinition { name: "content.archive", method: "post", path: "/api/v1/content/{id}/archive", request: None, request_location: None, query: None, response: Some("Content"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("publish"), action: Some("write") },
     OperationDefinition { name: "content.trash", method: "delete", path: "/api/v1/content/{id}", request: None, request_location: None, query: None, response: Some("Empty"), response_location: None, status: 204, authentication: "account_or_assistant", capability: Some("trash"), action: Some("delete") },
     OperationDefinition { name: "content.restore", method: "post", path: "/api/v1/content/{id}/restore", request: None, request_location: None, query: None, response: Some("Content"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("trash"), action: Some("write") },
-    OperationDefinition { name: "content.public_read", method: "get", path: "/public/v1/content/{slug}", request: None, request_location: None, query: None, response: Some("Content"), response_location: None, status: 200, authentication: "public", capability: None, action: None },
+    OperationDefinition { name: "content.public_read", method: "get", path: "/public/v1/content/{slug}", request: Some("PublicContentQuery"), request_location: Some("query"), query: None, response: Some("Content"), response_location: None, status: 200, authentication: "public", capability: None, action: None },
     OperationDefinition { name: "content_types.list", method: "get", path: "/api/v1/content-types", request: Some("ContentTypeListFilter"), request_location: Some("query"), query: None, response: Some("ContentTypePage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("content"), action: Some("view") },
     OperationDefinition { name: "content_types.upsert", method: "put", path: "/api/v1/content-types/{kind}", request: Some("DeclareContentType"), request_location: Some("json"), query: None, response: Some("ContentType"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("content"), action: Some("write") },
     OperationDefinition { name: "content_types.delete", method: "delete", path: "/api/v1/content-types/{kind}", request: None, request_location: None, query: None, response: Some("Empty"), response_location: None, status: 204, authentication: "account_or_assistant", capability: Some("content"), action: Some("delete") },

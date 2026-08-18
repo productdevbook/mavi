@@ -4,6 +4,8 @@
 //! and keeps language-default transitions serialized by the site settings row;
 //! the HTTP layer only maps these commands to routes.
 
+use std::collections::HashSet;
+
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use chrono::{DateTime, Utc};
 use mavi_audit::{AuditEntry, AuditService};
@@ -13,7 +15,7 @@ use mavi_core::{
     SiteId,
 };
 use mavi_storage::SiteTx;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::json;
 use sqlx::Row;
 
@@ -21,6 +23,7 @@ pub const SETTINGS_NOT_FOUND: &str = "settings_not_found";
 pub const SETTINGS_PATCH_EMPTY: &str = "settings_patch_empty";
 pub const SETTINGS_NAME_INVALID: &str = "settings_name_invalid";
 pub const SETTINGS_TIMEZONE_INVALID: &str = "settings_timezone_invalid";
+pub const SETTINGS_CANONICAL_URL_INVALID: &str = "settings_canonical_url_invalid";
 pub const LANGUAGE_TAG_INVALID: &str = "language_tag_invalid";
 pub const LANGUAGE_NAME_INVALID: &str = "language_name_invalid";
 pub const LANGUAGE_NOT_FOUND: &str = "language_not_found";
@@ -158,11 +161,12 @@ fn settings_shapes() -> Vec<Shape> {
             "SiteSettings",
             json!({
                 "type": "object",
-                "required": ["site_id", "name", "timezone", "updated_at"],
+                "required": ["site_id", "name", "timezone", "canonical_url", "updated_at"],
                 "properties": {
                     "site_id": {"type": "string", "format": "uuid"},
                     "name": {"type": "string", "maxLength": 200},
                     "timezone": {"type": "string", "maxLength": 64},
+                    "canonical_url": {"type": ["string", "null"], "maxLength": 2048, "format": "uri"},
                     "updated_at": {"type": "string", "format": "date-time"},
                 },
             }),
@@ -174,6 +178,7 @@ fn settings_shapes() -> Vec<Shape> {
                 "properties": {
                     "name": {"type": ["string", "null"], "maxLength": 200},
                     "timezone": {"type": ["string", "null"], "maxLength": 64},
+                    "canonical_url": {"type": ["string", "null"], "maxLength": 2048, "format": "uri"},
                 },
             }),
         ),
@@ -311,18 +316,118 @@ fn timezone(value: &str) -> Result<String> {
     }
 }
 
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(transparent)]
+pub struct CanonicalSiteUrl(String);
+
+impl CanonicalSiteUrl {
+    pub fn parse(value: &str) -> Result<Self> {
+        let value = value.trim();
+        if value.len() < 8
+            || value.len() > 2_048
+            || value
+                .chars()
+                .any(|character| character.is_whitespace() || character.is_control())
+            || value.contains(['?', '#', '@'])
+        {
+            return Err(MaviError::validation(SETTINGS_CANONICAL_URL_INVALID));
+        }
+
+        let (scheme, remainder) = value
+            .split_once("://")
+            .ok_or_else(|| MaviError::validation(SETTINGS_CANONICAL_URL_INVALID))?;
+        if !matches!(scheme, "http" | "https") || remainder.is_empty() {
+            return Err(MaviError::validation(SETTINGS_CANONICAL_URL_INVALID));
+        }
+
+        let authority_end = remainder.find('/').unwrap_or(remainder.len());
+        let authority = &remainder[..authority_end];
+        if !valid_authority(authority) {
+            return Err(MaviError::validation(SETTINGS_CANONICAL_URL_INVALID));
+        }
+
+        let normalized = value.trim_end_matches('/');
+        let normalized = if normalized.is_empty() {
+            value.to_owned()
+        } else {
+            normalized.to_owned()
+        };
+        Ok(Self(normalized))
+    }
+
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+fn valid_authority(authority: &str) -> bool {
+    if authority.is_empty() {
+        return false;
+    }
+
+    if let Some(rest) = authority.strip_prefix('[') {
+        let Some(end) = rest.find(']') else {
+            return false;
+        };
+        let port = &rest[end + 1..];
+        return port.is_empty()
+            || (port.starts_with(':')
+                && port.len() > 1
+                && port[1..]
+                    .chars()
+                    .all(|character| character.is_ascii_digit()));
+    }
+
+    let mut parts = authority.split(':');
+    let host = parts.next().unwrap_or_default();
+    let port = parts.next();
+    host.chars()
+        .all(|character| character.is_ascii_alphanumeric() || matches!(character, '.' | '-'))
+        && host
+            .chars()
+            .any(|character| character.is_ascii_alphanumeric())
+        && parts.next().is_none()
+        && port.is_none_or(|value| {
+            !value.is_empty() && value.chars().all(|character| character.is_ascii_digit())
+        })
+}
+
 #[derive(Clone, Debug, Serialize)]
 pub struct SiteSettings {
     pub site_id: SiteId,
     pub name: String,
     pub timezone: String,
+    pub canonical_url: Option<CanonicalSiteUrl>,
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Default, Deserialize)]
 pub struct UpdateSiteSettings {
     pub name: Option<String>,
     pub timezone: Option<String>,
+    #[serde(default)]
+    pub canonical_url: CanonicalUrlUpdate,
+}
+
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub enum CanonicalUrlUpdate {
+    #[default]
+    Unchanged,
+    Clear,
+    Set(String),
+}
+
+impl<'de> Deserialize<'de> for CanonicalUrlUpdate {
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        Ok(match Option::<String>::deserialize(deserializer)? {
+            Some(value) => Self::Set(value),
+            None => Self::Clear,
+        })
+    }
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
@@ -382,6 +487,11 @@ fn settings_from_row(row: &sqlx::postgres::PgRow) -> Result<SiteSettings> {
         site_id: SiteId::from_uuid(row.try_get("site_id").map_err(|_| MaviError::Internal)?),
         name: row.try_get("name").map_err(|_| MaviError::Internal)?,
         timezone: row.try_get("timezone").map_err(|_| MaviError::Internal)?,
+        canonical_url: row
+            .try_get::<Option<String>, _>("canonical_url")
+            .map_err(|_| MaviError::Internal)?
+            .map(|value| CanonicalSiteUrl::parse(&value))
+            .transpose()?,
         updated_at: row.try_get("updated_at").map_err(|_| MaviError::Internal)?,
     })
 }
@@ -449,7 +559,7 @@ impl SettingsService {
         context: &SiteContext,
     ) -> Result<SiteSettings> {
         let row = sqlx::query(
-            "select site_id, name, timezone, updated_at
+            "select site_id, name, timezone, canonical_url, updated_at
                from site_settings where site_id = $1",
         )
         .bind(context.site_id.into_uuid())
@@ -468,21 +578,36 @@ impl SettingsService {
         context: &SiteContext,
         input: &UpdateSiteSettings,
     ) -> Result<SiteSettings> {
-        if input.name.is_none() && input.timezone.is_none() {
+        if input.name.is_none()
+            && input.timezone.is_none()
+            && matches!(&input.canonical_url, CanonicalUrlUpdate::Unchanged)
+        {
             return Err(MaviError::validation(SETTINGS_PATCH_EMPTY));
         }
         let name = input.name.as_deref().map(setting_name).transpose()?;
         let timezone = input.timezone.as_deref().map(timezone).transpose()?;
+        let canonical_url_changed = !matches!(&input.canonical_url, CanonicalUrlUpdate::Unchanged);
+        let canonical_url = match &input.canonical_url {
+            CanonicalUrlUpdate::Set(value) => {
+                Some(CanonicalSiteUrl::parse(value)?.as_str().to_owned())
+            }
+            CanonicalUrlUpdate::Clear | CanonicalUrlUpdate::Unchanged => None,
+        };
 
         let row = sqlx::query(
             "update site_settings
-                set name = coalesce($2, name), timezone = coalesce($3, timezone), updated_at = now()
+                set name = coalesce($2, name),
+                    timezone = coalesce($3, timezone),
+                    canonical_url = case when $4 then $5 else canonical_url end,
+                    updated_at = now()
               where site_id = $1
-             returning site_id, name, timezone, updated_at",
+             returning site_id, name, timezone, canonical_url, updated_at",
         )
         .bind(context.site_id.into_uuid())
         .bind(name)
         .bind(timezone)
+        .bind(canonical_url_changed)
+        .bind(canonical_url)
         .fetch_optional(tx.conn())
         .await
         .map_err(|_| MaviError::Internal)?
@@ -498,11 +623,67 @@ impl SettingsService {
                     action: "settings.updated".to_owned(),
                     resource_type: "SiteSettings".to_owned(),
                     resource_id: Some(context.site_id.into_uuid()),
-                    payload: json!({"name_changed": input.name.is_some(), "timezone_changed": input.timezone.is_some()}),
+                    payload: json!({
+                        "name_changed": input.name.is_some(),
+                        "timezone_changed": input.timezone.is_some(),
+                        "canonical_url_changed": canonical_url_changed
+                    }),
                 },
             )
             .await?;
         Ok(settings)
+    }
+
+    /// Resolves the ordered language candidates for a public content lookup.
+    ///
+    /// An exact configured tag wins first. A regional tag then falls back to
+    /// its base language, and the site's configured default is the final
+    /// candidate. Unconfigured requested languages therefore never make the
+    /// public resolver fail when the site has a default language.
+    pub async fn public_language_candidates(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        requested: Option<&str>,
+    ) -> Result<Vec<String>> {
+        let default_tag: String = sqlx::query_scalar(
+            "select tag from site_languages
+               where site_id = $1 and is_default
+               order by tag asc limit 1",
+        )
+        .bind(context.site_id.into_uuid())
+        .fetch_optional(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?
+        .ok_or(MaviError::NotFound {
+            resource: LANGUAGE_NOT_FOUND,
+        })?;
+        let default_tag = LanguageTag::parse(&default_tag)?;
+
+        let mut candidates = Vec::with_capacity(3);
+        if let Some(requested) = requested {
+            let requested = LanguageTag::parse(requested)?;
+            candidates.push(requested.as_str().to_owned());
+            if let Some((base, _)) = requested.as_str().split_once('-') {
+                candidates.push(base.to_owned());
+            }
+        }
+        candidates.push(default_tag.as_str().to_owned());
+        candidates.dedup();
+
+        let configured =
+            sqlx::query_scalar::<_, String>("select tag from site_languages where site_id = $1")
+                .bind(context.site_id.into_uuid())
+                .fetch_all(tx.conn())
+                .await
+                .map_err(|_| MaviError::Internal)?
+                .into_iter()
+                .collect::<HashSet<_>>();
+
+        Ok(candidates
+            .into_iter()
+            .filter(|candidate| configured.contains(candidate))
+            .collect())
     }
 
     pub async fn list_languages(
@@ -751,6 +932,20 @@ mod tests {
         assert!(LanguageTag::parse("en--US").is_err());
         assert!(timezone("Europe/Berlin").is_ok());
         assert!(timezone("Europe/../secret").is_err());
+    }
+
+    #[test]
+    fn canonical_site_urls_are_absolute_and_normalized() {
+        assert_eq!(
+            CanonicalSiteUrl::parse("https://example.test/site/")
+                .expect("canonical URL")
+                .as_str(),
+            "https://example.test/site"
+        );
+        assert!(CanonicalSiteUrl::parse("example.test/site").is_err());
+        assert!(CanonicalSiteUrl::parse("https://example.test/?secret=1").is_err());
+        assert!(CanonicalSiteUrl::parse("https://user@example.test").is_err());
+        assert!(CanonicalSiteUrl::parse("ftp://example.test").is_err());
     }
 
     #[test]

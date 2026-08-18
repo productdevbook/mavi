@@ -188,6 +188,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
 
 - [x] Shared HTTP router with request-level site scope.
 - [x] Global `/healthz` liveness and database-backed `/readyz` readiness stay outside site admission middleware.
+- [x] Outer HTTP telemetry assigns one request ID to every request, returns it as `x-request-id` and emits structured completion fields for JSON logs — productdevbook/mavi#221.
 - [ ] Self-host configuration and upgrade path.
 - [-] Cloud/operator provisioning contract without direct database coupling.
   - [x] Mavi publishes a versioned runtime manifest for post-provision compatibility checks.

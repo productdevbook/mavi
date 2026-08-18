@@ -3,6 +3,7 @@ mod support;
 use axum::http::{Method, StatusCode};
 use serde_json::Value;
 use support::{response_json, send};
+use uuid::Uuid;
 
 #[tokio::test]
 #[ignore = "requires TEST_DATABASE_URL and a non-superuser PostgreSQL role"]
@@ -32,7 +33,20 @@ async fn liveness_and_readiness_are_global_in_shard_mode() {
 
     let liveness = support::send(&app, Method::GET, "/healthz", None, None).await;
     assert_eq!(liveness.status(), StatusCode::OK);
+    let liveness_request_id = liveness
+        .headers()
+        .get("x-request-id")
+        .and_then(|value| value.to_str().ok())
+        .expect("liveness request id");
+    assert!(Uuid::parse_str(liveness_request_id).is_ok());
 
     let readiness = support::send(&app, Method::GET, "/readyz", None, None).await;
     assert_eq!(readiness.status(), StatusCode::OK);
+    let readiness_request_id = readiness
+        .headers()
+        .get("x-request-id")
+        .and_then(|value| value.to_str().ok())
+        .expect("readiness request id");
+    assert!(Uuid::parse_str(readiness_request_id).is_ok());
+    assert_ne!(liveness_request_id, readiness_request_id);
 }

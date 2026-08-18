@@ -7,6 +7,7 @@
 use std::{
     fmt::Write as _,
     sync::{Arc, OnceLock},
+    time::Instant,
 };
 
 use axum::{
@@ -513,7 +514,10 @@ where
         .route("/readyz", get(readiness::<R>))
         .layer(Extension(runtime));
 
-    Ok(operational_routes.merge(scoped_routes).with_state(state))
+    Ok(operational_routes
+        .merge(scoped_routes)
+        .with_state(state)
+        .layer(middleware::from_fn(request_telemetry)))
 }
 
 async fn liveness() -> StatusCode {
@@ -529,6 +533,42 @@ where
     } else {
         StatusCode::SERVICE_UNAVAILABLE
     }
+}
+
+/// Emits one structured completion event for every request at the outer HTTP
+/// boundary. The middleware deliberately does not know about a domain or a
+/// site resolver; admission remains responsible for enriching the request
+/// with its [`SiteContext`]. Keeping this concern here also covers global
+/// liveness/readiness probes, which never enter site admission.
+async fn request_telemetry(mut request: Request<Body>, next: Next) -> Response {
+    let request_id = request
+        .extensions()
+        .get::<RequestId>()
+        .copied()
+        .unwrap_or_else(RequestId::new);
+    request.extensions_mut().insert(request_id);
+
+    let method = request.method().clone();
+    let path = request.uri().path().to_owned();
+    let started = Instant::now();
+    let mut response = next.run(request).await;
+    let request_id_header = HeaderValue::from_str(&request_id.to_string())
+        .expect("UUID request IDs are always valid header values");
+    response
+        .headers_mut()
+        .entry(REQUEST_ID_HEADER)
+        .or_insert(request_id_header);
+
+    tracing::info!(
+        %request_id,
+        method = %method,
+        path,
+        status = response.status().as_u16(),
+        duration_ms = started.elapsed().as_millis(),
+        "http request completed"
+    );
+
+    response
 }
 
 fn api_routes<R>() -> Router<HttpState<R>>
@@ -2190,7 +2230,11 @@ async fn admit<R>(
 where
     R: SiteResolver,
 {
-    let request_id = RequestId::new();
+    let request_id = request
+        .extensions()
+        .get::<RequestId>()
+        .copied()
+        .unwrap_or_else(RequestId::new);
     let request_id_header = HeaderValue::from_str(&request_id.to_string())
         .expect("UUID request IDs are always valid header values");
 

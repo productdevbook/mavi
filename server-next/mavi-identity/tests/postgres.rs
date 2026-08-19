@@ -127,6 +127,27 @@ async fn identity_people_and_roles_are_site_scoped_and_audited() {
         .expect("person");
     assert_eq!(person.role_ids, vec![role.id]);
 
+    let people = service
+        .list_people(&mut tx, &owner_context, &PeopleListFilter::default())
+        .await
+        .expect("people");
+    assert!(people.items.iter().any(|item| item.id == person.id));
+
+    let roles = service
+        .list_roles(&mut tx, &owner_context, &RoleListFilter::default())
+        .await
+        .expect("roles");
+    assert!(roles.items.iter().any(|item| item.id == role.id));
+
+    let assigned_error = service
+        .delete_role(&mut tx, &owner_context, role.id)
+        .await
+        .expect_err("an assigned role cannot be deleted");
+    assert!(matches!(
+        assigned_error,
+        MaviError::Conflict { ref code } if code == mavi_identity::ROLE_ASSIGNED
+    ));
+
     let replacement_role = service
         .create_role(
             &mut tx,
@@ -167,27 +188,6 @@ async fn identity_people_and_roles_are_site_scoped_and_audited() {
     assert!(matches!(
         self_role_error,
         MaviError::Conflict { ref code } if code == "cannot_change_current_person_roles"
-    ));
-
-    let people = service
-        .list_people(&mut tx, &owner_context, &PeopleListFilter::default())
-        .await
-        .expect("people");
-    assert!(people.items.iter().any(|item| item.id == person.id));
-
-    let roles = service
-        .list_roles(&mut tx, &owner_context, &RoleListFilter::default())
-        .await
-        .expect("roles");
-    assert!(roles.items.iter().any(|item| item.id == role.id));
-
-    let assigned_error = service
-        .delete_role(&mut tx, &owner_context, role.id)
-        .await
-        .expect_err("an assigned role cannot be deleted");
-    assert!(matches!(
-        assigned_error,
-        MaviError::Conflict { ref code } if code == mavi_identity::ROLE_ASSIGNED
     ));
 
     let owner_role = roles

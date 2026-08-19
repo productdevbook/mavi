@@ -170,7 +170,7 @@ async fn role_lifecycle_protects_owner_and_assigned_roles() {
     let assigned_delete = send(
         &app,
         Method::DELETE,
-        &format!("/api/v1/roles/{assigned_id}"),
+        &format!("/api/v1/roles/{replacement_id}"),
         Some(&owner_token),
         None,
     )

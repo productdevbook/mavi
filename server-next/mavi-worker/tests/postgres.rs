@@ -439,7 +439,33 @@ async fn analytics_retention_worker_uses_site_policy_and_records_system_audit() 
         .expect("worker config"),
         Arc::new(InMemoryFileStore::default()),
     );
-    assert!(supervisor.run_once(site_id).await.expect("retention run"));
+    // A poll discovers the ordinary housekeeping jobs as well. Retention is
+    // intentionally lowest priority, so drive the same supervisor until its
+    // discovered analytics job is the one that has completed.
+    let mut retention_done = false;
+    for _ in 0..=3 {
+        assert!(supervisor.run_once(site_id).await.expect("retention run"));
+        let mut check = database
+            .begin(&context)
+            .await
+            .expect("retention check scope");
+        let state: Option<String> = sqlx::query_scalar(
+            "select state from jobs
+               where site_id = $1 and kind = $2
+               order by created_at desc limit 1",
+        )
+        .bind(site_id.into_uuid())
+        .bind(ANALYTICS_RETENTION_JOB.name)
+        .fetch_optional(check.conn())
+        .await
+        .expect("retention job state");
+        check.commit().await.expect("retention check commit");
+        if state.as_deref() == Some("done") {
+            retention_done = true;
+            break;
+        }
+    }
+    assert!(retention_done, "analytics retention job should complete");
 
     let jobs = JobsService::new([ANALYTICS_RETENTION_JOB]);
     let mut transaction = database.begin(&context).await.expect("check scope");

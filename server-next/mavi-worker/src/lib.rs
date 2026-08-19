@@ -342,12 +342,15 @@ impl WorkerSupervisor {
     async fn claim_job(&self, transaction: &mut SiteTx) -> Result<Option<JobClaim>> {
         let mut claim = None;
         for kind in [
-            ANALYTICS_RETENTION_JOB.name,
             SCHEDULED_PUBLISH_JOB.name,
             MEDIA_CLEANUP_JOB.name,
             MEDIA_VARIANT_JOB.name,
             MEDIA_ORPHAN_CLEANUP_JOB.name,
             FORM_RETENTION_JOB.name,
+            // Retention is deliberately lowest priority: a newly discovered
+            // analytics pass must not delay an already queued publish or
+            // storage cleanup operation.
+            ANALYTICS_RETENTION_JOB.name,
         ] {
             claim = self
                 .jobs

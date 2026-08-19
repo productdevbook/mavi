@@ -813,7 +813,7 @@ msgstr "Kartla ödeme kendini bildirir, sağlayıcı tarafından imzalanır. Bur
 #~ msgid "A copy of every picture stays on this server whatever you set here. The bucket is a copy in front of it, never the only one — so a bucket that is emptied, expired or switched off costs you an address, not the pictures."
 #~ msgstr "Burada ne ayarlarsanız ayarlayın, her resmin bir kopyası bu sunucuda kalır. Kova onun önündeki kopyadır, tek kopya değil — boşalan, süresi biten ya da kapatılan bir kova size resimleri değil yalnızca bir adresi kaybettirir."
 
-#: src/routes/dashboard.settings.tsx:328
+#: src/features/settings/settings-page.tsx:321
 msgid "A copy of what is written"
 msgstr "Yazılanların bir kopyası"
 
@@ -876,7 +876,7 @@ msgstr "Bir dil iki harftir, ardından varsa bir yer gelir: en, ya da en-GB."
 msgid "A lesson"
 msgstr "Bir ders"
 
-#: src/routes/dashboard.forms.tsx:353
+#: src/features/forms/forms-page.tsx:356
 msgid "A line of text"
 msgstr "Tek satır metin"
 
@@ -958,7 +958,7 @@ msgid "A new tag"
 msgstr "Yeni bir etiket"
 
 #: src/components/dashboard/content-type-editor.tsx:56
-#: src/routes/dashboard.forms.tsx:356
+#: src/features/forms/forms-page.tsx:359
 msgid "A number"
 msgstr "Sayı"
 
@@ -1016,7 +1016,7 @@ msgstr "Bir ekran görüntüsü"
 msgid "A scheduled post needs a publish date"
 msgstr "Zamanlanmış bir yazının bir yayın tarihi olmalı"
 
-#: src/routes/dashboard.settings.tsx:178
+#: src/features/settings/settings-page.tsx:169
 msgid "A second factor"
 msgstr "İkinci bir adım"
 
@@ -1261,8 +1261,8 @@ msgstr "Üste satır ekle"
 msgid "Add somebody"
 msgstr "Kişi ekle"
 
-#: src/routes/dashboard.users.tsx:176
-#: src/routes/dashboard.users.tsx:302
+#: src/features/people/people-page.tsx:171
+#: src/features/people/people-page.tsx:303
 msgid "Add someone"
 msgstr "Kişi ekle"
 
@@ -1278,7 +1278,7 @@ msgstr "Tablo ekle"
 #~ msgid "Add the domain you send from. A domain covers every address on it, so it is worth doing before adding addresses one at a time."
 #~ msgstr "Gönderim yaptığınız alan adını ekleyin. Bir alan adı, üzerindeki her adresi kapsar; adresleri tek tek eklemeden önce bunu yapmaya değer."
 
-#: src/routes/dashboard.settings.tsx:214
+#: src/features/settings/settings-page.tsx:205
 msgid "Add this to your authenticator, then type what it shows."
 msgstr "Bunu doğrulayıcı uygulamanıza ekleyin, sonra gösterdiğini yazın."
 
@@ -1336,7 +1336,7 @@ msgstr "Adres"
 #~ msgid "Adjustment"
 #~ msgstr "Düzeltme"
 
-#: src/routes/dashboard.forms.tsx:295
+#: src/features/forms/forms-page.tsx:298
 msgid "After this, what came in is deleted by the machine itself."
 msgstr "Bu süre sonunda gelenler sunucu tarafından silinir."
 
@@ -1564,7 +1564,7 @@ msgstr "Bir asistan"
 #~ msgid "An assistant pointed at this site can be asked to do the work rather than told how to do it — find a post and correct it, tell you what came in through the forms this week, put a piece online."
 #~ msgstr "Bu siteye yöneltilmiş bir asistandan, nasıl yapılacağını anlatmak yerine işi doğrudan isteyebilirsiniz — bir yazıyı bulup düzeltmek, bu hafta formlardan ne geldiğini söylemek, bir yazıyı yayına almak."
 
-#: src/routes/dashboard.forms.tsx:355
+#: src/features/forms/forms-page.tsx:358
 msgid "An email address"
 msgstr "E-posta adresi"
 
@@ -1585,7 +1585,7 @@ msgstr "Bir görsel burada durduğu sürece dosyasını korur; böylece geri al�
 #~ msgstr "Bir siparişi ödenmiş yapan ödeme servisidir, burası değil. Buradan yapabileceğiniz şey kargonun çıktığını söylemek."
 
 #: src/components/dashboard/content-type-editor.tsx:134
-#: src/routes/dashboard.forms.tsx:380
+#: src/features/forms/forms-page.tsx:389
 msgid "Another"
 msgstr "Bir tane daha"
 
@@ -1621,7 +1621,7 @@ msgstr "Bir adım daha"
 #~ msgid "Answered"
 #~ msgstr "Yanıtlandı"
 
-#: src/routes/dashboard.settings.tsx:399
+#: src/features/settings/settings-page.tsx:394
 msgid "Answering"
 msgstr "Yanıt veriyor"
 
@@ -1766,7 +1766,7 @@ msgstr "Arşivlendi"
 #~ msgid "Archiving stops the public site and active usage charges, but keeps its data and media stored. Storage costs $9/month until you restore or delete the site."
 #~ msgstr "Arşivlemek herkese açık siteyi ve aktif kullanım ücretlerini durdurur; ancak verileri ve medyaları saklamaya devam eder. Siteyi geri yükleyene veya silene kadar depolama ayda 9 $ tutar."
 
-#: src/routes/dashboard.roles.tsx:336
+#: src/features/people/roles-page.tsx:332
 msgid "Area"
 msgstr "Alan"
 
@@ -2098,9 +2098,9 @@ msgid "board"
 msgstr "pano"
 
 #: src/components/dashboard/dashboard-shell.tsx:105
+#: src/features/people/roles-page.tsx:161
 #: src/routes/dashboard.boards_.$boardId.tsx:123
 #: src/routes/dashboard.boards.tsx:107
-#: src/routes/dashboard.roles.tsx:163
 msgid "Boards"
 msgstr "Panolar"
 
@@ -2300,7 +2300,7 @@ msgstr ""
 #~ msgstr "Kampanyalar"
 
 #. placeholder {0}: CAPABILITY_ORDER.length
-#: src/routes/dashboard.roles.tsx:310
+#: src/features/people/roles-page.tsx:306
 msgid "Can open {summary} of {0} areas."
 msgstr "{0} alanın {summary} tanesini açabilir."
 
@@ -2314,6 +2314,11 @@ msgstr "{0} alanın {summary} tanesini açabilir."
 #: src/components/editor/dialogs.tsx:244
 #: src/components/editor/dialogs.tsx:330
 #: src/components/report-a-problem.tsx:236
+#: src/features/forms/forms-page.tsx:306
+#: src/features/forms/forms-page.tsx:328
+#: src/features/people/people-page.tsx:353
+#: src/features/people/people-page.tsx:377
+#: src/features/people/roles-page.tsx:454
 #: src/routes/dashboard.boards_.$boardId.tsx:230
 #: src/routes/dashboard.boards.tsx:210
 #: src/routes/dashboard.boards.tsx:232
@@ -2322,19 +2327,14 @@ msgstr "{0} alanın {summary} tanesini açabilir."
 #: src/routes/dashboard.coupons.tsx:251
 #: src/routes/dashboard.design.tsx:213
 #: src/routes/dashboard.flows.tsx:329
-#: src/routes/dashboard.forms.tsx:303
-#: src/routes/dashboard.forms.tsx:325
 #: src/routes/dashboard.languages.tsx:183
 #: src/routes/dashboard.mail.tsx:268
 #: src/routes/dashboard.mail.tsx:332
 #: src/routes/dashboard.media.tsx:202
 #: src/routes/dashboard.products.tsx:267
-#: src/routes/dashboard.roles.tsx:449
 #: src/routes/dashboard.students.tsx:241
 #: src/routes/dashboard.tags.tsx:191
 #: src/routes/dashboard.tags.tsx:243
-#: src/routes/dashboard.users.tsx:352
-#: src/routes/dashboard.users.tsx:376
 msgid "Cancel"
 msgstr "Vazgeç"
 
@@ -2376,7 +2376,7 @@ msgstr "Büyük/küçük harf duyarlı"
 msgid "Categories"
 msgstr "Kategoriler"
 
-#: src/routes/dashboard.roles.tsx:156
+#: src/features/people/roles-page.tsx:154
 msgid "Categories & tags"
 msgstr "Kategoriler ve etiketler"
 
@@ -2401,11 +2401,11 @@ msgid "Center the paragraph"
 msgstr "Paragrafı ortala"
 
 #. placeholder {0}: CAPABILITY_LABELS[capability]
-#: src/routes/dashboard.roles.tsx:392
+#: src/features/people/roles-page.tsx:397
 msgid "Change {0}"
 msgstr "{0} değiştir"
 
-#: src/routes/dashboard.users.tsx:292
+#: src/features/people/people-page.tsx:293
 msgid "Change it"
 msgstr "Değiştir"
 
@@ -2421,7 +2421,7 @@ msgstr "Değiştir"
 #~ msgid "Changes things"
 #~ msgstr "Bir şeyleri değiştirir"
 
-#: src/routes/dashboard.users.tsx:263
+#: src/features/people/people-page.tsx:264
 msgid "Changing it closes everything that is open, here and everywhere else you are signed in."
 msgstr "Değiştirmek açık olan her şeyi kapatır; burada ve oturum açtığınız diğer her yerde."
 
@@ -2692,7 +2692,7 @@ msgstr "Bunun yerine terminalden, jetonla bağlanmak"
 #~ msgid "contains"
 #~ msgstr "içeriyor"
 
-#: src/routes/dashboard.roles.tsx:155
+#: src/features/people/roles-page.tsx:153
 msgid "Content"
 msgstr "İçerik"
 
@@ -3432,12 +3432,12 @@ msgstr "Varsayılan"
 #: src/components/dashboard/content-list.tsx:318
 #: src/components/editor/block-handle.tsx:186
 #: src/components/editor/bubble-menus.tsx:415
+#: src/features/people/roles-page.tsx:172
 #: src/routes/dashboard.categories.tsx:313
 #: src/routes/dashboard.categories.tsx:339
 #: src/routes/dashboard.languages.tsx:160
 #: src/routes/dashboard.media.tsx:179
 #: src/routes/dashboard.media.tsx:204
-#: src/routes/dashboard.roles.tsx:174
 #: src/routes/dashboard.tags.tsx:219
 msgid "Delete"
 msgstr "Sil"
@@ -3452,7 +3452,7 @@ msgid "Delete column"
 msgstr "Sütunu sil"
 
 #. placeholder {0}: CAPABILITY_LABELS[capability]
-#: src/routes/dashboard.roles.tsx:393
+#: src/features/people/roles-page.tsx:398
 msgid "Delete in {0}"
 msgstr "{0} içinde sil"
 
@@ -3460,7 +3460,7 @@ msgstr "{0} içinde sil"
 #~ msgid "Delete one, and any image left with no owner."
 #~ msgstr "Bir yazıyı ve sahipsiz kalan resimlerini siler."
 
-#: src/routes/dashboard.roles.tsx:319
+#: src/features/people/roles-page.tsx:315
 msgid "Delete role"
 msgstr "Rolü sil"
 
@@ -3473,7 +3473,7 @@ msgid "Delete table"
 msgstr "Tabloyu sil"
 
 #. placeholder {0}: role.name
-#: src/routes/dashboard.roles.tsx:249
+#: src/features/people/roles-page.tsx:247
 msgid "Delete the \"{0}\" role? Move its people to another role first — this only removes the role, not the accounts."
 msgstr "\"{0}\" rolü silinsin mi? Önce kişilerini başka bir role taşıyın — bu yalnızca rolü kaldırır, hesapları değil."
 
@@ -3557,8 +3557,8 @@ msgid "Description text shown in search results."
 msgstr "Arama sonuçlarında görünecek açıklama metni."
 
 #: src/components/dashboard/dashboard-shell.tsx:115
+#: src/features/people/roles-page.tsx:162
 #: src/routes/dashboard.design.tsx:66
-#: src/routes/dashboard.roles.tsx:164
 msgid "Design"
 msgstr "Tasarım"
 
@@ -3722,8 +3722,8 @@ msgstr "Çoğalt"
 #: src/components/editor/bubble-menus.tsx:331
 #: src/components/editor/mavi-editor.tsx:620
 #: src/components/editor/mavi-editor.tsx:879
+#: src/features/forms/forms-page.tsx:211
 #: src/routes/dashboard.categories.tsx:305
-#: src/routes/dashboard.forms.tsx:208
 msgid "Edit"
 msgstr "Düzenle"
 
@@ -3735,7 +3735,7 @@ msgstr "Düzenle"
 msgid "Edit site templates and static files."
 msgstr ""
 
-#: src/routes/dashboard.forms.tsx:230
+#: src/features/forms/forms-page.tsx:233
 msgid "Edit the form"
 msgstr "Formu düzenle"
 
@@ -3755,14 +3755,14 @@ msgstr "Formu düzenle"
 msgid "Editing"
 msgstr "Düzenleme"
 
-#: src/routes/dashboard.roles.tsx:425
+#: src/features/people/roles-page.tsx:430
 msgid "Editor-in-chief"
 msgstr "Genel yayın yönetmeni"
 
 #: src/components/dashboard/content-type-editor.tsx:58
+#: src/features/people/people-page.tsx:311
 #: src/learn/app.tsx:159
 #: src/routes/dashboard.students.tsx:200
-#: src/routes/dashboard.users.tsx:310
 #: src/routes/forgotten.tsx:216
 #: src/routes/login.tsx:110
 #: src/routes/setup.tsx:136
@@ -4076,9 +4076,9 @@ msgstr "akış"
 #~ msgstr "Akış yazıldı"
 
 #: src/components/dashboard/dashboard-shell.tsx:94
+#: src/features/people/roles-page.tsx:158
 #: src/routes/dashboard.flows.tsx:137
 #: src/routes/dashboard.index.tsx:112
-#: src/routes/dashboard.roles.tsx:160
 msgid "Flows"
 msgstr "Akışlar"
 
@@ -4120,7 +4120,7 @@ msgstr "Satışta"
 #~ msgid "For what"
 #~ msgstr "Ne için"
 
-#: src/routes/dashboard.users.tsx:446
+#: src/features/people/people-page.tsx:447
 msgid "For when somebody writes in and asks. Everything under one address, across everything this site keeps."
 msgstr "Biri yazıp sorduğunda içindir. Tek bir adres altındaki her şey, bu sitenin tuttuğu her yerde."
 
@@ -4133,7 +4133,7 @@ msgstr "Biri yazıp sorduğunda içindir. Tek bir adres altındaki her şey, bu 
 msgid "Forget it"
 msgstr "Unut"
 
-#: src/routes/dashboard.users.tsx:469
+#: src/features/people/people-page.tsx:470
 msgid "Forget them"
 msgstr "Unut"
 
@@ -4141,8 +4141,8 @@ msgstr "Unut"
 #~ msgid "Forget this value"
 #~ msgstr "Bu değeri unut"
 
+#: src/features/people/people-page.tsx:435
 #: src/routes/dashboard.plugins.tsx:69
-#: src/routes/dashboard.users.tsx:434
 msgid "Forgotten."
 msgstr "Unutuldu."
 
@@ -4166,10 +4166,10 @@ msgid "Formatting"
 msgstr "Biçimlendirme"
 
 #: src/components/dashboard/dashboard-shell.tsx:92
+#: src/features/forms/forms-page.tsx:146
+#: src/features/people/roles-page.tsx:156
 #: src/routes/dashboard.forms_.$formId.tsx:135
-#: src/routes/dashboard.forms.tsx:150
 #: src/routes/dashboard.index.tsx:78
-#: src/routes/dashboard.roles.tsx:158
 msgid "Forms"
 msgstr "Formlar"
 
@@ -4305,7 +4305,7 @@ msgstr ""
 #~ msgid "Going out"
 #~ msgstr "Gönderiliyor"
 
-#: src/routes/dashboard.roles.tsx:257
+#: src/features/people/roles-page.tsx:255
 msgid "Gone"
 msgstr "Kaldırıldı"
 
@@ -4358,7 +4358,7 @@ msgstr "Bir anahtar ver"
 #~ msgstr "Bunu bir asistana vermek"
 
 #: src/components/dashboard/content-type-editor.tsx:203
-#: src/routes/dashboard.forms.tsx:453
+#: src/features/forms/forms-page.tsx:460
 msgid "Has to be filled in"
 msgstr "Doldurulması zorunlu"
 
@@ -4729,7 +4729,7 @@ msgstr "İçgörüler"
 #~ msgid "Invitations"
 #~ msgstr "Davetler"
 
-#: src/routes/dashboard.users.tsx:358
+#: src/features/people/people-page.tsx:359
 msgid "Invite"
 msgstr "Davet et"
 
@@ -4737,15 +4737,15 @@ msgstr "Davet et"
 #~ msgid "invited"
 #~ msgstr "davet edildi:"
 
-#: src/routes/dashboard.users.tsx:199
+#: src/features/people/people-page.tsx:195
 msgid "Invited"
 msgstr "Davet edildi"
 
-#: src/routes/dashboard.users.tsx:104
+#: src/features/people/people-page.tsx:99
 msgid "Invited. They choose their own password from the link."
 msgstr "Davet edildi. Parolasını bağlantıdan kendisi seçecek."
 
-#: src/routes/dashboard.settings.tsx:388
+#: src/features/settings/settings-page.tsx:381
 msgid "Is everything answering"
 msgstr "Her şey yanıt veriyor mu"
 
@@ -4917,7 +4917,7 @@ msgstr "Kartları da onunla gider."
 #~ msgstr "Onun kimliği"
 
 #: src/components/dashboard/content-type-editor.tsx:159
-#: src/routes/dashboard.forms.tsx:405
+#: src/features/forms/forms-page.tsx:414
 msgid "Its key"
 msgstr "Anahtarı"
 
@@ -4977,7 +4977,7 @@ msgstr "Bu adresi saklayın: siparişi yeniden buradan görebilirsiniz."
 #~ msgid "Kept"
 #~ msgstr "Saklanan"
 
-#: src/routes/dashboard.forms.tsx:282
+#: src/features/forms/forms-page.tsx:285
 msgid "Kept for, in days"
 msgstr "Kaç gün saklanır"
 
@@ -5137,7 +5137,7 @@ msgstr "Kalan"
 #~ msgid "Lessons"
 #~ msgstr "Dersler"
 
-#: src/routes/dashboard.users.tsx:237
+#: src/features/people/people-page.tsx:238
 msgid "Let back in"
 msgstr "Yeniden içeri al"
 
@@ -5230,7 +5230,7 @@ msgstr "Yükleniyor…"
 msgid "Long text"
 msgstr "Uzun metin"
 
-#: src/routes/dashboard.users.tsx:462
+#: src/features/people/people-page.tsx:463
 msgid "Look"
 msgstr "Bak"
 
@@ -5258,7 +5258,7 @@ msgstr "E-postanıza bakın"
 #~ msgid "Lost"
 #~ msgstr "Kaybedildi"
 
-#: src/routes/dashboard.roles.tsx:443
+#: src/features/people/roles-page.tsx:448
 msgid "Lower-case, letters, digits and dashes. This is what a person's account is filed under."
 msgstr "Küçük harf, harf, rakam ve tire. Bir kişinin hesabı bunun altında tutulur."
 
@@ -5272,10 +5272,10 @@ msgstr "Küçük harf, harf, rakam ve tire. Bir kişinin hesabı bunun altında 
 #~ msgstr "Kanalın kendi ayarlarında, gelen webhook'lar altında üretilir. Elinde tutan herkes o kanala mesaj atabilir; bu yüzden parola gibi davranılır ve çalıştırma kaydına yazılmaz."
 
 #: src/components/dashboard/dashboard-shell.tsx:93
+#: src/features/people/roles-page.tsx:157
 #: src/routes/dashboard.mail_.campaigns.$campaignId.tsx:25
 #: src/routes/dashboard.mail.tsx:145
 #: src/routes/dashboard.plugins.tsx:55
-#: src/routes/dashboard.roles.tsx:159
 msgid "Mail"
 msgstr "Posta"
 
@@ -5316,7 +5316,7 @@ msgstr ""
 #~ msgid "Make a link"
 #~ msgstr "Bağlantı üret"
 
-#: src/routes/dashboard.roles.tsx:417
+#: src/features/people/roles-page.tsx:422
 msgid "Make a role, then tick what it may do below."
 msgstr "Bir rol oluşturun, sonra aşağıda neler yapabileceğini işaretleyin."
 
@@ -5336,11 +5336,11 @@ msgstr "Bir rol oluşturun, sonra aşağıda neler yapabileceğini işaretleyin.
 msgid "Make default"
 msgstr "Varsayılan yap"
 
+#: src/features/people/roles-page.tsx:461
 #: src/routes/dashboard.boards.tsx:214
 #: src/routes/dashboard.flows.tsx:333
 #: src/routes/dashboard.mail.tsx:275
 #: src/routes/dashboard.products.tsx:274
-#: src/routes/dashboard.roles.tsx:453
 msgid "Make it"
 msgstr "Oluştur"
 
@@ -5431,7 +5431,7 @@ msgid "Measurements"
 msgstr "Ölçümler"
 
 #: src/components/dashboard/dashboard-shell.tsx:86
-#: src/routes/dashboard.roles.tsx:157
+#: src/features/people/roles-page.tsx:155
 msgid "Media"
 msgstr "Medya"
 
@@ -5510,7 +5510,7 @@ msgstr "Eş aralıklı"
 msgid "More"
 msgstr "Daha fazla"
 
-#: src/routes/dashboard.forms.tsx:354
+#: src/features/forms/forms-page.tsx:357
 msgid "More than a line"
 msgstr "Birden fazla satır"
 
@@ -5565,11 +5565,11 @@ msgstr "Eğitimlerim"
 #~ msgid "My orders"
 #~ msgstr "Siparişlerim"
 
-#: src/routes/dashboard.forms.tsx:161
-#: src/routes/dashboard.forms.tsx:240
+#: src/features/forms/forms-page.tsx:158
+#: src/features/forms/forms-page.tsx:243
+#: src/features/people/people-page.tsx:321
 #: src/routes/dashboard.languages.tsx:117
 #: src/routes/dashboard.students.tsx:211
-#: src/routes/dashboard.users.tsx:320
 msgid "Name"
 msgstr "Ad"
 
@@ -5577,7 +5577,7 @@ msgstr "Ad"
 #~ msgid "Name (optional)"
 #~ msgstr "Ad (isteğe bağlı)"
 
-#: src/routes/dashboard.roles.tsx:422
+#: src/features/people/roles-page.tsx:427
 msgid "Name people see"
 msgstr "Görünen ad"
 
@@ -5669,8 +5669,8 @@ msgstr "Yeni kod"
 msgid "New flow"
 msgstr "Yeni akış"
 
-#: src/routes/dashboard.forms.tsx:167
-#: src/routes/dashboard.forms.tsx:230
+#: src/features/forms/forms-page.tsx:169
+#: src/features/forms/forms-page.tsx:233
 msgid "New form"
 msgstr "Yeni form"
 
@@ -5690,8 +5690,8 @@ msgstr "Yeni liste"
 msgid "New product"
 msgstr "Yeni ürün"
 
-#: src/routes/dashboard.roles.tsx:282
-#: src/routes/dashboard.roles.tsx:415
+#: src/features/people/roles-page.tsx:277
+#: src/features/people/roles-page.tsx:420
 msgid "New role"
 msgstr "Yeni rol"
 
@@ -5866,7 +5866,7 @@ msgstr "Henüz akış yok."
 #~ msgid "No form has been used yet"
 #~ msgstr "Henüz hiçbir form kullanılmadı"
 
-#: src/routes/dashboard.forms.tsx:177
+#: src/features/forms/forms-page.tsx:180
 msgid "No forms yet"
 msgstr "Henüz form yok"
 
@@ -6041,8 +6041,8 @@ msgstr "Henüz kimse yok"
 #~ msgid "None yet. A site with no address is a site nobody can reach."
 #~ msgstr "Henüz yok. Adresi olmayan siteye kimse ulaşamaz."
 
+#: src/features/settings/settings-page.tsx:394
 #: src/routes/dashboard.plugins.tsx:123
-#: src/routes/dashboard.settings.tsx:399
 msgid "Not answering"
 msgstr "Yanıt vermiyor"
 
@@ -6062,7 +6062,7 @@ msgstr "Seçilmedi"
 #~ msgid "Not doing it"
 #~ msgstr "Yapılmayacak"
 
-#: src/routes/dashboard.settings.tsx:390
+#: src/features/settings/settings-page.tsx:383
 msgid "Not everything"
 msgstr "Hepsi değil"
 
@@ -6410,8 +6410,8 @@ msgstr "Numaralı liste"
 #~ msgid "off"
 #~ msgstr "kapalı"
 
+#: src/features/settings/settings-page.tsx:172
 #: src/routes/dashboard.plugins.tsx:116
-#: src/routes/dashboard.settings.tsx:181
 msgid "Off"
 msgstr "Kapalı"
 
@@ -6464,7 +6464,7 @@ msgstr "Daha eski"
 #~ msgid "oldest: just now"
 #~ msgstr "en eski: az önce"
 
-#: src/routes/dashboard.settings.tsx:181
+#: src/features/settings/settings-page.tsx:172
 msgid "On"
 msgstr "Açık"
 
@@ -6530,7 +6530,7 @@ msgstr "Açık"
 msgid "on your own address"
 msgstr "kendi adresinde"
 
-#: src/routes/dashboard.settings.tsx:152
+#: src/features/settings/settings-page.tsx:143
 msgid "On. You will be asked for the digits when you sign in."
 msgstr "Açık. Oturum açarken haneler sorulacak."
 
@@ -6569,7 +6569,7 @@ msgid "One more"
 msgstr "Bir arttır"
 
 #: src/components/dashboard/content-type-editor.tsx:59
-#: src/routes/dashboard.forms.tsx:357
+#: src/features/forms/forms-page.tsx:360
 msgid "One of a few"
 msgstr "Birkaç seçenekten biri"
 
@@ -6824,7 +6824,7 @@ msgstr "Özet"
 #~ msgid "Owed now"
 #~ msgstr "Şu an borç"
 
-#: src/routes/dashboard.roles.tsx:300
+#: src/features/people/roles-page.tsx:296
 msgid "Owner"
 msgstr ""
 
@@ -6888,7 +6888,7 @@ msgstr "Parola"
 #~ msgid "Password changed"
 #~ msgstr "Parola değiştirildi"
 
-#: src/routes/dashboard.users.tsx:158
+#: src/features/people/people-page.tsx:155
 msgid "Password changed — sign in again"
 msgstr "Parola değiştirildi — yeniden giriş yapın"
 
@@ -6961,8 +6961,8 @@ msgid "Payments"
 msgstr "Ödemeler"
 
 #: src/components/dashboard/dashboard-shell.tsx:112
-#: src/routes/dashboard.roles.tsx:166
-#: src/routes/dashboard.users.tsx:170
+#: src/features/people/people-page.tsx:167
+#: src/features/people/roles-page.tsx:164
 msgid "People"
 msgstr "Kişiler"
 
@@ -7182,9 +7182,9 @@ msgstr "Ürünler"
 
 #: src/components/dashboard/dashboard-shell.tsx:118
 #: src/components/editor/mavi-editor.tsx:684
+#: src/features/people/roles-page.tsx:163
 #: src/routes/dashboard.design.tsx:97
 #: src/routes/dashboard.publish.tsx:45
-#: src/routes/dashboard.roles.tsx:165
 msgid "Publish"
 msgstr "Yayınla"
 
@@ -7294,11 +7294,11 @@ msgstr "Metni üst simge yap"
 #~ msgid "Ran out {0}"
 #~ msgstr "{0} tarihinde süresi doldu"
 
-#: src/routes/dashboard.roles.tsx:305
+#: src/features/people/roles-page.tsx:301
 msgid "Reaches nothing"
 msgstr "Hiçbir şeye erişemez"
 
-#: src/routes/dashboard.roles.tsx:172
+#: src/features/people/roles-page.tsx:170
 msgid "Read"
 msgstr "Oku"
 
@@ -7308,7 +7308,7 @@ msgstr "Oku"
 #~ msgid "Read in: {0} things written, {1} filed under."
 #~ msgstr "Okundu: {0} içerik, {1} etiket/kategori."
 
-#: src/routes/dashboard.settings.tsx:312
+#: src/features/settings/settings-page.tsx:303
 msgid "Read in."
 msgstr "Okundu."
 
@@ -7316,7 +7316,7 @@ msgstr "Okundu."
 #~ msgid "Read it"
 #~ msgstr "Oku"
 
-#: src/routes/dashboard.settings.tsx:344
+#: src/features/settings/settings-page.tsx:337
 msgid "Read one in"
 msgstr "Bir kopya oku"
 
@@ -7381,8 +7381,8 @@ msgstr ""
 #~ msgstr "Önerilen"
 
 #: src/components/dashboard/dashboard-shell.tsx:106
+#: src/features/people/roles-page.tsx:166
 #: src/routes/dashboard.audit.tsx:72
-#: src/routes/dashboard.roles.tsx:168
 msgid "Record"
 msgstr "Kayıt"
 
@@ -7450,6 +7450,11 @@ msgstr "Düzenli ifade"
 #: src/components/dashboard/content-type-editor.tsx:209
 #: src/components/editor/bubble-menus.tsx:201
 #: src/components/editor/bubble-menus.tsx:282
+#: src/features/forms/forms-page.tsx:216
+#: src/features/forms/forms-page.tsx:330
+#: src/features/forms/forms-page.tsx:466
+#: src/features/people/people-page.tsx:248
+#: src/features/people/people-page.tsx:379
 #: src/routes/dashboard.boards_.$boardId.tsx:156
 #: src/routes/dashboard.boards.tsx:141
 #: src/routes/dashboard.boards.tsx:188
@@ -7461,13 +7466,8 @@ msgstr "Düzenli ifade"
 #: src/routes/dashboard.flows.tsx:180
 #: src/routes/dashboard.flows.tsx:299
 #: src/routes/dashboard.forms_.$formId.tsx:212
-#: src/routes/dashboard.forms.tsx:213
-#: src/routes/dashboard.forms.tsx:327
-#: src/routes/dashboard.forms.tsx:459
 #: src/routes/dashboard.languages.tsx:185
 #: src/routes/dashboard.tags.tsx:245
-#: src/routes/dashboard.users.tsx:247
-#: src/routes/dashboard.users.tsx:378
 #: src/routes/dashboard.videos.tsx:133
 msgid "Remove"
 msgstr "Kaldır"
@@ -7499,7 +7499,7 @@ msgstr "Bağlantıyı kaldır"
 msgid "Remove the picture"
 msgstr "Görüntüyü kaldır"
 
-#: src/routes/dashboard.users.tsx:370
+#: src/features/people/people-page.tsx:371
 msgid "Remove this account?"
 msgstr "Bu hesap kaldırılsın mı?"
 
@@ -7507,7 +7507,7 @@ msgstr "Bu hesap kaldırılsın mı?"
 msgid "Remove this board?"
 msgstr "Bu pano kaldırılsın mı?"
 
-#: src/routes/dashboard.forms.tsx:319
+#: src/features/forms/forms-page.tsx:322
 msgid "Remove this form?"
 msgstr "Bu form kaldırılsın mı?"
 
@@ -7656,16 +7656,16 @@ msgstr "Girdiye yanıt"
 #~ msgid "Role"
 #~ msgstr "Rol"
 
-#: src/routes/dashboard.users.tsx:118
+#: src/features/people/people-page.tsx:113
 msgid "Role changed"
 msgstr "Rol değiştirildi"
 
-#: src/routes/dashboard.roles.tsx:234
+#: src/features/people/roles-page.tsx:232
 msgid "Role made"
 msgstr "Rol oluşturuldu"
 
 #: src/components/dashboard/dashboard-shell.tsx:113
-#: src/routes/dashboard.roles.tsx:276
+#: src/features/people/roles-page.tsx:273
 msgid "Roles"
 msgstr "Roller"
 
@@ -7741,14 +7741,14 @@ msgstr ""
 #: src/components/dashboard/content-type-editor.tsx:224
 #: src/components/editor/mavi-editor.tsx:677
 #: src/components/editor/mavi-editor.tsx:681
+#: src/features/forms/forms-page.tsx:310
+#: src/features/settings/settings-page.tsx:82
 #: src/routes/dashboard.categories.tsx:286
 #: src/routes/dashboard.coupons.tsx:248
 #: src/routes/dashboard.design.tsx:210
 #: src/routes/dashboard.design.tsx:252
-#: src/routes/dashboard.forms.tsx:307
 #: src/routes/dashboard.letters.tsx:208
 #: src/routes/dashboard.plugins.tsx:171
-#: src/routes/dashboard.settings.tsx:91
 #: src/routes/dashboard.tags.tsx:183
 msgid "Save"
 msgstr "Kaydet"
@@ -7790,11 +7790,11 @@ msgstr "Kaydet"
 #~ msgstr "Önce değişikliklerinizi kaydedin — deneme, kayıtlı olanı çalıştırır."
 
 #: src/components/editor/status-bar.tsx:116
+#: src/features/forms/forms-page.tsx:106
+#: src/features/settings/settings-page.tsx:47
 #: src/routes/dashboard.coupons.tsx:164
-#: src/routes/dashboard.forms.tsx:110
 #: src/routes/dashboard.letters.tsx:80
 #: src/routes/dashboard.plugins.tsx:81
-#: src/routes/dashboard.settings.tsx:52
 msgid "Saved"
 msgstr "Kaydedildi"
 
@@ -7832,7 +7832,7 @@ msgstr "Kaydediliyor…"
 msgid "Say the money for this order has arrived? The record will say you said so."
 msgstr "Bu siparişin ödemesinin geldiğini söylüyor musunuz? Kayıtta bunu sizin söylediğiniz yazacak."
 
-#: src/routes/dashboard.forms.tsx:152
+#: src/features/forms/forms-page.tsx:147
 msgid "Say what a form accepts here, then have your own pages post to it. What it does not accept is refused rather than kept."
 msgstr "Formun neyi kabul ettiğini burada tanımlayın, sonra kendi sayfalarınız buraya göndersin. Kabul etmediği şey saklanmaz, reddedilir."
 
@@ -7926,7 +7926,7 @@ msgstr "Bölüm başlığı"
 #~ msgstr "Bölümler ve içlerindeki dersler. Bir dersin notları, başka herhangi bir sayfa gibi editörde yazılır; burada belirlenen şey videosu, sırası ve kimin ne zaman görebileceğidir."
 
 #. placeholder {0}: CAPABILITY_LABELS[capability]
-#: src/routes/dashboard.roles.tsx:390
+#: src/features/people/roles-page.tsx:395
 msgid "See {0}"
 msgstr "{0} gör"
 
@@ -8185,7 +8185,7 @@ msgstr "Tırnaklı"
 #~ msgid "Set it up"
 #~ msgstr "Ayarla"
 
-#: src/routes/dashboard.settings.tsx:244
+#: src/features/settings/settings-page.tsx:235
 msgid "Set one up"
 msgstr "Kur"
 
@@ -8207,7 +8207,7 @@ msgstr "Kur"
 #~ msgstr "Alan alan kurulumu:"
 
 #: src/components/dashboard/dashboard-shell.tsx:116
-#: src/routes/dashboard.roles.tsx:167
+#: src/features/people/roles-page.tsx:165
 msgid "Settings"
 msgstr "Ayarlar"
 
@@ -8249,7 +8249,7 @@ msgstr "Ayarlar, sonra Tools & MCP, sonra New MCP Server — aşağıdaki dosyay
 #~ msgid "Shared mail"
 #~ msgstr "Ortak e-posta"
 
-#: src/routes/dashboard.roles.tsx:162
+#: src/features/people/roles-page.tsx:160
 msgid "Shop"
 msgstr "Mağaza"
 
@@ -8261,7 +8261,7 @@ msgstr "Görseli tanımlayan kısa metin"
 msgid "Short description shown on listing pages"
 msgstr "Liste sayfalarında görünecek kısa açıklama"
 
-#: src/routes/dashboard.roles.tsx:435
+#: src/features/people/roles-page.tsx:440
 msgid "Short name"
 msgstr "Kısa ad"
 
@@ -8409,7 +8409,7 @@ msgstr "Site haritası"
 #~ msgid "Sites being given a theme's demo, and packages being written in. A transfer that was killed starts again after the last part it finished."
 #~ msgstr "Bir temanın demosu verilen siteler, ve içeri yazılan paketler. Yarıda kesilen bir taşıma, bitirdiği son parçadan sonra devam eder."
 
-#: src/routes/dashboard.settings.tsx:187
+#: src/features/settings/settings-page.tsx:178
 msgid "Six digits from an app on your phone, as well as your password. It is asked for when you sign in and nowhere else."
 msgstr "Parolanızın yanında, telefonunuzdaki uygulamadan altı hane. Yalnızca oturum açarken sorulur."
 
@@ -8450,8 +8450,8 @@ msgstr "Küçük bölüm başlığı"
 #~ msgid "Somebody signing in with an account somewhere else. The address that comes back has to be one this site already knows: this adds a way in for an account, never an account."
 #~ msgstr "Başka bir yerdeki hesapla oturum açmak. Dönen adres, bu sitenin zaten bildiği bir adres olmalı: bu, var olan bir hesaba giriş yolu ekler, yeni hesap açmaz."
 
+#: src/features/people/people-page.tsx:454
 #: src/routes/dashboard.mail.tsx:209
-#: src/routes/dashboard.users.tsx:453
 msgid "somebody@example.test"
 msgstr "biri@example.test"
 
@@ -8555,7 +8555,7 @@ msgstr "Adımlar"
 #~ msgid "Still open"
 #~ msgstr "Hâlâ açık"
 
-#: src/routes/dashboard.users.tsx:237
+#: src/features/people/people-page.tsx:238
 msgid "Stop"
 msgstr "Durdur"
 
@@ -8585,7 +8585,7 @@ msgstr "Durdur"
 #~ msgid "stopped"
 #~ msgstr "durduruldu"
 
-#: src/routes/dashboard.users.tsx:204
+#: src/features/people/people-page.tsx:200
 msgid "Stopped"
 msgstr "Durduruldu"
 
@@ -8673,7 +8673,7 @@ msgstr "Alt başlık"
 msgid "Subject"
 msgstr "Konu"
 
-#: src/routes/dashboard.forms.tsx:204
+#: src/features/forms/forms-page.tsx:207
 msgid "Submissions"
 msgstr ""
 
@@ -8726,7 +8726,7 @@ msgstr "Üst simge"
 #~ msgid "Switch to the built-in mail service"
 #~ msgstr "CMS e-posta servisine geç"
 
-#: src/routes/dashboard.forms.tsx:190
+#: src/features/forms/forms-page.tsx:193
 msgid "switched off"
 msgstr "kapalı"
 
@@ -8735,7 +8735,7 @@ msgstr "kapalı"
 #~ msgid "Switched off"
 #~ msgstr "Kapalı"
 
-#: src/routes/dashboard.forms.tsx:270
+#: src/features/forms/forms-page.tsx:273
 msgid "Switched off, the form refuses what is sent to it."
 msgstr "Kapalıyken form kendisine gönderileni reddeder."
 
@@ -8815,11 +8815,11 @@ msgstr "Etiketler"
 #~ msgid "Take \"{0}\" out of the catalogue? What was already sold stays sold."
 #~ msgstr "\"{0}\" katalogdan çıkarılsın mı? Satılmış olan satılmış kalır."
 
-#: src/routes/dashboard.settings.tsx:336
+#: src/features/settings/settings-page.tsx:329
 msgid "Take a copy"
 msgstr "Kopya al"
 
-#: src/routes/dashboard.users.tsx:423
+#: src/features/people/people-page.tsx:424
 msgid "Take everything this site holds about {email}? What was paid stays, with their address out of it. This cannot be undone."
 msgstr "{email} hakkında bu sitenin tuttuğu her şey silinsin mi? Ödenenler kalır, adresleri çıkarılır. Bu geri alınamaz."
 
@@ -8863,7 +8863,7 @@ msgstr "Yayından kaldır"
 msgid "Taken back"
 msgstr "Geri alındı"
 
-#: src/routes/dashboard.forms.tsx:268
+#: src/features/forms/forms-page.tsx:271
 msgid "Taking answers"
 msgstr "Yanıt alıyor"
 
@@ -8882,7 +8882,7 @@ msgstr "Yanıt alıyor"
 msgid "Task list"
 msgstr "Görev listesi"
 
-#: src/routes/dashboard.roles.tsx:161
+#: src/features/people/roles-page.tsx:159
 msgid "Teaching"
 msgstr "Eğitim"
 
@@ -8972,7 +8972,7 @@ msgstr "Arama sonuçlarında görünecek metin"
 #~ msgid "That did not work."
 #~ msgstr "Bu olmadı."
 
-#: src/routes/dashboard.settings.tsx:315
+#: src/features/settings/settings-page.tsx:307
 msgid "That is not a copy of a site."
 msgstr "Bu bir site kopyası değil."
 
@@ -9095,7 +9095,7 @@ msgstr "Yanıt verdiği adres addan üretilir ve hiç değişmez; çünkü bir �
 #~ msgstr "Kanalın adresi"
 
 #: src/components/dashboard/content-type-editor.tsx:185
-#: src/routes/dashboard.forms.tsx:433
+#: src/features/forms/forms-page.tsx:442
 msgid "The choices, separated by commas"
 msgstr "Seçenekler, virgülle ayrılmış"
 
@@ -9184,7 +9184,7 @@ msgstr "Formlar ekranı boş"
 msgid "The languages your content can be written in. This is separate from the language of this admin panel."
 msgstr "İçeriğinizin yazılabileceği diller. Bu, yönetim panelinin dilinden bağımsızdır."
 
-#: src/routes/dashboard.settings.tsx:330
+#: src/features/settings/settings-page.tsx:323
 msgid "The languages, what things are filed under, and what has been written. Not the uploads, the accounts, or anything the site keeps sealed."
 msgstr "Diller, içeriklerin altında olduğu etiket ve kategoriler ve yazılanlar. Yüklenen dosyalar, hesaplar ve sitenin mühürlü tuttukları değil."
 
@@ -9250,7 +9250,7 @@ msgstr "Editörde en sık kullanılan kısayollar."
 #~ msgid "The name on the card"
 #~ msgstr "Karttaki ad"
 
-#: src/routes/dashboard.users.tsx:277
+#: src/features/people/people-page.tsx:278
 msgid "The new one"
 msgstr "Yeni parola"
 
@@ -9259,7 +9259,7 @@ msgstr "Yeni parola"
 msgid "The numbers could not be read just now."
 msgstr "Sayılar şu anda okunamadı."
 
-#: src/routes/dashboard.users.tsx:267
+#: src/features/people/people-page.tsx:268
 msgid "The one you have"
 msgstr "Mevcut parolanız"
 
@@ -9341,11 +9341,11 @@ msgstr "Site, yapay zekâ asistanlarına sayfa sayfa tanıtılır."
 #~ msgid "The sites could not be read just now."
 #~ msgstr "Siteler şu anda okunamadı."
 
-#: src/routes/dashboard.settings.tsx:220
+#: src/features/settings/settings-page.tsx:211
 msgid "The six digits"
 msgstr "Altı hane"
 
-#: src/routes/dashboard.settings.tsx:193
+#: src/features/settings/settings-page.tsx:184
 msgid "The six digits from your app to turn it off"
 msgstr ""
 
@@ -9444,7 +9444,7 @@ msgstr "Tema"
 #~ msgid "They can write, publish and manage this site."
 #~ msgstr "Bu siteyi yazabilir, yayınlayabilir ve yönetebilirler."
 
-#: src/routes/dashboard.users.tsx:304
+#: src/features/people/people-page.tsx:305
 msgid "They get a link and choose their own password. Nobody here types it for them."
 msgstr "Bir bağlantı alır ve parolasını kendisi seçer. Kimse onun yerine yazmaz."
 
@@ -9464,7 +9464,7 @@ msgstr "Bir bağlantı alır ve parolasını kendisi seçer. Kimse onun yerine y
 #~ msgid "They said yes"
 #~ msgstr "Evet dediler"
 
-#: src/routes/dashboard.users.tsx:372
+#: src/features/people/people-page.tsx:373
 msgid "They stop being able to sign in. What they wrote stays, and so does what the record says they did."
 msgstr "Artık oturum açamaz. Yazdıkları kalır, kayıttaki yaptıkları da kalır."
 
@@ -9593,7 +9593,7 @@ msgstr "Bu yazı açılamadı, bu yüzden hiç değiştirilmedi."
 #~ msgid "This really sends: mail goes to real addresses and any address step is really called. Go ahead?"
 #~ msgstr "Bu gerçekten gönderir: posta gerçek adreslere gider ve adres adımı gerçekten çağrılır. Devam edilsin mi?"
 
-#: src/routes/dashboard.roles.tsx:330
+#: src/features/people/roles-page.tsx:326
 msgid "This role came with the build and is not a site's to change."
 msgstr "Bu rol yazılımla birlikte gelir; site tarafından değiştirilemez."
 
@@ -9618,7 +9618,7 @@ msgstr "Bu rol yazılımla birlikte gelir; site tarafından değiştirilemez."
 #~ msgid "This signs you in to the server itself. Everyone else signs in somewhere else:"
 #~ msgstr "Bu giriş sunucunun kendisine. Diğer herkes başka bir yerden giriyor:"
 
-#: src/routes/dashboard.settings.tsx:63
+#: src/features/settings/settings-page.tsx:58
 msgid "This site"
 msgstr "Bu site"
 
@@ -9796,11 +9796,11 @@ msgstr "Dene"
 msgid "Turn into"
 msgstr "Şuna dönüştür"
 
-#: src/routes/dashboard.settings.tsx:208
+#: src/features/settings/settings-page.tsx:199
 msgid "Turn it off"
 msgstr "Kapat"
 
-#: src/routes/dashboard.settings.tsx:234
+#: src/features/settings/settings-page.tsx:225
 msgid "Turn it on"
 msgstr "Aç"
 
@@ -10199,11 +10199,11 @@ msgstr "Bir dersin oynattığı şey. Buradakiler herkese açık değildir: vide
 #~ msgid "What clocked work is billed at, under Customers."
 #~ msgstr "Tutulan zamanın Müşteriler'de faturalandığı ücret."
 
-#: src/routes/dashboard.forms.tsx:233
+#: src/features/forms/forms-page.tsx:236
 msgid "What comes in is kept as it was sent, so changing the fields later never rewrites it."
 msgstr "Gelenler gönderildiği gibi saklanır; alanları sonradan değiştirmek geleni yeniden yazmaz."
 
-#: src/routes/dashboard.roles.tsx:278
+#: src/features/people/roles-page.tsx:274
 msgid "What each role on this site may read, write and delete. Menus follow this — a screen a role cannot open is not shown to it."
 msgstr "Bu sitedeki her rolün neyi okuyabileceği, yazabileceği ve silebileceği. Menüler buna uyar — bir rolün açamadığı ekran ona gösterilmez."
 
@@ -10227,7 +10227,7 @@ msgstr "Bu sitedeki her rolün neyi okuyabileceği, yazabileceği ve silebilece�
 msgid "What happens by itself when something happens: a form comes in, an order is paid. One trigger, then steps in order."
 msgstr "Bir şey olduğunda kendiliğinden olanlar: form gelir, sipariş ödenir. Tek tetikleyici, sonra sırayla adımlar."
 
-#: src/routes/dashboard.forms.tsx:321
+#: src/features/forms/forms-page.tsx:324
 msgid "What has already come in goes with it."
 msgstr "Şimdiye kadar gelenler de birlikte gider."
 
@@ -10279,7 +10279,7 @@ msgstr "Yayında olanlar"
 #~ msgid "What is this section called?"
 #~ msgstr "Bu bölümün adı ne olsun?"
 
-#: src/routes/dashboard.forms.tsx:369
+#: src/features/forms/forms-page.tsx:372
 msgid "What it asks for"
 msgstr "Nelerin sorulduğu"
 
@@ -10297,17 +10297,17 @@ msgstr "Neyle ilgili"
 
 #: src/components/dashboard/content-type-editor.tsx:99
 #: src/components/dashboard/content-type-editor.tsx:146
+#: src/features/forms/forms-page.tsx:401
+#: src/features/settings/settings-page.tsx:64
 #: src/routes/dashboard.boards.tsx:162
 #: src/routes/dashboard.flows.tsx:215
-#: src/routes/dashboard.forms.tsx:392
 #: src/routes/dashboard.mail.tsx:258
 #: src/routes/dashboard.products.tsx:209
-#: src/routes/dashboard.settings.tsx:71
 #: src/routes/dashboard.teaching.start.tsx:76
 msgid "What it is called"
 msgstr "Görünen adı"
 
-#: src/routes/dashboard.settings.tsx:65
+#: src/features/settings/settings-page.tsx:59
 msgid "What it is called and where it answers."
 msgstr ""
 
@@ -10433,7 +10433,7 @@ msgstr "Onu ne başlatır ve ne yapar. Her adımın ayarları JSON olarak yazıl
 #~ msgid "What there is"
 #~ msgstr "Neler var"
 
-#: src/routes/dashboard.users.tsx:329
+#: src/features/people/people-page.tsx:330
 msgid "What they may reach"
 msgstr "Neye erişebilir"
 
@@ -10533,7 +10533,7 @@ msgstr "Bu sitenin tek bir kişiye yazdıkları: davet, parola bağlantısı, ma
 #~ msgid "What was typed into {field}"
 #~ msgstr "{field} alanına yazılan"
 
-#: src/routes/dashboard.users.tsx:444
+#: src/features/people/people-page.tsx:445
 msgid "What we hold about somebody"
 msgstr "Biri hakkında tuttuklarımız"
 
@@ -10710,7 +10710,7 @@ msgstr ""
 #~ msgid "Which language"
 #~ msgstr "Hangi dil"
 
-#: src/routes/dashboard.users.tsx:335
+#: src/features/people/people-page.tsx:336
 msgid "Which role"
 msgstr "Hangi rol"
 
@@ -10718,7 +10718,7 @@ msgstr "Hangi rol"
 #~ msgid "Which service"
 #~ msgstr "Hangi servis"
 
-#: src/routes/dashboard.users.tsx:172
+#: src/features/people/people-page.tsx:168
 msgid "Who can sign in to this site and write on it."
 msgstr "Bu siteye kimler girip yazabilir."
 
@@ -10902,7 +10902,7 @@ msgstr "Şu tarihe kadar"
 #~ msgid "Worth pursuing"
 #~ msgstr "Peşine düşmeye değer"
 
-#: src/routes/dashboard.roles.tsx:173
+#: src/features/people/roles-page.tsx:171
 msgid "Write"
 msgstr "Yaz"
 
@@ -10988,12 +10988,12 @@ msgstr ""
 msgid "Yellow"
 msgstr "Sarı"
 
-#: src/routes/dashboard.settings.tsx:390
+#: src/features/settings/settings-page.tsx:383
 msgid "Yes"
 msgstr "Evet"
 
 #: src/components/dashboard/content-type-editor.tsx:57
-#: src/routes/dashboard.forms.tsx:358
+#: src/features/forms/forms-page.tsx:361
 msgid "Yes or no"
 msgstr "Evet ya da hayır"
 
@@ -11124,7 +11124,7 @@ msgstr "Adınız"
 #~ msgid "Your own code"
 #~ msgstr "Kendi kodunuz"
 
-#: src/routes/dashboard.users.tsx:260
+#: src/features/people/people-page.tsx:261
 msgid "Your own password"
 msgstr "Kendi parolanız"
 

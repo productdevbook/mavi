@@ -3,10 +3,10 @@ import { useLingui } from "@lingui/react/macro"
 import { Check, Pencil, Plus, Trash2, X } from "lucide-react"
 import { toast } from "sonner"
 
-import { api, every } from "@/lib/v1"
-import { said } from "@/lib/v1-said"
+import { nextApi, nextEvery } from "@/lib/server-next"
+import { serverNextMessage } from "@/lib/server-next-auth"
 import { useLanguages } from "@/lib/use-languages"
-import type { Term } from "@api"
+import type { Term } from "@api-next"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -54,10 +54,10 @@ export function TagsPage() {
   const load = React.useCallback(() => {
     if (!language) return
 
-    every("terms.list", { query: { sort: "tag", language } })
-      .then((terms) => setTags(terms.filter((t) => t.sort === "tag")))
+    nextEvery("taxonomy.terms.list", { query: { kind: "tag", language } })
+      .then(setTags)
       .catch((why: unknown) => {
-        toast.error(said(why))
+        toast.error(serverNextMessage(why))
         setTags((held) => held ?? [])
       })
   }, [language])
@@ -70,9 +70,9 @@ export function TagsPage() {
     if (!wanted) return
 
     try {
-      await api("terms.make", {
+      await nextApi("taxonomy.terms.create", {
         body: {
-          sort: "tag",
+          kind: "tag",
           language,
           slug: wanted.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
           name: wanted,
@@ -81,7 +81,7 @@ export function TagsPage() {
       setName("")
       load()
     } catch (why) {
-      toast.error(said(why))
+      toast.error(serverNextMessage(why))
     }
   }
 
@@ -89,14 +89,14 @@ export function TagsPage() {
     if (!editing || !editName.trim()) return
 
     try {
-      await api("terms.change", {
+      await nextApi("taxonomy.terms.update", {
         path: { id: editing.id },
         body: { name: editName.trim() },
       })
       setEditing(null)
       load()
     } catch (why) {
-      toast.error(said(why))
+      toast.error(serverNextMessage(why))
     }
   }
 
@@ -104,10 +104,10 @@ export function TagsPage() {
     if (!going) return
 
     try {
-      await api("terms.remove", { path: { id: going.id } })
+      await nextApi("taxonomy.terms.trash", { path: { id: going.id } })
       load()
     } catch (why) {
-      toast.error(said(why))
+      toast.error(serverNextMessage(why))
     } finally {
       setGoing(null)
     }

@@ -3,9 +3,9 @@ import { useLingui } from "@lingui/react/macro"
 import { Languages as LanguagesIcon, Plus, Star, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
-import { api } from "@/lib/v1"
-import { said } from "@/lib/v1-said"
-import type { Language } from "@api"
+import { nextApi, nextEvery } from "@/lib/server-next"
+import { serverNextMessage } from "@/lib/server-next-auth"
+import type { Language } from "@api-next"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -39,10 +39,10 @@ export function LanguagesPage() {
   const [going, setGoing] = React.useState<Language | null>(null)
 
   const load = React.useCallback(() => {
-    api("languages.list")
+    nextEvery("languages.list", { query: {} })
       .then(setLanguages)
       .catch((why: unknown) => {
-        toast.error(said(why))
+        toast.error(serverNextMessage(why))
         setLanguages([])
       })
   }, [])
@@ -53,25 +53,26 @@ export function LanguagesPage() {
     if (!code.trim()) return
 
     try {
-      await api("languages.add", {
+      await nextApi("languages.create", {
         body: { tag: code.trim(), name: name.trim() || code.trim() },
       })
       setCode("")
       setName("")
       load()
     } catch (why) {
-      toast.error(said(why))
+      toast.error(serverNextMessage(why))
     }
   }
 
   const makeDefault = async (language: Language) => {
     try {
-      await api("languages.make-own", {
+      await nextApi("languages.update", {
         path: { tag: language.tag },
+        body: { is_default: true },
       })
       load()
     } catch (why) {
-      toast.error(said(why))
+      toast.error(serverNextMessage(why))
     }
   }
 
@@ -79,10 +80,10 @@ export function LanguagesPage() {
     if (!going) return
 
     try {
-      await api("languages.forget", { path: { tag: going.tag } })
+      await nextApi("languages.delete", { path: { tag: going.tag } })
       load()
     } catch (why) {
-      toast.error(said(why))
+      toast.error(serverNextMessage(why))
     } finally {
       setGoing(null)
     }
@@ -140,7 +141,7 @@ export function LanguagesPage() {
                     {language.name}
                   </p>
                   <Badge variant="secondary">{language.tag}</Badge>
-                  {language.is_the_sites_own && (
+                  {language.is_default && (
                     <Badge>
                       <Star className="size-3" /> {t`Default`}
                     </Badge>
@@ -152,7 +153,7 @@ export function LanguagesPage() {
                 variant="ghost"
                 size="sm"
                 className="ml-auto shrink-0"
-                disabled={language.is_the_sites_own}
+                disabled={language.is_default}
                 onClick={() => void makeDefault(language)}
               >
                 {t`Make default`}
@@ -161,7 +162,7 @@ export function LanguagesPage() {
                 variant="ghost"
                 size="icon-sm"
                 aria-label={t`Delete`}
-                disabled={language.is_the_sites_own}
+                disabled={language.is_default}
                 onClick={() => setGoing(language)}
               >
                 <Trash2 />

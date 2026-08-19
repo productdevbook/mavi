@@ -11,17 +11,10 @@ export interface PostMeta {
   publishAt: string
   /** The language it is written in. A post is in one. */
   language: string
-  /** Ids of the categories and tags it is filed under, together. */
+  /** Category term ids assigned to this content. */
   categoryIds: string[]
-  /** Tags, by id, kept apart from categories only for how they are chosen. */
+  /** Tag term ids assigned to this content. */
   tags: string[]
-  /** The picture that goes with it, as the API keeps it: an id, not a URL. */
-  coverId: string | null
-  /** Where that picture is served from, for showing it here. */
-  coverUrl: string
-  seoTitle: string
-  seoDescription: string
-  canonical: string
   /** Which kind of thing this is, and what it carries for that kind. */
   kind: string
   fields: Record<string, unknown>

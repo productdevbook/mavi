@@ -57,11 +57,12 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet"
-import { api } from "@/lib/v1"
-import { said } from "@/lib/v1-said"
+import { nextApi } from "@/lib/server-next"
+import { serverNextMessage } from "@/lib/server-next-auth"
 import { signOut as authSignOut } from "@/lib/server-next-auth"
-import type { Writing as Post } from "@api"
+import type { Content as Post, Term } from "@api-next"
 import { slugify } from "@/lib/editor-utils"
+import { contentPublishAt, contentStatus } from "@/lib/server-next-content"
 import { useLanguages } from "@/lib/use-languages"
 import { useNarrowerThan } from "@/hooks/use-mobile"
 import { ModeToggle } from "@/components/mode-toggle"
@@ -101,11 +102,6 @@ const BLANK_META: PostMeta = {
   language: "",
   categoryIds: [],
   tags: [],
-  coverId: null,
-  coverUrl: "",
-  seoTitle: "",
-  seoDescription: "",
-  canonical: "",
   kind: "post",
   fields: {},
 }
@@ -116,21 +112,22 @@ function toLocalDateTimeInput(iso: string): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
 
-function postToMeta(post: Post, termIds: string[]): PostMeta {
+function postToMeta(post: Post, terms: Term[]): PostMeta {
+  const status = contentStatus(post)
   return {
     title: post.title,
     slug: post.slug,
     excerpt: post.excerpt ?? "",
-    status: post.state,
-    publishAt: post.published_at ? toLocalDateTimeInput(post.published_at) : "",
+    status,
+    publishAt:
+      status === "published" || status === "scheduled"
+        ? toLocalDateTimeInput(contentPublishAt(post) ?? post.updated_at)
+        : "",
     language: post.language,
-    categoryIds: termIds,
-    tags: [],
-    coverId: null,
-    coverUrl: "",
-    seoTitle: "",
-    seoDescription: "",
-    canonical: "",
+    categoryIds: terms
+      .filter((term) => term.kind === "category")
+      .map((term) => term.id),
+    tags: terms.filter((term) => term.kind === "tag").map((term) => term.id),
     kind: post.kind,
     fields: (post.fields as Record<string, unknown> | null) ?? {},
   }
@@ -140,16 +137,14 @@ function changes(meta: PostMeta, body: string) {
   return {
     title: meta.title,
     slug: meta.slug.trim() || undefined,
-    excerpt: meta.excerpt || undefined,
+    excerpt: meta.excerpt.trim() || null,
     body,
     fields: meta.fields,
-    publish_at:
-      meta.status === "published"
-        ? new Date().toISOString()
-        : meta.status === "scheduled" && meta.publishAt
-          ? new Date(meta.publishAt).toISOString()
-          : null,
   }
+}
+
+function termIdsKey(ids: string[]): string {
+  return [...new Set(ids)].sort().join(",")
 }
 
 export function MaviEditor({
@@ -224,11 +219,19 @@ export function MaviEditor({
   React.useEffect(() => {
     if (!postId || !editor) return
     let cancelled = false
-    api("writings.read", { path: { id: postId } })
-      .then((post) => {
+    Promise.all([
+      nextApi("content.read", { path: { id: postId } }),
+      nextApi("taxonomy.content_terms.list", { path: { id: postId } }),
+    ])
+      .then(([post, terms]) => {
         if (cancelled) return
 
-        setMeta(postToMeta(post, []))
+        setMeta(postToMeta(post, terms))
+        persistedIntentRef.current = {
+          status: contentStatus(post),
+          publishAt: contentPublishAt(post) ?? "",
+        }
+        persistedTermIdsRef.current = termIdsKey(terms.map((term) => term.id))
 
         editor.commands.setContent(post.body, {
           emitUpdate: false,
@@ -237,25 +240,31 @@ export function MaviEditor({
 
         if (post.body.trim() !== "" && editor.isEmpty) {
           toast.error(
-            t`This post could not be opened, so it has been left untouched.`,
+            t`This post could not be opened, so it has been left untouched.`
           )
           navigate({ to: "/dashboard" })
           return
         }
 
-        setSavedAt(new Date(post.created_at))
+        setSavedAt(new Date(post.updated_at))
         setLoadedLocale(post.language)
         setLoading(false)
       })
       .catch((why: unknown) => {
         if (cancelled) return
-        toast.error(said(why))
+        toast.error(serverNextMessage(why))
         navigate({ to: "/dashboard" })
       })
     return () => {
       cancelled = true
     }
   }, [postId, editor, t, navigate])
+
+  const persistedIntentRef = React.useRef({
+    status: "draft" as PostMeta["status"],
+    publishAt: "",
+  })
+  const persistedTermIdsRef = React.useRef("")
 
   const persist = React.useCallback(
     async (nextMeta: PostMeta, options?: { notify?: boolean }) => {
@@ -272,29 +281,63 @@ export function MaviEditor({
       }
       setSaveState("saving")
       const written = changes(nextMeta, editor.getMarkdown())
+      const wantedTermIds = [...nextMeta.categoryIds, ...nextMeta.tags]
+      const termsChanged =
+        termIdsKey(wantedTermIds) !== persistedTermIdsRef.current
+      const publicationChanged =
+        nextMeta.status !== persistedIntentRef.current.status ||
+        (nextMeta.status === "scheduled" &&
+          nextMeta.publishAt !== persistedIntentRef.current.publishAt)
 
       try {
         const id = currentPostId
-          ? (await api("writings.change", {
-              path: { id: currentPostId },
-              body: written,
-            })).id
+          ? (
+              await nextApi("content.update", {
+                path: { id: currentPostId },
+                body: {
+                  ...written,
+                  ...(publicationChanged && nextMeta.status === "draft"
+                    ? { publication: "draft" as const }
+                    : {}),
+                },
+              })
+            ).id
           : (
-              await api("writings.write", {
+              await nextApi("content.create", {
                 body: {
                   ...written,
                   slug: written.slug || slugify(nextMeta.title),
                   language: locale,
                   kind: nextMeta.kind || "post",
+                  publication: "draft",
                 },
               })
             ).id
 
-        if (nextMeta.categoryIds.length > 0) {
-          await api("writings.file-under", {
+        if (publicationChanged && nextMeta.status !== "draft") {
+          if (nextMeta.status === "published") {
+            await nextApi("content.publish", { path: { id } })
+          } else if (nextMeta.status === "scheduled") {
+            await nextApi("content.schedule", {
+              path: { id },
+              body: { at: new Date(nextMeta.publishAt).toISOString() },
+            })
+          } else if (nextMeta.status === "archived") {
+            await nextApi("content.archive", { path: { id } })
+          }
+        }
+
+        if (termsChanged) {
+          await nextApi("taxonomy.content_terms.replace", {
             path: { id },
-            body: { terms: nextMeta.categoryIds },
+            body: { term_ids: wantedTermIds },
           })
+          persistedTermIdsRef.current = termIdsKey(wantedTermIds)
+        }
+
+        persistedIntentRef.current = {
+          status: nextMeta.status,
+          publishAt: nextMeta.publishAt,
         }
 
         setSavedAt(new Date())
@@ -313,7 +356,7 @@ export function MaviEditor({
         return true
       } catch (why) {
         setSaveState("idle")
-        toast.error(said(why))
+        toast.error(serverNextMessage(why))
         return false
       }
     },
@@ -526,15 +569,12 @@ export function MaviEditor({
   }
 
   const signOut = () => {
-    void authSignOut().finally(() =>
-      navigate({ to: "/login" }),
-    )
+    void authSignOut().finally(() => navigate({ to: "/login" }))
   }
 
   const settingsPanel = (
     <PostSettings
       meta={meta}
-      postId={currentPostId}
       onChange={handleSettingsChange}
       locale={locale}
       plainText={editor.getText()}
@@ -654,7 +694,9 @@ export function MaviEditor({
           languages={otherLanguages.map((language) => ({
             code: language.tag,
             name: language.name,
-            started: translations.some((item) => item.language === language.tag),
+            started: translations.some(
+              (item) => item.language === language.tag
+            ),
           }))}
           canTranslate={Boolean(currentPostId)}
           onTranslate={(code) => void goToTranslation(code)}

@@ -3,9 +3,9 @@ import { useLingui } from "@lingui/react/macro"
 import { Loader2, Plus, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
-import { api } from "@/lib/v1"
-import { said } from "@/lib/v1-said"
-import type { AKind as ContentType, FormField } from "@api"
+import { nextApi } from "@/lib/server-next"
+import { serverNextMessage } from "@/lib/server-next-auth"
+import type { ContentFieldKind, ContentType, ContentTypeField } from "@api-next"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-type FieldKind = FormField["kind"]
+type FieldKind = ContentFieldKind
 
 /** A key out of a name: lower-case, underscores for gaps. */
 function keyed(name: string): string {
@@ -45,8 +45,8 @@ export function ContentTypeEditor({
   const { t } = useLingui()
 
   const [name, setName] = React.useState(kind?.name ?? "")
-  const [fields, setFields] = React.useState<FormField[]>(
-    kind?.fields ?? [],
+  const [fields, setFields] = React.useState<ContentTypeField[]>(
+    kind?.fields ?? []
   )
   const [saving, setSaving] = React.useState(false)
 
@@ -64,21 +64,21 @@ export function ContentTypeEditor({
 
     try {
       const kindName = kind ? kind.kind : keyed(name)
-      const saved = await api("kinds.declare", {
+      const saved = await nextApi("content_types.upsert", {
         path: { kind: kindName },
         body: { name, fields },
       })
 
       onDone(saved)
     } catch (why) {
-      toast.error(said(why))
+      toast.error(serverNextMessage(why))
       setSaving(false)
     }
   }
 
-  const change = (at: number, field: Partial<FormField>) =>
+  const change = (at: number, field: Partial<ContentTypeField>) =>
     setFields(
-      fields.map((one, index) => (index === at ? { ...one, ...field } : one)),
+      fields.map((one, index) => (index === at ? { ...one, ...field } : one))
     )
 
   return (
@@ -198,7 +198,9 @@ export function ContentTypeEditor({
               <label className="flex items-center gap-2 text-sm">
                 <Switch
                   checked={field.required}
-                  onCheckedChange={(value) => change(index, { required: value })}
+                  onCheckedChange={(value) =>
+                    change(index, { required: value })
+                  }
                 />
                 {t`Has to be filled in`}
               </label>

@@ -139,6 +139,59 @@ async fn identity_people_and_roles_are_site_scoped_and_audited() {
         .expect("roles");
     assert!(roles.items.iter().any(|item| item.id == role.id));
 
+    let assigned_error = service
+        .delete_role(&mut tx, &owner_context, role.id)
+        .await
+        .expect_err("an assigned role cannot be deleted");
+    assert!(matches!(
+        assigned_error,
+        MaviError::Conflict { ref code } if code == mavi_identity::ROLE_ASSIGNED
+    ));
+
+    let owner_role = roles
+        .items
+        .iter()
+        .find(|item| item.name.as_str() == "owner")
+        .expect("protected owner role");
+    let owner_delete_error = service
+        .delete_role(&mut tx, &owner_context, owner_role.id)
+        .await
+        .expect_err("the owner role cannot be deleted");
+    assert!(matches!(
+        owner_delete_error,
+        MaviError::Conflict { ref code } if code == mavi_identity::OWNER_ROLE_PROTECTED
+    ));
+
+    let owner_grants_error = service
+        .replace_role_grants(
+            &mut tx,
+            &owner_context,
+            owner_role.id,
+            &ReplaceRoleGrants { grants: Vec::new() },
+        )
+        .await
+        .expect_err("the owner grants cannot be replaced");
+    assert!(matches!(
+        owner_grants_error,
+        MaviError::Conflict { ref code } if code == mavi_identity::OWNER_ROLE_PROTECTED
+    ));
+
+    let unused_role = service
+        .create_role(
+            &mut tx,
+            &owner_context,
+            &CreateRole {
+                name: "unused".to_owned(),
+                grants: vec![Grant::new(Capability::Content, Action::View)],
+            },
+        )
+        .await
+        .expect("unused role");
+    service
+        .delete_role(&mut tx, &owner_context, unused_role.id)
+        .await
+        .expect("unassigned role deletion");
+
     let updated_role = service
         .replace_role_grants(
             &mut tx,
@@ -173,7 +226,7 @@ async fn identity_people_and_roles_are_site_scoped_and_audited() {
     .fetch_one(tx.conn())
     .await
     .expect("audit count");
-    assert!(audit_count >= 3);
+    assert!(audit_count >= 5);
     tx.commit().await.expect("owner commit");
 }
 

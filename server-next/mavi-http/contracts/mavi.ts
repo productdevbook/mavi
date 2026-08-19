@@ -1395,6 +1395,7 @@ export interface Role {
   name: string;
   grants: Grant[];
   created_at: string;
+  protected: boolean;
 }
 
 export interface RoleListFilter {
@@ -1752,6 +1753,7 @@ export const operations = {
   "people.status.update": { method: "patch", path: "/api/v1/people/{id}/status", input: { location: "json", shape: "UpdatePersonStatus" }, query: null, output: "PersonRecord", status: 200, authentication: "account_or_assistant", permission: { capability: "people", action: "write" } },
   "roles.list": { method: "get", path: "/api/v1/roles", input: { location: "query", shape: "RoleListFilter" }, query: null, output: "RolePage", status: 200, authentication: "account_or_assistant", permission: { capability: "people", action: "view" } },
   "roles.create": { method: "post", path: "/api/v1/roles", input: { location: "json", shape: "CreateRole" }, query: null, output: "Role", status: 201, authentication: "account_or_assistant", permission: { capability: "people", action: "write" } },
+  "roles.delete": { method: "delete", path: "/api/v1/roles/{id}", input: null, query: null, output: "Empty", status: 204, authentication: "account_or_assistant", permission: { capability: "people", action: "delete" } },
   "roles.grants.replace": { method: "put", path: "/api/v1/roles/{id}/grants", input: { location: "json", shape: "ReplaceRoleGrants" }, query: null, output: "Role", status: 200, authentication: "account_or_assistant", permission: { capability: "people", action: "write" } },
   "content.list": { method: "get", path: "/api/v1/content", input: { location: "query", shape: "ContentListFilter" }, query: null, output: "ContentPage", status: 200, authentication: "account_or_assistant", permission: { capability: "content", action: "view" } },
   "content.read": { method: "get", path: "/api/v1/content/{id}", input: null, query: null, output: "Content", status: 200, authentication: "account_or_assistant", permission: { capability: "content", action: "view" } },
@@ -1941,6 +1943,7 @@ export interface OperationArguments {
   "people.status.update": { path: { id: string }; query?: never; body: UpdatePersonStatus; }
   "roles.list": { path?: never; query: RoleListFilter; body?: never; }
   "roles.create": { path?: never; query?: never; body: CreateRole; }
+  "roles.delete": { path: { id: string }; query?: never; body?: never; }
   "roles.grants.replace": { path: { id: string }; query?: never; body: ReplaceRoleGrants; }
   "content.list": { path?: never; query: ContentListFilter; body?: never; }
   "content.read": { path: { id: string }; query?: never; body?: never; }
@@ -2128,6 +2131,7 @@ export interface OperationResponses {
   "people.status.update": PersonRecord;
   "roles.list": RolePage;
   "roles.create": Role;
+  "roles.delete": void;
   "roles.grants.replace": Role;
   "content.list": ContentPage;
   "content.read": Content;

@@ -1198,6 +1198,95 @@
         }
       }
     },
+    "/api/v1/roles/{id}": {
+      "delete": {
+        "operationId": "roles.delete",
+        "summary": "Delete an unassigned site role",
+        "tags": [
+          "roles"
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-mavi": {
+          "scope": "site",
+          "authentication": "account_or_assistant",
+          "mutation": {
+            "permissioned": {
+              "idempotent": true
+            }
+          },
+          "permission": {
+            "capability": "people",
+            "action": "delete"
+          },
+          "errors": [
+            "forbidden",
+            "not_found",
+            "conflict",
+            "internal"
+          ]
+        }
+      }
+    },
     "/api/v1/roles/{id}/grants": {
       "put": {
         "operationId": "roles.grants.replace",
@@ -23225,7 +23314,8 @@
           "site_id",
           "name",
           "grants",
-          "created_at"
+          "created_at",
+          "protected"
         ],
         "properties": {
           "id": {
@@ -23248,6 +23338,9 @@
           "created_at": {
             "type": "string",
             "format": "date-time"
+          },
+          "protected": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false

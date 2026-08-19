@@ -292,6 +292,41 @@
       }
     },
     {
+      "name": "roles.delete",
+      "description": "Delete an unassigned site role",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ]
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false
+      },
+      "x-mavi": {
+        "authentication": "account_or_assistant",
+        "scope": "site",
+        "permission": {
+          "capability": "people",
+          "action": "delete"
+        }
+      }
+    },
+    {
       "name": "roles.grants.replace",
       "description": "Replace a role grants set",
       "inputSchema": {

@@ -126,7 +126,11 @@ pub fn api() -> mavi_contract::Api {
         .public_changes(false)
         .takes("AnalyticsEventBatch")
         .returns(202, "AnalyticsReceipt")
-        .refuses([ErrorCode::Validation, ErrorCode::Internal]),
+        .refuses([
+            ErrorCode::Validation,
+            ErrorCode::RateLimited,
+            ErrorCode::Internal,
+        ]),
         Endpoint::new(
             Method::Get,
             "/api/v1/analytics/events",

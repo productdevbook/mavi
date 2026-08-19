@@ -198,7 +198,8 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Public ingestion accepts only bounded event names, route paths and non-negative numeric values; no arbitrary properties or visitor identifiers.
   - [x] Raw event export and daily aggregates use opaque cursors; daily rollups are updated in the ingestion transaction.
   - [x] Raw and aggregate retention pruning is bounded, explicit and audit-recorded.
-  - [ ] Rate limiting, scheduled retention worker, privacy documentation and panel charts.
+  - [x] Public analytics ingestion uses the shared privacy-preserving site/IP/device edge limiter and emits auditable `security.edge_rate_limited` outcomes with `Retry-After`.
+  - [ ] Scheduled retention worker, privacy documentation and panel charts.
 - [-] Portable export/import with versioned manifests and validation.
   - [x] Explicit `mavi.portable` v2 bundles carry source-site provenance, canonical site URL, counts and a schema hash.
   - [x] Settings/languages, content types, taxonomy, content/revisions, slug history and assignments export/import with typed records.

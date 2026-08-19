@@ -130,7 +130,8 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Public submissions validate required/typed/known answers and return a receipt without exposing management metadata.
   - [x] Submission inbox uses `after`/`limit` cursors, unread filtering, mark-read and audited deletion.
   - [x] Forms/submissions use composite keys, RLS, Cedar grants and mutation audit receipts.
-  - [ ] Export format, spam/rate-limit controls and scheduled retention worker.
+  - [x] Per-form `kept_days` is enforced by an idempotent site-scoped `forms.retention` job; expired answers are redacted behind a tombstone and the system audit receipt commits atomically, with worker and cross-site tests.
+  - [ ] Export format and spam/rate-limit controls.
 - [-] Mail templates, delivery queue, retries and provider adapters.
   - [x] Strict site-scoped templates render bounded `{{variable}}` placeholders and expose preview without sending.
   - [x] Mailing lists/readers use normalized addresses, hashed unsubscribe tokens and explicit standing states.

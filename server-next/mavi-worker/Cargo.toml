@@ -11,6 +11,7 @@ chrono.workspace = true
 mavi-audit = { path = "../mavi-audit" }
 mavi-content = { path = "../mavi-content" }
 mavi-core = { path = "../mavi-core" }
+mavi-forms = { path = "../mavi-forms" }
 mavi-jobs = { path = "../mavi-jobs" }
 mavi-media = { path = "../mavi-media" }
 mavi-observability = { path = "../mavi-observability" }

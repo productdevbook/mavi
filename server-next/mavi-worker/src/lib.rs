@@ -13,6 +13,7 @@ use mavi_content::{
     ContentService, SCHEDULED_PUBLISH_JOB, ScheduledPublishJob, ScheduledPublishOutcome,
 };
 use mavi_core::{MaviError, RequestId, Result, SiteContext, SiteId, ports::FileStore};
+use mavi_forms::{FORM_RETENTION_JOB, FormRetentionJob, FormService};
 use mavi_jobs::{DEFAULT_LEASE_SECONDS, JobClaim, JobsService, LeaseOutcome};
 use mavi_media::{
     MEDIA_CLEANUP_JOB, MEDIA_ORPHAN_CLEANUP_JOB, MEDIA_VARIANT_JOB, MediaCleanupJob,
@@ -74,6 +75,7 @@ pub struct WorkerSupervisor {
     sites: Arc<RwLock<Arc<[SiteId]>>>,
     jobs: JobsService,
     content: ContentService,
+    forms: FormService,
     media: MediaService,
     file_store: Arc<dyn FileStore>,
     config: WorkerConfig,
@@ -111,8 +113,10 @@ impl WorkerSupervisor {
                 MEDIA_CLEANUP_JOB,
                 MEDIA_VARIANT_JOB,
                 MEDIA_ORPHAN_CLEANUP_JOB,
+                FORM_RETENTION_JOB,
             ]),
             content: ContentService,
+            forms: FormService,
             media: MediaService,
             file_store,
             config,
@@ -186,12 +190,16 @@ impl WorkerSupervisor {
         self.media
             .enqueue_orphan_cleanup_job(&mut transaction, &claim_context, &self.jobs, Utc::now())
             .await?;
+        self.forms
+            .enqueue_retention_job(&mut transaction, &claim_context, &self.jobs, Utc::now())
+            .await?;
         let mut claim = None;
         for kind in [
             SCHEDULED_PUBLISH_JOB.name,
             MEDIA_CLEANUP_JOB.name,
             MEDIA_VARIANT_JOB.name,
             MEDIA_ORPHAN_CLEANUP_JOB.name,
+            FORM_RETENTION_JOB.name,
         ] {
             claim = self
                 .jobs
@@ -230,6 +238,9 @@ impl WorkerSupervisor {
         }
         if claim.kind == MEDIA_VARIANT_JOB.name {
             return self.execute_media_variant(&context, &claim).await;
+        }
+        if claim.kind == FORM_RETENTION_JOB.name {
+            return self.execute_form_retention(&context, &claim).await;
         }
         let payload = match serde_json::from_value::<ScheduledPublishJob>(claim.payload.clone()) {
             Ok(payload) => payload,
@@ -559,6 +570,32 @@ impl WorkerSupervisor {
                 )
                 .await;
         }
+        self.complete_claim(transaction, context, claim).await
+    }
+
+    async fn execute_form_retention(&self, context: &SiteContext, claim: &JobClaim) -> Result<()> {
+        let payload = match serde_json::from_value::<FormRetentionJob>(claim.payload.clone()) {
+            Ok(payload) if payload.bucket >= 0 => payload,
+            Ok(_) => {
+                return self
+                    .fail_claim(context, claim, "invalid form retention bucket".to_owned())
+                    .await;
+            }
+            Err(error) => {
+                return self
+                    .fail_claim(
+                        context,
+                        claim,
+                        format!("invalid form retention payload: {error}"),
+                    )
+                    .await;
+            }
+        };
+
+        let mut transaction = self.database.begin(context).await?;
+        self.forms
+            .prune_expired_submissions(&mut transaction, context, Utc::now(), payload.bucket)
+            .await?;
         self.complete_claim(transaction, context, claim).await
     }
 

@@ -1,10 +1,12 @@
 use std::env;
 
-use mavi_core::{MaviError, PageRequest, SiteContext, SiteId};
+use chrono::{Duration, Utc};
+use mavi_core::{FormSubmissionId, MaviError, PageRequest, SiteContext, SiteId};
 use mavi_forms::{
-    CreateForm, FormField, FormFieldKind, FormListFilter, FormService, SubmissionListFilter,
-    SubmitForm,
+    CreateForm, FORM_RETENTION_JOB, FormField, FormFieldKind, FormListFilter, FormService,
+    SubmissionListFilter, SubmitForm,
 };
+use mavi_jobs::JobsService;
 use mavi_storage::Database;
 use serde_json::{Map, Value, json};
 
@@ -236,4 +238,191 @@ async fn forms_declarations_submissions_and_rls_are_site_scoped() {
         Err(MaviError::NotFound { .. })
     ));
     second_transaction.commit().await.expect("second commit");
+}
+
+#[tokio::test]
+#[ignore = "requires TEST_DATABASE_URL and a non-superuser PostgreSQL role"]
+#[allow(clippy::too_many_lines)]
+async fn retention_is_idempotent_site_scoped_and_audited() {
+    let url = env::var("TEST_DATABASE_URL").expect("TEST_DATABASE_URL");
+    let database = Database::connect(&url, 2).await.expect("database");
+    database.migrate().await.expect("migrations");
+
+    let first_site = SiteId::new();
+    let second_site = SiteId::new();
+    database.ensure_site(first_site).await.expect("first site");
+    database
+        .ensure_site(second_site)
+        .await
+        .expect("second site");
+    let first_context = SiteContext::public(first_site);
+    let second_context = SiteContext::public(second_site);
+    let service = FormService;
+    let jobs = JobsService::new([FORM_RETENTION_JOB]);
+    let now = Utc::now();
+
+    let first_form = {
+        let mut transaction = database.begin(&first_context).await.expect("first scope");
+        let form = service
+            .create(
+                &mut transaction,
+                &first_context,
+                &CreateForm {
+                    slug: "retention".to_owned(),
+                    name: "Retention".to_owned(),
+                    fields: Vec::new(),
+                    kept_days: Some(1),
+                },
+            )
+            .await
+            .expect("first form");
+        transaction.commit().await.expect("first form commit");
+        form
+    };
+    let second_form = {
+        let mut transaction = database.begin(&second_context).await.expect("second scope");
+        let form = service
+            .create(
+                &mut transaction,
+                &second_context,
+                &CreateForm {
+                    slug: "retention".to_owned(),
+                    name: "Retention".to_owned(),
+                    fields: Vec::new(),
+                    kept_days: Some(1),
+                },
+            )
+            .await
+            .expect("second form");
+        transaction.commit().await.expect("second form commit");
+        form
+    };
+
+    let first_old = FormSubmissionId::new();
+    let first_fresh = FormSubmissionId::new();
+    let second_old = FormSubmissionId::new();
+    {
+        let mut transaction = database.begin(&first_context).await.expect("first inserts");
+        for (id, created_at) in [
+            (first_old, now - Duration::days(2)),
+            (first_fresh, now - Duration::hours(1)),
+        ] {
+            sqlx::query(
+                "insert into form_submissions (site_id, id, form_id, answers, created_at)
+                 values ($1, $2, $3, '{}'::jsonb, $4)",
+            )
+            .bind(first_site.into_uuid())
+            .bind(id.into_uuid())
+            .bind(first_form.id.into_uuid())
+            .bind(created_at)
+            .execute(transaction.conn())
+            .await
+            .expect("first submission");
+        }
+        transaction.commit().await.expect("first inserts commit");
+    }
+    {
+        let mut transaction = database
+            .begin(&second_context)
+            .await
+            .expect("second inserts");
+        sqlx::query(
+            "insert into form_submissions (site_id, id, form_id, answers, created_at)
+             values ($1, $2, $3, '{}'::jsonb, $4)",
+        )
+        .bind(second_site.into_uuid())
+        .bind(second_old.into_uuid())
+        .bind(second_form.id.into_uuid())
+        .bind(now - Duration::days(2))
+        .execute(transaction.conn())
+        .await
+        .expect("second submission");
+        transaction.commit().await.expect("second inserts commit");
+    }
+
+    let (job_id, deleted) = {
+        let mut transaction = database
+            .begin(&first_context)
+            .await
+            .expect("retention scope");
+        let job_id = service
+            .enqueue_retention_job(&mut transaction, &first_context, &jobs, now)
+            .await
+            .expect("retention job");
+        assert_eq!(
+            service
+                .enqueue_retention_job(&mut transaction, &first_context, &jobs, now)
+                .await
+                .expect("idempotent retention job"),
+            job_id
+        );
+        let deleted = service
+            .prune_expired_submissions(
+                &mut transaction,
+                &first_context,
+                now,
+                now.timestamp().div_euclid(24 * 60 * 60),
+            )
+            .await
+            .expect("prune");
+        transaction.commit().await.expect("retention commit");
+        (job_id, deleted)
+    };
+    assert_eq!(deleted, 1);
+
+    let mut transaction = database.begin(&first_context).await.expect("first check");
+    let first_deleted: bool = sqlx::query_scalar(
+        "select deleted_at is not null from form_submissions where site_id = $1 and id = $2",
+    )
+    .bind(first_site.into_uuid())
+    .bind(first_old.into_uuid())
+    .fetch_one(transaction.conn())
+    .await
+    .expect("first deleted state");
+    let first_answers_redacted: bool = sqlx::query_scalar(
+        "select answers = '{}'::jsonb from form_submissions where site_id = $1 and id = $2",
+    )
+    .bind(first_site.into_uuid())
+    .bind(first_old.into_uuid())
+    .fetch_one(transaction.conn())
+    .await
+    .expect("first answers state");
+    let first_fresh_deleted: bool = sqlx::query_scalar(
+        "select deleted_at is not null from form_submissions where site_id = $1 and id = $2",
+    )
+    .bind(first_site.into_uuid())
+    .bind(first_fresh.into_uuid())
+    .fetch_one(transaction.conn())
+    .await
+    .expect("fresh deleted state");
+    let audit_count: i64 = sqlx::query_scalar(
+        "select count(*) from audit_events
+          where site_id = $1 and action = 'forms.submissions.retention_pruned'",
+    )
+    .bind(first_site.into_uuid())
+    .fetch_one(transaction.conn())
+    .await
+    .expect("retention audit");
+    assert!(first_deleted);
+    assert!(first_answers_redacted);
+    assert!(!first_fresh_deleted);
+    assert_eq!(audit_count, 1);
+    let job = jobs
+        .get(&mut transaction, job_id)
+        .await
+        .expect("retention job state");
+    assert_eq!(job.state.as_str(), "ready");
+    transaction.commit().await.expect("first check commit");
+
+    let mut transaction = database.begin(&second_context).await.expect("second check");
+    let second_deleted: bool = sqlx::query_scalar(
+        "select deleted_at is not null from form_submissions where site_id = $1 and id = $2",
+    )
+    .bind(second_site.into_uuid())
+    .bind(second_old.into_uuid())
+    .fetch_one(transaction.conn())
+    .await
+    .expect("second deleted state");
+    assert!(!second_deleted);
+    transaction.commit().await.expect("second check commit");
 }

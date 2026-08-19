@@ -33,6 +33,39 @@ create table mail_delivery_links (
 create index mail_delivery_links_site_delivery
     on mail_delivery_links (site_id, delivery_id);
 
+-- Older campaign rows have no per-delivery bearer URL. Never let an upgrade
+-- send them without the new unsubscribe contract; sent history remains intact.
+-- Migrations run as the database owner while these tables are force-RLS
+-- protected, so temporarily lift the owner fence for this trusted rewrite.
+alter table mail_delivery_attempts no force row level security;
+alter table mail_deliveries no force row level security;
+
+update mail_delivery_attempts
+   set status = 'dead',
+       error = 'mail_campaign_link_unavailable',
+       finished_at = coalesce(finished_at, clock_timestamp())
+ where status = 'sending'
+   and exists (
+       select 1
+         from mail_deliveries d
+        where d.site_id = mail_delivery_attempts.site_id
+          and d.id = mail_delivery_attempts.delivery_id
+          and d.purpose = 'campaign'
+          and d.status in ('queued', 'retry', 'sending')
+   );
+
+update mail_deliveries
+   set status = 'cancelled',
+       lease_owner = null,
+       lease_until = null,
+       last_error = 'mail_campaign_link_unavailable',
+       updated_at = clock_timestamp()
+ where purpose = 'campaign'
+   and status in ('queued', 'retry', 'sending');
+
+alter table mail_delivery_attempts force row level security;
+alter table mail_deliveries force row level security;
+
 alter table mail_unsubscribe_tokens enable row level security;
 alter table mail_unsubscribe_tokens force row level security;
 create policy mail_unsubscribe_tokens_scope on mail_unsubscribe_tokens

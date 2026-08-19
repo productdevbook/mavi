@@ -1,4 +1,4 @@
-# Builds both images from this checkout. For the published images use
+# Builds the clean API image from this checkout. For the published image use
 # docker-compose.yml instead.
 services:
   postgres:
@@ -20,14 +20,17 @@ services:
 
   api:
     build:
-      context: ./server
+      context: ./server-next
+      dockerfile: Dockerfile
     restart: unless-stopped
     environment:
       # Point this at any PostgreSQL you like — the bundled "postgres"
       # service above is just the default.
       DATABASE_URL: ${DATABASE_URL:-postgres://${POSTGRES_USER:-mavi}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-mavi}}
-      HOST: 0.0.0.0
-      PORT: 8080
+      LISTEN: 0.0.0.0:8080
+      MAVI_RUNTIME_MODE: fixed_site
+      MAVI_SITE_ID: ${MAVI_SITE_ID:?set MAVI_SITE_ID in .env — see .env.example}
+      MAVI_FILES_DIR: /data/files
       RUST_LOG: ${RUST_LOG:-info}
       # What seals every secret a site keeps: its mail password, its payment
       # keys. Asked for rather than defaulted, because a default here would
@@ -35,14 +38,6 @@ services:
       # because a key that changes on restart is a site whose secrets are
       # unreadable afterwards.
       MAVI_KEYS: ${MAVI_KEYS:?set MAVI_KEYS in .env — see .env.example}
-      # The address this answers on, as somebody outside would type it. Asked
-      # for rather than defaulted: it is what a link in a letter is built from,
-      # a job sending one has no request to take an address off, and a guess
-      # here would send everybody links that work on this machine alone.
-      MAVI_URL: ${MAVI_URL:?set MAVI_URL in .env — see .env.example}
-      # api, worker, or both. One process can do both; two make the queue
-      # somebody else's problem when the API is busy.
-      MAVI_ROLE: ${MAVI_ROLE:-both}
     volumes:
       # Uploaded media and the key that encrypts stored credentials live here.
       # Without this volume both are lost on every restart.
@@ -50,19 +45,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    # Not published to the host — see docker-compose.yml for why. To reach it
-    # while working on something:  ports: ["127.0.0.1:8080:8080"]
-    expose:
-      - "8080"
-
-  frontend:
-    build:
-      context: ./client
-    restart: unless-stopped
-    depends_on:
-      - api
     ports:
-      - "${FRONTEND_PORT:-8081}:80"
+      - "${API_PORT:-8080}:8080"
 
 volumes:
   postgres-data:

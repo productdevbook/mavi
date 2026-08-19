@@ -1,8 +1,6 @@
-# What answers on the address, and how it gets a certificate.
-#
-# One name, one place to send everything: the panel's own nginx knows which of
-# /api, /mcp, /uploads and the panel itself a path belongs to, and a second
-# copy of those rules here is a second place for them to be wrong.
+# What answers on the address, and how it gets a certificate. The clean
+# release currently exposes the canonical API; the panel will be mounted here
+# after it is regenerated from the same contract.
 {$MAVI_DOMAIN} {
-	reverse_proxy panel:80
+	reverse_proxy api:8080
 }

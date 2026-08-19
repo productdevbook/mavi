@@ -1,37 +1,29 @@
 # Mavi
 
-A content management system you run yourself. One Rust binary, one PostgreSQL
-and a React panel: a site with pages and posts, that sells things, teaches
-courses, takes what people type into forms and sends mail about all of it.
+A content management system you run yourself. The clean rewrite is one Rust
+binary and one PostgreSQL database: site-scoped content, identity, media,
+publishing, forms, mail, commerce, courses, automation and MCP.
 
-One installation is one site — see [why](#one-installation-one-site) — and it
-is a CMS, not a hosting business. What running many sites on one machine needs
-on top of this — metering, billing, a console over many of them — is
-deliberately not here; see [what this is not](#what-this-is-not).
+The public panel is being regenerated from the clean canonical API. Until that
+panel slice lands, the published image is the API runtime and the old `client/`
+and `server/` workspaces remain reference material, not a mixed deployment.
+Mavi is a CMS, not a hosting business; organization, billing, metering and
+shard lifecycle belong in `mavi-operator`.
 
 MIT. Run it, change it, sell it.
 
-- **One binary, one database** — Axum and sqlx over PostgreSQL. Migrations run
-  at boot, and the tests run against a real Postgres rather than a substitute.
-- **One site** — a request is resolved from its `Host` header, and everything
-  it can reach belongs to that site.
-- **[Whatever the site publishes](#more-than-posts)** — posts and pages, and
-  any kind of thing a site makes up: a course with a price and a level, a
-  property with rooms. Each carries its own fields beside the title and the
-  body.
-- **Multilingual** — a site says which languages it writes in, and the same
-  writing in two of them is one group rather than two unrelated posts.
-- **[Publishing](#publishing)** — a design is written to a draft, built
-  somewhere to look at, and put live when somebody says so. A post given a date
-  goes out on it, within the minute.
-- **[Assistants](#assistants)** — every site answers the Model Context
-  Protocol. Point an assistant at it and ask it to do the work.
-- **[Teaching](#teaching)** — courses, modules, lessons and videos, with access
-  that can be sold for ninety days and actually ends after ninety days.
-- **Selling** — products, stock held at checkout, discount codes with
-  conditions, and orders numbered per site.
-- **Everything is written down** — every change writes an audit row before it
-  can answer, and the log can be read, filtered and taken away as a file.
+- **Clean site boundary** — self-host uses one `FixedSiteResolver`; cloud uses
+  one shared shard router and resolves the site from an allowlisted host.
+- **Canonical API** — `/api/v1`, `/public/v1` and `/mcp` are described once and
+  generate OpenAPI, TypeScript/Rust artifacts and MCP tool metadata.
+- **Cursor-only lists** — every public list uses opaque keyset cursors; page
+  numbers and offsets are not part of the contract.
+- **Scoped storage** — every site-owned transaction sets PostgreSQL scope;
+  composite keys and forced RLS protect the database boundary.
+- **Observable runtime** — `/healthz`, `/readyz` and Prometheus `/metrics` are
+  global operational endpoints, outside site admission.
+- **Everything is written down** — mutations are audited and background work
+  uses fenced, site-scoped queue leases.
 
 ## Quick start
 
@@ -41,36 +33,29 @@ curl -O https://raw.githubusercontent.com/productdevbook/mavi/main/Caddyfile
 {
   echo "POSTGRES_PASSWORD=$(openssl rand -base64 24)"
   echo "MAVI_KEYS=1:$(openssl rand -base64 32)"
-  echo "MAVI_URL=http://localhost"
+  echo "MAVI_SITE_ID=$(uuidgen)"
 } > .env
 docker compose up -d
 ```
 
-No line is optional and none has a default. The database holds every site on
-the machine, and `MAVI_KEYS` is what seals every secret a site keeps — its mail
-password, its payment keys. A key that ships with the software is one everybody
-else running it also has; a key that changes on restart is a site whose secrets
-can no longer be read.
+`MAVI_SITE_ID` is the durable identity of this self-hosted site's rows. Keep it
+stable across upgrades. `MAVI_KEYS` seals credentials and must also survive
+restarts. The API starts with the fixed-site runtime and runs migrations before
+opening its listener.
 
-`MAVI_URL` is the address this answers on, as somebody outside would type it,
-and it is what a link in a letter is built from. It has no default because the
-letter that needs it most — the one somebody clicks to choose a password — is
-sent by a scheduled job, which has no request to take an address off; a guess
-here would send everybody a link that works on the machine that sent it and
-nowhere else.
+The clean image currently exposes the API, not the unfinished legacy panel.
+For example, setup is available at:
 
-Open <http://localhost> and set up the first account. That makes the site too
-— its address is whatever you reached the machine on — and signs that account
-into it. That is the whole of setup: where the database is was decided before
-the process started, and there is nothing after this to make a site with.
+```bash
+curl -sS -X POST http://localhost/api/v1/setup \
+  -H 'content-type: application/json' \
+  -d '{"site_name":"Example","email":"owner@example.com","name":"Owner","password":"change-this-password"}'
+```
 
-On a machine other people can reach, give it your own name instead — put
-`MAVI_DOMAIN=example.com` and `MAVI_URL=https://example.com` in `.env`, point
-the name at the machine, and Caddy asks for a certificate on the first request. Anything else can stand in front
-instead: nginx, Traefik, whatever is already there. All this needs from it is
-the `Host` header passed through and `X-Forwarded-For` and `X-Forwarded-Proto`
-set — how often somebody may try a password, and what the record says a change
-was made from, are decided from the address they arrive on.
+On a public machine set `MAVI_DOMAIN=example.com`, point DNS at the machine and
+let Caddy terminate TLS. Any trusted reverse proxy may be used instead; pass
+the `Host` header through and configure `MAVI_TRUSTED_PROXY_CIDRS` when it
+supplies forwarded client signals.
 
 The compose file runs a bundled Postgres. To use your own, set `DATABASE_URL`
 and drop the `postgres` service — which is also what stops `POSTGRES_PASSWORD`
@@ -85,48 +70,41 @@ DATABASE_URL=postgres://user:password@your-host:5432/mavi docker compose up -d
 | | |
 |---|---|
 | API | `ghcr.io/productdevbook/mavi` |
-| Panel | `ghcr.io/productdevbook/mavi-panel` |
+| Panel | Not included until the clean generated-client slice lands |
 
 Both are built for `linux/amd64` and `linux/arm64`.
 
 ### Configuration
 
-The API reads these; everything else is set from the panel.
+The clean API reads these at its binary boundary:
 
 | Variable | Default | Notes |
 |---|---|---|
 | `DATABASE_URL` | — | PostgreSQL. Required. |
 | `MAVI_KEYS` | — | What seals a site's secrets. `1:<thirty-two bytes, base64>`, and a version and comma for each older key. Required; the process refuses to start without it, and refuses to start on one it cannot read rather than making one up. |
-| `MAVI_URL` | — | The address this answers on, as somebody outside would type it: `https://example.com`, or with the path it is served under. What a link in a letter is built from. Required; the process refuses to start without it, because a letter with an unusable link in it is a person who never got back into their account. |
-| `MAVI_ROLE` | `both` | `api`, `worker`, or `both`. One process can do both; two make the queue somebody else's problem when the API is busy. |
-| `MAVI_DATA_DIR` | `uploads` beside the process, and `/data` in the image | Uploaded media. **Must be a persistent volume**, or everything anybody uploads goes with the container. |
-| `HOST` / `PORT` | `0.0.0.0` / `8080` | |
-| `GENERATOR` | — | A command run in a workspace holding that site's `src/` and `public/` and nothing else. It brings its own project: what decides how a site is built cannot be written through the API. Unset, what the theme put in `public/` is served as it is. |
-| `GENERATOR_OUTPUT` | `dist` | Which directory that leaves the built site in. |
+| `MAVI_SITE_ID` | — | Fixed-site UUID. Required and stable for the lifetime of the installation. |
+| `MAVI_RUNTIME_MODE` | `fixed_site` | `fixed_site` for self-host; `shard` is the cloud-shaped runtime. |
+| `MAVI_FILES_DIR` | `./mavi-files` / `/data/files` in the image | Persistent site-scoped binary storage. |
+| `LISTEN` | `0.0.0.0:8080` | HTTP listener address. |
+| `DATABASE_CONNECTIONS` | `10` | PostgreSQL pool size. |
+| `MAVI_WORKER_ID` | generated default | Site-worker identity for lease fencing. |
+| `MAVI_WORKER_LEASE_SECONDS` | worker default | Queue lease duration. |
+| `MAVI_WORKER_POLL_MILLIS` | worker default | Queue poll interval. |
+| `MAVI_TRUSTED_PROXY_CIDRS` | none | Explicit proxy networks allowed to provide forwarded client IPs. |
 | `RUST_LOG` | `info` | |
 
-The panel is static files behind nginx, which proxies `/api`, `/mcp`,
-`/uploads` and `/openapi.json` to the API.
+## Self-host and cloud boundary
 
-## One installation, one site
+Self-host is one fixed site, selected by `MAVI_SITE_ID` and admitted through a
+`FixedSiteResolver`. Cloud hosting is not part of this repository: the private
+operator owns organization and shard lifecycle, and mounts the same Mavi
+router with an allowlisted host-to-site snapshot.
 
-Setup makes exactly one site, and there is no way to make a second: `/api/setup`
-answers once, and nothing else in this crate ever inserts a `tenants` row.
-That is not a limitation left to be lifted later — it is what this is. Running
-many sites on one machine is a hosting product built on top of this, not this.
-
-It used to be built on isolation — a `tenant_id` on every table, row-level
-security on every one of them, and a request resolved from its `Host` header
-to decide whose data it was looking at. That machinery is gone. It was built
-for hosting many sites, it was used for one, and it still had to be understood
-by everybody reading the code and kept correct by everybody changing it, in
-exchange for a capability this does not offer.
-
-What replaced it is nothing, which is the point: there is one site, so no
-query has to remember which one. The one place that could still get it wrong
-is a database holding more than one, and that is refused at the door rather
-than served — a build that picks one of several silently is the failure the
-isolation existed to prevent, arrived at from the other side.
+Both modes use the same site-scoped application services and PostgreSQL
+transactions. No request can select an arbitrary site ID, and no cloud mode
+constructs a router or process per site. See the clean workspace
+[`server-next/README.md`](server-next/README.md) for the runtime and contract
+details.
 
 ## More than posts
 
@@ -201,34 +179,16 @@ settings, which is enough to carry a site somewhere else by hand.
 
 ## Development
 
-Requires [Bun](https://bun.sh) and a Rust toolchain.
+The clean runtime is the `server-next/` workspace. The old `server/` and
+`client/` workspaces are kept as behavior/reference material while the panel is
+regenerated from the v1 contract.
 
 ```bash
-cd client
-bun install
-bun run dev          # http://localhost:5173, proxies the API to :8080
-
-cd ../old
-cargo run            # http://localhost:8080
-```
-
-`old/` is what runs a site today; `server/` is the same software written again
-as a workspace, and it answers every endpoint but does not open a socket yet.
-`old/README.md` says what has to be true before it goes.
-
-The panel expects the API on `:8080`; point it elsewhere with
-`VITE_API_PROXY_TARGET`.
-
-```bash
-cd client
-bun run build        # builds, then typechecks — vite generates the route tree
-bun run typecheck
-bun run lint
-bun run extract      # pull new translatable strings into src/locales/*/messages.po
-
-cd ../server
-cargo clippy --all-targets --all-features -- -D warnings
-cargo nextest run --workspace
+cd server-next
+cargo fmt --all -- --check
+cargo clippy --workspace --all-targets --all-features -- -D warnings
+cargo test --workspace --doc
+cargo run -p mavi-http --bin generate_contract -- fingerprint
 ```
 
 The tests want a PostgreSQL, because a site is rows in one and a test of what a
@@ -252,20 +212,15 @@ docker compose -f docker-compose.dev.yml up --build
 ### Layout
 
 ```
-client/              the panel — React 19, Vite, TanStack Router, Tailwind 4
-server/              the API, as a Rust workspace
-  mavi-core/         the vocabulary: refusals, money, ids, pages, grants
-  mavi-db/           where the rows are, and the one place an order becomes SQL
-  mavi-api/          what an endpoint is, and what it must say about itself
-  mavi-http/         what lets a request in, and what it has to leave behind
-  mavi-serve/        what makes an endpoint reachable
-  mavi-work/         work that happens after the answer
-  mavi-audit/        what was done, and by whom
-  mavi-<domain>/     one crate per thing a site does — content, media, forms,
-                     mail, shop, courses, flows, design, boards, people…
-  mavi-everything/   the whole API, and the questions no one crate can ask
-                     about itself
-old/                 what still runs the sites, until `server/` can
+server-next/         the clean API/runtime rewrite
+  mavi-core/         typed IDs, scope, errors, grants and ports
+  mavi-storage/      scoped PostgreSQL transactions and migrations
+  mavi-contract/     canonical endpoint declarations and generators
+  mavi-http/         request admission and API composition
+  mavi-runtime/      fixed-site and shared-shard runtime boundaries
+  mavi-<domain>/     one application/service boundary per site feature
+server/              legacy workspace, reference only
+client/              legacy panel, reference until generated-client rewrite
 wordpress-plugin/    the WordPress migration plugin (GPLv2+)
 ```
 

@@ -143,6 +143,135 @@ async fn role_lifecycle_protects_owner_and_assigned_roles() {
 
 #[tokio::test]
 #[ignore = "requires TEST_DATABASE_URL and a non-superuser PostgreSQL role"]
+#[allow(clippy::too_many_lines)]
+async fn api_key_lifecycle_lists_metadata_and_limits_assistant_revoke() {
+    let (app, _database, _site_id) = support::build_app_with_database().await;
+    let owner_token = bootstrap(&app).await;
+
+    let first = send(
+        &app,
+        Method::POST,
+        "/api/v1/auth/api-keys",
+        Some(&owner_token),
+        Some(json!({
+            "name": "automation",
+            "grants": [{"capability": "people", "action": "delete"}]
+        })),
+    )
+    .await;
+    assert_eq!(first.status(), StatusCode::CREATED);
+    let first = response_json(first).await;
+    assert!(
+        first["token"]
+            .as_str()
+            .is_some_and(|token| token.starts_with("mavi_key_"))
+    );
+    assert_eq!(first["prefix"].as_str().expect("key prefix").len(), 16);
+    assert!(first.get("secret_hash").is_none());
+    let first_id = first["id"].as_str().expect("first key id").to_owned();
+    let first_token = first["token"].as_str().expect("first key token").to_owned();
+
+    let second = send(
+        &app,
+        Method::POST,
+        "/api/v1/auth/api-keys",
+        Some(&owner_token),
+        Some(json!({
+            "name": "secondary",
+            "grants": [{"capability": "content", "action": "view"}]
+        })),
+    )
+    .await;
+    assert_eq!(second.status(), StatusCode::CREATED);
+    let second_id = response_json(second).await["id"]
+        .as_str()
+        .expect("second key id")
+        .to_owned();
+
+    let listed = send(
+        &app,
+        Method::GET,
+        "/api/v1/auth/api-keys?limit=10&revoked=false",
+        Some(&owner_token),
+        None,
+    )
+    .await;
+    assert_eq!(listed.status(), StatusCode::OK);
+    let listed = response_json(listed).await;
+    assert_eq!(listed["items"].as_array().expect("key items").len(), 2);
+    assert!(
+        listed["items"]
+            .as_array()
+            .expect("key items")
+            .iter()
+            .all(|key| { key.get("token").is_none() && key.get("secret_hash").is_none() })
+    );
+
+    let cross_revoke = send(
+        &app,
+        Method::DELETE,
+        &format!("/api/v1/auth/api-keys/{second_id}"),
+        Some(&first_token),
+        None,
+    )
+    .await;
+    assert_eq!(cross_revoke.status(), StatusCode::FORBIDDEN);
+    assert_eq!(
+        response_json(cross_revoke).await["error"]["code"],
+        "forbidden"
+    );
+
+    let self_revoke = send(
+        &app,
+        Method::DELETE,
+        &format!("/api/v1/auth/api-keys/{first_id}"),
+        Some(&first_token),
+        None,
+    )
+    .await;
+    assert_eq!(self_revoke.status(), StatusCode::NO_CONTENT);
+    let revoked_auth = send(
+        &app,
+        Method::GET,
+        "/api/v1/people",
+        Some(&first_token),
+        None,
+    )
+    .await;
+    assert_eq!(revoked_auth.status(), StatusCode::UNAUTHORIZED);
+
+    let second_revoke = send(
+        &app,
+        Method::DELETE,
+        &format!("/api/v1/auth/api-keys/{second_id}"),
+        Some(&owner_token),
+        None,
+    )
+    .await;
+    assert_eq!(second_revoke.status(), StatusCode::NO_CONTENT);
+
+    let revoked = send(
+        &app,
+        Method::GET,
+        "/api/v1/auth/api-keys?revoked=true",
+        Some(&owner_token),
+        None,
+    )
+    .await;
+    assert_eq!(revoked.status(), StatusCode::OK);
+    let revoked = response_json(revoked).await;
+    assert_eq!(revoked["items"].as_array().expect("revoked keys").len(), 2);
+    assert!(
+        revoked["items"]
+            .as_array()
+            .expect("revoked keys")
+            .iter()
+            .all(|key| { key["revoked_at"].is_string() && key.get("token").is_none() })
+    );
+}
+
+#[tokio::test]
+#[ignore = "requires TEST_DATABASE_URL and a non-superuser PostgreSQL role"]
 async fn edge_auth_throttle_is_site_scoped_and_audited_without_raw_source_data() {
     let (app, database, site_id) = support::build_app_with_edge_policy(EdgeThrottlePolicy {
         ip_limit: 2,

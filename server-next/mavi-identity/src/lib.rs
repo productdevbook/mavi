@@ -32,6 +32,7 @@ pub const PERSON_NAME_INVALID: &str = "person_name_invalid";
 pub const PASSWORD_INVALID: &str = "password_invalid";
 pub const API_KEY_NAME_INVALID: &str = "api_key_name_invalid";
 pub const API_KEY_GRANTS_INVALID: &str = "api_key_grants_invalid";
+pub const API_KEY_NOT_FOUND: &str = "api_key_not_found";
 pub const PASSWORD_RESET_TOKEN_INVALID: &str = "password_reset_token_invalid";
 pub const EMAIL_VERIFICATION_TOKEN_INVALID: &str = "email_verification_token_invalid";
 pub const EMAIL_NOT_VERIFIED: &str = "email_not_verified";
@@ -171,6 +172,23 @@ pub fn api() -> Api {
         .returns(204, "Empty")
         .self_only(),
         Endpoint::new(
+            Method::Get,
+            "/api/v1/auth/api-keys",
+            "auth.api_key.list",
+            "List assistant API key metadata",
+        )
+        .requires(Permission {
+            capability: Capability::People,
+            action: Action::View,
+        })
+        .takes_query("ApiKeyListFilter")
+        .returns(200, "ApiKeyPage")
+        .refuses([
+            ErrorCode::Forbidden,
+            ErrorCode::Validation,
+            ErrorCode::Internal,
+        ]),
+        Endpoint::new(
             Method::Post,
             "/api/v1/auth/api-keys",
             "auth.api_key.create",
@@ -182,7 +200,12 @@ pub fn api() -> Api {
         })
         .takes("CreateApiKey")
         .returns(201, "ApiKeyCreated")
-        .changes(false),
+        .changes(false)
+        .refuses([
+            ErrorCode::Forbidden,
+            ErrorCode::Validation,
+            ErrorCode::Internal,
+        ]),
         Endpoint::new(
             Method::Delete,
             "/api/v1/auth/api-keys/{id}",
@@ -195,7 +218,12 @@ pub fn api() -> Api {
             action: Action::Delete,
         })
         .returns(204, "Empty")
-        .changes(false),
+        .changes(false)
+        .refuses([
+            ErrorCode::Forbidden,
+            ErrorCode::NotFound,
+            ErrorCode::Internal,
+        ]),
         Endpoint::new(
             Method::Get,
             "/api/v1/people",
@@ -472,6 +500,7 @@ fn identity_shapes() -> Vec<Shape> {
             "CreateApiKey",
             json!({
                 "type": "object",
+                "additionalProperties": false,
                 "required": ["name", "grants"],
                 "properties": {
                     "name": {"type": "string", "maxLength": 120},
@@ -484,13 +513,60 @@ fn identity_shapes() -> Vec<Shape> {
             "ApiKeyCreated",
             json!({
                 "type": "object",
-                "required": ["id", "name", "token", "grants"],
+                "additionalProperties": false,
+                "required": ["id", "site_id", "person_id", "name", "prefix", "token", "grants", "expires_at", "created_at"],
                 "properties": {
                     "id": {"type": "string", "format": "uuid"},
+                    "site_id": {"type": "string", "format": "uuid"},
+                    "person_id": {"type": "string", "format": "uuid"},
                     "name": {"type": "string"},
+                    "prefix": {"type": "string", "maxLength": 16},
                     "token": {"type": "string"},
                     "grants": {"type": "array", "items": {"$ref": "#/components/schemas/Grant"}},
                     "expires_at": {"type": ["string", "null"], "format": "date-time"},
+                    "created_at": {"type": "string", "format": "date-time"},
+                },
+            }),
+        ),
+        Shape::new(
+            "ApiKeyListFilter",
+            json!({
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "after": {"type": ["string", "null"], "maxLength": 512},
+                    "limit": {"type": "integer", "minimum": 1, "maximum": 100},
+                    "revoked": {"type": ["boolean", "null"]},
+                },
+            }),
+        ),
+        Shape::new(
+            "ApiKeyRecord",
+            json!({
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["id", "site_id", "person_id", "name", "prefix", "grants", "expires_at", "revoked_at", "created_at"],
+                "properties": {
+                    "id": {"type": "string", "format": "uuid"},
+                    "site_id": {"type": "string", "format": "uuid"},
+                    "person_id": {"type": "string", "format": "uuid"},
+                    "name": {"type": "string"},
+                    "prefix": {"type": "string", "maxLength": 16},
+                    "grants": {"type": "array", "items": {"$ref": "#/components/schemas/Grant"}},
+                    "expires_at": {"type": ["string", "null"], "format": "date-time"},
+                    "revoked_at": {"type": ["string", "null"], "format": "date-time"},
+                    "created_at": {"type": "string", "format": "date-time"},
+                },
+            }),
+        ),
+        Shape::new(
+            "ApiKeyPage",
+            json!({
+                "type": "object",
+                "required": ["items", "next_cursor"],
+                "properties": {
+                    "items": {"type": "array", "items": {"$ref": "#/components/schemas/ApiKeyRecord"}},
+                    "next_cursor": {"type": ["string", "null"], "maxLength": 512},
                 },
             }),
         ),
@@ -1001,13 +1077,37 @@ pub struct CreateApiKey {
     pub expires_at: Option<DateTime<Utc>>,
 }
 
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+pub struct ApiKeyListFilter {
+    pub revoked: Option<bool>,
+    #[serde(flatten)]
+    pub page: PageRequest,
+}
+
 #[derive(Clone, Debug, Serialize)]
 pub struct ApiKeyCreated {
     pub id: ApiKeyId,
+    pub site_id: SiteId,
+    pub person_id: PersonId,
     pub name: String,
+    pub prefix: String,
     pub token: String,
     pub grants: Grants,
     pub expires_at: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct ApiKeyRecord {
+    pub id: ApiKeyId,
+    pub site_id: SiteId,
+    pub person_id: PersonId,
+    pub name: String,
+    pub prefix: String,
+    pub grants: Grants,
+    pub expires_at: Option<DateTime<Utc>>,
+    pub revoked_at: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
 }
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -2211,6 +2311,69 @@ impl IdentityService {
         Ok(role)
     }
 
+    pub async fn list_api_keys(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        filter: &ApiKeyListFilter,
+    ) -> Result<Page<ApiKeyRecord>> {
+        if !matches!(context.caller, Caller::Account { .. }) {
+            return Err(MaviError::Forbidden);
+        }
+        require_context_grant(context, Grant::new(Capability::People, Action::View))?;
+        let after = filter
+            .page
+            .after
+            .as_ref()
+            .map(decode_identity_cursor)
+            .transpose()?;
+        let limit = i64::from(filter.page.effective_limit());
+        let mut query = sqlx::QueryBuilder::<sqlx::Postgres>::new(
+            "select id, site_id, person_id, name, prefix, expires_at, revoked_at, created_at
+               from api_keys where site_id = ",
+        );
+        query.push_bind(context.site_id.into_uuid());
+        match filter.revoked {
+            Some(true) => query.push(" and revoked_at is not null"),
+            Some(false) => query.push(" and revoked_at is null"),
+            None => &mut query,
+        };
+        if let Some(after) = after {
+            query
+                .push(" and (created_at, id) < (")
+                .push_bind(after.created_at)
+                .push(", ")
+                .push_bind(after.id)
+                .push(")");
+        }
+        let rows = query
+            .push(" order by created_at desc, id desc limit ")
+            .push_bind(limit + 1)
+            .build()
+            .fetch_all(tx.conn())
+            .await
+            .map_err(|_| MaviError::Internal)?;
+        let limit_usize = usize::try_from(limit).map_err(|_| MaviError::Internal)?;
+        let next_cursor = if rows.len() > limit_usize {
+            let row = rows
+                .get(limit_usize.saturating_sub(1))
+                .ok_or(MaviError::Internal)?;
+            Some(encode_identity_cursor(
+                row.try_get("created_at").map_err(|_| MaviError::Internal)?,
+                row.try_get("id").map_err(|_| MaviError::Internal)?,
+            )?)
+        } else {
+            None
+        };
+        let mut items = Vec::with_capacity(rows.len().min(limit_usize));
+        for row in rows.into_iter().take(limit_usize) {
+            let key_id = ApiKeyId::from_uuid(row.try_get("id").map_err(|_| MaviError::Internal)?);
+            let grants = grants_for_api_key(tx, context.site_id, key_id).await?;
+            items.push(api_key_from_row(&row, grants)?);
+        }
+        Ok(Page::new(items, next_cursor))
+    }
+
     pub async fn create_api_key(
         &self,
         tx: &mut SiteTx,
@@ -2248,9 +2411,10 @@ impl IdentityService {
         let api_key_id = ApiKeyId::new();
         let token = new_prefixed_token();
         let prefix = api_key_prefix(&token).ok_or(MaviError::Internal)?;
-        sqlx::query(
+        let row = sqlx::query(
             "insert into api_keys (site_id, id, person_id, name, prefix, secret_hash, expires_at)
-             values ($1, $2, $3, $4, $5, $6, $7)",
+             values ($1, $2, $3, $4, $5, $6, $7)
+             returning created_at",
         )
         .bind(context.site_id.into_uuid())
         .bind(api_key_id.into_uuid())
@@ -2259,7 +2423,7 @@ impl IdentityService {
         .bind(prefix)
         .bind(hash_token(&token))
         .bind(input.expires_at)
-        .execute(tx.conn())
+        .fetch_one(tx.conn())
         .await
         .map_err(|_| MaviError::Internal)?;
 
@@ -2292,10 +2456,14 @@ impl IdentityService {
 
         Ok(ApiKeyCreated {
             id: api_key_id,
+            site_id: context.site_id,
+            person_id: *person_id,
             name: name.to_owned(),
+            prefix: prefix.to_owned(),
             token,
             grants: Grants::new(requested),
             expires_at: input.expires_at,
+            created_at: row.try_get("created_at").map_err(|_| MaviError::Internal)?,
         })
     }
 
@@ -2307,22 +2475,49 @@ impl IdentityService {
         now: DateTime<Utc>,
     ) -> Result<()> {
         require_context_grant(context, Grant::new(Capability::People, Action::Delete))?;
-        let affected = sqlx::query(
+        match &context.caller {
+            Caller::Assistant {
+                key_id: caller_key_id,
+                ..
+            } if *caller_key_id != key_id => {
+                return Err(MaviError::Forbidden);
+            }
+            _ => {}
+        }
+
+        let row = sqlx::query(
+            "select revoked_at
+               from api_keys
+              where site_id = $1 and id = $2
+              for update",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(key_id.into_uuid())
+        .fetch_optional(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?
+        .ok_or(MaviError::NotFound {
+            resource: API_KEY_NOT_FOUND,
+        })?;
+
+        let revoked_at: Option<DateTime<Utc>> =
+            row.try_get("revoked_at").map_err(|_| MaviError::Internal)?;
+        if revoked_at.is_some() {
+            return Err(MaviError::NotFound {
+                resource: API_KEY_NOT_FOUND,
+            });
+        }
+
+        sqlx::query(
             "update api_keys set revoked_at = $3
-               where site_id = $1 and id = $2 and revoked_at is null",
+               where site_id = $1 and id = $2",
         )
         .bind(context.site_id.into_uuid())
         .bind(key_id.into_uuid())
         .bind(now)
         .execute(tx.conn())
         .await
-        .map_err(|_| MaviError::Internal)?
-        .rows_affected();
-        if affected == 0 {
-            return Err(MaviError::NotFound {
-                resource: "api_key_not_found",
-            });
-        }
+        .map_err(|_| MaviError::Internal)?;
 
         AuditService
             .record(
@@ -2413,6 +2608,20 @@ fn role_from_row(row: &sqlx::postgres::PgRow, grants: Grants) -> Result<Role> {
         grants,
         created_at: row.try_get("created_at").map_err(|_| MaviError::Internal)?,
         protected: row.try_get("protected").map_err(|_| MaviError::Internal)?,
+    })
+}
+
+fn api_key_from_row(row: &sqlx::postgres::PgRow, grants: Grants) -> Result<ApiKeyRecord> {
+    Ok(ApiKeyRecord {
+        id: ApiKeyId::from_uuid(row.try_get("id").map_err(|_| MaviError::Internal)?),
+        site_id: SiteId::from_uuid(row.try_get("site_id").map_err(|_| MaviError::Internal)?),
+        person_id: PersonId::from_uuid(row.try_get("person_id").map_err(|_| MaviError::Internal)?),
+        name: row.try_get("name").map_err(|_| MaviError::Internal)?,
+        prefix: row.try_get("prefix").map_err(|_| MaviError::Internal)?,
+        grants,
+        expires_at: row.try_get("expires_at").map_err(|_| MaviError::Internal)?,
+        revoked_at: row.try_get("revoked_at").map_err(|_| MaviError::Internal)?,
+        created_at: row.try_get("created_at").map_err(|_| MaviError::Internal)?,
     })
 }
 

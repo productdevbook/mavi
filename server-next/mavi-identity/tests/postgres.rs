@@ -5,10 +5,10 @@ use mavi_core::{
     Action, Caller, Capability, Grant, Grants, MaviError, RequestId, SiteContext, SiteId,
 };
 use mavi_identity::{
-    CreatePerson, CreateRole, EmailVerificationRedeemInput, EmailVerificationRequestInput,
-    IdentityService, LoginInput, PasswordResetRedeemInput, PasswordResetRequestInput,
-    PeopleListFilter, PersonStatus, ReplaceRoleGrants, RoleListFilter, SetupInput,
-    UpdatePersonStatus,
+    ApiKeyListFilter, CreateApiKey, CreatePerson, CreateRole, EmailVerificationRedeemInput,
+    EmailVerificationRequestInput, IdentityService, LoginInput, PasswordResetRedeemInput,
+    PasswordResetRequestInput, PeopleListFilter, PersonStatus, ReplaceRoleGrants, RoleListFilter,
+    SetupInput, UpdatePersonStatus,
 };
 use mavi_storage::Database;
 
@@ -205,6 +205,83 @@ async fn identity_people_and_roles_are_site_scoped_and_audited() {
         .expect("replace grants");
     assert_eq!(updated_role.grants.as_slice().len(), 1);
 
+    let first_key = service
+        .create_api_key(
+            &mut tx,
+            &owner_context,
+            &CreateApiKey {
+                name: "automation".to_owned(),
+                grants: vec![Grant::new(Capability::People, Action::Delete)],
+                expires_at: None,
+            },
+            Utc::now(),
+        )
+        .await
+        .expect("first assistant key");
+    assert_eq!(first_key.site_id, site_id);
+    assert_eq!(first_key.person_id, owner.id);
+    assert_eq!(first_key.prefix.len(), 16);
+    assert!(first_key.token.starts_with("mavi_key_"));
+
+    let second_key = service
+        .create_api_key(
+            &mut tx,
+            &owner_context,
+            &CreateApiKey {
+                name: "secondary".to_owned(),
+                grants: vec![Grant::new(Capability::Content, Action::View)],
+                expires_at: None,
+            },
+            Utc::now(),
+        )
+        .await
+        .expect("second assistant key");
+    let listed_keys = service
+        .list_api_keys(&mut tx, &owner_context, &ApiKeyListFilter::default())
+        .await
+        .expect("assistant keys");
+    assert!(listed_keys.items.iter().any(|key| {
+        key.id == first_key.id && key.name == "automation" && key.revoked_at.is_none()
+    }));
+    assert!(listed_keys.items.iter().any(|key| {
+        key.id == second_key.id && key.name == "secondary" && key.revoked_at.is_none()
+    }));
+
+    let assistant_context = SiteContext::with_caller(
+        site_id,
+        Caller::Assistant {
+            key_id: first_key.id,
+            person_id: Some(owner.id),
+            grants: Grants::new([Grant::new(Capability::People, Action::Delete)]),
+        },
+        RequestId::new(),
+    );
+    let cross_key_error = service
+        .revoke_api_key(&mut tx, &assistant_context, second_key.id, Utc::now())
+        .await
+        .expect_err("an assistant cannot revoke another key");
+    assert!(matches!(cross_key_error, MaviError::Forbidden));
+    service
+        .revoke_api_key(&mut tx, &assistant_context, first_key.id, Utc::now())
+        .await
+        .expect("an assistant can revoke itself");
+    service
+        .revoke_api_key(&mut tx, &owner_context, second_key.id, Utc::now())
+        .await
+        .expect("the account can revoke the second key");
+    let revoked_keys = service
+        .list_api_keys(
+            &mut tx,
+            &owner_context,
+            &ApiKeyListFilter {
+                revoked: Some(true),
+                ..ApiKeyListFilter::default()
+            },
+        )
+        .await
+        .expect("revoked assistant keys");
+    assert_eq!(revoked_keys.items.len(), 2);
+
     let suspended = service
         .update_person_status(
             &mut tx,
@@ -227,6 +304,15 @@ async fn identity_people_and_roles_are_site_scoped_and_audited() {
     .await
     .expect("audit count");
     assert!(audit_count >= 5);
+    let api_key_audits: i64 = sqlx::query_scalar(
+        "select count(*) from audit_events
+          where site_id = $1 and action in ('auth.api_key.created', 'auth.api_key.revoked')",
+    )
+    .bind(site_id.into_uuid())
+    .fetch_one(tx.conn())
+    .await
+    .expect("api key audits");
+    assert_eq!(api_key_audits, 4);
     tx.commit().await.expect("owner commit");
 }
 

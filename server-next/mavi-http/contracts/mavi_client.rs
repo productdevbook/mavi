@@ -72,10 +72,40 @@ pub struct AnalyticsReceipt {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ApiKeyCreated {
     pub id: String,
+    pub site_id: String,
+    pub person_id: String,
     pub name: String,
+    pub prefix: String,
     pub token: String,
     pub grants: Vec<Grant>,
     pub expires_at: Option<String>,
+    pub created_at: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ApiKeyListFilter {
+    pub after: Option<String>,
+    pub limit: Option<i64>,
+    pub revoked: Option<bool>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ApiKeyPage {
+    pub items: Vec<ApiKeyRecord>,
+    pub next_cursor: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ApiKeyRecord {
+    pub id: String,
+    pub site_id: String,
+    pub person_id: String,
+    pub name: String,
+    pub prefix: String,
+    pub grants: Vec<Grant>,
+    pub expires_at: Option<String>,
+    pub revoked_at: Option<String>,
+    pub created_at: String,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -2001,6 +2031,7 @@ pub const OPERATIONS: &[OperationDefinition] = &[
     OperationDefinition { name: "auth.email_verification.request", method: "post", path: "/api/v1/auth/email-verifications", request: Some("EmailVerificationRequest"), request_location: Some("json"), query: None, response: Some("EmailVerificationRequested"), response_location: None, status: 202, authentication: "public", capability: None, action: None },
     OperationDefinition { name: "auth.email_verification.redeem", method: "post", path: "/api/v1/auth/email-verifications/redeem", request: Some("EmailVerificationRedeem"), request_location: Some("json"), query: None, response: Some("Empty"), response_location: None, status: 204, authentication: "public", capability: None, action: None },
     OperationDefinition { name: "auth.session.revoke", method: "delete", path: "/api/v1/auth/sessions/current", request: None, request_location: None, query: None, response: Some("Empty"), response_location: None, status: 204, authentication: "account", capability: None, action: None },
+    OperationDefinition { name: "auth.api_key.list", method: "get", path: "/api/v1/auth/api-keys", request: Some("ApiKeyListFilter"), request_location: Some("query"), query: None, response: Some("ApiKeyPage"), response_location: None, status: 200, authentication: "account", capability: Some("people"), action: Some("view") },
     OperationDefinition { name: "auth.api_key.create", method: "post", path: "/api/v1/auth/api-keys", request: Some("CreateApiKey"), request_location: Some("json"), query: None, response: Some("ApiKeyCreated"), response_location: None, status: 201, authentication: "account", capability: Some("people"), action: Some("write") },
     OperationDefinition { name: "auth.api_key.revoke", method: "delete", path: "/api/v1/auth/api-keys/{id}", request: None, request_location: None, query: None, response: Some("Empty"), response_location: None, status: 204, authentication: "account_or_assistant", capability: Some("people"), action: Some("delete") },
     OperationDefinition { name: "people.list", method: "get", path: "/api/v1/people", request: Some("PeopleListFilter"), request_location: Some("query"), query: None, response: Some("PersonPage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("people"), action: Some("view") },

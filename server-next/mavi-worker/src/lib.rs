@@ -14,7 +14,10 @@ use mavi_content::{
 };
 use mavi_core::{MaviError, RequestId, Result, SiteContext, SiteId, ports::FileStore};
 use mavi_jobs::{DEFAULT_LEASE_SECONDS, JobClaim, JobsService, LeaseOutcome};
-use mavi_media::{MEDIA_CLEANUP_JOB, MediaCleanupJob, MediaService};
+use mavi_media::{
+    MEDIA_CLEANUP_JOB, MEDIA_ORPHAN_CLEANUP_JOB, MediaCleanupJob, MediaOrphanCleanupJob,
+    MediaService, is_generated_media_storage_key,
+};
 pub use mavi_observability::{WorkerMetrics, WorkerMetricsSnapshot};
 use mavi_storage::{Database, SiteTx};
 use serde_json::json;
@@ -102,7 +105,11 @@ impl WorkerSupervisor {
         Self {
             database,
             sites: Arc::new(RwLock::new(site_snapshot(sites))),
-            jobs: JobsService::new([SCHEDULED_PUBLISH_JOB, MEDIA_CLEANUP_JOB]),
+            jobs: JobsService::new([
+                SCHEDULED_PUBLISH_JOB,
+                MEDIA_CLEANUP_JOB,
+                MEDIA_ORPHAN_CLEANUP_JOB,
+            ]),
             content: ContentService,
             media: MediaService,
             file_store,
@@ -171,15 +178,28 @@ impl WorkerSupervisor {
         self.media
             .enqueue_next_cleanup(&mut transaction, &claim_context, &self.jobs)
             .await?;
-        let claim = self
-            .jobs
-            .claim(
-                &mut transaction,
-                &self.config.worker_id,
-                &[SCHEDULED_PUBLISH_JOB.name, MEDIA_CLEANUP_JOB.name],
-                self.config.lease_seconds,
-            )
+        self.media
+            .enqueue_orphan_cleanup_job(&mut transaction, &claim_context, &self.jobs, Utc::now())
             .await?;
+        let mut claim = None;
+        for kind in [
+            SCHEDULED_PUBLISH_JOB.name,
+            MEDIA_CLEANUP_JOB.name,
+            MEDIA_ORPHAN_CLEANUP_JOB.name,
+        ] {
+            claim = self
+                .jobs
+                .claim(
+                    &mut transaction,
+                    &self.config.worker_id,
+                    &[kind],
+                    self.config.lease_seconds,
+                )
+                .await?;
+            if claim.is_some() {
+                break;
+            }
+        }
         transaction.commit().await?;
 
         let Some(claim) = claim else {
@@ -198,6 +218,9 @@ impl WorkerSupervisor {
         );
         if claim.kind == MEDIA_CLEANUP_JOB.name {
             return self.execute_media_cleanup(&context, &claim).await;
+        }
+        if claim.kind == MEDIA_ORPHAN_CLEANUP_JOB.name {
+            return self.execute_media_orphan_cleanup(&context, &claim).await;
         }
         let payload = match serde_json::from_value::<ScheduledPublishJob>(claim.payload.clone()) {
             Ok(payload) => payload,
@@ -305,6 +328,84 @@ impl WorkerSupervisor {
                 .await
             }
         }
+    }
+
+    async fn execute_media_orphan_cleanup(
+        &self,
+        context: &SiteContext,
+        claim: &JobClaim,
+    ) -> Result<()> {
+        let bucket = match serde_json::from_value::<MediaOrphanCleanupJob>(claim.payload.clone()) {
+            Ok(payload) if payload.bucket >= 0 => payload.bucket,
+            Ok(_) => {
+                return self
+                    .fail_claim(context, claim, "invalid media orphan bucket".to_owned())
+                    .await;
+            }
+            Err(error) => {
+                return self
+                    .fail_claim(
+                        context,
+                        claim,
+                        format!("invalid media orphan payload: {error}"),
+                    )
+                    .await;
+            }
+        };
+
+        let storage_keys = match self.file_store.list(context).await {
+            Ok(storage_keys) => storage_keys,
+            Err(error) => {
+                return self
+                    .fail_claim(
+                        context,
+                        claim,
+                        format!("media storage list failed: {error:?}"),
+                    )
+                    .await;
+            }
+        };
+        let mut transaction = self.database.begin(context).await?;
+        let known = self
+            .media
+            .known_storage_keys(&mut transaction, context)
+            .await?;
+        transaction.commit().await?;
+
+        let orphan_keys = storage_keys
+            .into_iter()
+            .filter(|key| is_generated_media_storage_key(key) && !known.contains(key))
+            .collect::<Vec<_>>();
+
+        for key in &orphan_keys {
+            if let Err(error) = self.file_store.remove(context, key).await {
+                return self
+                    .fail_claim(
+                        context,
+                        claim,
+                        format!("media orphan cleanup failed: {error:?}"),
+                    )
+                    .await;
+            }
+        }
+
+        let mut transaction = self.database.begin(context).await?;
+        if let Err(error) = self
+            .media
+            .record_orphan_cleanup(&mut transaction, context, orphan_keys.len(), bucket)
+            .await
+        {
+            drop(transaction);
+            return self
+                .fail_claim(
+                    context,
+                    claim,
+                    format!("media orphan cleanup receipt failed: {error:?}"),
+                )
+                .await;
+        }
+
+        self.complete_claim(transaction, context, claim).await
     }
 
     async fn complete_claim(

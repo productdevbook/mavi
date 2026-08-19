@@ -7,7 +7,7 @@
 use std::{env, sync::Arc, time::Duration};
 
 use mavi_core::{
-    MaviError, Result, SiteContext,
+    MailSender, MailSenderPolicy, MaviError, Result, SiteContext,
     ports::{BoxFuture, MailDeliveryReceipt, MailDeliveryRequest, Mailer},
 };
 use reqwest::StatusCode;
@@ -16,6 +16,9 @@ use serde::{Deserialize, Serialize};
 const WEBHOOK_ENV: &str = "MAVI_MAIL_WEBHOOK_URL";
 const TOKEN_ENV: &str = "MAVI_MAIL_WEBHOOK_TOKEN";
 const INGEST_TOKEN_ENV: &str = "MAVI_MAIL_WEBHOOK_INGEST_TOKEN";
+const FROM_ENV: &str = "MAVI_MAIL_FROM";
+const FROM_NAME_ENV: &str = "MAVI_MAIL_FROM_NAME";
+const ALLOWED_DOMAINS_ENV: &str = "MAVI_MAIL_ALLOWED_SENDER_DOMAINS";
 const MAX_ENDPOINT_CHARS: usize = 2_048;
 const MAX_TOKEN_CHARS: usize = 4_096;
 const MAX_REFERENCE_CHARS: usize = 1_024;
@@ -34,6 +37,7 @@ pub fn from_env() -> Result<Arc<dyn Mailer>> {
         .into_string()
         .map_err(|_| MaviError::validation("mail_webhook_url_not_unicode"))?;
     let endpoint = validate_endpoint(&endpoint)?;
+    let sender_policy = sender_policy_from_env()?;
     let token = env::var_os(TOKEN_ENV)
         .map(|value| {
             value
@@ -60,6 +64,7 @@ pub fn from_env() -> Result<Arc<dyn Mailer>> {
         client,
         endpoint,
         token,
+        sender_policy,
     }))
 }
 
@@ -82,6 +87,7 @@ struct WebhookMailer {
     client: reqwest::Client,
     endpoint: String,
     token: Option<String>,
+    sender_policy: MailSenderPolicy,
 }
 
 impl std::fmt::Debug for WebhookMailer {
@@ -90,6 +96,10 @@ impl std::fmt::Debug for WebhookMailer {
             .debug_struct("WebhookMailer")
             .field("endpoint", &self.endpoint)
             .field("token", &self.token.as_ref().map(|_| "[redacted]"))
+            .field(
+                "sender_domain",
+                &self.sender_policy.default_sender().domain(),
+            )
             .finish_non_exhaustive()
     }
 }
@@ -103,8 +113,10 @@ impl Mailer for WebhookMailer {
         let client = self.client.clone();
         let endpoint = self.endpoint.clone();
         let token = self.token.clone();
-        let payload = WebhookRequest::from_request(context, request);
+        let sender_policy = self.sender_policy.clone();
+        let payload = WebhookRequest::from_request(context, request, &sender_policy);
         Box::pin(async move {
+            let payload = payload?;
             let mut request = client.post(endpoint).json(&payload);
             if let Some(token) = token {
                 request = request.bearer_auth(token);
@@ -174,12 +186,18 @@ struct WebhookRequest {
     body: String,
     content_type: &'static str,
     unsubscribe_url: Option<String>,
+    from: MailSender,
 }
 
 impl WebhookRequest {
-    fn from_request(context: &SiteContext, request: MailDeliveryRequest) -> Self {
+    fn from_request(
+        context: &SiteContext,
+        request: MailDeliveryRequest,
+        sender_policy: &MailSenderPolicy,
+    ) -> Result<Self> {
+        let sender = sender_policy.resolve(request.sender.as_ref())?;
         let message = request.message;
-        Self {
+        Ok(Self {
             site_id: context.site_id.to_string(),
             delivery_id: request.delivery_id.to_string(),
             attempt_number: request.attempt_number,
@@ -190,7 +208,8 @@ impl WebhookRequest {
             body: message.body,
             content_type: message.content_type.as_str(),
             unsubscribe_url: message.unsubscribe_url,
-        }
+            from: sender,
+        })
     }
 }
 
@@ -238,12 +257,50 @@ fn validate_token(value: &str) -> Result<String> {
     Ok(value.to_owned())
 }
 
+fn sender_policy_from_env() -> Result<MailSenderPolicy> {
+    let sender = env::var_os(FROM_ENV)
+        .ok_or_else(|| MaviError::validation("mail_sender_not_configured"))?
+        .into_string()
+        .map_err(|_| MaviError::validation("mail_sender_not_unicode"))?;
+    let name = env::var_os(FROM_NAME_ENV)
+        .map(|value| {
+            value
+                .into_string()
+                .map_err(|_| MaviError::validation("mail_sender_name_not_unicode"))
+        })
+        .transpose()?
+        .filter(|value| !value.trim().is_empty());
+    let domains = env::var_os(ALLOWED_DOMAINS_ENV)
+        .map(|value| {
+            value
+                .into_string()
+                .map_err(|_| MaviError::validation("mail_sender_domains_not_unicode"))
+                .and_then(|value| parse_domains(&value))
+        })
+        .transpose()?
+        .unwrap_or_default();
+    MailSenderPolicy::new(&sender, name.as_deref(), domains)
+}
+
+fn parse_domains(value: &str) -> Result<Vec<String>> {
+    let domains = value
+        .split(',')
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_owned)
+        .collect::<Vec<_>>();
+    if domains.is_empty() {
+        return Err(MaviError::validation("mail_sender_domains_invalid"));
+    }
+    Ok(domains)
+}
+
 #[cfg(test)]
 mod tests {
     use reqwest::{StatusCode, header::HeaderMap};
 
     use super::{
-        DEFAULT_PROVIDER_RETRY_AFTER_SECONDS, MAX_PROVIDER_RETRY_AFTER_SECONDS,
+        DEFAULT_PROVIDER_RETRY_AFTER_SECONDS, MAX_PROVIDER_RETRY_AFTER_SECONDS, parse_domains,
         provider_response_error, retry_after_seconds, validate_endpoint, validate_reference,
         validate_token,
     };
@@ -319,5 +376,14 @@ mod tests {
             error,
             MaviError::Conflict { code } if code == "mail_provider_http_502"
         ));
+    }
+
+    #[test]
+    fn sender_domain_lists_are_explicit_and_non_empty() {
+        assert_eq!(
+            parse_domains(" example.test, tenant.test ").expect("domains"),
+            vec!["example.test", "tenant.test"]
+        );
+        assert!(parse_domains(" , ").is_err());
     }
 }

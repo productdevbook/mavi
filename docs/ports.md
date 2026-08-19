@@ -46,6 +46,10 @@ that already sends mail should not gain a second way to.
 The worker hands the adapter a `MailDeliveryRequest`, not only rendered text.
 It contains the site-scoped delivery id, durable attempt number, delivery
 purpose, optional idempotency key and a protected campaign unsubscribe URL.
+It may also contain the validated site sender identity. The host adapter
+resolves that identity against its deployment allowlist before emitting a
+provider `From` header; queued deliveries retain the sender snapshot that was
+selected when they were created.
 Campaign adapters emit that URL as `List-Unsubscribe` and
 `List-Unsubscribe-Post`; transactional adapters must not invent one. The
 worker commits the lease before calling the adapter and records the provider

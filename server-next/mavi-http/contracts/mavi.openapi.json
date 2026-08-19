@@ -22347,6 +22347,7 @@
           "template_id",
           "list_id",
           "recipient",
+          "sender",
           "subject",
           "body",
           "body_protected",
@@ -22384,6 +22385,9 @@
           "recipient": {
             "type": "string",
             "format": "email"
+          },
+          "sender": {
+            "$ref": "#/components/schemas/MailSender"
           },
           "subject": {
             "type": "string"
@@ -22668,6 +22672,55 @@
               "null"
             ],
             "maxLength": 512
+          }
+        },
+        "additionalProperties": false
+      },
+      "MailSender": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "required": [
+          "address",
+          "name"
+        ],
+        "properties": {
+          "address": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 320
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 200
+          }
+        },
+        "additionalProperties": false
+      },
+      "MailSenderUpdate": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "required": [
+          "address"
+        ],
+        "properties": {
+          "address": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 320
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 200
           }
         },
         "additionalProperties": false
@@ -24742,6 +24795,7 @@
           "name",
           "timezone",
           "canonical_url",
+          "mail_sender",
           "updated_at"
         ],
         "properties": {
@@ -24764,6 +24818,9 @@
             ],
             "maxLength": 2048,
             "format": "uri"
+          },
+          "mail_sender": {
+            "$ref": "#/components/schemas/MailSender"
           },
           "updated_at": {
             "type": "string",
@@ -25696,6 +25753,9 @@
             ],
             "maxLength": 2048,
             "format": "uri"
+          },
+          "mail_sender": {
+            "$ref": "#/components/schemas/MailSenderUpdate"
           }
         },
         "additionalProperties": false

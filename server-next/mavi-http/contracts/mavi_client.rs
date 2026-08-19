@@ -1158,6 +1158,7 @@ pub struct MailDelivery {
     pub template_id: Option<String>,
     pub list_id: Option<String>,
     pub recipient: String,
+    pub sender: MailSender,
     pub subject: String,
     pub body: String,
     pub body_protected: bool,
@@ -1235,6 +1236,10 @@ pub struct MailReaderPage {
     pub items: Vec<MailReader>,
     pub next_cursor: Option<String>,
 }
+
+pub type MailSender = Option<Value>;
+
+pub type MailSenderUpdate = Option<Value>;
 
 pub type MailStanding = String;
 
@@ -1797,6 +1802,7 @@ pub struct SiteSettings {
     pub name: String,
     pub timezone: String,
     pub canonical_url: Option<String>,
+    pub mail_sender: MailSender,
     pub updated_at: String,
 }
 
@@ -2059,6 +2065,7 @@ pub struct UpdateSiteSettings {
     pub name: Option<String>,
     pub timezone: Option<String>,
     pub canonical_url: Option<String>,
+    pub mail_sender: Option<MailSenderUpdate>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

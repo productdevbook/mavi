@@ -371,6 +371,7 @@ impl WorkerSupervisor {
                 mavi_mail::MailPurpose::Transactional => MailDeliveryPurpose::Transactional,
                 mavi_mail::MailPurpose::Campaign => MailDeliveryPurpose::Campaign,
             },
+            sender: claimed.sender,
             message: claimed.message,
         };
         match mavi_mail::send_via(&context, mailer, request).await {
@@ -858,6 +859,14 @@ fn mail_retry_at_for_error_at(
     attempts: u16,
     now: chrono::DateTime<Utc>,
 ) -> Option<chrono::DateTime<Utc>> {
+    if matches!(
+        error,
+        MaviError::Conflict { code }
+            if code == "mail_sender_domain_not_allowed"
+                || code == "mail_sender_not_configured"
+    ) {
+        return None;
+    }
     let retry_at = mail_retry_at_from(now, attempts)?;
     let MaviError::ProviderRateLimited {
         retry_after_seconds,
@@ -962,5 +971,15 @@ mod tests {
             mail_retry_at_from(now, 3),
             Some(now + ChronoDuration::seconds(4))
         );
+    }
+
+    #[test]
+    fn sender_policy_failures_are_permanent_delivery_errors() {
+        let now = chrono::DateTime::parse_from_rfc3339("2026-01-01T00:00:00Z")
+            .expect("timestamp")
+            .with_timezone(&Utc);
+        let error = MaviError::conflict("mail_sender_domain_not_allowed");
+
+        assert_eq!(mail_retry_at_for_error_at(&error, 1, now), None);
     }
 }

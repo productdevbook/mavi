@@ -1015,6 +1015,7 @@ export interface MailDelivery {
   template_id: string | null;
   list_id: string | null;
   recipient: string;
+  sender: MailSender;
   subject: string;
   body: string;
   body_protected: boolean;
@@ -1084,6 +1085,10 @@ export interface MailReaderPage {
   items: MailReader[];
   next_cursor: string | null;
 }
+
+export type MailSender = Record<string, unknown> | null;
+
+export type MailSenderUpdate = Record<string, unknown> | null;
 
 export type MailStanding = "subscribed" | "unsubscribed" | "bounced" | "complained";
 
@@ -1574,6 +1579,7 @@ export interface SiteSettings {
   name: string;
   timezone: string;
   canonical_url: string | null;
+  mail_sender: MailSender;
   updated_at: string;
 }
 
@@ -1800,6 +1806,7 @@ export interface UpdateSiteSettings {
   name?: string | null;
   timezone?: string | null;
   canonical_url?: string | null;
+  mail_sender?: MailSenderUpdate;
 }
 
 export interface UpdateStudent {

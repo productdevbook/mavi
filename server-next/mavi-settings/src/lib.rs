@@ -11,8 +11,8 @@ use chrono::{DateTime, Utc};
 use mavi_audit::{AuditEntry, AuditService};
 use mavi_contract::{Api, Endpoint, Method, Permission, Shape};
 use mavi_core::{
-    Action, Capability, Cursor, ErrorCode, MaviError, Page, PageRequest, Result, SiteContext,
-    SiteId,
+    Action, Capability, Cursor, ErrorCode, MailSender, MaviError, Page, PageRequest, Result,
+    SiteContext, SiteId,
 };
 use mavi_storage::SiteTx;
 use serde::{Deserialize, Deserializer, Serialize};
@@ -24,6 +24,7 @@ pub const SETTINGS_PATCH_EMPTY: &str = "settings_patch_empty";
 pub const SETTINGS_NAME_INVALID: &str = "settings_name_invalid";
 pub const SETTINGS_TIMEZONE_INVALID: &str = "settings_timezone_invalid";
 pub const SETTINGS_CANONICAL_URL_INVALID: &str = "settings_canonical_url_invalid";
+pub const SETTINGS_MAIL_SENDER_INVALID: &str = "settings_mail_sender_invalid";
 pub const LANGUAGE_TAG_INVALID: &str = "language_tag_invalid";
 pub const LANGUAGE_NAME_INVALID: &str = "language_name_invalid";
 pub const LANGUAGE_NOT_FOUND: &str = "language_not_found";
@@ -161,12 +162,13 @@ fn settings_shapes() -> Vec<Shape> {
             "SiteSettings",
             json!({
                 "type": "object",
-                "required": ["site_id", "name", "timezone", "canonical_url", "updated_at"],
+                "required": ["site_id", "name", "timezone", "canonical_url", "mail_sender", "updated_at"],
                 "properties": {
                     "site_id": {"type": "string", "format": "uuid"},
                     "name": {"type": "string", "maxLength": 200},
                     "timezone": {"type": "string", "maxLength": 64},
                     "canonical_url": {"type": ["string", "null"], "maxLength": 2048, "format": "uri"},
+                    "mail_sender": {"$ref": "#/components/schemas/MailSender"},
                     "updated_at": {"type": "string", "format": "date-time"},
                 },
             }),
@@ -179,7 +181,32 @@ fn settings_shapes() -> Vec<Shape> {
                     "name": {"type": ["string", "null"], "maxLength": 200},
                     "timezone": {"type": ["string", "null"], "maxLength": 64},
                     "canonical_url": {"type": ["string", "null"], "maxLength": 2048, "format": "uri"},
+                    "mail_sender": {"$ref": "#/components/schemas/MailSenderUpdate"},
                 },
+            }),
+        ),
+        Shape::new(
+            "MailSender",
+            json!({
+                "type": ["object", "null"],
+                "required": ["address", "name"],
+                "properties": {
+                    "address": {"type": "string", "format": "email", "maxLength": 320},
+                    "name": {"type": ["string", "null"], "maxLength": 200},
+                },
+                "additionalProperties": false,
+            }),
+        ),
+        Shape::new(
+            "MailSenderUpdate",
+            json!({
+                "type": ["object", "null"],
+                "required": ["address"],
+                "properties": {
+                    "address": {"type": "string", "format": "email", "maxLength": 320},
+                    "name": {"type": ["string", "null"], "maxLength": 200},
+                },
+                "additionalProperties": false,
             }),
         ),
         Shape::new(
@@ -399,6 +426,7 @@ pub struct SiteSettings {
     pub name: String,
     pub timezone: String,
     pub canonical_url: Option<CanonicalSiteUrl>,
+    pub mail_sender: Option<MailSender>,
     pub updated_at: DateTime<Utc>,
 }
 
@@ -408,6 +436,8 @@ pub struct UpdateSiteSettings {
     pub timezone: Option<String>,
     #[serde(default)]
     pub canonical_url: CanonicalUrlUpdate,
+    #[serde(default)]
+    pub mail_sender: MailSenderUpdate,
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
@@ -425,6 +455,40 @@ impl<'de> Deserialize<'de> for CanonicalUrlUpdate {
     {
         Ok(match Option::<String>::deserialize(deserializer)? {
             Some(value) => Self::Set(value),
+            None => Self::Clear,
+        })
+    }
+}
+
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub enum MailSenderUpdate {
+    #[default]
+    Unchanged,
+    Clear,
+    Set {
+        address: String,
+        name: Option<String>,
+    },
+}
+
+impl<'de> Deserialize<'de> for MailSenderUpdate {
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct Input {
+            address: String,
+            #[serde(default)]
+            name: Option<String>,
+        }
+
+        Ok(match Option::<Input>::deserialize(deserializer)? {
+            Some(input) => Self::Set {
+                address: input.address,
+                name: input.name,
+            },
             None => Self::Clear,
         })
     }
@@ -483,6 +547,20 @@ fn decode_cursor(cursor: &Cursor) -> Result<LanguageCursor> {
 }
 
 fn settings_from_row(row: &sqlx::postgres::PgRow) -> Result<SiteSettings> {
+    let mail_sender_address: Option<String> = row
+        .try_get("mail_sender_address")
+        .map_err(|_| MaviError::Internal)?;
+    let mail_sender_name: Option<String> = row
+        .try_get("mail_sender_name")
+        .map_err(|_| MaviError::Internal)?;
+    let mail_sender = match mail_sender_address {
+        Some(address) => Some(
+            MailSender::parse(&address, mail_sender_name.as_deref())
+                .map_err(|_| MaviError::Internal)?,
+        ),
+        None if mail_sender_name.is_none() => None,
+        None => return Err(MaviError::Internal),
+    };
     Ok(SiteSettings {
         site_id: SiteId::from_uuid(row.try_get("site_id").map_err(|_| MaviError::Internal)?),
         name: row.try_get("name").map_err(|_| MaviError::Internal)?,
@@ -492,6 +570,7 @@ fn settings_from_row(row: &sqlx::postgres::PgRow) -> Result<SiteSettings> {
             .map_err(|_| MaviError::Internal)?
             .map(|value| CanonicalSiteUrl::parse(&value))
             .transpose()?,
+        mail_sender,
         updated_at: row.try_get("updated_at").map_err(|_| MaviError::Internal)?,
     })
 }
@@ -559,7 +638,8 @@ impl SettingsService {
         context: &SiteContext,
     ) -> Result<SiteSettings> {
         let row = sqlx::query(
-            "select site_id, name, timezone, canonical_url, updated_at
+            "select site_id, name, timezone, canonical_url, mail_sender_address,
+                    mail_sender_name, updated_at
                from site_settings where site_id = $1",
         )
         .bind(context.site_id.into_uuid())
@@ -581,6 +661,7 @@ impl SettingsService {
         if input.name.is_none()
             && input.timezone.is_none()
             && matches!(&input.canonical_url, CanonicalUrlUpdate::Unchanged)
+            && matches!(&input.mail_sender, MailSenderUpdate::Unchanged)
         {
             return Err(MaviError::validation(SETTINGS_PATCH_EMPTY));
         }
@@ -593,21 +674,39 @@ impl SettingsService {
             }
             CanonicalUrlUpdate::Clear | CanonicalUrlUpdate::Unchanged => None,
         };
+        let mail_sender_changed = !matches!(&input.mail_sender, MailSenderUpdate::Unchanged);
+        let mail_sender = match &input.mail_sender {
+            MailSenderUpdate::Set { address, name } => Some(
+                MailSender::parse(address, name.as_deref())
+                    .map_err(|_| MaviError::validation(SETTINGS_MAIL_SENDER_INVALID))?,
+            ),
+            MailSenderUpdate::Clear | MailSenderUpdate::Unchanged => None,
+        };
 
         let row = sqlx::query(
             "update site_settings
                 set name = coalesce($2, name),
                     timezone = coalesce($3, timezone),
                     canonical_url = case when $4 then $5 else canonical_url end,
+                    mail_sender_address = case when $6 then $7 else mail_sender_address end,
+                    mail_sender_name = case when $6 then $8 else mail_sender_name end,
                     updated_at = now()
               where site_id = $1
-             returning site_id, name, timezone, canonical_url, updated_at",
+             returning site_id, name, timezone, canonical_url, mail_sender_address,
+                       mail_sender_name, updated_at",
         )
         .bind(context.site_id.into_uuid())
         .bind(name)
         .bind(timezone)
         .bind(canonical_url_changed)
         .bind(canonical_url)
+        .bind(mail_sender_changed)
+        .bind(mail_sender.as_ref().map(|sender| sender.address.as_str()))
+        .bind(
+            mail_sender
+                .as_ref()
+                .and_then(|sender| sender.name.as_deref()),
+        )
         .fetch_optional(tx.conn())
         .await
         .map_err(|_| MaviError::Internal)?
@@ -626,7 +725,8 @@ impl SettingsService {
                     payload: json!({
                         "name_changed": input.name.is_some(),
                         "timezone_changed": input.timezone.is_some(),
-                        "canonical_url_changed": canonical_url_changed
+                        "canonical_url_changed": canonical_url_changed,
+                        "mail_sender_changed": mail_sender_changed
                     }),
                 },
             )

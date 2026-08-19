@@ -35,12 +35,15 @@ async fn mail_templates_lists_and_outbox_are_site_scoped_and_leaseable() {
 
     let mut transaction = database.begin(&first_context).await.expect("first scope");
     sqlx::query(
-        "insert into site_settings (site_id, name, canonical_url)
-         values ($1, $2, $3)",
+        "insert into site_settings
+            (site_id, name, canonical_url, mail_sender_address, mail_sender_name)
+         values ($1, $2, $3, $4, $5)",
     )
     .bind(first_site.into_uuid())
     .bind("Mail test")
     .bind("https://mail.example.test")
+    .bind("noreply@example.test")
+    .bind("Mail test")
     .execute(transaction.conn())
     .await
     .expect("settings");
@@ -162,6 +165,9 @@ async fn mail_templates_lists_and_outbox_are_site_scoped_and_leaseable() {
         )
         .await
         .expect("delivery");
+    let sender = first_delivery.sender.as_ref().expect("delivery sender");
+    assert_eq!(sender.address.as_str(), "noreply@example.test");
+    assert_eq!(sender.name.as_deref(), Some("Mail test"));
     let duplicate = service
         .enqueue_delivery(
             &mut transaction,

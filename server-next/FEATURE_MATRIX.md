@@ -149,8 +149,13 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
     receipt validation; SMTP/cloud SDKs remain behind that host boundary.
   - [x] Normalized provider-event webhook, site-scoped idempotency, permanent
     bounce/complaint suppression and queued campaign cancellation.
-  - [ ] Vendor-specific signature/payload adapters, sender-domain policy and
-    provider rate-limit feedback remain host/cloud deliverability work.
+  - [x] Site settings carry a validated sender identity, each queued delivery
+    snapshots it, and the host Mailer enforces its deployment sender-domain
+    allowlist before emitting a provider `From` header.
+  - [x] Provider HTTP 429 responses preserve a bounded `Retry-After` hint and
+    the worker schedules that delay without exceeding the delivery attempt cap.
+  - [ ] Vendor-specific signature/payload adapters remain host/cloud
+    deliverability work.
 
 ## Commerce and learning
 

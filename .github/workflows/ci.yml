@@ -207,6 +207,12 @@ jobs:
       - run: cargo nextest run -p mavi-http --test audit_trash --run-ignored all
       - run: cargo test --workspace --doc
 
+      # The panel consumes the clean contract, not a hand-copied variant. A
+      # server contract change must therefore update its generated artifact in
+      # the same commit.
+      - name: Verify the panel server-next contract artifact
+        run: cmp mavi-http/contracts/mavi.ts ../client/src/api/server-next.ts
+
   client:
     needs: what
     if: needs.what.outputs.skip != 'true' && !fromJSON(needs.what.outputs.paths).client.should_skip
@@ -230,6 +236,9 @@ jobs:
       # Build before typecheck: vite generates the route tree that tsc reads.
       - run: bun run --bun build
       - run: bun run --bun lint
+
+      - name: Verify the server-next contract artifact
+        run: cmp ../server-next/mavi-http/contracts/mavi.ts src/api/server-next.ts
 
 
 

@@ -1400,19 +1400,23 @@ const TYPESCRIPT_CLIENT: &str = r#"export interface MaviClientOptions {
 }
 
 export class MaviApiError extends Error {
-  constructor(
-    public readonly status: number,
-    public readonly payload: ErrorEnvelope | null,
-  ) {
+  readonly status: number;
+  readonly payload: ErrorEnvelope | null;
+
+  constructor(status: number, payload: ErrorEnvelope | null) {
     super(payload?.error.message ?? `Mavi request failed with status ${status}`);
+    this.status = status;
+    this.payload = payload;
   }
 }
 
 export class MaviClient {
+  private readonly options: MaviClientOptions;
   private readonly baseUrl: string;
   private readonly fetcher: typeof globalThis.fetch;
 
-  constructor(private readonly options: MaviClientOptions) {
+  constructor(options: MaviClientOptions) {
+    this.options = options;
     this.baseUrl = options.baseUrl.replace(/\/+$/, "");
     this.fetcher = options.fetch ?? globalThis.fetch;
   }
@@ -1421,7 +1425,7 @@ export class MaviClient {
     operation: Name,
     args: OperationArguments[Name],
   ): Promise<OperationResponses[Name]> {
-    const definition = operations[operation];
+    const definition: MaviOperation = operations[operation];
     const values = args as {
       path?: Record<string, string>;
       query?: Record<string, unknown>;

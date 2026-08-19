@@ -52,6 +52,11 @@ pub const FORM_SUBMISSION_EXPORT_FORMAT: &str = "mavi.forms.submissions";
 pub const FORM_SUBMISSION_EXPORT_VERSION: u16 = 1;
 pub const MAX_FORM_EXPORT_ITEMS: u16 = 50;
 
+/// Stable audit action names for public-form security events.
+pub mod audit_action {
+    pub const SECURITY_EDGE_RATE_LIMITED: &str = "forms.security.edge_rate_limited";
+}
+
 pub const DEFAULT_KEPT_DAYS: i32 = 365;
 pub const MAX_FORM_FIELDS: usize = 50;
 pub const MAX_FORM_OPTIONS: usize = 100;
@@ -426,6 +431,7 @@ pub fn endpoints() -> Vec<Endpoint> {
         .refuses([
             ErrorCode::NotFound,
             ErrorCode::Validation,
+            ErrorCode::RateLimited,
             ErrorCode::Internal,
         ]),
         Endpoint::new(

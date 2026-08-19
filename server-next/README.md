@@ -37,10 +37,11 @@ before authentication and every domain transaction remains site-scoped. A
 control-plane refresh must replace this snapshot through the deployment
 boundary; the process never accepts a site ID supplied by a request.
 
-Authentication endpoints also apply bounded site+action edge windows keyed by
-the direct peer IP and a privacy-preserving User-Agent digest. The process
-uses the socket peer by default. When a reverse proxy terminates connections,
-only explicitly trusted proxy networks may supply the client IP:
+Authentication endpoints and public form submissions apply bounded site+action
+edge windows keyed by the direct peer IP and a privacy-preserving User-Agent
+digest. The process uses the socket peer by default. When a reverse proxy
+terminates connections, only explicitly trusted proxy networks may supply the
+client IP:
 
 ```text
 MAVI_TRUSTED_PROXY_CIDRS=10.0.0.0/8,192.0.2.0/24

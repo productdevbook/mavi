@@ -37,6 +37,7 @@ pub enum EdgeAction {
     PasswordResetRedeem,
     EmailVerificationRequest,
     EmailVerificationRedeem,
+    FormSubmissionCreate,
 }
 
 impl EdgeAction {
@@ -48,6 +49,7 @@ impl EdgeAction {
             Self::PasswordResetRedeem => "auth.password_reset.redeem",
             Self::EmailVerificationRequest => "auth.email_verification.request",
             Self::EmailVerificationRedeem => "auth.email_verification.redeem",
+            Self::FormSubmissionCreate => "forms.public.submit",
         }
     }
 }
@@ -467,8 +469,26 @@ pub(crate) fn action_for(request: &Request<Body>) -> Option<EdgeAction> {
         "/api/v1/auth/password-resets/redeem" => Some(EdgeAction::PasswordResetRedeem),
         "/api/v1/auth/email-verifications" => Some(EdgeAction::EmailVerificationRequest),
         "/api/v1/auth/email-verifications/redeem" => Some(EdgeAction::EmailVerificationRedeem),
+        path if is_public_form_submission(path) => Some(EdgeAction::FormSubmissionCreate),
         _ => None,
     }
+}
+
+fn is_public_form_submission(path: &str) -> bool {
+    let mut segments = path.split('/');
+    matches!(
+        (
+            segments.next(),
+            segments.next(),
+            segments.next(),
+            segments.next(),
+            segments.next(),
+            segments.next(),
+            segments.next(),
+        ),
+        (Some(""), Some("public"), Some("v1"), Some("forms"), Some(slug), Some("submissions"), None)
+            if !slug.is_empty()
+    )
 }
 
 pub(crate) fn source_for(
@@ -622,6 +642,30 @@ mod tests {
             Some(digest_ip("2001:db8::10".parse().expect("client")))
         );
         assert_eq!(source.device, Some(digest_device("MaviTest/1.0")));
+    }
+
+    #[test]
+    fn public_form_submission_is_an_edge_action_but_similar_paths_are_not() {
+        let request = Request::builder()
+            .method(Method::POST)
+            .uri("/public/v1/forms/contact/submissions")
+            .body(Body::empty())
+            .expect("request");
+        assert_eq!(action_for(&request), Some(EdgeAction::FormSubmissionCreate));
+
+        let get_request = Request::builder()
+            .method(Method::GET)
+            .uri("/public/v1/forms/contact/submissions")
+            .body(Body::empty())
+            .expect("request");
+        assert_eq!(action_for(&get_request), None);
+
+        let nested_slug = Request::builder()
+            .method(Method::POST)
+            .uri("/public/v1/forms/contact/extra/submissions")
+            .body(Body::empty())
+            .expect("request");
+        assert_eq!(action_for(&nested_slug), None);
     }
 
     #[test]

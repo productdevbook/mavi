@@ -5,7 +5,8 @@ entity Principal = {
 
 entity Resource = {
     "site_id": __cedar::String,
-    "kind": __cedar::String
+    "kind": __cedar::String,
+    "grants": Set<__cedar::String>
 };
 
 action authorize appliesTo {

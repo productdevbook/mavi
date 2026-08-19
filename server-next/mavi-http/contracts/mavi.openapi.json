@@ -11341,7 +11341,8 @@
             "forbidden",
             "not_found",
             "internal"
-          ]
+          ],
+          "resourceScoped": true
         }
       },
       "patch": {
@@ -11456,7 +11457,8 @@
             "not_found",
             "conflict",
             "internal"
-          ]
+          ],
+          "resourceScoped": true
         }
       }
     },
@@ -11573,7 +11575,8 @@
             "validation",
             "conflict",
             "internal"
-          ]
+          ],
+          "resourceScoped": true
         }
       }
     },
@@ -11690,7 +11693,8 @@
             "validation",
             "conflict",
             "internal"
-          ]
+          ],
+          "resourceScoped": true
         }
       }
     },
@@ -11771,7 +11775,8 @@
             "forbidden",
             "not_found",
             "internal"
-          ]
+          ],
+          "resourceScoped": true
         }
       },
       "patch": {
@@ -11886,7 +11891,8 @@
             "validation",
             "conflict",
             "internal"
-          ]
+          ],
+          "resourceScoped": true
         }
       },
       "delete": {
@@ -11973,7 +11979,8 @@
             "not_found",
             "conflict",
             "internal"
-          ]
+          ],
+          "resourceScoped": true
         }
       }
     },
@@ -12087,7 +12094,8 @@
             "not_found",
             "validation",
             "internal"
-          ]
+          ],
+          "resourceScoped": true
         }
       },
       "post": {
@@ -12202,7 +12210,8 @@
             "validation",
             "conflict",
             "internal"
-          ]
+          ],
+          "resourceScoped": true
         }
       }
     },
@@ -12319,7 +12328,8 @@
             "validation",
             "conflict",
             "internal"
-          ]
+          ],
+          "resourceScoped": true
         }
       }
     },
@@ -12436,7 +12446,8 @@
             "validation",
             "conflict",
             "internal"
-          ]
+          ],
+          "resourceScoped": true
         }
       },
       "delete": {
@@ -12522,6 +12533,327 @@
             "forbidden",
             "not_found",
             "conflict",
+            "internal"
+          ],
+          "resourceScoped": true
+        }
+      }
+    },
+    "/api/v1/courses/{course_id}/instructors": {
+      "get": {
+        "operationId": "courses.instructors.list",
+        "summary": "List resource-scoped instructors for a course",
+        "tags": [
+          "courses"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourseInstructorPage"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "course_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "maxLength": 512
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-mavi": {
+          "scope": "site",
+          "authentication": "account_or_assistant",
+          "mutation": "none",
+          "permission": {
+            "capability": "courses",
+            "action": "view"
+          },
+          "errors": [
+            "forbidden",
+            "not_found",
+            "validation",
+            "internal"
+          ]
+        }
+      }
+    },
+    "/api/v1/courses/{course_id}/instructors/{person_id}": {
+      "put": {
+        "operationId": "courses.instructors.replace",
+        "summary": "Replace one instructor's resource-scoped course grants",
+        "tags": [
+          "courses"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourseInstructor"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReplaceCourseInstructor"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "course_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "person_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-mavi": {
+          "scope": "site",
+          "authentication": "account_or_assistant",
+          "mutation": {
+            "permissioned": {
+              "idempotent": true
+            }
+          },
+          "permission": {
+            "capability": "courses",
+            "action": "write"
+          },
+          "errors": [
+            "forbidden",
+            "not_found",
+            "validation",
+            "conflict",
+            "internal"
+          ]
+        }
+      },
+      "delete": {
+        "operationId": "courses.instructors.delete",
+        "summary": "Remove one instructor from a course",
+        "tags": [
+          "courses"
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "course_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "person_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-mavi": {
+          "scope": "site",
+          "authentication": "account_or_assistant",
+          "mutation": {
+            "permissioned": {
+              "idempotent": true
+            }
+          },
+          "permission": {
+            "capability": "courses",
+            "action": "write"
+          },
+          "errors": [
+            "forbidden",
+            "not_found",
             "internal"
           ]
         }
@@ -13044,7 +13376,8 @@
             "not_found",
             "validation",
             "internal"
-          ]
+          ],
+          "resourceScoped": true
         }
       },
       "post": {
@@ -13158,7 +13491,8 @@
             "validation",
             "conflict",
             "internal"
-          ]
+          ],
+          "resourceScoped": true
         }
       }
     },
@@ -13236,7 +13570,8 @@
             "forbidden",
             "not_found",
             "internal"
-          ]
+          ],
+          "resourceScoped": true
         }
       }
     },
@@ -19637,6 +19972,90 @@
         },
         "additionalProperties": false
       },
+      "CourseInstructor": {
+        "type": "object",
+        "required": [
+          "course_id",
+          "person_id",
+          "grants",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "course_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "person_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "grants": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CourseInstructorGrant"
+            }
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CourseInstructorGrant": {
+        "type": "string",
+        "enum": [
+          "view",
+          "write",
+          "delete"
+        ]
+      },
+      "CourseInstructorListFilter": {
+        "type": "object",
+        "properties": {
+          "after": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 512
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          }
+        },
+        "additionalProperties": false
+      },
+      "CourseInstructorPage": {
+        "type": "object",
+        "required": [
+          "items",
+          "next_cursor"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CourseInstructor"
+            }
+          },
+          "next_cursor": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 512
+          }
+        },
+        "additionalProperties": false
+      },
       "CourseListFilter": {
         "type": "object",
         "properties": {
@@ -24457,6 +24876,23 @@
           }
         },
         "additionalProperties": false
+      },
+      "ReplaceCourseInstructor": {
+        "type": "object",
+        "required": [
+          "grants"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "grants": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 3,
+            "items": {
+              "$ref": "#/components/schemas/CourseInstructorGrant"
+            }
+          }
+        }
       },
       "ReplaceRoleGrants": {
         "type": "object",

@@ -5027,7 +5027,8 @@
         "permission": {
           "capability": "courses",
           "action": "view"
-        }
+        },
+        "resourceScoped": true
       }
     },
     {
@@ -5098,7 +5099,8 @@
         "permission": {
           "capability": "courses",
           "action": "write"
-        }
+        },
+        "resourceScoped": true
       }
     },
     {
@@ -5152,7 +5154,8 @@
         "permission": {
           "capability": "courses",
           "action": "write"
-        }
+        },
+        "resourceScoped": true
       }
     },
     {
@@ -5202,7 +5205,8 @@
         "permission": {
           "capability": "courses",
           "action": "write"
-        }
+        },
+        "resourceScoped": true
       }
     },
     {
@@ -5237,7 +5241,8 @@
         "permission": {
           "capability": "courses",
           "action": "view"
-        }
+        },
+        "resourceScoped": true
       }
     },
     {
@@ -5286,7 +5291,8 @@
         "permission": {
           "capability": "courses",
           "action": "write"
-        }
+        },
+        "resourceScoped": true
       }
     },
     {
@@ -5321,7 +5327,8 @@
         "permission": {
           "capability": "courses",
           "action": "delete"
-        }
+        },
+        "resourceScoped": true
       }
     },
     {
@@ -5375,7 +5382,8 @@
         "permission": {
           "capability": "courses",
           "action": "view"
-        }
+        },
+        "resourceScoped": true
       }
     },
     {
@@ -5429,7 +5437,8 @@
         "permission": {
           "capability": "courses",
           "action": "write"
-        }
+        },
+        "resourceScoped": true
       }
     },
     {
@@ -5490,7 +5499,8 @@
         "permission": {
           "capability": "courses",
           "action": "write"
-        }
+        },
+        "resourceScoped": true
       }
     },
     {
@@ -5553,7 +5563,8 @@
         "permission": {
           "capability": "courses",
           "action": "write"
-        }
+        },
+        "resourceScoped": true
       }
     },
     {
@@ -5588,6 +5599,162 @@
         "permission": {
           "capability": "courses",
           "action": "delete"
+        },
+        "resourceScoped": true
+      }
+    },
+    {
+      "name": "courses.instructors.list",
+      "description": "List resource-scoped instructors for a course",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "course_id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "course_id"
+            ]
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "after": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 512
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "path",
+          "query"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true
+      },
+      "x-mavi": {
+        "authentication": "account_or_assistant",
+        "scope": "site",
+        "permission": {
+          "capability": "courses",
+          "action": "view"
+        }
+      }
+    },
+    {
+      "name": "courses.instructors.replace",
+      "description": "Replace one instructor's resource-scoped course grants",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "course_id": {
+                "type": "string"
+              },
+              "person_id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "course_id",
+              "person_id"
+            ]
+          },
+          "body": {
+            "type": "object",
+            "required": [
+              "grants"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "grants": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 3,
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "view",
+                    "write",
+                    "delete"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "required": [
+          "path",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false
+      },
+      "x-mavi": {
+        "authentication": "account_or_assistant",
+        "scope": "site",
+        "permission": {
+          "capability": "courses",
+          "action": "write"
+        }
+      }
+    },
+    {
+      "name": "courses.instructors.delete",
+      "description": "Remove one instructor from a course",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "course_id": {
+                "type": "string"
+              },
+              "person_id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "course_id",
+              "person_id"
+            ]
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false
+      },
+      "x-mavi": {
+        "authentication": "account_or_assistant",
+        "scope": "site",
+        "permission": {
+          "capability": "courses",
+          "action": "write"
         }
       }
     },
@@ -5834,7 +6001,8 @@
         "permission": {
           "capability": "courses",
           "action": "view"
-        }
+        },
+        "resourceScoped": true
       }
     },
     {
@@ -5883,7 +6051,8 @@
         "permission": {
           "capability": "courses",
           "action": "write"
-        }
+        },
+        "resourceScoped": true
       }
     },
     {
@@ -5918,7 +6087,8 @@
         "permission": {
           "capability": "courses",
           "action": "delete"
-        }
+        },
+        "resourceScoped": true
       }
     },
     {

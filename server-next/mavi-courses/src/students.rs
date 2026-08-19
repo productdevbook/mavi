@@ -201,6 +201,7 @@ pub fn api() -> mavi_contract::Api {
         )
         .account_or_assistant()
         .requires(view)
+        .resource_scoped()
         .takes_query("EnrollmentListFilter")
         .returns(200, "EnrollmentPage")
         .refuses([ErrorCode::Forbidden, ErrorCode::NotFound, ErrorCode::Validation, ErrorCode::Internal]),
@@ -212,6 +213,7 @@ pub fn api() -> mavi_contract::Api {
         )
         .account_or_assistant()
         .requires(write)
+        .resource_scoped()
         .takes("EnrollStudent")
         .returns(201, "Enrollment")
         .changes(true)
@@ -230,6 +232,7 @@ pub fn api() -> mavi_contract::Api {
         )
         .account_or_assistant()
         .requires(delete)
+        .resource_scoped()
         .returns(204, "Empty")
         .changes(false)
         .refuses([ErrorCode::Forbidden, ErrorCode::NotFound, ErrorCode::Internal]),

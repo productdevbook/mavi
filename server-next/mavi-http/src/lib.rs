@@ -44,18 +44,18 @@ use mavi_contract::{Api, Endpoint, InputLocation, Method, Shape};
 use mavi_core::{
     Action, AuditEventId, BoardCardId, BoardCommentId, BoardId, BoardListId, Caller, Capability,
     ContentId, CouponId, CourseId, CredentialId, DesignBuildId, DesignChangeId, EnrollmentId,
-    ErrorCode, FileId, FlowId, FlowRunId, FormSubmissionId, Grant, JobId, LessonId, MailDeliveryId,
-    MailListId, MailReaderId, MailTemplateId, MaviError, ModuleId, OrderId, Page, PageRequest,
-    PersonId, ProductId, RequestId, RoleId, SiteContext, StudentId, TermId,
+    ErrorCode, FileId, FlowId, FlowRunId, FormSubmissionId, Grant, Grants, JobId, LessonId,
+    MailDeliveryId, MailListId, MailReaderId, MailTemplateId, MaviError, ModuleId, OrderId, Page,
+    PageRequest, PersonId, ProductId, RequestId, RoleId, SiteContext, StudentId, TermId,
     ports::{FileStore, MailContentType, MailMessage, Seals},
 };
 use mavi_courses::{
-    Course, CourseListFilter, CourseSummary, CoursesService, CreateCourse, CreateLesson,
-    CreateModule, CreateStudent, EnrollStudent, Enrollment, EnrollmentListFilter, LearningCourse,
-    LearningCourseListFilter, LearningLesson, Lesson, LessonListFilter, Module, Progress,
-    ReorderLessons, ReorderModules, Student, StudentActivationInput, StudentInvitation,
-    StudentListFilter, StudentLoginInput, StudentSessionCreated, UpdateCourse, UpdateLesson,
-    UpdateModule, UpdateStudent,
+    Course, CourseInstructorListFilter, CourseListFilter, CourseSummary, CoursesService,
+    CreateCourse, CreateLesson, CreateModule, CreateStudent, EnrollStudent, Enrollment,
+    EnrollmentListFilter, LearningCourse, LearningCourseListFilter, LearningLesson, Lesson,
+    LessonListFilter, Module, Progress, ReorderLessons, ReorderModules, ReplaceCourseInstructor,
+    Student, StudentActivationInput, StudentInvitation, StudentListFilter, StudentLoginInput,
+    StudentSessionCreated, UpdateCourse, UpdateLesson, UpdateModule, UpdateStudent,
 };
 use mavi_design::{
     BuildEngine, DESIGN_BUILD_FAILED, DesignBuild, DesignBuildListFilter, DesignChange,
@@ -105,6 +105,7 @@ use mavi_shop::{
     OrderListFilter, OrderSummary, OrderTransition, Product, ProductListFilter, PublicProduct,
     PublicProductListFilter, ShopService, UpdateProduct,
 };
+use mavi_storage::SiteTx;
 use mavi_taxonomy::{
     ContentTermAssignment, ContentTermAssignmentListFilter, CreateTerm, ReplaceContentTerms,
     TaxonomyService, Term, TermListFilter, UpdateTerm,
@@ -896,9 +897,12 @@ fn mcp_endpoint_available(context: &SiteContext, endpoint: &Endpoint) -> bool {
     }
 
     endpoint.permission.is_none_or(|permission| {
-        context.caller.grants().is_some_and(|grants| {
-            grants.allows(Grant::new(permission.capability, permission.action))
-        })
+        let needed = Grant::new(permission.capability, permission.action);
+        context
+            .caller
+            .grants()
+            .is_some_and(|grants| grants.allows(needed))
+            || (endpoint.resource_scoped && matches!(context.caller, Caller::Account { .. }))
     })
 }
 
@@ -1455,6 +1459,14 @@ where
         .route(
             "/api/v1/courses/{id}",
             get(read_course::<R>).patch(update_course::<R>),
+        )
+        .route(
+            "/api/v1/courses/{course_id}/instructors",
+            get(list_course_instructors::<R>),
+        )
+        .route(
+            "/api/v1/courses/{course_id}/instructors/{person_id}",
+            put(replace_course_instructor::<R>).delete(remove_course_instructor::<R>),
         )
         .route(
             "/api/v1/courses/{id}/modules/order",
@@ -5928,6 +5940,83 @@ where
     Ok((StatusCode::CREATED, Json(course)))
 }
 
+async fn list_course_instructors<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(course_id): Path<CourseId>,
+    Query(filter): Query<CourseInstructorListFilter>,
+) -> Result<Json<Page<mavi_courses::CourseInstructor>>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Courses, Action::View),
+        "Course",
+        course_id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let instructors = state
+        .courses
+        .list_instructors(&mut transaction, &context, course_id, &filter)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(instructors))
+}
+
+async fn replace_course_instructor<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path((course_id, person_id)): Path<(CourseId, PersonId)>,
+    Json(input): Json<ReplaceCourseInstructor>,
+) -> Result<Json<mavi_courses::CourseInstructor>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_courses_grant(
+        &state,
+        &context,
+        Action::Write,
+        "Course",
+        course_id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let instructor = state
+        .courses
+        .replace_instructor(&mut transaction, &context, course_id, person_id, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(instructor))
+}
+
+async fn remove_course_instructor<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path((course_id, person_id)): Path<(CourseId, PersonId)>,
+) -> Result<StatusCode, HttpError>
+where
+    R: SiteResolver,
+{
+    require_courses_grant(
+        &state,
+        &context,
+        Action::Write,
+        "Course",
+        course_id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    state
+        .courses
+        .remove_instructor(&mut transaction, &context, course_id, person_id)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
 async fn read_course<R>(
     State(state): State<HttpState<R>>,
     Extension(context): Extension<SiteContext>,
@@ -5936,8 +6025,17 @@ async fn read_course<R>(
 where
     R: SiteResolver,
 {
-    require_courses_grant(&state, &context, Action::View, "Course", id.to_string())?;
     let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    require_course_grant(
+        &state,
+        &context,
+        &mut transaction,
+        Action::View,
+        id,
+        "Course",
+        id.to_string(),
+    )
+    .await?;
     let course = state
         .courses
         .get_course(&mut transaction, &context, id)
@@ -5956,8 +6054,17 @@ async fn update_course<R>(
 where
     R: SiteResolver,
 {
-    require_courses_grant(&state, &context, Action::Write, "Course", id.to_string())?;
     let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    require_course_grant(
+        &state,
+        &context,
+        &mut transaction,
+        Action::Write,
+        id,
+        "Course",
+        id.to_string(),
+    )
+    .await?;
     let course = state
         .courses
         .update_course(&mut transaction, &context, id, &input)
@@ -5976,8 +6083,17 @@ async fn reorder_course_modules<R>(
 where
     R: SiteResolver,
 {
-    require_courses_grant(&state, &context, Action::Write, "Course", id.to_string())?;
     let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    require_course_grant(
+        &state,
+        &context,
+        &mut transaction,
+        Action::Write,
+        id,
+        "Course",
+        id.to_string(),
+    )
+    .await?;
     let course = state
         .courses
         .reorder_modules(&mut transaction, &context, id, &input)
@@ -5996,8 +6112,17 @@ async fn create_course_module<R>(
 where
     R: SiteResolver,
 {
-    require_courses_grant(&state, &context, Action::Write, "Course", id.to_string())?;
     let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    require_course_grant(
+        &state,
+        &context,
+        &mut transaction,
+        Action::Write,
+        id,
+        "Course",
+        id.to_string(),
+    )
+    .await?;
     let module = state
         .courses
         .create_module(&mut transaction, &context, id, &input)
@@ -6015,14 +6140,22 @@ async fn read_course_module<R>(
 where
     R: SiteResolver,
 {
-    require_courses_grant(
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let course_id = state
+        .courses
+        .course_id_for_module(&mut transaction, &context, id)
+        .await
+        .map_err(HttpError)?;
+    require_course_grant(
         &state,
         &context,
+        &mut transaction,
         Action::View,
+        course_id,
         "CourseModule",
         id.to_string(),
-    )?;
-    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    )
+    .await?;
     let module = state
         .courses
         .get_module(&mut transaction, &context, id)
@@ -6041,14 +6174,22 @@ async fn update_course_module<R>(
 where
     R: SiteResolver,
 {
-    require_courses_grant(
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let course_id = state
+        .courses
+        .course_id_for_module(&mut transaction, &context, id)
+        .await
+        .map_err(HttpError)?;
+    require_course_grant(
         &state,
         &context,
+        &mut transaction,
         Action::Write,
+        course_id,
         "CourseModule",
         id.to_string(),
-    )?;
-    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    )
+    .await?;
     let module = state
         .courses
         .update_module(&mut transaction, &context, id, &input)
@@ -6066,14 +6207,22 @@ async fn delete_course_module<R>(
 where
     R: SiteResolver,
 {
-    require_courses_grant(
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let course_id = state
+        .courses
+        .course_id_for_module(&mut transaction, &context, id)
+        .await
+        .map_err(HttpError)?;
+    require_course_grant(
         &state,
         &context,
+        &mut transaction,
         Action::Delete,
+        course_id,
         "CourseModule",
         id.to_string(),
-    )?;
-    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    )
+    .await?;
     state
         .courses
         .delete_module(&mut transaction, &context, id)
@@ -6092,14 +6241,22 @@ async fn list_course_lessons<R>(
 where
     R: SiteResolver,
 {
-    require_courses_grant(
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let course_id = state
+        .courses
+        .course_id_for_module(&mut transaction, &context, id)
+        .await
+        .map_err(HttpError)?;
+    require_course_grant(
         &state,
         &context,
+        &mut transaction,
         Action::View,
+        course_id,
         "CourseModule",
         id.to_string(),
-    )?;
-    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    )
+    .await?;
     let lessons = state
         .courses
         .list_lessons(&mut transaction, &context, id, &filter)
@@ -6118,14 +6275,22 @@ async fn reorder_course_lessons<R>(
 where
     R: SiteResolver,
 {
-    require_courses_grant(
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let course_id = state
+        .courses
+        .course_id_for_module(&mut transaction, &context, id)
+        .await
+        .map_err(HttpError)?;
+    require_course_grant(
         &state,
         &context,
+        &mut transaction,
         Action::Write,
+        course_id,
         "CourseModule",
         id.to_string(),
-    )?;
-    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    )
+    .await?;
     let module = state
         .courses
         .reorder_lessons(&mut transaction, &context, id, &input)
@@ -6144,14 +6309,22 @@ async fn create_course_lesson<R>(
 where
     R: SiteResolver,
 {
-    require_courses_grant(
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let course_id = state
+        .courses
+        .course_id_for_module(&mut transaction, &context, id)
+        .await
+        .map_err(HttpError)?;
+    require_course_grant(
         &state,
         &context,
+        &mut transaction,
         Action::Write,
+        course_id,
         "CourseModule",
         id.to_string(),
-    )?;
-    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    )
+    .await?;
     let lesson = state
         .courses
         .create_lesson(&mut transaction, &context, id, &input)
@@ -6170,14 +6343,22 @@ async fn update_course_lesson<R>(
 where
     R: SiteResolver,
 {
-    require_courses_grant(
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let course_id = state
+        .courses
+        .course_id_for_lesson(&mut transaction, &context, id)
+        .await
+        .map_err(HttpError)?;
+    require_course_grant(
         &state,
         &context,
+        &mut transaction,
         Action::Write,
+        course_id,
         "CourseLesson",
         id.to_string(),
-    )?;
-    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    )
+    .await?;
     let lesson = state
         .courses
         .update_lesson(&mut transaction, &context, id, &input)
@@ -6195,14 +6376,22 @@ async fn delete_course_lesson<R>(
 where
     R: SiteResolver,
 {
-    require_courses_grant(
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let course_id = state
+        .courses
+        .course_id_for_lesson(&mut transaction, &context, id)
+        .await
+        .map_err(HttpError)?;
+    require_course_grant(
         &state,
         &context,
+        &mut transaction,
         Action::Delete,
+        course_id,
         "CourseLesson",
         id.to_string(),
-    )?;
-    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    )
+    .await?;
     state
         .courses
         .delete_lesson(&mut transaction, &context, id)
@@ -6310,14 +6499,17 @@ async fn list_course_enrollments<R>(
 where
     R: SiteResolver,
 {
-    require_courses_grant(
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    require_course_grant(
         &state,
         &context,
+        &mut transaction,
         Action::View,
+        course_id,
         "Course",
         course_id.to_string(),
-    )?;
-    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    )
+    .await?;
     let enrollments = state
         .courses
         .list_enrollments(&mut transaction, &context, course_id, &filter)
@@ -6336,14 +6528,17 @@ async fn enroll_course_student<R>(
 where
     R: SiteResolver,
 {
-    require_courses_grant(
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    require_course_grant(
         &state,
         &context,
+        &mut transaction,
         Action::Write,
+        course_id,
         "Course",
         course_id.to_string(),
-    )?;
-    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    )
+    .await?;
     let enrollment = state
         .courses
         .enroll(&mut transaction, &context, course_id, &input)
@@ -6361,14 +6556,22 @@ async fn unenroll_course_student<R>(
 where
     R: SiteResolver,
 {
-    require_courses_grant(
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let course_id = state
+        .courses
+        .course_id_for_enrollment(&mut transaction, &context, id)
+        .await
+        .map_err(HttpError)?;
+    require_course_grant(
         &state,
         &context,
+        &mut transaction,
         Action::Delete,
+        course_id,
         "CourseEnrollment",
         id.to_string(),
-    )?;
-    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    )
+    .await?;
     state
         .courses
         .unenroll(&mut transaction, &context, id)
@@ -6920,6 +7123,41 @@ where
     )
 }
 
+async fn require_course_grant<R>(
+    state: &HttpState<R>,
+    context: &SiteContext,
+    transaction: &mut SiteTx,
+    action: Action,
+    course_id: CourseId,
+    resource_type: impl Into<String>,
+    resource_id: impl Into<String>,
+) -> Result<(), HttpError>
+where
+    R: SiteResolver,
+{
+    let grant = Grant::new(Capability::Courses, action);
+    if context
+        .caller
+        .grants()
+        .is_some_and(|grants| grants.allows(grant))
+    {
+        return require_grant_for(state, context, grant, resource_type, resource_id);
+    }
+    let resource_grants = state
+        .courses
+        .instructor_grants(transaction, context, course_id)
+        .await
+        .map_err(HttpError)?;
+    require_grant_for_with_resource_grants(
+        state,
+        context,
+        grant,
+        resource_type,
+        resource_id,
+        resource_grants,
+    )
+}
+
 fn require_grant<R>(
     state: &HttpState<R>,
     context: &SiteContext,
@@ -6945,6 +7183,30 @@ where
     state
         .authorizer
         .authorize_context(context, grant, resource_type, resource_id, context.site_id)
+        .map_err(HttpError)
+}
+
+fn require_grant_for_with_resource_grants<R>(
+    state: &HttpState<R>,
+    context: &SiteContext,
+    grant: Grant,
+    resource_type: impl Into<String>,
+    resource_id: impl Into<String>,
+    resource_grants: Grants,
+) -> Result<(), HttpError>
+where
+    R: SiteResolver,
+{
+    state
+        .authorizer
+        .authorize_context_with_resource_grants(
+            context,
+            grant,
+            resource_type,
+            resource_id,
+            context.site_id,
+            resource_grants,
+        )
         .map_err(HttpError)
 }
 

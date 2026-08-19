@@ -9,6 +9,7 @@ description = "Site-scoped media metadata, uploads and binary storage orchestrat
 [dependencies]
 base64.workspace = true
 chrono.workspace = true
+image = { version = "0.25.10", default-features = false, features = ["png", "jpeg", "gif", "webp"] }
 mavi-audit = { path = "../mavi-audit" }
 mavi-contract = { path = "../mavi-contract" }
 mavi-core = { path = "../mavi-core" }

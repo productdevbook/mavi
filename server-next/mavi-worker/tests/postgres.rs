@@ -8,7 +8,10 @@ use mavi_content::{
 use mavi_core::{SiteContext, SiteId, ports::FileStore};
 use mavi_files::InMemoryFileStore;
 use mavi_jobs::JobsService;
-use mavi_media::{FileVisibility, MEDIA_CLEANUP_JOB, MEDIA_ORPHAN_CLEANUP_JOB, MediaService};
+use mavi_media::{
+    FileVariantListFilter, FileVisibility, MEDIA_CLEANUP_JOB, MEDIA_ORPHAN_CLEANUP_JOB,
+    MEDIA_VARIANT_JOB, MediaService, VariantPreset,
+};
 use mavi_storage::Database;
 use mavi_trash::{TrashKind, TrashService};
 use mavi_worker::{WorkerConfig, WorkerSupervisor};
@@ -383,9 +386,9 @@ async fn media_orphan_worker_removes_only_unknown_generated_media_keys() {
             &mut transaction,
             &context,
             store.as_ref(),
-            "live.png",
+            "live.pdf",
             FileVisibility::Private,
-            b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR".to_vec(),
+            b"%PDF-1.7".to_vec(),
         )
         .await
         .expect("upload");
@@ -449,4 +452,141 @@ async fn media_orphan_worker_removes_only_unknown_generated_media_keys() {
     assert_eq!(orphan_jobs.items.len(), 1);
     assert_eq!(orphan_jobs.items[0].state.as_str(), "done");
     transaction.commit().await.expect("audit commit");
+}
+
+#[tokio::test]
+#[ignore = "requires TEST_DATABASE_URL and a non-superuser PostgreSQL role"]
+#[allow(clippy::too_many_lines)]
+async fn media_variant_worker_generates_all_presets_and_serves_public_bytes() {
+    const ONE_PIXEL_PNG: &[u8] = &[
+        0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44,
+        0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x08, 0x04, 0x00, 0x00, 0x00, 0xb5,
+        0x1c, 0x0c, 0x02, 0x00, 0x00, 0x00, 0x0b, 0x49, 0x44, 0x41, 0x54, 0x78, 0xda, 0x63, 0x64,
+        0xf8, 0x0f, 0x00, 0x01, 0x05, 0x01, 0x01, 0x27, 0x18, 0xe3, 0x66, 0x00, 0x00, 0x00, 0x00,
+        0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82,
+    ];
+    let database_url = env::var("TEST_DATABASE_URL").expect("TEST_DATABASE_URL");
+    let database = Database::connect(&database_url, 4)
+        .await
+        .expect("database connection");
+    database.migrate().await.expect("migrations");
+    let site_id = SiteId::new();
+    database.ensure_site(site_id).await.expect("site");
+
+    let context = SiteContext::public(site_id);
+    let store = Arc::new(InMemoryFileStore::default());
+    let media = MediaService;
+    let mut transaction = database.begin(&context).await.expect("scope");
+    let file = media
+        .upload(
+            &mut transaction,
+            &context,
+            store.as_ref(),
+            "variant.png",
+            FileVisibility::Public,
+            ONE_PIXEL_PNG.to_vec(),
+        )
+        .await
+        .expect("upload");
+    transaction.commit().await.expect("upload commit");
+
+    let supervisor = WorkerSupervisor::new(
+        database.clone(),
+        [site_id],
+        WorkerConfig::new(
+            "test-media-variant-worker",
+            30,
+            std::time::Duration::from_millis(10),
+        )
+        .expect("worker config"),
+        Arc::clone(&store) as Arc<dyn mavi_core::ports::FileStore>,
+    );
+    for _ in 0..3 {
+        assert!(supervisor.run_once(site_id).await.expect("variant run"));
+    }
+
+    let mut transaction = database.begin(&context).await.expect("scope");
+    let variants = media
+        .list_variants(
+            &mut transaction,
+            &context,
+            file.id,
+            &FileVariantListFilter::default(),
+        )
+        .await
+        .expect("variants");
+    assert_eq!(variants.items.len(), 3);
+    assert_eq!(
+        variants
+            .items
+            .iter()
+            .map(|variant| variant.preset)
+            .collect::<std::collections::BTreeSet<_>>(),
+        std::collections::BTreeSet::from([
+            VariantPreset::Thumbnail,
+            VariantPreset::Medium,
+            VariantPreset::Large,
+        ])
+    );
+    let (_, bytes) = media
+        .read_variant_bytes(
+            &mut transaction,
+            &context,
+            store.as_ref(),
+            file.id,
+            VariantPreset::Thumbnail,
+            true,
+        )
+        .await
+        .expect("public variant");
+    assert!(bytes.starts_with(&[0xff, 0xd8, 0xff]));
+    let variant_jobs: i64 = sqlx::query_scalar(
+        "select count(*) from jobs where site_id = $1 and kind = $2 and state = 'done'",
+    )
+    .bind(site_id.into_uuid())
+    .bind(MEDIA_VARIANT_JOB.name)
+    .fetch_one(transaction.conn())
+    .await
+    .expect("variant jobs");
+    assert_eq!(variant_jobs, 3);
+    transaction.commit().await.expect("scope commit");
+
+    let mut transaction = database.begin(&context).await.expect("delete scope");
+    let original_key: String =
+        sqlx::query_scalar("select storage_key from media_files where site_id = $1 and id = $2")
+            .bind(site_id.into_uuid())
+            .bind(file.id.into_uuid())
+            .fetch_one(transaction.conn())
+            .await
+            .expect("original key");
+    let variant_keys: Vec<String> = sqlx::query_scalar(
+        "select storage_key from media_variants
+          where site_id = $1 and source_file_id = $2
+          order by id",
+    )
+    .bind(site_id.into_uuid())
+    .bind(file.id.into_uuid())
+    .fetch_all(transaction.conn())
+    .await
+    .expect("variant keys");
+    media
+        .trash(&mut transaction, &context, file.id)
+        .await
+        .expect("trash source");
+    TrashService
+        .permanently_delete(
+            &mut transaction,
+            &context,
+            TrashKind::File,
+            file.id.into_uuid(),
+        )
+        .await
+        .expect("permanent delete");
+    transaction.commit().await.expect("delete commit");
+
+    assert!(supervisor.run_once(site_id).await.expect("cleanup run"));
+    assert!(store.get(&context, &original_key).await.is_err());
+    for key in variant_keys {
+        assert!(store.get(&context, &key).await.is_err());
+    }
 }

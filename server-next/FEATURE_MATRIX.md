@@ -93,16 +93,19 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Category parent validation, recursive cycle protection and atomic content assignments.
   - [x] Content-to-term reads, replacement and term membership listing use canonical API contracts.
   - [x] Public taxonomy archive URLs resolve exact/regional/default language terms and return only published content through opaque cursors.
-- [-] Media metadata, uploads, image variants, file storage and cleanup.
+- [x] Media metadata, uploads, image variants, file storage and cleanup.
   - [x] Site-scoped file metadata, byte-sniffed allowlist, SHA-256 receipt and opaque cursor listing.
   - [x] Raw binary upload contract, local atomic file adapter and in-memory test adapter.
   - [x] Explicit private/public visibility, authenticated downloads and public downloads with integrity verification.
   - [x] RLS/composite keys, Cedar media grants, upload/trash audit receipts and durable cleanup tasks.
   - [x] Private shard relocation exports live metadata plus verified bytes and retries through the site-scoped `FileStore`.
-- [-] Image variants and orphan cleanup worker.
+- [x] Image variants and orphan cleanup worker.
   - [x] Permanent media deletion creates an idempotent site-scoped cleanup job; the shared worker removes bytes through `FileStore`, records an immutable completion audit and reopens dead jobs for later retry.
   - [x] Shared worker enumerates one site namespace, preserves live and pending-cleanup keys, removes only generated media keys and records the removed count.
-  - [ ] Image variants remain open.
+  - [x] Image variants use a site-scoped `media_variants` table with composite source foreign keys and three deterministic presets (`thumbnail`, `medium`, `large`).
+  - [x] Variant generation is bounded, blocking-work isolated, JPEG-normalized, idempotent and converges imported/legacy images through worker discovery.
+  - [x] Authenticated and public variant APIs verify source visibility, byte length and SHA-256; variant metadata never exposes storage keys.
+  - [x] Permanent deletion queues original and derived keys together; restore retains derived data and orphan cleanup preserves every live/pending key.
 
 ## Operations and publishing
 

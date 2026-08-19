@@ -844,6 +844,31 @@ pub struct FilePage {
     pub next_cursor: Option<String>,
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct FileVariant {
+    pub id: String,
+    pub source_file_id: String,
+    pub preset: VariantPreset,
+    pub mime: String,
+    pub width: i64,
+    pub height: i64,
+    pub bytes: i64,
+    pub sha256: String,
+    pub created_at: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct FileVariantListFilter {
+    pub after: Option<String>,
+    pub limit: Option<i64>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct FileVariantPage {
+    pub items: Vec<FileVariant>,
+    pub next_cursor: Option<String>,
+}
+
 pub type FileVisibility = String;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -2006,6 +2031,8 @@ pub struct UploadFileQuery {
     pub visibility: Option<FileVisibility>,
 }
 
+pub type VariantPreset = String;
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct OperationDefinition {
     pub name: &'static str,
@@ -2076,7 +2103,10 @@ pub const OPERATIONS: &[OperationDefinition] = &[
     OperationDefinition { name: "media.files.upload", method: "post", path: "/api/v1/files", request: Some("FileBytes"), request_location: Some("raw"), query: Some("UploadFileQuery"), response: Some("File"), response_location: None, status: 201, authentication: "account_or_assistant", capability: Some("media"), action: Some("write") },
     OperationDefinition { name: "media.files.read", method: "get", path: "/api/v1/files/{id}", request: None, request_location: None, query: None, response: Some("File"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("media"), action: Some("view") },
     OperationDefinition { name: "media.files.download", method: "get", path: "/api/v1/files/{id}/content", request: None, request_location: None, query: None, response: Some("FileBytes"), response_location: Some("raw"), status: 200, authentication: "account_or_assistant", capability: Some("media"), action: Some("view") },
+    OperationDefinition { name: "media.files.variants.list", method: "get", path: "/api/v1/files/{id}/variants", request: Some("FileVariantListFilter"), request_location: Some("query"), query: None, response: Some("FileVariantPage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("media"), action: Some("view") },
+    OperationDefinition { name: "media.files.variants.download", method: "get", path: "/api/v1/files/{id}/variants/{preset}/content", request: None, request_location: None, query: None, response: Some("FileBytes"), response_location: Some("raw"), status: 200, authentication: "account_or_assistant", capability: Some("media"), action: Some("view") },
     OperationDefinition { name: "media.files.public_download", method: "get", path: "/public/v1/files/{id}", request: None, request_location: None, query: None, response: Some("FileBytes"), response_location: Some("raw"), status: 200, authentication: "public", capability: None, action: None },
+    OperationDefinition { name: "media.files.variants.public_download", method: "get", path: "/public/v1/files/{id}/variants/{preset}", request: None, request_location: None, query: None, response: Some("FileBytes"), response_location: Some("raw"), status: 200, authentication: "public", capability: None, action: None },
     OperationDefinition { name: "media.files.trash", method: "delete", path: "/api/v1/files/{id}", request: None, request_location: None, query: None, response: Some("Empty"), response_location: None, status: 204, authentication: "account_or_assistant", capability: Some("media"), action: Some("delete") },
     OperationDefinition { name: "audit.events.list", method: "get", path: "/api/v1/audit", request: Some("AuditListFilter"), request_location: Some("query"), query: None, response: Some("AuditEventPage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("audit"), action: Some("view") },
     OperationDefinition { name: "audit.events.read", method: "get", path: "/api/v1/audit/{id}", request: None, request_location: None, query: None, response: Some("AuditEvent"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("audit"), action: Some("view") },

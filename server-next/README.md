@@ -207,15 +207,19 @@ credential hashes, live media metadata/bytes and design/build state. Credentials
 are redacted from debug output; sessions and API keys are revoked at the target
 rather than copied. Media and design artifact bytes stay behind the site-scoped
 `FileStore` and are verified by size and SHA-256 before import; publish pointers
-are restored only after their referenced builds exist.
+are restored only after their referenced builds exist. Image variants are derived
+data rather than relocation payload: the shared worker regenerates deterministic
+thumbnail, medium and large JPEGs after import or for legacy uploads.
 
 Self-host stores binary objects outside PostgreSQL. Set `MAVI_FILES_DIR` to a
 persistent directory (default: `./mavi-files`); object keys are generated from
 file IDs and are always namespaced by `SiteContext.site_id`. Uploads are
 private by default; an explicit `visibility=public` upload query is required
 before `/public/v1/files/{id}` can serve bytes. Authenticated callers with the
-media view grant use `/api/v1/files/{id}/content`. Both paths verify the stored
-byte count and SHA-256 receipt before responding.
+media view grant use `/api/v1/files/{id}/content`; generated image variants are
+listed at `/api/v1/files/{id}/variants` and served through authenticated or
+source-visibility-checked public variant paths. All media paths verify the
+stored byte count and SHA-256 receipt before responding.
 
 Design builds use the same `FileStore` boundary. The self-host baseline exposes
 only `public/` source files through the static build engine; `src/` remains

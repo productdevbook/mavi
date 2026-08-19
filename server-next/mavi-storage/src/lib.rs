@@ -15,7 +15,7 @@ use uuid::Uuid;
 /// It is part of the runtime compatibility contract exposed to the operator.
 /// Keep it next to the migration runner so a release cannot advertise a
 /// storage version independently from the migrations it ships.
-pub const CURRENT_SCHEMA_VERSION: u32 = 33;
+pub const CURRENT_SCHEMA_VERSION: u32 = 34;
 
 /// The lifecycle state stored in the shared shard catalog.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -442,6 +442,11 @@ mod tests {
         assert!(role_ownership_migration.contains("add column system_role boolean"));
         assert!(role_ownership_migration.contains("roles_system_role_protected"));
         assert!(role_ownership_migration.contains("role_grants_system_role_protected"));
-        assert_eq!(CURRENT_SCHEMA_VERSION, 33);
+        let media_variants_migration = include_str!("../migrations/0034_media_variants.sql");
+        assert!(media_variants_migration.contains("create table media_variants"));
+        assert!(media_variants_migration.contains("unique (site_id, source_file_id, preset)"));
+        assert!(media_variants_migration.contains("foreign key (site_id, source_file_id)"));
+        assert!(media_variants_migration.contains("add column storage_keys text[]"));
+        assert_eq!(CURRENT_SCHEMA_VERSION, 34);
     }
 }

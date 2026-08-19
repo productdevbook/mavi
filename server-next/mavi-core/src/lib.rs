@@ -21,9 +21,9 @@ pub use ids::{
     ContentId, CouponId, CouponUseId, CourseId, CredentialId, DesignBuildId, DesignChangeId,
     EmailVerificationTokenId, EnrollmentId, FileId, FlowId, FlowRunId, FlowRunStepId, FlowStepId,
     FormId, FormSubmissionId, JobId, LessonId, MailAttemptId, MailDeliveryId, MailListId,
-    MailReaderId, MailTemplateId, ModuleId, OrderId, OrderLineId, PasswordResetTokenId, PersonId,
-    ProductId, RequestId, RoleId, SessionId, SiteId, StockHoldId, StudentId, StudentSessionId,
-    TermId,
+    MailReaderId, MailTemplateId, MediaVariantId, ModuleId, OrderId, OrderLineId,
+    PasswordResetTokenId, PersonId, ProductId, RequestId, RoleId, SessionId, SiteId, StockHoldId,
+    StudentId, StudentSessionId, TermId,
 };
 pub use money::{Currency, Money};
 pub use pagination::{Cursor, Page, PageRequest};

@@ -1989,6 +1989,99 @@
       }
     },
     {
+      "name": "media.files.variants.list",
+      "description": "List generated image variants for a file",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ]
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "after": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 512
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "path",
+          "query"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true
+      },
+      "x-mavi": {
+        "authentication": "account_or_assistant",
+        "scope": "site",
+        "permission": {
+          "capability": "media",
+          "action": "view"
+        }
+      }
+    },
+    {
+      "name": "media.files.variants.download",
+      "description": "Download a generated image variant for an authorized site caller",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "preset": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "preset"
+            ]
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true
+      },
+      "x-mavi": {
+        "authentication": "account_or_assistant",
+        "scope": "site",
+        "permission": {
+          "capability": "media",
+          "action": "view"
+        }
+      }
+    },
+    {
       "name": "media.files.trash",
       "description": "Move a file to trash while retaining its binary for restore",
       "inputSchema": {

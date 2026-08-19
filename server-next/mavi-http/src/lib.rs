@@ -85,7 +85,8 @@ use mavi_mail::{
     RetryDelivery, SendCampaign, SendCount, UnsubscribeReceipt, UpdateMailList, UpdateMailTemplate,
 };
 use mavi_media::{
-    FileListFilter, FileRecord, MAX_FILE_BYTES, MEDIA_CLEANUP_JOB, MediaService, UploadFileQuery,
+    FileListFilter, FileRecord, FileVariant, FileVariantListFilter, MAX_FILE_BYTES,
+    MEDIA_CLEANUP_JOB, MEDIA_VARIANT_JOB, MediaService, UploadFileQuery, VariantPreset,
 };
 use mavi_observability::RuntimeMetrics;
 use mavi_portable::{ImportReceipt, PortableBundle, PortableImportRequest, PortableService};
@@ -482,11 +483,11 @@ where
         mail: MailService,
         shop: ShopService,
         courses: CoursesService,
-        jobs: JobsService::new(
-            mavi_flows::job_kinds()
-                .into_iter()
-                .chain([SCHEDULED_PUBLISH_JOB, MEDIA_CLEANUP_JOB]),
-        ),
+        jobs: JobsService::new(mavi_flows::job_kinds().into_iter().chain([
+            SCHEDULED_PUBLISH_JOB,
+            MEDIA_CLEANUP_JOB,
+            MEDIA_VARIANT_JOB,
+        ])),
         flows: FlowService,
         boards: BoardService,
         analytics: AnalyticsService,
@@ -1241,7 +1242,16 @@ where
             get(read_file::<R>).delete(delete_file::<R>),
         )
         .route("/api/v1/files/{id}/content", get(download_file::<R>))
+        .route("/api/v1/files/{id}/variants", get(list_file_variants::<R>))
+        .route(
+            "/api/v1/files/{id}/variants/{preset}/content",
+            get(download_file_variant::<R>),
+        )
         .route("/public/v1/files/{id}", get(public_file::<R>))
+        .route(
+            "/public/v1/files/{id}/variants/{preset}",
+            get(public_file_variant::<R>),
+        )
 }
 
 fn credentials_routes<R>() -> Router<HttpState<R>>
@@ -3482,6 +3492,64 @@ where
     media_response(file, bytes, false)
 }
 
+async fn list_file_variants<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<FileId>,
+    Query(filter): Query<FileVariantListFilter>,
+) -> Result<Json<Page<FileVariant>>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Media, Action::View),
+        "File",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let variants = state
+        .media
+        .list_variants(&mut transaction, &context, id, &filter)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(variants))
+}
+
+async fn download_file_variant<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path((id, preset)): Path<(FileId, VariantPreset)>,
+) -> Result<Response, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Media, Action::View),
+        "File",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let (variant, bytes) = state
+        .media
+        .read_variant_bytes(
+            &mut transaction,
+            &context,
+            state.file_store.as_ref(),
+            id,
+            preset,
+            false,
+        )
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    media_content_response(variant.mime, bytes, false)
+}
+
 async fn public_file<R>(
     State(state): State<HttpState<R>>,
     Extension(context): Extension<SiteContext>,
@@ -3500,7 +3568,40 @@ where
     media_response(file, bytes, true)
 }
 
+async fn public_file_variant<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path((id, preset)): Path<(FileId, VariantPreset)>,
+) -> Result<Response, HttpError>
+where
+    R: SiteResolver,
+{
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let (variant, bytes) = state
+        .media
+        .read_variant_bytes(
+            &mut transaction,
+            &context,
+            state.file_store.as_ref(),
+            id,
+            preset,
+            true,
+        )
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    media_content_response(variant.mime, bytes, true)
+}
+
 fn media_response(file: FileRecord, bytes: Vec<u8>, public: bool) -> Result<Response, HttpError> {
+    media_content_response(file.mime, bytes, public)
+}
+
+fn media_content_response(
+    mime: String,
+    bytes: Vec<u8>,
+    public: bool,
+) -> Result<Response, HttpError> {
     let cache_control = if public {
         "public, max-age=31536000, immutable"
     } else {
@@ -3508,7 +3609,7 @@ fn media_response(file: FileRecord, bytes: Vec<u8>, public: bool) -> Result<Resp
     };
     Response::builder()
         .status(StatusCode::OK)
-        .header(CONTENT_TYPE, file.mime)
+        .header(CONTENT_TYPE, mime)
         .header(CONTENT_LENGTH, bytes.len())
         .header(CACHE_CONTROL, cache_control)
         .header("content-disposition", "inline")

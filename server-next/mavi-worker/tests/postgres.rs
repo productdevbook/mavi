@@ -376,6 +376,7 @@ async fn form_retention_worker_prunes_expired_submissions_and_records_system_aud
 
 #[tokio::test]
 #[ignore = "requires TEST_DATABASE_URL and a non-superuser PostgreSQL role"]
+#[allow(clippy::too_many_lines)]
 async fn analytics_retention_worker_uses_site_policy_and_records_system_audit() {
     let database_url = env::var("TEST_DATABASE_URL").expect("TEST_DATABASE_URL");
     let database = Database::connect(&database_url, 4)

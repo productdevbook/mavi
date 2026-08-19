@@ -244,6 +244,7 @@ fn endpoints() -> Vec<Endpoint> {
         )
         .account_or_assistant()
         .requires(view)
+        .resource_scoped()
         .returns(200, "Course")
         .refuses([
             ErrorCode::Forbidden,
@@ -258,6 +259,7 @@ fn endpoints() -> Vec<Endpoint> {
         )
         .account_or_assistant()
         .requires(write)
+        .resource_scoped()
         .takes("UpdateCourse")
         .returns(200, "Course")
         .changes(false)
@@ -276,6 +278,7 @@ fn endpoints() -> Vec<Endpoint> {
         )
         .account_or_assistant()
         .requires(write)
+        .resource_scoped()
         .takes("ReorderModules")
         .returns(200, "Course")
         .changes(false)
@@ -294,6 +297,7 @@ fn endpoints() -> Vec<Endpoint> {
         )
         .account_or_assistant()
         .requires(write)
+        .resource_scoped()
         .takes("CreateModule")
         .returns(201, "Module")
         .changes(false)
@@ -312,6 +316,7 @@ fn endpoints() -> Vec<Endpoint> {
         )
         .account_or_assistant()
         .requires(view)
+        .resource_scoped()
         .returns(200, "Module")
         .refuses([
             ErrorCode::Forbidden,
@@ -326,6 +331,7 @@ fn endpoints() -> Vec<Endpoint> {
         )
         .account_or_assistant()
         .requires(write)
+        .resource_scoped()
         .takes("UpdateModule")
         .returns(200, "Module")
         .changes(false)
@@ -344,6 +350,7 @@ fn endpoints() -> Vec<Endpoint> {
         )
         .account_or_assistant()
         .requires(delete)
+        .resource_scoped()
         .returns(204, "Empty")
         .changes(false)
         .refuses([
@@ -360,6 +367,7 @@ fn endpoints() -> Vec<Endpoint> {
         )
         .account_or_assistant()
         .requires(view)
+        .resource_scoped()
         .takes_query("LessonListFilter")
         .returns(200, "LessonPage")
         .refuses([
@@ -376,6 +384,7 @@ fn endpoints() -> Vec<Endpoint> {
         )
         .account_or_assistant()
         .requires(write)
+        .resource_scoped()
         .takes("ReorderLessons")
         .returns(200, "Module")
         .changes(false)
@@ -394,6 +403,7 @@ fn endpoints() -> Vec<Endpoint> {
         )
         .account_or_assistant()
         .requires(write)
+        .resource_scoped()
         .takes("CreateLesson")
         .returns(201, "Lesson")
         .changes(false)
@@ -412,6 +422,7 @@ fn endpoints() -> Vec<Endpoint> {
         )
         .account_or_assistant()
         .requires(write)
+        .resource_scoped()
         .takes("UpdateLesson")
         .returns(200, "Lesson")
         .changes(false)
@@ -430,6 +441,7 @@ fn endpoints() -> Vec<Endpoint> {
         )
         .account_or_assistant()
         .requires(delete)
+        .resource_scoped()
         .returns(204, "Empty")
         .changes(false)
         .refuses([

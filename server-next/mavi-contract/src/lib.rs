@@ -59,6 +59,11 @@ fn is_json_output(location: &OutputLocation) -> bool {
     *location == OutputLocation::Json
 }
 
+#[allow(clippy::trivially_copy_pass_by_ref)]
+fn is_false(value: &bool) -> bool {
+    !*value
+}
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct RequestShape {
     pub shape: String,
@@ -159,6 +164,11 @@ pub struct Endpoint {
     pub operation_id: String,
     pub summary: String,
     pub scope: Scope,
+    /// The permission may also be satisfied by grants attached to the
+    /// concrete resource addressed by this operation. Site-wide grants are
+    /// still accepted as an administrative override.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub resource_scoped: bool,
     pub authentication: Authentication,
     pub permission: Option<Permission>,
     pub request: Option<RequestShape>,
@@ -185,6 +195,7 @@ impl Endpoint {
             operation_id: operation_id.into(),
             summary: summary.into(),
             scope: Scope::Site,
+            resource_scoped: false,
             authentication: Authentication::Account,
             permission: None,
             request: None,
@@ -256,6 +267,12 @@ impl Endpoint {
     #[must_use]
     pub const fn control_plane(mut self) -> Self {
         self.scope = Scope::ControlPlane;
+        self
+    }
+
+    #[must_use]
+    pub const fn resource_scoped(mut self) -> Self {
+        self.resource_scoped = true;
         self
     }
 
@@ -567,16 +584,17 @@ impl Api {
                 | Authentication::Assistant => json!([{ "bearerAuth": [] }]),
             };
             operation.insert("security".to_owned(), security);
-            operation.insert(
-                "x-mavi".to_owned(),
-                json!({
-                    "scope": endpoint.scope,
-                    "authentication": endpoint.authentication,
-                    "mutation": endpoint.mutation,
-                    "permission": endpoint.permission,
-                    "errors": endpoint.errors,
-                }),
-            );
+            let mut metadata = json!({
+                "scope": endpoint.scope,
+                "authentication": endpoint.authentication,
+                "mutation": endpoint.mutation,
+                "permission": endpoint.permission,
+                "errors": endpoint.errors,
+            });
+            if endpoint.resource_scoped {
+                metadata["resourceScoped"] = Value::Bool(true);
+            }
+            operation.insert("x-mavi".to_owned(), metadata);
             path_item.insert(
                 endpoint.method.as_str().to_owned(),
                 Value::Object(operation),
@@ -913,6 +931,14 @@ impl Api {
                 required.push("query");
             }
 
+            let mut metadata = json!({
+                "authentication": endpoint.authentication,
+                "scope": endpoint.scope,
+                "permission": endpoint.permission,
+            });
+            if endpoint.resource_scoped {
+                metadata["resourceScoped"] = Value::Bool(true);
+            }
             tools.push(json!({
                 "name": endpoint.operation_id,
                 "description": endpoint.summary,
@@ -923,11 +949,7 @@ impl Api {
                     "additionalProperties": false,
                 },
                 "annotations": {"readOnlyHint": matches!(endpoint.mutation, Mutation::None)},
-                "x-mavi": {
-                    "authentication": endpoint.authentication,
-                    "scope": endpoint.scope,
-                    "permission": endpoint.permission,
-                },
+                "x-mavi": metadata,
             }));
         }
         Ok(json!({"tools": tools}))
@@ -1541,6 +1563,33 @@ mod tests {
             Authentication::AccountOrAssistant
         );
         assert!(api.validate().is_ok());
+    }
+
+    #[test]
+    fn resource_scoped_permissions_are_emitted_for_http_and_mcp_adapters() {
+        let api = Api::new([Endpoint::new(
+            Method::Get,
+            "/api/v1/courses/{id}",
+            "courses.read",
+            "Read a course",
+        )
+        .account_or_assistant()
+        .requires(Permission {
+            capability: Capability::Courses,
+            action: Action::View,
+        })
+        .resource_scoped()
+        .returns(200, "Course")])
+        .with_shapes([Shape::new("Course", json!({"type": "object"}))]);
+
+        assert!(api.endpoints[0].resource_scoped);
+        let openapi = api.openapi("Mavi", "0.1.0").expect("OpenAPI");
+        assert_eq!(
+            openapi["paths"]["/api/v1/courses/{id}"]["get"]["x-mavi"]["resourceScoped"],
+            true
+        );
+        let tools = api.mcp_tools().expect("MCP tools");
+        assert_eq!(tools["tools"][0]["x-mavi"]["resourceScoped"], true);
     }
 
     #[test]

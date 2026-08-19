@@ -413,6 +413,29 @@ pub struct Course {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct CourseInstructor {
+    pub course_id: String,
+    pub person_id: String,
+    pub grants: Vec<CourseInstructorGrant>,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+pub type CourseInstructorGrant = String;
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct CourseInstructorListFilter {
+    pub after: Option<String>,
+    pub limit: Option<i64>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct CourseInstructorPage {
+    pub items: Vec<CourseInstructor>,
+    pub next_cursor: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct CourseListFilter {
     pub after: Option<String>,
     pub limit: Option<i64>,
@@ -1689,6 +1712,11 @@ pub struct ReplaceContentTerms {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ReplaceCourseInstructor {
+    pub grants: Vec<CourseInstructorGrant>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ReplaceRoleGrants {
     pub grants: Vec<Grant>,
 }
@@ -2250,6 +2278,9 @@ pub const OPERATIONS: &[OperationDefinition] = &[
     OperationDefinition { name: "courses.lessons.create", method: "post", path: "/api/v1/courses/modules/{id}/lessons", request: Some("CreateLesson"), request_location: Some("json"), query: None, response: Some("Lesson"), response_location: None, status: 201, authentication: "account_or_assistant", capability: Some("courses"), action: Some("write") },
     OperationDefinition { name: "courses.lessons.update", method: "patch", path: "/api/v1/courses/lessons/{id}", request: Some("UpdateLesson"), request_location: Some("json"), query: None, response: Some("Lesson"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("courses"), action: Some("write") },
     OperationDefinition { name: "courses.lessons.delete", method: "delete", path: "/api/v1/courses/lessons/{id}", request: None, request_location: None, query: None, response: Some("Empty"), response_location: None, status: 204, authentication: "account_or_assistant", capability: Some("courses"), action: Some("delete") },
+    OperationDefinition { name: "courses.instructors.list", method: "get", path: "/api/v1/courses/{course_id}/instructors", request: Some("CourseInstructorListFilter"), request_location: Some("query"), query: None, response: Some("CourseInstructorPage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("courses"), action: Some("view") },
+    OperationDefinition { name: "courses.instructors.replace", method: "put", path: "/api/v1/courses/{course_id}/instructors/{person_id}", request: Some("ReplaceCourseInstructor"), request_location: Some("json"), query: None, response: Some("CourseInstructor"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("courses"), action: Some("write") },
+    OperationDefinition { name: "courses.instructors.delete", method: "delete", path: "/api/v1/courses/{course_id}/instructors/{person_id}", request: None, request_location: None, query: None, response: Some("Empty"), response_location: None, status: 204, authentication: "account_or_assistant", capability: Some("courses"), action: Some("write") },
     OperationDefinition { name: "courses.students.list", method: "get", path: "/api/v1/courses/students", request: Some("StudentListFilter"), request_location: Some("query"), query: None, response: Some("StudentPage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("courses"), action: Some("view") },
     OperationDefinition { name: "courses.students.create", method: "post", path: "/api/v1/courses/students", request: Some("CreateStudent"), request_location: Some("json"), query: None, response: Some("StudentInvitation"), response_location: None, status: 201, authentication: "account_or_assistant", capability: Some("courses"), action: Some("write") },
     OperationDefinition { name: "courses.students.invite", method: "post", path: "/api/v1/courses/students/{id}/invite", request: None, request_location: None, query: None, response: Some("StudentInvitation"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("courses"), action: Some("write") },

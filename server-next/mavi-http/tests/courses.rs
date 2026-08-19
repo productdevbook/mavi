@@ -6,6 +6,100 @@ use support::{bootstrap, response_bytes, response_json, send, send_raw};
 
 #[tokio::test]
 #[ignore = "requires TEST_DATABASE_URL and a non-superuser PostgreSQL role"]
+async fn course_instructor_grants_are_resource_scoped_and_cedar_backed() {
+    let app = support::build_app().await;
+    let owner_token = bootstrap(&app, "HTTP course instructors test").await;
+
+    let course = send(
+        &app,
+        Method::POST,
+        "/api/v1/courses",
+        Some(&owner_token),
+        Some(json!({"slug": "cedar-course", "title": "Cedar Course"})),
+    )
+    .await;
+    assert_eq!(course.status(), StatusCode::CREATED);
+    let course_id = response_json(course).await["id"]
+        .as_str()
+        .expect("course id")
+        .to_owned();
+
+    let person = send(
+        &app,
+        Method::POST,
+        "/api/v1/people",
+        Some(&owner_token),
+        Some(json!({
+            "email": "instructor@example.com",
+            "name": "Course Instructor",
+            "password": "long-enough-password",
+            "role_ids": []
+        })),
+    )
+    .await;
+    assert_eq!(person.status(), StatusCode::CREATED);
+    let person = response_json(person).await;
+    let person_id = person["id"].as_str().expect("person id").to_owned();
+    support::verify_email(&app, &person, "instructor@example.com").await;
+
+    let assigned = send(
+        &app,
+        Method::PUT,
+        &format!("/api/v1/courses/{course_id}/instructors/{person_id}"),
+        Some(&owner_token),
+        Some(json!({"grants": ["view", "write"]})),
+    )
+    .await;
+    assert_eq!(assigned.status(), StatusCode::OK);
+    assert_eq!(
+        response_json(assigned).await["grants"],
+        json!(["view", "write"])
+    );
+
+    let instructor_token = support::login(&app, "instructor@example.com").await;
+    let read = send(
+        &app,
+        Method::GET,
+        &format!("/api/v1/courses/{course_id}"),
+        Some(&instructor_token),
+        None,
+    )
+    .await;
+    assert_eq!(read.status(), StatusCode::OK);
+
+    let module = send(
+        &app,
+        Method::POST,
+        &format!("/api/v1/courses/{course_id}/modules"),
+        Some(&instructor_token),
+        Some(json!({"title": "Scoped module"})),
+    )
+    .await;
+    assert_eq!(module.status(), StatusCode::CREATED);
+
+    let removed = send(
+        &app,
+        Method::DELETE,
+        &format!("/api/v1/courses/{course_id}/instructors/{person_id}"),
+        Some(&owner_token),
+        None,
+    )
+    .await;
+    assert_eq!(removed.status(), StatusCode::NO_CONTENT);
+
+    let denied = send(
+        &app,
+        Method::GET,
+        &format!("/api/v1/courses/{course_id}"),
+        Some(&instructor_token),
+        None,
+    )
+    .await;
+    assert_eq!(denied.status(), StatusCode::FORBIDDEN);
+}
+
+#[tokio::test]
+#[ignore = "requires TEST_DATABASE_URL and a non-superuser PostgreSQL role"]
 #[allow(clippy::too_many_lines)]
 async fn course_routes_isolate_student_learning_and_protected_media() {
     let app = support::build_app().await;

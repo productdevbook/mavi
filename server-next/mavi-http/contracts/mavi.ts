@@ -362,6 +362,26 @@ export interface Course {
   updated_at: string;
 }
 
+export interface CourseInstructor {
+  course_id: string;
+  person_id: string;
+  grants: CourseInstructorGrant[];
+  created_at: string;
+  updated_at: string;
+}
+
+export type CourseInstructorGrant = "view" | "write" | "delete";
+
+export interface CourseInstructorListFilter {
+  after?: string | null;
+  limit?: number;
+}
+
+export interface CourseInstructorPage {
+  items: CourseInstructor[];
+  next_cursor: string | null;
+}
+
 export interface CourseListFilter {
   after?: string | null;
   limit?: number;
@@ -1482,6 +1502,10 @@ export interface ReplaceContentTerms {
   term_ids: string[];
 }
 
+export interface ReplaceCourseInstructor {
+  grants: CourseInstructorGrant[];
+}
+
 export interface ReplaceRoleGrants {
   grants: Grant[];
 }
@@ -1983,6 +2007,9 @@ export const operations = {
   "courses.lessons.create": { method: "post", path: "/api/v1/courses/modules/{id}/lessons", input: { location: "json", shape: "CreateLesson" }, query: null, output: "Lesson", status: 201, authentication: "account_or_assistant", permission: { capability: "courses", action: "write" } },
   "courses.lessons.update": { method: "patch", path: "/api/v1/courses/lessons/{id}", input: { location: "json", shape: "UpdateLesson" }, query: null, output: "Lesson", status: 200, authentication: "account_or_assistant", permission: { capability: "courses", action: "write" } },
   "courses.lessons.delete": { method: "delete", path: "/api/v1/courses/lessons/{id}", input: null, query: null, output: "Empty", status: 204, authentication: "account_or_assistant", permission: { capability: "courses", action: "delete" } },
+  "courses.instructors.list": { method: "get", path: "/api/v1/courses/{course_id}/instructors", input: { location: "query", shape: "CourseInstructorListFilter" }, query: null, output: "CourseInstructorPage", status: 200, authentication: "account_or_assistant", permission: { capability: "courses", action: "view" } },
+  "courses.instructors.replace": { method: "put", path: "/api/v1/courses/{course_id}/instructors/{person_id}", input: { location: "json", shape: "ReplaceCourseInstructor" }, query: null, output: "CourseInstructor", status: 200, authentication: "account_or_assistant", permission: { capability: "courses", action: "write" } },
+  "courses.instructors.delete": { method: "delete", path: "/api/v1/courses/{course_id}/instructors/{person_id}", input: null, query: null, output: "Empty", status: 204, authentication: "account_or_assistant", permission: { capability: "courses", action: "write" } },
   "courses.students.list": { method: "get", path: "/api/v1/courses/students", input: { location: "query", shape: "StudentListFilter" }, query: null, output: "StudentPage", status: 200, authentication: "account_or_assistant", permission: { capability: "courses", action: "view" } },
   "courses.students.create": { method: "post", path: "/api/v1/courses/students", input: { location: "json", shape: "CreateStudent" }, query: null, output: "StudentInvitation", status: 201, authentication: "account_or_assistant", permission: { capability: "courses", action: "write" } },
   "courses.students.invite": { method: "post", path: "/api/v1/courses/students/{id}/invite", input: null, query: null, output: "StudentInvitation", status: 200, authentication: "account_or_assistant", permission: { capability: "courses", action: "write" } },
@@ -2179,6 +2206,9 @@ export interface OperationArguments {
   "courses.lessons.create": { path: { id: string }; query?: never; body: CreateLesson; }
   "courses.lessons.update": { path: { id: string }; query?: never; body: UpdateLesson; }
   "courses.lessons.delete": { path: { id: string }; query?: never; body?: never; }
+  "courses.instructors.list": { path: { course_id: string }; query: CourseInstructorListFilter; body?: never; }
+  "courses.instructors.replace": { path: { course_id: string; person_id: string }; query?: never; body: ReplaceCourseInstructor; }
+  "courses.instructors.delete": { path: { course_id: string; person_id: string }; query?: never; body?: never; }
   "courses.students.list": { path?: never; query: StudentListFilter; body?: never; }
   "courses.students.create": { path?: never; query?: never; body: CreateStudent; }
   "courses.students.invite": { path: { id: string }; query?: never; body?: never; }
@@ -2373,6 +2403,9 @@ export interface OperationResponses {
   "courses.lessons.create": Lesson;
   "courses.lessons.update": Lesson;
   "courses.lessons.delete": void;
+  "courses.instructors.list": CourseInstructorPage;
+  "courses.instructors.replace": CourseInstructor;
+  "courses.instructors.delete": void;
   "courses.students.list": StudentPage;
   "courses.students.create": StudentInvitation;
   "courses.students.invite": StudentInvitation;

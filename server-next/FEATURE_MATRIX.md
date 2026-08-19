@@ -175,7 +175,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Course tables use composite site keys, foreign keys and RLS; mutations emit audit receipts.
 - [-] Expiring access, progress, completion and instructor permissions.
   - [x] Student sessions expire, stopped students lose access, and lesson completion is idempotent while retaining progress after unenrollment.
-  - [ ] Course-specific instructor assignments and per-course Cedar resource grants.
+  - [x] Course-specific instructor assignments use a site-scoped `course_instructors` table, allow only `view`/`write`/`delete`, and are evaluated by Cedar as resource grants inside the same scoped transaction as course reads and mutations.
 
 ## Automation and collaboration
 
@@ -236,6 +236,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Mail template/list/outbox PostgreSQL RLS state-machine tests and HTTP contract coverage.
   - [x] Shop catalog/checkout/stock/order PostgreSQL isolation tests and HTTP permission/contract coverage.
   - [x] Courses authoring/order/student-session/enrollment/progress/media PostgreSQL isolation tests and HTTP permission/contract coverage.
+  - [x] Course instructor assignment PostgreSQL/RLS and Cedar resource-grant HTTP acceptance coverage.
   - [x] Jobs lease/idempotency/dead-letter PostgreSQL isolation and automation flow snapshot/event/run HTTP coverage.
   - [x] Boards PostgreSQL scope/order/activity tests and boards HTTP cursor/permission acceptance coverage.
   - [x] Analytics PostgreSQL aggregate/retention/isolation tests and analytics HTTP ingest/export coverage.

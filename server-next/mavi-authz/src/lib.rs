@@ -22,6 +22,10 @@ pub struct AuthorizationRequest {
     pub principal_id: String,
     pub principal_site_id: SiteId,
     pub grants: Grants,
+    /// Grants attached to this concrete resource rather than to the whole
+    /// site. The application layer loads these inside the same scoped
+    /// transaction as the mutation they protect.
+    pub resource_grants: Grants,
     pub grant: Grant,
     pub resource_type: String,
     pub resource_id: String,
@@ -86,7 +90,8 @@ impl CedarAuthorizer {
                     "uid": {"type": "Resource", "id": request.resource_id},
                     "attrs": {
                         "site_id": request.resource_site_id.to_string(),
-                        "kind": request.resource_type
+                        "kind": request.resource_type,
+                        "grants": request.resource_grants.as_slice().iter().map(|grant| format!("{}:{}", grant.capability.as_str(), grant.action.as_str())).collect::<Vec<_>>(),
                     },
                     "parents": []
                 }
@@ -115,6 +120,25 @@ impl CedarAuthorizer {
         resource_id: impl Into<String>,
         resource_site_id: SiteId,
     ) -> Result<(), MaviError> {
+        self.authorize_context_with_resource_grants(
+            context,
+            grant,
+            resource_type,
+            resource_id,
+            resource_site_id,
+            Grants::default(),
+        )
+    }
+
+    pub fn authorize_context_with_resource_grants(
+        &self,
+        context: &SiteContext,
+        grant: Grant,
+        resource_type: impl Into<String>,
+        resource_id: impl Into<String>,
+        resource_site_id: SiteId,
+        resource_grants: Grants,
+    ) -> Result<(), MaviError> {
         let (principal_id, grants) = match &context.caller {
             Caller::Account {
                 person_id, grants, ..
@@ -128,6 +152,7 @@ impl CedarAuthorizer {
             principal_id,
             principal_site_id: context.site_id,
             grants,
+            resource_grants,
             grant,
             resource_type: resource_type.into(),
             resource_id: resource_id.into(),
@@ -154,6 +179,7 @@ mod tests {
             principal_id: "person".to_owned(),
             principal_site_id: site_id,
             grants,
+            resource_grants: Grants::default(),
             grant,
             resource_type: "Content".to_owned(),
             resource_id: "post".to_owned(),
@@ -187,6 +213,29 @@ mod tests {
         let mut cross_site = request(Grants::new([needed]), needed);
         cross_site.resource_site_id = SiteId::new();
         assert!(authorizer.authorize(&cross_site).is_err());
+    }
+
+    #[test]
+    fn cedar_allows_a_matching_resource_grant_without_a_global_grant() {
+        let authorizer = CedarAuthorizer::new().expect("policy");
+        let needed = Grant::new(Capability::Content, Action::Write);
+        let site_id = SiteId::new();
+        let request = AuthorizationRequest {
+            principal_id: "instructor".to_owned(),
+            principal_site_id: site_id,
+            grants: Grants::default(),
+            resource_grants: Grants::new([needed]),
+            grant: needed,
+            resource_type: "Course".to_owned(),
+            resource_id: "course".to_owned(),
+            resource_site_id: site_id,
+            request_site_id: site_id,
+        };
+        assert!(authorizer.authorize(&request).is_ok());
+
+        let mut denied = request;
+        denied.resource_grants = Grants::new([Grant::new(Capability::Content, Action::View)]);
+        assert!(authorizer.authorize(&denied).is_err());
     }
 
     #[test]

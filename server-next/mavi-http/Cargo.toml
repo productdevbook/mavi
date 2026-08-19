@@ -32,6 +32,7 @@ mavi-identity = { path = "../mavi-identity" }
 mavi-runtime = { path = "../mavi-runtime" }
 mavi-secrets = { path = "../mavi-secrets" }
 mavi-settings = { path = "../mavi-settings" }
+mavi-storage = { path = "../mavi-storage" }
 mavi-taxonomy = { path = "../mavi-taxonomy" }
 mavi-trash = { path = "../mavi-trash" }
 serde.workspace = true

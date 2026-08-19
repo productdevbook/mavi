@@ -6,6 +6,7 @@
 
 mod auth;
 mod courses;
+mod instructors;
 mod learning;
 mod relocation;
 mod students;
@@ -22,6 +23,9 @@ pub use courses::{
     Course, CourseListFilter, CourseState, CourseSummary, CreateCourse, CreateLesson, CreateModule,
     Lesson, LessonListFilter, Module, ReorderLessons, ReorderModules, UpdateCourse, UpdateLesson,
     UpdateModule,
+};
+pub use instructors::{
+    CourseInstructor, CourseInstructorGrant, CourseInstructorListFilter, ReplaceCourseInstructor,
 };
 pub use learning::{LearningCourse, LearningCourseListFilter, LearningLesson, Progress};
 pub use relocation::{
@@ -81,6 +85,7 @@ pub(crate) async fn audit(
 #[must_use]
 pub fn api() -> mavi_contract::Api {
     let mut api = courses::api();
+    api.extend(instructors::api());
     api.extend(students::api());
     api.extend(auth::api());
     api.extend(learning::api());

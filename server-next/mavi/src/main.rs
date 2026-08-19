@@ -1,6 +1,9 @@
 use std::{env, net::SocketAddr, sync::Arc, time::Duration};
 
-use mavi_core::{MaviError, Result, SiteId, ports::FileStore};
+use mavi_core::{
+    MaviError, Result, SiteId,
+    ports::{FileStore, Mailer, Seals},
+};
 use mavi_design::StaticBuildEngine;
 use mavi_files::DirectoryFileStore;
 use mavi_http::EdgeSecurityConfig;
@@ -18,6 +21,14 @@ enum StartupConfig {
     FixedSite(SiteId),
     Shard(Vec<(String, SiteId)>),
 }
+
+struct RuntimeServices {
+    file_store: Arc<dyn FileStore>,
+    sealer: Arc<dyn Seals>,
+    mailer: Arc<dyn Mailer>,
+}
+
+mod mail;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -40,6 +51,7 @@ async fn main() -> Result<()> {
     let file_root = env::var("MAVI_FILES_DIR").unwrap_or_else(|_| "./mavi-files".to_owned());
     let file_store: Arc<dyn FileStore> = Arc::new(DirectoryFileStore::at(file_root));
     let sealer = Arc::new(KeyringSealer::from_spec(&required("MAVI_KEYS")?)?);
+    let mailer = mail::from_env()?;
     let edge = EdgeSecurityConfig::from_trusted_proxy_spec(
         env::var("MAVI_TRUSTED_PROXY_CIDRS").ok().as_deref(),
     )?;
@@ -62,8 +74,11 @@ async fn main() -> Result<()> {
                 database,
                 FixedSiteResolver::new(site_id),
                 vec![site_id],
-                file_store,
-                sealer,
+                RuntimeServices {
+                    file_store,
+                    sealer,
+                    mailer,
+                },
                 edge,
             )
             .await
@@ -77,7 +92,16 @@ async fn main() -> Result<()> {
             tracing::info!(%address, mode = "shard", "mavi runtime listening");
             let site_ids = entries.into_iter().map(|(_, site_id)| site_id).collect();
             serve(
-                listener, database, resolver, site_ids, file_store, sealer, edge,
+                listener,
+                database,
+                resolver,
+                site_ids,
+                RuntimeServices {
+                    file_store,
+                    sealer,
+                    mailer,
+                },
+                edge,
             )
             .await
         }
@@ -89,8 +113,7 @@ async fn serve<R>(
     database: Database,
     resolver: R,
     sites: Vec<SiteId>,
-    file_store: Arc<dyn FileStore>,
-    sealer: Arc<KeyringSealer>,
+    services: RuntimeServices,
     edge: EdgeSecurityConfig,
 ) -> Result<()>
 where
@@ -101,18 +124,20 @@ where
     let metrics = RuntimeMetrics::default();
     let router = mavi_http::router_with_config_and_metrics(
         runtime,
-        Arc::clone(&file_store),
+        Arc::clone(&services.file_store),
         Arc::new(StaticBuildEngine),
-        sealer,
+        Arc::clone(&services.sealer),
         edge,
         metrics.clone(),
     )?
     .into_make_service_with_connect_info::<SocketAddr>();
-    let worker = mavi_worker::WorkerSupervisor::new_with_metrics(
+    let worker = mavi_worker::WorkerSupervisor::new_with_metrics_and_mailer(
         worker_database,
         sites,
         worker_config()?,
-        file_store,
+        services.file_store,
+        services.mailer,
+        services.sealer,
         metrics.worker_metrics(),
     );
     let worker_task = tokio::spawn(async move { worker.run().await });

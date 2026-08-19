@@ -183,9 +183,12 @@ keyset cursors. The runtime starts the site-scoped content worker for
 `content.publish_scheduled`; it re-checks the current schedule while holding
 the content row lock, records system audit receipts, and safely no-ops stale
 jobs. Worker identity and polling are configurable with `MAVI_WORKER_ID`,
-`MAVI_WORKER_LEASE_SECONDS` and `MAVI_WORKER_POLL_MILLIS`. Mail, flow and
-provider-specific executors remain separate worker slices until their adapters
-are enabled.
+`MAVI_WORKER_LEASE_SECONDS` and `MAVI_WORKER_POLL_MILLIS`. The worker also
+drains mail when `MAVI_MAIL_WEBHOOK_URL` points at a trusted HTTPS mail
+gateway. `MAVI_MAIL_WEBHOOK_TOKEN` is optional and becomes a bearer credential
+for that gateway. The webhook receives delivery/attempt/idempotency metadata
+plus campaign unsubscribe headers and must return `{"reference":"..."}`;
+provider credentials never enter site rows.
 
 Provider credentials are a separate site-scoped domain. The API can create,
 rotate, list and revoke only credential metadata; values are sealed through the

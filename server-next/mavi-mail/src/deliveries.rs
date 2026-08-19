@@ -11,6 +11,7 @@ use serde_json::{Map, Value, json};
 use sqlx::Row;
 use uuid::Uuid;
 
+use crate::lists::mint_token;
 use crate::templates::parse_content_type;
 use crate::{MailService, decode_cursor, encode_cursor};
 
@@ -21,6 +22,7 @@ pub const MAIL_DELIVERY_PURPOSE_INVALID: &str = "mail_delivery_purpose_invalid";
 pub const MAIL_IDEMPOTENCY_KEY_INVALID: &str = "mail_idempotency_key_invalid";
 pub const MAIL_DELIVERY_ERROR_INVALID: &str = "mail_delivery_error_invalid";
 pub const MAIL_DELIVERY_ATTEMPTS_EXHAUSTED: &str = "mail_delivery_attempts_exhausted";
+pub const MAIL_CANONICAL_URL_REQUIRED: &str = "mail_canonical_url_required";
 pub const PROTECTED_BODY_REDACTION: &str = "[protected]";
 
 pub const MAX_DELIVERY_ATTEMPTS: i16 = 25;
@@ -159,6 +161,27 @@ pub struct ClaimedDelivery {
     pub message: MailMessage,
     pub attempt_number: i16,
     pub idempotency_key: Option<String>,
+}
+
+struct CampaignRecipient {
+    id: Uuid,
+    email: String,
+}
+
+struct CampaignEnqueue<'a> {
+    list_id: MailListId,
+    template_id: MailTemplateId,
+    variables: &'a Map<String, Value>,
+    idempotency_key: Option<&'a str>,
+    canonical_url: Option<&'a str>,
+}
+
+struct ClaimCandidate {
+    id: Uuid,
+    previous_status: String,
+    attempts: i16,
+    body_protected: bool,
+    idempotency_key: Option<String>,
 }
 
 pub type MailServiceError = MaviError;
@@ -616,62 +639,31 @@ impl MailService {
         context: &SiteContext,
         list_id: MailListId,
         input: &SendCampaign,
+        sealer: &dyn Seals,
     ) -> Result<SendCount> {
-        let list_exists: bool = sqlx::query_scalar(
-            "select exists(select 1 from mail_lists where site_id = $1 and id = $2 and deleted_at is null)",
-        )
-        .bind(context.site_id.into_uuid())
-        .bind(list_id.into_uuid())
-        .fetch_one(tx.conn())
-        .await
-        .map_err(|_| MaviError::Internal)?;
-        if !list_exists {
+        if !campaign_list_exists(tx, context, list_id).await? {
             return Err(MaviError::NotFound {
                 resource: "mail_list_not_found",
             });
         }
         let idempotency_key = validate_idempotency_key(input.idempotency_key.as_deref())?;
-        let rows = sqlx::query(
-            "select r.id, r.email from mail_list_members m
-               join mail_readers r on r.site_id = m.site_id and r.id = m.reader_id
-              where m.site_id = $1 and m.list_id = $2 and r.deleted_at is null and r.standing = 'subscribed'
-              order by m.created_at asc, r.id asc",
-        )
-        .bind(context.site_id.into_uuid())
-        .bind(list_id.into_uuid())
-        .fetch_all(tx.conn())
-        .await
-        .map_err(|_| MaviError::Internal)?;
+        let recipients = campaign_recipients(tx, context, list_id).await?;
+        let canonical_url = campaign_canonical_url(tx, context, !recipients.is_empty()).await?;
+        let campaign = CampaignEnqueue {
+            list_id,
+            template_id: input.template_id,
+            variables: &input.variables,
+            idempotency_key: idempotency_key.as_deref(),
+            canonical_url: canonical_url.as_deref(),
+        };
         let mut enqueued = 0_u64;
-        for row in rows {
-            let recipient: String = row.try_get("email").map_err(|_| MaviError::Internal)?;
-            let reader_id: Uuid = row.try_get("id").map_err(|_| MaviError::Internal)?;
-            let message = self
-                .render_for_delivery(tx, context, input.template_id, &recipient, &input.variables)
-                .await?;
-            let delivery_id = MailDeliveryId::new();
-            let member_key = idempotency_key
-                .as_deref()
-                .map(|key| format!("{key}:{reader_id}"));
-            let result = sqlx::query(
-                "insert into mail_deliveries
-                    (site_id, id, template_id, list_id, recipient, subject, body, content_type, purpose, idempotency_key)
-                 values ($1, $2, $3, $4, $5, $6, $7, $8, 'campaign', $9)
-                 on conflict (site_id, idempotency_key) where idempotency_key is not null do nothing",
-            )
-            .bind(context.site_id.into_uuid())
-            .bind(delivery_id.into_uuid())
-            .bind(input.template_id.into_uuid())
-            .bind(list_id.into_uuid())
-            .bind(&message.recipient)
-            .bind(&message.subject)
-            .bind(&message.body)
-            .bind(message.content_type.as_str())
-            .bind(member_key.as_deref())
-            .execute(tx.conn())
-            .await
-            .map_err(|error| map_write_error(&error))?;
-            enqueued += result.rows_affected();
+        for recipient in recipients {
+            if self
+                .enqueue_campaign_recipient(tx, context, &recipient, &campaign, sealer)
+                .await?
+            {
+                enqueued += 1;
+            }
         }
         audit(
             tx,
@@ -683,6 +675,89 @@ impl MailService {
         )
         .await?;
         Ok(SendCount { enqueued })
+    }
+
+    async fn enqueue_campaign_recipient(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        recipient: &CampaignRecipient,
+        campaign: &CampaignEnqueue<'_>,
+        sealer: &dyn Seals,
+    ) -> Result<bool> {
+        let (message, token_hash) = self
+            .render_campaign_message(
+                tx,
+                context,
+                campaign.template_id,
+                &recipient.email,
+                campaign.canonical_url.ok_or(MaviError::Internal)?,
+                campaign.variables,
+            )
+            .await?;
+        let delivery_id = MailDeliveryId::new();
+        let member_key = campaign
+            .idempotency_key
+            .map(|key| format!("{key}:{}", recipient.id));
+        let inserted = sqlx::query_scalar::<_, Uuid>(
+            "insert into mail_deliveries
+                (site_id, id, template_id, list_id, recipient, subject, body, content_type, purpose, idempotency_key)
+             values ($1, $2, $3, $4, $5, $6, $7, $8, 'campaign', $9)
+             on conflict (site_id, idempotency_key) where idempotency_key is not null do nothing
+             returning id",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(delivery_id.into_uuid())
+        .bind(campaign.template_id.into_uuid())
+        .bind(campaign.list_id.into_uuid())
+        .bind(&message.recipient)
+        .bind(&message.subject)
+        .bind(&message.body)
+        .bind(message.content_type.as_str())
+        .bind(member_key.as_deref())
+        .fetch_optional(tx.conn())
+        .await
+        .map_err(|error| map_write_error(&error))?;
+        let Some(inserted) = inserted else {
+            return Ok(false);
+        };
+        persist_campaign_bearer_link(
+            tx,
+            context,
+            inserted,
+            recipient.id,
+            token_hash,
+            message
+                .unsubscribe_url
+                .as_deref()
+                .ok_or(MaviError::Internal)?,
+            sealer,
+        )
+        .await?;
+        Ok(true)
+    }
+
+    async fn render_campaign_message(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        template_id: MailTemplateId,
+        recipient: &str,
+        canonical_url: &str,
+        variables: &Map<String, Value>,
+    ) -> Result<(MailMessage, Vec<u8>)> {
+        let (token, token_hash) = mint_token();
+        let unsubscribe_url = format!("{canonical_url}/public/v1/mail/unsubscribe/{token}");
+        let mut variables = variables.clone();
+        variables.insert(
+            "unsubscribe_url".to_owned(),
+            Value::String(unsubscribe_url.clone()),
+        );
+        let mut message = self
+            .render_for_delivery(tx, context, template_id, recipient, &variables)
+            .await?;
+        message.unsubscribe_url = Some(unsubscribe_url);
+        Ok((message, token_hash))
     }
 
     pub async fn retry_delivery(
@@ -704,7 +779,10 @@ impl MailService {
         .push(" and (not body_protected or exists (")
         .push("select 1 from mail_delivery_secrets")
         .push(" where site_id = mail_deliveries.site_id and delivery_id = mail_deliveries.id")
-        .push(")) returning ")
+        .push(
+            ")) and (purpose = 'transactional' or exists (select 1 from mail_delivery_links\n",
+        )
+        .push(" where site_id = mail_deliveries.site_id and delivery_id = mail_deliveries.id)) returning ")
         .push(DELIVERY_COLUMNS)
         .build()
         .fetch_optional(tx.conn())
@@ -766,95 +844,34 @@ impl MailService {
             return Err(MaviError::validation("invalid_lease_until"));
         }
         loop {
-            let candidate = sqlx::query(
-                "select id, status, attempts, body_protected from mail_deliveries
-                  where site_id = $1 and (not body_protected or $2) and (
-                        (status in ('queued', 'retry') and available_at <= clock_timestamp())
-                     or (status = 'sending' and lease_until <= clock_timestamp())
-                  )
-                  order by available_at asc, created_at asc, id asc
-                  for update skip locked limit 1",
-            )
-            .bind(context.site_id.into_uuid())
-            .bind(sealer.is_some())
-            .fetch_optional(tx.conn())
-            .await
-            .map_err(|_| MaviError::Internal)?;
-            let Some(candidate) = candidate else {
+            let Some(candidate) = claim_candidate(tx, context, sealer.is_some()).await? else {
                 return Ok(None);
             };
-            let id: Uuid = candidate.try_get("id").map_err(|_| MaviError::Internal)?;
-            let previous_status: String = candidate
-                .try_get("status")
-                .map_err(|_| MaviError::Internal)?;
-            let attempts: i16 = candidate
-                .try_get("attempts")
-                .map_err(|_| MaviError::Internal)?;
-            if attempts >= MAX_DELIVERY_ATTEMPTS {
-                mark_exhausted_delivery(tx, context, id, attempts).await?;
+            if candidate.attempts >= MAX_DELIVERY_ATTEMPTS {
+                mark_exhausted_delivery(tx, context, candidate.id, candidate.attempts).await?;
                 continue;
             }
-            let body_protected: bool = candidate
-                .try_get("body_protected")
-                .map_err(|_| MaviError::Internal)?;
             let protected_body =
-                unseal_delivery_body(tx, context, id, body_protected, sealer).await?;
-            let row = sqlx::QueryBuilder::<sqlx::Postgres>::new(
-                "update mail_deliveries
-                    set status = 'sending', attempts = attempts + 1, lease_owner = ",
-            )
-            .push_bind(worker_id)
-            .push(", lease_until = ")
-            .push_bind(lease_until)
-            .push(", updated_at = clock_timestamp() where site_id = ")
-            .push_bind(context.site_id.into_uuid())
-            .push(" and id = ")
-            .push_bind(id)
-            .push(" returning ")
-            .push(DELIVERY_COLUMNS)
-            .build()
-            .fetch_one(tx.conn())
-            .await
-            .map_err(|_| MaviError::Internal)?;
-            if previous_status == "sending" {
-                sqlx::query(
-                    "update mail_delivery_attempts
-                        set status = 'retry', error = 'lease_expired', finished_at = clock_timestamp()
-                      where site_id = $1 and delivery_id = $2 and status = 'sending'",
-                )
-                .bind(context.site_id.into_uuid())
-                .bind(id)
-                .execute(tx.conn())
-                .await
-                .map_err(|_| MaviError::Internal)?;
-            }
-            let delivery = from_row(&row)?;
+                unseal_delivery_body(tx, context, candidate.id, candidate.body_protected, sealer)
+                    .await?;
+            let unsubscribe_url = unseal_delivery_link(tx, context, candidate.id, sealer).await?;
+            let delivery =
+                open_delivery_attempt(tx, context, &candidate, worker_id, lease_until).await?;
             let attempt_number =
                 i16::try_from(delivery.attempts).map_err(|_| MaviError::Internal)?;
-            let idempotency_key = delivery_idempotency_key(&row)?;
-            sqlx::query(
-                "insert into mail_delivery_attempts
-                    (site_id, id, delivery_id, attempt_number, status)
-                 values ($1, $2, $3, $4, 'sending')",
-            )
-            .bind(context.site_id.into_uuid())
-            .bind(Uuid::now_v7())
-            .bind(id)
-            .bind(attempt_number)
-            .execute(tx.conn())
-            .await
-            .map_err(|_| MaviError::Internal)?;
+            record_delivery_attempt(tx, context, candidate.id, attempt_number).await?;
             let message = MailMessage {
                 recipient: delivery.recipient.clone(),
                 subject: delivery.subject.clone(),
                 body: protected_body.unwrap_or_else(|| delivery.body.clone()),
                 content_type: delivery.content_type,
+                unsubscribe_url,
             };
             return Ok(Some(ClaimedDelivery {
                 delivery,
                 message,
                 attempt_number,
-                idempotency_key,
+                idempotency_key: candidate.idempotency_key,
             }));
         }
     }
@@ -998,6 +1015,203 @@ impl MailService {
     }
 }
 
+async fn campaign_list_exists(
+    tx: &mut SiteTx,
+    context: &SiteContext,
+    list_id: MailListId,
+) -> Result<bool> {
+    sqlx::query_scalar(
+        "select exists(select 1 from mail_lists where site_id = $1 and id = $2 and deleted_at is null)",
+    )
+    .bind(context.site_id.into_uuid())
+    .bind(list_id.into_uuid())
+    .fetch_one(tx.conn())
+    .await
+    .map_err(|_| MaviError::Internal)
+}
+
+async fn campaign_recipients(
+    tx: &mut SiteTx,
+    context: &SiteContext,
+    list_id: MailListId,
+) -> Result<Vec<CampaignRecipient>> {
+    let rows = sqlx::query(
+        "select r.id, r.email from mail_list_members m
+           join mail_readers r on r.site_id = m.site_id and r.id = m.reader_id
+          where m.site_id = $1 and m.list_id = $2 and r.deleted_at is null and r.standing = 'subscribed'
+          order by m.created_at asc, r.id asc",
+    )
+    .bind(context.site_id.into_uuid())
+    .bind(list_id.into_uuid())
+    .fetch_all(tx.conn())
+    .await
+    .map_err(|_| MaviError::Internal)?;
+    rows.into_iter()
+        .map(|row| {
+            Ok(CampaignRecipient {
+                id: row.try_get("id").map_err(|_| MaviError::Internal)?,
+                email: row.try_get("email").map_err(|_| MaviError::Internal)?,
+            })
+        })
+        .collect()
+}
+
+async fn campaign_canonical_url(
+    tx: &mut SiteTx,
+    context: &SiteContext,
+    required: bool,
+) -> Result<Option<String>> {
+    if !required {
+        return Ok(None);
+    }
+    sqlx::query_scalar::<_, Option<String>>(
+        "select canonical_url from site_settings where site_id = $1",
+    )
+    .bind(context.site_id.into_uuid())
+    .fetch_one(tx.conn())
+    .await
+    .map_err(|_| MaviError::Internal)?
+    .filter(|url| !url.trim().is_empty())
+    .map(Some)
+    .ok_or_else(|| MaviError::validation(MAIL_CANONICAL_URL_REQUIRED))
+}
+
+async fn persist_campaign_bearer_link(
+    tx: &mut SiteTx,
+    context: &SiteContext,
+    delivery_id: Uuid,
+    reader_id: Uuid,
+    token_hash: Vec<u8>,
+    unsubscribe_url: &str,
+    sealer: &dyn Seals,
+) -> Result<()> {
+    let ciphertext = sealer.seal(context, unsubscribe_url.as_bytes()).await?;
+    sqlx::query(
+        "insert into mail_unsubscribe_tokens
+            (site_id, id, delivery_id, reader_id, token_hash)
+         values ($1, $2, $3, $4, $5)",
+    )
+    .bind(context.site_id.into_uuid())
+    .bind(Uuid::now_v7())
+    .bind(delivery_id)
+    .bind(reader_id)
+    .bind(token_hash)
+    .execute(tx.conn())
+    .await
+    .map_err(|_| MaviError::Internal)?;
+    sqlx::query(
+        "insert into mail_delivery_links (site_id, delivery_id, ciphertext)
+         values ($1, $2, $3)",
+    )
+    .bind(context.site_id.into_uuid())
+    .bind(delivery_id)
+    .bind(ciphertext)
+    .execute(tx.conn())
+    .await
+    .map_err(|_| MaviError::Internal)?;
+    Ok(())
+}
+
+async fn claim_candidate(
+    tx: &mut SiteTx,
+    context: &SiteContext,
+    has_sealer: bool,
+) -> Result<Option<ClaimCandidate>> {
+    let row = sqlx::query(
+        "select id, status, attempts, body_protected, idempotency_key from mail_deliveries
+          where site_id = $1 and (not body_protected or $2)
+            and ($2 or not exists (
+                select 1 from mail_delivery_links
+                 where site_id = mail_deliveries.site_id
+                   and delivery_id = mail_deliveries.id
+            )) and (
+                (status in ('queued', 'retry') and available_at <= clock_timestamp())
+             or (status = 'sending' and lease_until <= clock_timestamp())
+          )
+          order by available_at asc, created_at asc, id asc
+          for update skip locked limit 1",
+    )
+    .bind(context.site_id.into_uuid())
+    .bind(has_sealer)
+    .fetch_optional(tx.conn())
+    .await
+    .map_err(|_| MaviError::Internal)?;
+    row.map(|row| {
+        Ok(ClaimCandidate {
+            id: row.try_get("id").map_err(|_| MaviError::Internal)?,
+            previous_status: row.try_get("status").map_err(|_| MaviError::Internal)?,
+            attempts: row.try_get("attempts").map_err(|_| MaviError::Internal)?,
+            body_protected: row
+                .try_get("body_protected")
+                .map_err(|_| MaviError::Internal)?,
+            idempotency_key: row
+                .try_get("idempotency_key")
+                .map_err(|_| MaviError::Internal)?,
+        })
+    })
+    .transpose()
+}
+
+async fn open_delivery_attempt(
+    tx: &mut SiteTx,
+    context: &SiteContext,
+    candidate: &ClaimCandidate,
+    worker_id: &str,
+    lease_until: DateTime<Utc>,
+) -> Result<MailDelivery> {
+    let row = sqlx::QueryBuilder::<sqlx::Postgres>::new(
+        "update mail_deliveries
+            set status = 'sending', attempts = attempts + 1, lease_owner = ",
+    )
+    .push_bind(worker_id)
+    .push(", lease_until = ")
+    .push_bind(lease_until)
+    .push(", updated_at = clock_timestamp() where site_id = ")
+    .push_bind(context.site_id.into_uuid())
+    .push(" and id = ")
+    .push_bind(candidate.id)
+    .push(" returning ")
+    .push(DELIVERY_COLUMNS)
+    .build()
+    .fetch_one(tx.conn())
+    .await
+    .map_err(|_| MaviError::Internal)?;
+    if candidate.previous_status == "sending" {
+        sqlx::query(
+            "update mail_delivery_attempts
+                set status = 'retry', error = 'lease_expired', finished_at = clock_timestamp()
+              where site_id = $1 and delivery_id = $2 and status = 'sending'",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(candidate.id)
+        .execute(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?;
+    }
+    from_row(&row)
+}
+
+async fn record_delivery_attempt(
+    tx: &mut SiteTx,
+    context: &SiteContext,
+    delivery_id: Uuid,
+    attempt_number: i16,
+) -> Result<()> {
+    sqlx::query(
+        "insert into mail_delivery_attempts
+            (site_id, id, delivery_id, attempt_number, status)
+         values ($1, $2, $3, $4, 'sending')",
+    )
+    .bind(context.site_id.into_uuid())
+    .bind(Uuid::now_v7())
+    .bind(delivery_id)
+    .bind(attempt_number)
+    .execute(tx.conn())
+    .await
+    .map_err(|_| MaviError::Internal)?;
+    Ok(())
+}
+
 async fn unseal_delivery_body(
     tx: &mut SiteTx,
     context: &SiteContext,
@@ -1019,6 +1233,31 @@ async fn unseal_delivery_body(
     .await
     .map_err(|_| MaviError::Internal)?
     .ok_or(MaviError::Internal)?;
+    let plaintext = sealer.unseal(context, &ciphertext).await?;
+    String::from_utf8(plaintext)
+        .map(Some)
+        .map_err(|_| MaviError::Internal)
+}
+
+async fn unseal_delivery_link(
+    tx: &mut SiteTx,
+    context: &SiteContext,
+    id: Uuid,
+    sealer: Option<&dyn Seals>,
+) -> Result<Option<String>> {
+    let ciphertext: Option<Vec<u8>> = sqlx::query_scalar(
+        "select ciphertext from mail_delivery_links
+          where site_id = $1 and delivery_id = $2",
+    )
+    .bind(context.site_id.into_uuid())
+    .bind(id)
+    .fetch_optional(tx.conn())
+    .await
+    .map_err(|_| MaviError::Internal)?;
+    let Some(ciphertext) = ciphertext else {
+        return Ok(None);
+    };
+    let sealer = sealer.ok_or(MaviError::Internal)?;
     let plaintext = sealer.unseal(context, &ciphertext).await?;
     String::from_utf8(plaintext)
         .map(Some)
@@ -1077,11 +1316,6 @@ fn validate_idempotency_key(value: Option<&str>) -> Result<Option<String>> {
     Ok(Some(value.to_owned()))
 }
 
-fn delivery_idempotency_key(row: &sqlx::postgres::PgRow) -> Result<Option<String>> {
-    row.try_get("idempotency_key")
-        .map_err(|_| MaviError::Internal)
-}
-
 async fn find_delivery_by_idempotency_key(
     tx: &mut SiteTx,
     context: &SiteContext,
@@ -1104,6 +1338,11 @@ async fn find_delivery_by_idempotency_key(
 }
 
 fn validate_system_message(message: &MailMessage) -> Result<(mavi_core::Email, &str)> {
+    if message.unsubscribe_url.is_some() {
+        return Err(MaviError::validation(
+            "transactional_unsubscribe_url_forbidden",
+        ));
+    }
     let recipient = mavi_core::Email::parse(&message.recipient)
         .map_err(|_| MaviError::validation_field("invalid_email", "recipient"))?;
     let subject = message.subject.trim();

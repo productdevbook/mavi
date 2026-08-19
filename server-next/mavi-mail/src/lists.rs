@@ -729,12 +729,55 @@ impl MailService {
              returning id",
         )
         .bind(context.site_id.into_uuid())
-        .bind(token_hash)
+        .bind(&token_hash)
         .fetch_optional(tx.conn())
         .await
         .map_err(|_| MaviError::Internal)?;
-        if let Some(row) = row {
-            let id: uuid::Uuid = row.try_get("id").map_err(|_| MaviError::Internal)?;
+        let reader_id = if let Some(row) = row {
+            row.try_get::<uuid::Uuid, _>("id")
+                .map_err(|_| MaviError::Internal)?
+        } else {
+            let token = sqlx::query(
+                "select id, reader_id from mail_unsubscribe_tokens
+                  where site_id = $1 and token_hash = $2 and used_at is null
+                  limit 1",
+            )
+            .bind(context.site_id.into_uuid())
+            .bind(&token_hash)
+            .fetch_optional(tx.conn())
+            .await
+            .map_err(|_| MaviError::Internal)?;
+            let Some(token) = token else {
+                return Ok(UnsubscribeReceipt { unsubscribed: true });
+            };
+            let token_id: uuid::Uuid = token.try_get("id").map_err(|_| MaviError::Internal)?;
+            let reader_id: uuid::Uuid = token
+                .try_get("reader_id")
+                .map_err(|_| MaviError::Internal)?;
+            sqlx::query(
+                "update mail_readers
+                    set standing = 'unsubscribed', updated_at = clock_timestamp()
+                  where site_id = $1 and id = $2 and deleted_at is null",
+            )
+            .bind(context.site_id.into_uuid())
+            .bind(reader_id)
+            .execute(tx.conn())
+            .await
+            .map_err(|_| MaviError::Internal)?;
+            sqlx::query(
+                "update mail_unsubscribe_tokens
+                    set used_at = clock_timestamp()
+                  where site_id = $1 and id = $2 and used_at is null",
+            )
+            .bind(context.site_id.into_uuid())
+            .bind(token_id)
+            .execute(tx.conn())
+            .await
+            .map_err(|_| MaviError::Internal)?;
+            reader_id
+        };
+        {
+            let id = reader_id;
             audit(
                 tx,
                 context,
@@ -789,14 +832,14 @@ fn validate_reader_name(value: &str) -> Result<String> {
     Ok(value.to_owned())
 }
 
-fn mint_token() -> (String, Vec<u8>) {
+pub(crate) fn mint_token() -> (String, Vec<u8>) {
     let mut bytes = [0_u8; 32];
     rand::rng().fill(&mut bytes);
     let token = URL_SAFE_NO_PAD.encode(bytes);
     (token.clone(), hash_bytes(token.as_bytes()))
 }
 
-fn hash_token(token: &str) -> Result<Vec<u8>> {
+pub(crate) fn hash_token(token: &str) -> Result<Vec<u8>> {
     if token.is_empty() || token.len() > 128 {
         return Err(MaviError::validation("invalid_unsubscribe_token"));
     }

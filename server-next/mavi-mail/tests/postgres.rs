@@ -3,7 +3,7 @@ use std::env;
 use chrono::{Duration, Utc};
 use mavi_core::{
     MaviError, PageRequest, SiteContext, SiteId,
-    ports::{MailContentType as CoreMailContentType, MailDeliveryReceipt, MailMessage},
+    ports::{MailContentType as CoreMailContentType, MailDeliveryReceipt, MailMessage, Seals},
 };
 use mavi_mail::{
     AddReader, CreateMailList, CreateMailTemplate, DeliveryListFilter, EnqueueDelivery,
@@ -31,8 +31,19 @@ async fn mail_templates_lists_and_outbox_are_site_scoped_and_leaseable() {
         .expect("second site");
     let first_context = SiteContext::public(first_site);
     let service = MailService;
+    let sealer = KeyringSealer::from_key([19; 32]);
 
     let mut transaction = database.begin(&first_context).await.expect("first scope");
+    sqlx::query(
+        "insert into site_settings (site_id, name, canonical_url)
+         values ($1, $2, $3)",
+    )
+    .bind(first_site.into_uuid())
+    .bind("Mail test")
+    .bind("https://mail.example.test")
+    .execute(transaction.conn())
+    .await
+    .expect("settings");
     let template = service
         .create_template(
             &mut transaction,
@@ -304,10 +315,46 @@ async fn mail_templates_lists_and_outbox_are_site_scoped_and_leaseable() {
                     .expect("variables"),
                 idempotency_key: Some("campaign-1".to_owned()),
             },
+            &sealer,
         )
         .await
         .expect("campaign");
     assert_eq!(campaign.enqueued, 1);
+    let (link_ciphertext, token_hash): (Vec<u8>, Vec<u8>) = sqlx::query_as(
+        "select l.ciphertext, t.token_hash
+           from mail_delivery_links l
+           join mail_unsubscribe_tokens t
+             on t.site_id = l.site_id and t.delivery_id = l.delivery_id
+          where l.site_id = $1
+          limit 1",
+    )
+    .bind(first_site.into_uuid())
+    .fetch_one(transaction.conn())
+    .await
+    .expect("campaign unsubscribe link");
+    let unsubscribe_url = String::from_utf8(
+        sealer
+            .unseal(&first_context, &link_ciphertext)
+            .await
+            .expect("unseal campaign link"),
+    )
+    .expect("campaign URL");
+    assert!(unsubscribe_url.starts_with("https://mail.example.test/public/v1/mail/unsubscribe/"));
+    assert_ne!(link_ciphertext, unsubscribe_url.as_bytes());
+    assert_eq!(token_hash.len(), 32);
+    let campaign_token = unsubscribe_url
+        .rsplit('/')
+        .next()
+        .expect("campaign token")
+        .to_owned();
+    service
+        .unsubscribe(&mut transaction, &first_context, &campaign_token)
+        .await
+        .expect("campaign unsubscribe");
+    service
+        .unsubscribe(&mut transaction, &first_context, &campaign_token)
+        .await
+        .expect("campaign unsubscribe is idempotent");
     let deliveries = service
         .list_deliveries(
             &mut transaction,
@@ -386,6 +433,7 @@ async fn protected_transactional_mail_is_sealed_redacted_and_unsealed_by_workers
                 subject: "Security message".to_owned(),
                 body: secret_body.to_owned(),
                 content_type: CoreMailContentType::Plain,
+                unsubscribe_url: None,
             },
             Some("protected-test-1"),
             &sealer,
@@ -401,6 +449,7 @@ async fn protected_transactional_mail_is_sealed_redacted_and_unsealed_by_workers
                 subject: "Plain message".to_owned(),
                 body: "This is an ordinary message".to_owned(),
                 content_type: CoreMailContentType::Plain,
+                unsubscribe_url: None,
             },
             Some("plain-test-1"),
         )

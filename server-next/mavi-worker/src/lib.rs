@@ -20,7 +20,7 @@ use mavi_content::{
 };
 use mavi_core::{
     MaviError, RequestId, Result, SiteContext, SiteId,
-    ports::{FileStore, MailDeliveryRequest, Mailer, Seals},
+    ports::{FileStore, MailDeliveryPurpose, MailDeliveryRequest, Mailer, Seals},
 };
 use mavi_forms::{FORM_RETENTION_JOB, FormRetentionJob, FormService};
 use mavi_jobs::{DEFAULT_LEASE_SECONDS, JobClaim, JobsService, LeaseOutcome};
@@ -367,6 +367,10 @@ impl WorkerSupervisor {
             delivery_id: claimed.delivery.id,
             attempt_number,
             idempotency_key: claimed.idempotency_key,
+            purpose: match claimed.delivery.purpose {
+                mavi_mail::MailPurpose::Transactional => MailDeliveryPurpose::Transactional,
+                mavi_mail::MailPurpose::Campaign => MailDeliveryPurpose::Campaign,
+            },
             message: claimed.message,
         };
         match mavi_mail::send_via(&context, mailer, request).await {

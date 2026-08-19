@@ -793,7 +793,7 @@ msgstr "Derleme jetonu bu siteyi okur ve hiçbir şeyi değiştiremez; onunla ba
 #~ msgid "A campaign can go out as any of these. Each one has to be verified in SES too — an address is not a sender until Amazon says so."
 #~ msgstr "Bir kampanya bunlardan herhangi biriyle gidebilir. Her birinin SES'te ayrıca doğrulanmış olması gerekir — Amazon onaylamadan bir adres gönderici olmaz."
 
-#: src/routes/dashboard.boards_.$boardId.tsx:191
+#: src/features/boards/board-page.tsx:192
 msgid "A card"
 msgstr "Bir kart"
 
@@ -905,11 +905,11 @@ msgstr "Tek satır metin"
 #~ msgid "A message that bounced hard, or that somebody reported as spam. Amazon keeps this list itself and honours it whatever this panel does — a bounce costs money and complaints close accounts."
 #~ msgstr "Sert şekilde geri dönen ya da birinin spam olarak bildirdiği mesajlar. Amazon bu listeyi kendi tutar ve bu panel ne yaparsa yapsın ona uyar — iade para götürür, şikâyet hesap kapatır."
 
-#: src/routes/dashboard.boards.tsx:154
+#: src/features/boards/boards-page.tsx:156
 msgid "A new board"
 msgstr "Yeni bir pano"
 
-#: src/routes/dashboard.boards_.$boardId.tsx:204
+#: src/features/boards/board-page.tsx:205
 msgid "A new card"
 msgstr "Yeni bir kart"
 
@@ -1144,9 +1144,9 @@ msgstr "Sitenin kendi ödeme sağlayıcısı. Kart bilgileri bu makineye hiç ul
 #~ msgstr "Etkin"
 
 #: src/components/editor/dialogs.tsx:206
+#: src/features/boards/board-page.tsx:238
 #: src/features/learning/course-page.tsx:192
 #: src/features/taxonomy/tags-page.tsx:155
-#: src/routes/dashboard.boards_.$boardId.tsx:237
 #: src/routes/dashboard.mail.tsx:213
 msgid "Add"
 msgstr "Ekle"
@@ -1610,7 +1610,7 @@ msgstr "Bir tane daha"
 #~ msgid "Another service posts to an address only it knows"
 #~ msgstr "Başka bir servis, yalnızca onun bildiği bir adrese istek gönderir"
 
-#: src/routes/dashboard.boards.tsx:203
+#: src/features/boards/boards-page.tsx:205
 msgid "Another stage"
 msgstr "Bir aşama daha"
 
@@ -1682,7 +1682,7 @@ msgid "Anything done"
 msgstr "Yapılan her şey"
 
 #: src/components/report-a-problem.tsx:183
-#: src/routes/dashboard.boards_.$boardId.tsx:218
+#: src/features/boards/board-page.tsx:219
 msgid "Anything else"
 msgstr "Başka bir şey"
 
@@ -1699,7 +1699,7 @@ msgstr "Yapılan her şeye"
 #~ msgid "Anything this site publishes, or one kind of it"
 #~ msgstr "Bu sitenin yayınladığı her şey ya da yalnızca bir türü"
 
-#: src/routes/dashboard.boards.tsx:109
+#: src/features/boards/boards-page.tsx:107
 msgid "Anything this site works through in order: enquiries, repairs, applications. You name the stages."
 msgstr "Bu sitenin sırayla işlediği her şey: talepler, onarımlar, başvurular. Aşamaları siz adlandırırsınız."
 
@@ -2111,9 +2111,9 @@ msgid "board"
 msgstr "pano"
 
 #: src/components/dashboard/dashboard-shell.tsx:105
+#: src/features/boards/board-page.tsx:120
+#: src/features/boards/boards-page.tsx:106
 #: src/features/people/roles-page.tsx:161
-#: src/routes/dashboard.boards_.$boardId.tsx:123
-#: src/routes/dashboard.boards.tsx:107
 msgid "Boards"
 msgstr "Panolar"
 
@@ -2290,7 +2290,7 @@ msgstr ""
 #~ msgid "Came from"
 #~ msgstr "Nereden geldiler"
 
-#: src/routes/dashboard.boards.tsx:52
+#: src/features/boards/boards-page.tsx:52
 msgid "Came in"
 msgstr "Geldi"
 
@@ -2331,6 +2331,9 @@ msgstr "{0} alanın {summary} tanesini açabilir."
 #: src/components/editor/dialogs.tsx:330
 #: src/components/report-a-problem.tsx:236
 #: src/features/automation/flows-page.tsx:329
+#: src/features/boards/board-page.tsx:231
+#: src/features/boards/boards-page.tsx:212
+#: src/features/boards/boards-page.tsx:234
 #: src/features/content/content-list.tsx:316
 #: src/features/forms/forms-page.tsx:306
 #: src/features/forms/forms-page.tsx:328
@@ -2345,9 +2348,6 @@ msgstr "{0} alanın {summary} tanesini açabilir."
 #: src/features/taxonomy/categories-page.tsx:332
 #: src/features/taxonomy/tags-page.tsx:189
 #: src/features/taxonomy/tags-page.tsx:241
-#: src/routes/dashboard.boards_.$boardId.tsx:230
-#: src/routes/dashboard.boards.tsx:210
-#: src/routes/dashboard.boards.tsx:232
 #: src/routes/dashboard.design.tsx:213
 #: src/routes/dashboard.languages.tsx:183
 #: src/routes/dashboard.mail.tsx:268
@@ -3321,6 +3321,10 @@ msgstr "Kapak önizlemesi"
 msgid "Create"
 msgstr "Oluştur"
 
+#: src/features/boards/boards-page.tsx:121
+msgid "Create a board to move work through stages."
+msgstr ""
+
 #: src/features/shop/coupons-page.tsx:88
 msgid "Create a code to offer a discount during checkout."
 msgstr ""
@@ -3675,7 +3679,7 @@ msgstr "Ayraç"
 #~ msgid "done"
 #~ msgstr "bitti"
 
-#: src/routes/dashboard.boards.tsx:54
+#: src/features/boards/boards-page.tsx:54
 msgid "Done"
 msgstr "Yapıldı"
 
@@ -3836,7 +3840,7 @@ msgstr "Emoji"
 #~ msgid "Endpoint"
 #~ msgstr "Endpoint"
 
-#: src/routes/dashboard.boards.tsx:167
+#: src/features/boards/boards-page.tsx:169
 msgid "Enquiries"
 msgstr "Talepler"
 
@@ -4937,7 +4941,7 @@ msgstr "İtalik"
 #~ msgid "Its address"
 #~ msgstr "Adresi"
 
-#: src/routes/dashboard.boards.tsx:228
+#: src/features/boards/boards-page.tsx:230
 msgid "Its cards go with it."
 msgstr "Kartları da onunla gider."
 
@@ -5370,9 +5374,9 @@ msgid "Make default"
 msgstr "Varsayılan yap"
 
 #: src/features/automation/flows-page.tsx:333
+#: src/features/boards/boards-page.tsx:216
 #: src/features/people/roles-page.tsx:461
 #: src/features/shop/products-page.tsx:277
-#: src/routes/dashboard.boards.tsx:214
 #: src/routes/dashboard.mail.tsx:275
 msgid "Make it"
 msgstr "Oluştur"
@@ -5551,6 +5555,10 @@ msgstr "Birden fazla satır"
 #~ msgid "More than one"
 #~ msgstr "Birden fazla"
 
+#: src/features/boards/board-page.tsx:117
+msgid "Move cards through the stages of this board."
+msgstr ""
+
 #: src/components/editor/content-fields.tsx:412
 #: src/routes/dashboard.flows.tsx:896
 #~ msgid "Move down"
@@ -5680,7 +5688,8 @@ msgstr "Yeni {0}"
 msgid "New {one}"
 msgstr "Yeni {one}"
 
-#: src/routes/dashboard.boards.tsx:113
+#: src/features/boards/boards-page.tsx:110
+#: src/features/boards/boards-page.tsx:124
 msgid "New board"
 msgstr "Yeni pano"
 
@@ -5837,7 +5846,7 @@ msgstr "Henüz {many} yok"
 #~ msgid "No boards yet — which is right for most sites. Make one when something that arrives needs more than reading."
 #~ msgstr "Henüz pano yok — çoğu site için doğrusu da bu. Size gelen bir şey okunmaktan fazlasını gerektirdiğinde bir tane açın."
 
-#: src/routes/dashboard.boards.tsx:124
+#: src/features/boards/boards-page.tsx:120
 msgid "No boards yet."
 msgstr "Henüz pano yok."
 
@@ -7496,6 +7505,10 @@ msgstr "Düzenli ifade"
 #: src/components/editor/bubble-menus.tsx:282
 #: src/features/automation/flows-page.tsx:181
 #: src/features/automation/flows-page.tsx:299
+#: src/features/boards/board-page.tsx:153
+#: src/features/boards/boards-page.tsx:143
+#: src/features/boards/boards-page.tsx:190
+#: src/features/boards/boards-page.tsx:236
 #: src/features/forms/forms-page.tsx:216
 #: src/features/forms/forms-page.tsx:330
 #: src/features/forms/forms-page.tsx:466
@@ -7505,10 +7518,6 @@ msgstr "Düzenli ifade"
 #: src/features/people/people-page.tsx:379
 #: src/features/shop/coupons-page.tsx:122
 #: src/features/taxonomy/tags-page.tsx:243
-#: src/routes/dashboard.boards_.$boardId.tsx:156
-#: src/routes/dashboard.boards.tsx:141
-#: src/routes/dashboard.boards.tsx:188
-#: src/routes/dashboard.boards.tsx:234
 #: src/routes/dashboard.content-types.tsx:106
 #: src/routes/dashboard.forms_.$formId.tsx:212
 #: src/routes/dashboard.languages.tsx:185
@@ -7547,7 +7556,7 @@ msgstr "Görüntüyü kaldır"
 msgid "Remove this account?"
 msgstr "Bu hesap kaldırılsın mı?"
 
-#: src/routes/dashboard.boards.tsx:226
+#: src/features/boards/boards-page.tsx:228
 msgid "Remove this board?"
 msgstr "Bu pano kaldırılsın mı?"
 
@@ -8553,7 +8562,7 @@ msgstr "Hücreyi böl"
 #~ msgid "Stage name"
 #~ msgstr "Aşama adı"
 
-#: src/routes/dashboard.boards.tsx:172
+#: src/features/boards/boards-page.tsx:174
 msgid "Stages"
 msgstr "Aşamalar"
 
@@ -10340,7 +10349,7 @@ msgstr "Nelerin sorulduğu"
 msgid "What it costs"
 msgstr "Kaça satılıyor"
 
-#: src/routes/dashboard.boards_.$boardId.tsx:209
+#: src/features/boards/board-page.tsx:210
 msgid "What it is"
 msgstr "Ne olduğu"
 
@@ -10351,11 +10360,11 @@ msgstr "Neyle ilgili"
 #: src/components/dashboard/content-type-editor.tsx:99
 #: src/components/dashboard/content-type-editor.tsx:146
 #: src/features/automation/flows-page.tsx:216
+#: src/features/boards/boards-page.tsx:164
 #: src/features/forms/forms-page.tsx:401
 #: src/features/learning/start-teaching-page.tsx:70
 #: src/features/settings/settings-page.tsx:64
 #: src/features/shop/products-page.tsx:212
-#: src/routes/dashboard.boards.tsx:162
 #: src/routes/dashboard.mail.tsx:258
 msgid "What it is called"
 msgstr "Görünen adı"
@@ -10364,7 +10373,7 @@ msgstr "Görünen adı"
 msgid "What it is called and where it answers."
 msgstr ""
 
-#: src/routes/dashboard.boards.tsx:156
+#: src/features/boards/boards-page.tsx:158
 msgid "What it is called, and the stages a card moves through. Both can be changed afterwards."
 msgstr "Adı ve bir kartın geçtiği aşamalar. İkisi de sonradan değiştirilebilir."
 
@@ -10922,7 +10931,7 @@ msgstr ""
 #~ msgid "Working on a site? Type its address"
 #~ msgstr "Bir site üzerinde mi çalışıyorsunuz? Adresini yazın"
 
-#: src/routes/dashboard.boards.tsx:53
+#: src/features/boards/boards-page.tsx:53
 msgid "Working on it"
 msgstr "Üzerinde çalışılıyor"
 

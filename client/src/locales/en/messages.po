@@ -793,7 +793,7 @@ msgstr "A build token can read this site and change nothing, so an assistant con
 #~ msgid "A campaign can go out as any of these. Each one has to be verified in SES too — an address is not a sender until Amazon says so."
 #~ msgstr "A campaign can go out as any of these. Each one has to be verified in SES too — an address is not a sender until Amazon says so."
 
-#: src/routes/dashboard.boards_.$boardId.tsx:191
+#: src/features/boards/board-page.tsx:192
 msgid "A card"
 msgstr "A card"
 
@@ -905,11 +905,11 @@ msgstr "A line of text"
 #~ msgid "A message that bounced hard, or that somebody reported as spam. Amazon keeps this list itself and honours it whatever this panel does — a bounce costs money and complaints close accounts."
 #~ msgstr "A message that bounced hard, or that somebody reported as spam. Amazon keeps this list itself and honours it whatever this panel does — a bounce costs money and complaints close accounts."
 
-#: src/routes/dashboard.boards.tsx:154
+#: src/features/boards/boards-page.tsx:156
 msgid "A new board"
 msgstr "A new board"
 
-#: src/routes/dashboard.boards_.$boardId.tsx:204
+#: src/features/boards/board-page.tsx:205
 msgid "A new card"
 msgstr "A new card"
 
@@ -1144,9 +1144,9 @@ msgstr "A site's own payment provider. Card details never reach this machine: wh
 #~ msgstr "Active"
 
 #: src/components/editor/dialogs.tsx:206
+#: src/features/boards/board-page.tsx:238
 #: src/features/learning/course-page.tsx:192
 #: src/features/taxonomy/tags-page.tsx:155
-#: src/routes/dashboard.boards_.$boardId.tsx:237
 #: src/routes/dashboard.mail.tsx:213
 msgid "Add"
 msgstr "Add"
@@ -1610,7 +1610,7 @@ msgstr "Another"
 #~ msgid "Another service posts to an address only it knows"
 #~ msgstr "Another service posts to an address only it knows"
 
-#: src/routes/dashboard.boards.tsx:203
+#: src/features/boards/boards-page.tsx:205
 msgid "Another stage"
 msgstr "Another stage"
 
@@ -1682,7 +1682,7 @@ msgid "Anything done"
 msgstr "Anything done"
 
 #: src/components/report-a-problem.tsx:183
-#: src/routes/dashboard.boards_.$boardId.tsx:218
+#: src/features/boards/board-page.tsx:219
 msgid "Anything else"
 msgstr "Anything else"
 
@@ -1699,7 +1699,7 @@ msgstr "Anything it was done to"
 #~ msgid "Anything this site publishes, or one kind of it"
 #~ msgstr "Anything this site publishes, or one kind of it"
 
-#: src/routes/dashboard.boards.tsx:109
+#: src/features/boards/boards-page.tsx:107
 msgid "Anything this site works through in order: enquiries, repairs, applications. You name the stages."
 msgstr "Anything this site works through in order: enquiries, repairs, applications. You name the stages."
 
@@ -2111,9 +2111,9 @@ msgid "board"
 msgstr "board"
 
 #: src/components/dashboard/dashboard-shell.tsx:105
+#: src/features/boards/board-page.tsx:120
+#: src/features/boards/boards-page.tsx:106
 #: src/features/people/roles-page.tsx:161
-#: src/routes/dashboard.boards_.$boardId.tsx:123
-#: src/routes/dashboard.boards.tsx:107
 msgid "Boards"
 msgstr "Boards"
 
@@ -2290,7 +2290,7 @@ msgstr "By page and metric"
 #~ msgid "Came from"
 #~ msgstr "Came from"
 
-#: src/routes/dashboard.boards.tsx:52
+#: src/features/boards/boards-page.tsx:52
 msgid "Came in"
 msgstr "Came in"
 
@@ -2331,6 +2331,9 @@ msgstr "Can open {summary} of {0} areas."
 #: src/components/editor/dialogs.tsx:330
 #: src/components/report-a-problem.tsx:236
 #: src/features/automation/flows-page.tsx:329
+#: src/features/boards/board-page.tsx:231
+#: src/features/boards/boards-page.tsx:212
+#: src/features/boards/boards-page.tsx:234
 #: src/features/content/content-list.tsx:316
 #: src/features/forms/forms-page.tsx:306
 #: src/features/forms/forms-page.tsx:328
@@ -2345,9 +2348,6 @@ msgstr "Can open {summary} of {0} areas."
 #: src/features/taxonomy/categories-page.tsx:332
 #: src/features/taxonomy/tags-page.tsx:189
 #: src/features/taxonomy/tags-page.tsx:241
-#: src/routes/dashboard.boards_.$boardId.tsx:230
-#: src/routes/dashboard.boards.tsx:210
-#: src/routes/dashboard.boards.tsx:232
 #: src/routes/dashboard.design.tsx:213
 #: src/routes/dashboard.languages.tsx:183
 #: src/routes/dashboard.mail.tsx:268
@@ -3321,6 +3321,10 @@ msgstr "Cover preview"
 msgid "Create"
 msgstr "Create"
 
+#: src/features/boards/boards-page.tsx:121
+msgid "Create a board to move work through stages."
+msgstr "Create a board to move work through stages."
+
 #: src/features/shop/coupons-page.tsx:88
 msgid "Create a code to offer a discount during checkout."
 msgstr "Create a code to offer a discount during checkout."
@@ -3675,7 +3679,7 @@ msgstr "Divider"
 #~ msgid "done"
 #~ msgstr "done"
 
-#: src/routes/dashboard.boards.tsx:54
+#: src/features/boards/boards-page.tsx:54
 msgid "Done"
 msgstr "Done"
 
@@ -3836,7 +3840,7 @@ msgstr "Emoji"
 #~ msgid "Endpoint"
 #~ msgstr "Endpoint"
 
-#: src/routes/dashboard.boards.tsx:167
+#: src/features/boards/boards-page.tsx:169
 msgid "Enquiries"
 msgstr "Enquiries"
 
@@ -4937,7 +4941,7 @@ msgstr "Italic"
 #~ msgid "Its address"
 #~ msgstr "Its address"
 
-#: src/routes/dashboard.boards.tsx:228
+#: src/features/boards/boards-page.tsx:230
 msgid "Its cards go with it."
 msgstr "Its cards go with it."
 
@@ -5370,9 +5374,9 @@ msgid "Make default"
 msgstr "Make default"
 
 #: src/features/automation/flows-page.tsx:333
+#: src/features/boards/boards-page.tsx:216
 #: src/features/people/roles-page.tsx:461
 #: src/features/shop/products-page.tsx:277
-#: src/routes/dashboard.boards.tsx:214
 #: src/routes/dashboard.mail.tsx:275
 msgid "Make it"
 msgstr "Make it"
@@ -5551,6 +5555,10 @@ msgstr "More than a line"
 #~ msgid "More than one"
 #~ msgstr "More than one"
 
+#: src/features/boards/board-page.tsx:117
+msgid "Move cards through the stages of this board."
+msgstr "Move cards through the stages of this board."
+
 #: src/components/editor/content-fields.tsx:412
 #: src/routes/dashboard.flows.tsx:896
 #~ msgid "Move down"
@@ -5680,7 +5688,8 @@ msgstr "New {0}"
 msgid "New {one}"
 msgstr "New {one}"
 
-#: src/routes/dashboard.boards.tsx:113
+#: src/features/boards/boards-page.tsx:110
+#: src/features/boards/boards-page.tsx:124
 msgid "New board"
 msgstr "New board"
 
@@ -5837,7 +5846,7 @@ msgstr "No {many} yet"
 #~ msgid "No boards yet — which is right for most sites. Make one when something that arrives needs more than reading."
 #~ msgstr "No boards yet — which is right for most sites. Make one when something that arrives needs more than reading."
 
-#: src/routes/dashboard.boards.tsx:124
+#: src/features/boards/boards-page.tsx:120
 msgid "No boards yet."
 msgstr "No boards yet."
 
@@ -7496,6 +7505,10 @@ msgstr "Regular expression"
 #: src/components/editor/bubble-menus.tsx:282
 #: src/features/automation/flows-page.tsx:181
 #: src/features/automation/flows-page.tsx:299
+#: src/features/boards/board-page.tsx:153
+#: src/features/boards/boards-page.tsx:143
+#: src/features/boards/boards-page.tsx:190
+#: src/features/boards/boards-page.tsx:236
 #: src/features/forms/forms-page.tsx:216
 #: src/features/forms/forms-page.tsx:330
 #: src/features/forms/forms-page.tsx:466
@@ -7505,10 +7518,6 @@ msgstr "Regular expression"
 #: src/features/people/people-page.tsx:379
 #: src/features/shop/coupons-page.tsx:122
 #: src/features/taxonomy/tags-page.tsx:243
-#: src/routes/dashboard.boards_.$boardId.tsx:156
-#: src/routes/dashboard.boards.tsx:141
-#: src/routes/dashboard.boards.tsx:188
-#: src/routes/dashboard.boards.tsx:234
 #: src/routes/dashboard.content-types.tsx:106
 #: src/routes/dashboard.forms_.$formId.tsx:212
 #: src/routes/dashboard.languages.tsx:185
@@ -7547,7 +7556,7 @@ msgstr "Remove the picture"
 msgid "Remove this account?"
 msgstr "Remove this account?"
 
-#: src/routes/dashboard.boards.tsx:226
+#: src/features/boards/boards-page.tsx:228
 msgid "Remove this board?"
 msgstr "Remove this board?"
 
@@ -8553,7 +8562,7 @@ msgstr "Split cell"
 #~ msgid "Stage name"
 #~ msgstr "Stage name"
 
-#: src/routes/dashboard.boards.tsx:172
+#: src/features/boards/boards-page.tsx:174
 msgid "Stages"
 msgstr "Stages"
 
@@ -10340,7 +10349,7 @@ msgstr "What it asks for"
 msgid "What it costs"
 msgstr "What it costs"
 
-#: src/routes/dashboard.boards_.$boardId.tsx:209
+#: src/features/boards/board-page.tsx:210
 msgid "What it is"
 msgstr "What it is"
 
@@ -10351,11 +10360,11 @@ msgstr "What it is about"
 #: src/components/dashboard/content-type-editor.tsx:99
 #: src/components/dashboard/content-type-editor.tsx:146
 #: src/features/automation/flows-page.tsx:216
+#: src/features/boards/boards-page.tsx:164
 #: src/features/forms/forms-page.tsx:401
 #: src/features/learning/start-teaching-page.tsx:70
 #: src/features/settings/settings-page.tsx:64
 #: src/features/shop/products-page.tsx:212
-#: src/routes/dashboard.boards.tsx:162
 #: src/routes/dashboard.mail.tsx:258
 msgid "What it is called"
 msgstr "What it is called"
@@ -10364,7 +10373,7 @@ msgstr "What it is called"
 msgid "What it is called and where it answers."
 msgstr "What it is called and where it answers."
 
-#: src/routes/dashboard.boards.tsx:156
+#: src/features/boards/boards-page.tsx:158
 msgid "What it is called, and the stages a card moves through. Both can be changed afterwards."
 msgstr "What it is called, and the stages a card moves through. Both can be changed afterwards."
 
@@ -10922,7 +10931,7 @@ msgstr "Work backlog"
 #~ msgid "Working on a site? Type its address"
 #~ msgstr "Working on a site? Type its address"
 
-#: src/routes/dashboard.boards.tsx:53
+#: src/features/boards/boards-page.tsx:53
 msgid "Working on it"
 msgstr "Working on it"
 

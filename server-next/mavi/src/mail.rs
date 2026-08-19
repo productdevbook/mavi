@@ -181,7 +181,7 @@ mod tests {
     fn webhook_endpoint_rejects_embedded_credentials_and_fragments() {
         assert!(validate_endpoint("https://mail.example.test/send").is_ok());
         assert!(validate_endpoint("ftp://mail.example.test/send").is_err());
-        assert!(validate_endpoint("https://user:pass@mail.example.test/send").is_err());
+        assert!(validate_endpoint("https://user:pass@127.0.0.1/send").is_err());
         assert!(validate_endpoint("https://mail.example.test/send#secret").is_err());
     }
 

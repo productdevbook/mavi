@@ -389,7 +389,7 @@ impl WorkerSupervisor {
                 self.metrics.record_completed();
             }
             Err(error) => {
-                let retry_at = mail_retry_at(claimed.delivery.attempts);
+                let retry_at = mail_retry_at_for_error(&error, claimed.delivery.attempts);
                 let error = format_mail_error(&error);
                 let mut transaction = self.database.begin(&context).await?;
                 self.mail
@@ -849,14 +849,34 @@ impl WorkerSupervisor {
     }
 }
 
-fn mail_retry_at(attempts: u16) -> Option<chrono::DateTime<Utc>> {
+fn mail_retry_at_for_error(error: &MaviError, attempts: u16) -> Option<chrono::DateTime<Utc>> {
+    mail_retry_at_for_error_at(error, attempts, Utc::now())
+}
+
+fn mail_retry_at_for_error_at(
+    error: &MaviError,
+    attempts: u16,
+    now: chrono::DateTime<Utc>,
+) -> Option<chrono::DateTime<Utc>> {
+    let retry_at = mail_retry_at_from(now, attempts)?;
+    let MaviError::ProviderRateLimited {
+        retry_after_seconds,
+    } = error
+    else {
+        return Some(retry_at);
+    };
+    let retry_after_seconds = (*retry_after_seconds).clamp(1, 86_400);
+    Some(now + ChronoDuration::seconds(i64::try_from(retry_after_seconds).unwrap_or(86_400)))
+}
+
+fn mail_retry_at_from(now: chrono::DateTime<Utc>, attempts: u16) -> Option<chrono::DateTime<Utc>> {
     let max_attempts = u16::try_from(MAX_DELIVERY_ATTEMPTS).unwrap_or(u16::MAX);
     if attempts >= max_attempts {
         return None;
     }
     let exponent = u32::from(attempts.saturating_sub(1).min(6));
     let seconds = 2_i64.pow(exponent).min(3_600);
-    Some(Utc::now() + ChronoDuration::seconds(seconds))
+    Some(now + ChronoDuration::seconds(seconds))
 }
 
 fn format_mail_error(error: &MaviError) -> String {
@@ -912,5 +932,35 @@ mod tests {
         let snapshot = site_snapshot([first, second]);
 
         assert_eq!(snapshot.as_ref(), &[first, second]);
+    }
+
+    #[test]
+    fn provider_rate_limit_uses_provider_delay_without_bypassing_attempt_limit() {
+        let now = chrono::DateTime::parse_from_rfc3339("2026-01-01T00:00:00Z")
+            .expect("timestamp")
+            .with_timezone(&Utc);
+        let error = MaviError::ProviderRateLimited {
+            retry_after_seconds: 120,
+        };
+
+        let retry_at = mail_retry_at_for_error_at(&error, 1, now).expect("retry");
+        assert_eq!(retry_at, now + ChronoDuration::seconds(120));
+        assert_eq!(
+            mail_retry_at_from(now, 1),
+            Some(now + ChronoDuration::seconds(1))
+        );
+        assert_eq!(mail_retry_at_from(now, MAX_DELIVERY_ATTEMPTS as u16), None);
+    }
+
+    #[test]
+    fn ordinary_mail_errors_keep_exponential_retry() {
+        let now = chrono::DateTime::parse_from_rfc3339("2026-01-01T00:00:00Z")
+            .expect("timestamp")
+            .with_timezone(&Utc);
+
+        assert_eq!(
+            mail_retry_at_from(now, 3),
+            Some(now + ChronoDuration::seconds(4))
+        );
     }
 }

@@ -29,6 +29,8 @@ pub enum MaviError {
     Conflict { code: String },
     #[error("request rate limited")]
     RateLimited,
+    #[error("mail provider rate limited; retry after {retry_after_seconds} seconds")]
+    ProviderRateLimited { retry_after_seconds: u64 },
     #[error("internal error")]
     Internal,
 }
@@ -63,7 +65,7 @@ impl MaviError {
             Self::Forbidden => ErrorCode::Forbidden,
             Self::NotFound { .. } => ErrorCode::NotFound,
             Self::Conflict { .. } => ErrorCode::Conflict,
-            Self::RateLimited => ErrorCode::RateLimited,
+            Self::RateLimited | Self::ProviderRateLimited { .. } => ErrorCode::RateLimited,
             Self::Internal => ErrorCode::Internal,
         }
     }

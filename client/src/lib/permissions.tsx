@@ -80,12 +80,12 @@ export function PermissionProvider({
         return grants.some(
           (grant) =>
             grant === `${capability}:${access}` ||
-            grant === `${capability}:${access}:own`,
+            grant === `${capability}:${access}:own`
         )
       },
       reload,
     }),
-    [grants, role, ready, reload],
+    [grants, role, ready, reload]
   )
 
   return (
@@ -132,7 +132,6 @@ export function capabilityOf(path: string): Capability | null {
   if (
     path === "/dashboard/content-types" ||
     path === "/dashboard/languages" ||
-    path === "/dashboard/plugins" ||
     path === "/dashboard/api" ||
     path === "/dashboard/settings" ||
     path === "/dashboard/visitors" ||

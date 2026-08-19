@@ -8,9 +8,8 @@ import { Button } from "@/components/ui/button"
 /**
  * How to point an assistant at this address.
  *
- * The token is not shown here — it is made just above, once, and this is
- * written with a placeholder so that what somebody copies is safe to paste
- * into a message while they work out where it goes.
+ * The token is not shown here unless it was just made. A placeholder keeps
+ * snippets safe to paste while somebody works out where the connection goes.
  */
 
 const PLACEHOLDER = "…"
@@ -37,7 +36,7 @@ function Copyable({ text, label }: { text: string; label: string }) {
       <Button
         variant="ghost"
         size="icon-sm"
-        className="absolute right-1 top-1"
+        className="absolute top-1 right-1"
         aria-label={label}
         onClick={copy}
       >
@@ -61,7 +60,7 @@ export function McpConnection({
   children?: React.ReactNode
 }) {
   const { t } = useLingui()
-  const url = `${origin}/api/mcp`
+  const url = `${origin}/mcp`
   const secret = token ?? PLACEHOLDER
 
   return (
@@ -88,7 +87,7 @@ export function McpConnection({
 
         <div className="flex flex-col gap-3 pt-3">
           <p className="text-sm text-muted-foreground">
-            {t`A build token can read this site and change nothing, so an assistant connected with one is offered only the tools that read: it will not be able to write a post, upload a file or publish. That is usually not what you want here — sign in above instead.`}
+            {t`A token carries the grants of the key that made it. Keep it private: anybody who has it can use the connection until you take that key back.`}
           </p>
 
           <Copyable

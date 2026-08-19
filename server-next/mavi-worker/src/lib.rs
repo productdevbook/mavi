@@ -12,8 +12,9 @@ use mavi_audit::{AuditEntry, AuditService};
 use mavi_content::{
     ContentService, SCHEDULED_PUBLISH_JOB, ScheduledPublishJob, ScheduledPublishOutcome,
 };
-use mavi_core::{MaviError, RequestId, Result, SiteContext, SiteId};
+use mavi_core::{MaviError, RequestId, Result, SiteContext, SiteId, ports::FileStore};
 use mavi_jobs::{DEFAULT_LEASE_SECONDS, JobClaim, JobsService, LeaseOutcome};
+use mavi_media::{MEDIA_CLEANUP_JOB, MediaCleanupJob, MediaService};
 pub use mavi_observability::{WorkerMetrics, WorkerMetricsSnapshot};
 use mavi_storage::{Database, SiteTx};
 use serde_json::json;
@@ -69,6 +70,8 @@ pub struct WorkerSupervisor {
     sites: Arc<RwLock<Arc<[SiteId]>>>,
     jobs: JobsService,
     content: ContentService,
+    media: MediaService,
+    file_store: Arc<dyn FileStore>,
     config: WorkerConfig,
     metrics: WorkerMetrics,
 }
@@ -78,21 +81,31 @@ impl WorkerSupervisor {
         database: Database,
         sites: impl IntoIterator<Item = SiteId>,
         config: WorkerConfig,
+        file_store: Arc<dyn FileStore>,
     ) -> Self {
-        Self::new_with_metrics(database, sites, config, WorkerMetrics::default())
+        Self::new_with_metrics(
+            database,
+            sites,
+            config,
+            file_store,
+            WorkerMetrics::default(),
+        )
     }
 
     pub fn new_with_metrics(
         database: Database,
         sites: impl IntoIterator<Item = SiteId>,
         config: WorkerConfig,
+        file_store: Arc<dyn FileStore>,
         metrics: WorkerMetrics,
     ) -> Self {
         Self {
             database,
             sites: Arc::new(RwLock::new(site_snapshot(sites))),
-            jobs: JobsService::new([SCHEDULED_PUBLISH_JOB]),
+            jobs: JobsService::new([SCHEDULED_PUBLISH_JOB, MEDIA_CLEANUP_JOB]),
             content: ContentService,
+            media: MediaService,
+            file_store,
             config,
             metrics,
         }
@@ -155,12 +168,15 @@ impl WorkerSupervisor {
         let claim_context =
             SiteContext::system(site_id, self.config.worker_id.clone(), RequestId::new());
         let mut transaction = self.database.begin(&claim_context).await?;
+        self.media
+            .enqueue_next_cleanup(&mut transaction, &claim_context, &self.jobs)
+            .await?;
         let claim = self
             .jobs
             .claim(
                 &mut transaction,
                 &self.config.worker_id,
-                &[SCHEDULED_PUBLISH_JOB.name],
+                &[SCHEDULED_PUBLISH_JOB.name, MEDIA_CLEANUP_JOB.name],
                 self.config.lease_seconds,
             )
             .await?;
@@ -180,6 +196,9 @@ impl WorkerSupervisor {
             self.config.worker_id.clone(),
             RequestId::from_uuid(claim.id.into_uuid()),
         );
+        if claim.kind == MEDIA_CLEANUP_JOB.name {
+            return self.execute_media_cleanup(&context, &claim).await;
+        }
         let payload = match serde_json::from_value::<ScheduledPublishJob>(claim.payload.clone()) {
             Ok(payload) => payload,
             Err(error) => {
@@ -238,6 +257,50 @@ impl WorkerSupervisor {
                     &context,
                     &claim,
                     format!("content publish failed: {error:?}"),
+                )
+                .await
+            }
+        }
+    }
+
+    async fn execute_media_cleanup(&self, context: &SiteContext, claim: &JobClaim) -> Result<()> {
+        let payload = match serde_json::from_value::<MediaCleanupJob>(claim.payload.clone()) {
+            Ok(payload) => payload,
+            Err(error) => {
+                return self
+                    .fail_claim(
+                        context,
+                        claim,
+                        format!("invalid media cleanup payload: {error}"),
+                    )
+                    .await;
+            }
+        };
+
+        if let Err(error) = self.file_store.remove(context, &payload.storage_key).await {
+            return self
+                .fail_claim(context, claim, format!("media cleanup failed: {error:?}"))
+                .await;
+        }
+
+        let mut transaction = self.database.begin(context).await?;
+        match self
+            .media
+            .complete_cleanup(
+                &mut transaction,
+                context,
+                payload.file_id,
+                &payload.storage_key,
+            )
+            .await
+        {
+            Ok(()) => self.complete_claim(transaction, context, claim).await,
+            Err(error) => {
+                drop(transaction);
+                self.fail_claim(
+                    context,
+                    claim,
+                    format!("media cleanup receipt failed: {error:?}"),
                 )
                 .await
             }

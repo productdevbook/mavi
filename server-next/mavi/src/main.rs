@@ -1,6 +1,6 @@
 use std::{env, net::SocketAddr, sync::Arc, time::Duration};
 
-use mavi_core::{MaviError, Result, SiteId};
+use mavi_core::{MaviError, Result, SiteId, ports::FileStore};
 use mavi_design::StaticBuildEngine;
 use mavi_files::DirectoryFileStore;
 use mavi_http::EdgeSecurityConfig;
@@ -38,7 +38,7 @@ async fn main() -> Result<()> {
         .map_err(|_| MaviError::validation("invalid_database_connections"))?
         .unwrap_or(10);
     let file_root = env::var("MAVI_FILES_DIR").unwrap_or_else(|_| "./mavi-files".to_owned());
-    let file_store = Arc::new(DirectoryFileStore::at(file_root));
+    let file_store: Arc<dyn FileStore> = Arc::new(DirectoryFileStore::at(file_root));
     let sealer = Arc::new(KeyringSealer::from_spec(&required("MAVI_KEYS")?)?);
     let edge = EdgeSecurityConfig::from_trusted_proxy_spec(
         env::var("MAVI_TRUSTED_PROXY_CIDRS").ok().as_deref(),
@@ -89,7 +89,7 @@ async fn serve<R>(
     database: Database,
     resolver: R,
     sites: Vec<SiteId>,
-    file_store: Arc<DirectoryFileStore>,
+    file_store: Arc<dyn FileStore>,
     sealer: Arc<KeyringSealer>,
     edge: EdgeSecurityConfig,
 ) -> Result<()>
@@ -101,7 +101,7 @@ where
     let metrics = RuntimeMetrics::default();
     let router = mavi_http::router_with_config_and_metrics(
         runtime,
-        file_store,
+        Arc::clone(&file_store),
         Arc::new(StaticBuildEngine),
         sealer,
         edge,
@@ -112,6 +112,7 @@ where
         worker_database,
         sites,
         worker_config()?,
+        file_store,
         metrics.worker_metrics(),
     );
     let worker_task = tokio::spawn(async move { worker.run().await });

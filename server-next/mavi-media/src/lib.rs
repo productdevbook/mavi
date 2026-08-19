@@ -9,13 +9,14 @@
 use std::collections::BTreeSet;
 
 use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Duration, Utc};
 use mavi_audit::{AuditEntry, AuditService};
 use mavi_contract::{Endpoint, Method, Permission, Shape};
 use mavi_core::{
-    Action, Capability, Cursor, ErrorCode, FileId, MaviError, Page, PageRequest, Result,
+    Action, Capability, Cursor, ErrorCode, FileId, JobId, MaviError, Page, PageRequest, Result,
     SiteContext, ports::FileStore,
 };
+use mavi_jobs::{JobKind, JobState, JobsService};
 use mavi_storage::SiteTx;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -30,6 +31,7 @@ pub const FILE_KIND_UNSUPPORTED: &str = "media_file_kind_unsupported";
 pub const FILE_NAME_INVALID: &str = "media_file_name_invalid";
 pub const FILE_NAME_TOO_LONG: &str = "media_file_name_too_long";
 pub const FILE_VISIBILITY_INVALID: &str = "media_file_visibility_invalid";
+pub const MEDIA_CLEANUP_JOB: JobKind = JobKind::new("media.cleanup", 8);
 
 pub const MAX_FILE_BYTES: usize = 100 * 1024 * 1024;
 /// Maximum raw binary payload carried by one private shard relocation.
@@ -122,6 +124,19 @@ pub struct FileRecord {
     pub bytes: u64,
     pub sha256: String,
     pub created_at: DateTime<Utc>,
+}
+
+/// Payload for the durable binary cleanup job.
+///
+/// Metadata deletion and object-store deletion cannot share one transaction.
+/// The payload therefore carries only the site-scoped file identity and the
+/// already-validated storage key; the worker still completes the cleanup task
+/// through this domain service before acknowledging the job.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct MediaCleanupJob {
+    pub file_id: FileId,
+    pub storage_key: String,
 }
 
 /// Site media transferred only by the authenticated shard relocation port.
@@ -771,6 +786,71 @@ impl MediaService {
         Ok(())
     }
 
+    /// Ensures that one pending cleanup task has a durable, retryable job.
+    ///
+    /// The idempotency key is the file identity, not a process attempt. A
+    /// dead job is explicitly reopened so a transient object-store outage
+    /// cannot strand a task forever after the job's bounded retry count.
+    pub async fn enqueue_next_cleanup(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        jobs: &JobsService,
+    ) -> Result<Option<JobId>> {
+        let row = sqlx::query(
+            "select file_id, storage_key
+               from media_cleanup_tasks
+              where site_id = $1 and completed_at is null
+              order by created_at asc, file_id asc
+              limit 1",
+        )
+        .bind(context.site_id.into_uuid())
+        .fetch_optional(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?;
+        let Some(row) = row else {
+            return Ok(None);
+        };
+
+        let file_id = FileId::from_uuid(row.try_get("file_id").map_err(|_| MaviError::Internal)?);
+        let storage_key: String = row
+            .try_get("storage_key")
+            .map_err(|_| MaviError::Internal)?;
+        let job_id = self
+            .enqueue_cleanup_job(tx, context, jobs, file_id, &storage_key)
+            .await?;
+        if jobs.get(tx, job_id).await?.state == JobState::Dead {
+            jobs.retry_at(tx, context, job_id, Utc::now() + Duration::minutes(1))
+                .await?;
+        }
+        Ok(Some(job_id))
+    }
+
+    /// Creates the idempotent cleanup job for a metadata deletion.
+    pub async fn enqueue_cleanup_job(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        jobs: &JobsService,
+        file_id: FileId,
+        storage_key: &str,
+    ) -> Result<JobId> {
+        let payload = serde_json::to_value(MediaCleanupJob {
+            file_id,
+            storage_key: storage_key.to_owned(),
+        })
+        .map_err(|_| MaviError::Internal)?;
+        jobs.enqueue(
+            tx,
+            context,
+            MEDIA_CLEANUP_JOB.name,
+            &payload,
+            None,
+            Some(&format!("media-cleanup:{file_id}")),
+        )
+        .await
+    }
+
     /// Marks a durable cleanup task complete after the binary adapter confirms
     /// removal. The row remains as a receipt that the external deletion was
     /// attempted, which lets a future worker distinguish pending work.
@@ -779,23 +859,56 @@ impl MediaService {
         tx: &mut SiteTx,
         context: &SiteContext,
         file_id: FileId,
+        storage_key: &str,
     ) -> Result<()> {
         let result = sqlx::query(
             "update media_cleanup_tasks
                 set attempts = attempts + 1, completed_at = clock_timestamp()
-              where site_id = $1 and file_id = $2 and completed_at is null",
+              where site_id = $1 and file_id = $2 and storage_key = $3
+                and completed_at is null",
         )
         .bind(context.site_id.into_uuid())
         .bind(file_id.into_uuid())
+        .bind(storage_key)
         .execute(tx.conn())
         .await
         .map_err(|_| MaviError::Internal)?;
-        if result.rows_affected() == 0 {
-            return Err(MaviError::NotFound {
-                resource: "media_cleanup_task",
-            });
+        if result.rows_affected() == 1 {
+            AuditService
+                .record(
+                    tx,
+                    context,
+                    &AuditEntry {
+                        action: "media.file.cleanup_completed".to_owned(),
+                        resource_type: "File".to_owned(),
+                        resource_id: Some(file_id.into_uuid()),
+                        payload: json!({"storage_key": storage_key}),
+                    },
+                )
+                .await?;
+            return Ok(());
         }
-        Ok(())
+
+        let already_completed = sqlx::query_scalar::<_, bool>(
+            "select exists(
+                select 1 from media_cleanup_tasks
+                 where site_id = $1 and file_id = $2
+                   and storage_key = $3 and completed_at is not null
+            )",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(file_id.into_uuid())
+        .bind(storage_key)
+        .fetch_one(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?;
+        if already_completed {
+            Ok(())
+        } else {
+            Err(MaviError::NotFound {
+                resource: "media_cleanup_task",
+            })
+        }
     }
 }
 

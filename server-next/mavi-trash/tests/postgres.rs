@@ -250,6 +250,7 @@ async fn trash_lists_restores_and_permanently_deletes_site_resources() {
             &mut transaction,
             &context,
             mavi_core::FileId::from_uuid(file.id.into_uuid()),
+            &storage_key,
         )
         .await
         .expect("complete cleanup");

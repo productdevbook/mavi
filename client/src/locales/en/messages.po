@@ -814,8 +814,8 @@ msgstr "A card payment says so itself, signed by the provider. Say it here only 
 #~ msgstr "A copy of every picture stays on this server whatever you set here. The bucket is a copy in front of it, never the only one — so a bucket that is emptied, expired or switched off costs you an address, not the pictures."
 
 #: src/features/settings/settings-page.tsx:321
-msgid "A copy of what is written"
-msgstr "A copy of what is written"
+#~ msgid "A copy of what is written"
+#~ msgstr "A copy of what is written"
 
 #: src/routes/dashboard.content-types.tsx:92
 #~ msgid "a course"
@@ -1021,7 +1021,7 @@ msgstr "A picture of it"
 msgid "A scheduled post needs a publish date"
 msgstr "A scheduled post needs a publish date"
 
-#: src/features/settings/settings-page.tsx:169
+#: src/features/settings/settings-page.tsx:165
 msgid "A second factor"
 msgstr "A second factor"
 
@@ -1308,7 +1308,7 @@ msgstr "Add table"
 #~ msgid "Add the domain you send from. A domain covers every address on it, so it is worth doing before adding addresses one at a time."
 #~ msgstr "Add the domain you send from. A domain covers every address on it, so it is worth doing before adding addresses one at a time."
 
-#: src/features/settings/settings-page.tsx:205
+#: src/features/settings/settings-page.tsx:201
 msgid "Add this to your authenticator, then type what it shows."
 msgstr "Add this to your authenticator, then type what it shows."
 
@@ -1476,6 +1476,10 @@ msgstr "all read"
 #: src/routes/console_.register.tsx:208
 #~ msgid "Already have an account? Sign in"
 #~ msgstr "Already have an account? Sign in"
+
+#: src/features/portability/portable-page.tsx:136
+msgid "Already present"
+msgstr "Already present"
 
 #: src/components/editor/bubble-menus.tsx:390
 #: src/components/editor/bubble-menus.tsx:393
@@ -1651,7 +1655,7 @@ msgstr "Another step"
 #~ msgid "Answered"
 #~ msgstr "Answered"
 
-#: src/features/settings/settings-page.tsx:394
+#: src/features/settings/settings-page.tsx:280
 msgid "Answering"
 msgstr "Answering"
 
@@ -2093,7 +2097,7 @@ msgstr "Being written"
 #~ msgid "Bills"
 #~ msgstr "Bills"
 
-#: src/components/dashboard/dashboard-shell.tsx:107
+#: src/components/dashboard/dashboard-shell.tsx:106
 #: src/features/governance/trash-page.tsx:109
 msgid "Bin"
 msgstr "Bin"
@@ -2426,6 +2430,10 @@ msgstr "Categories"
 msgid "Categories & tags"
 msgstr "Categories & tags"
 
+#: src/features/portability/portable-page.tsx:134
+msgid "Categories and tags"
+msgstr "Categories and tags"
+
 #: src/routes/dashboard.api.tsx:223
 #~ msgid "Categories, per language."
 #~ msgstr "Categories, per language."
@@ -2522,6 +2530,10 @@ msgstr "Checked twice: once when somebody types it into the basket, and again wh
 #: src/components/flows/flow-settings.tsx:72
 #~ msgid "Choose a form above and its own fields are listed here"
 #~ msgstr "Choose a form above and its own fields are listed here"
+
+#: src/features/portability/portable-page.tsx:113
+msgid "Choose a JSON copy"
+msgstr "Choose a JSON copy"
 
 #: src/routes/dashboard.mail.tsx:441
 #~ msgid "Choose a list first"
@@ -3771,6 +3783,14 @@ msgstr "Done."
 msgid "Download"
 msgstr "Download"
 
+#: src/features/portability/portable-page.tsx:94
+msgid "Download a copy"
+msgstr "Download a copy"
+
+#: src/features/portability/portable-page.tsx:85
+msgid "Download languages, content types, taxonomy, and writings with their revisions and assignments."
+msgstr "Download languages, content types, taxonomy, and writings with their revisions and assignments."
+
 #: src/routes/dashboard.plugins_.backup.tsx:546
 #~ msgid "Download the site"
 #~ msgstr "Download the site"
@@ -4074,9 +4094,9 @@ msgstr "Everything this site adds up to."
 msgid "Excerpt"
 msgstr "Excerpt"
 
-#: src/routes/dashboard.mail.tsx:498
-#~ msgid "Export"
-#~ msgstr "Export"
+#: src/features/portability/portable-page.tsx:82
+msgid "Export"
+msgstr "Export"
 
 #: src/routes/dashboard.flows.tsx:166
 #~ msgid "failed"
@@ -4721,6 +4741,7 @@ msgid "Image address"
 msgstr "Image address"
 
 #: src/components/editor/dialogs.tsx:452
+#: src/features/portability/portable-page.tsx:101
 msgid "Import"
 msgstr "Import"
 
@@ -4732,6 +4753,15 @@ msgstr "Import / export"
 #: src/routes/dashboard.plugins_.backup.tsx:595
 #~ msgid "Import an archive"
 #~ msgstr "Import an archive"
+
+#: src/components/dashboard/dashboard-shell.tsx:115
+#: src/features/portability/portable-page.tsx:74
+msgid "Import and export"
+msgstr "Import and export"
+
+#: src/features/portability/portable-page.tsx:129
+msgid "Import complete"
+msgstr "Import complete"
 
 #: src/routes/dashboard.mail.tsx:490
 #~ msgid "Import CSV"
@@ -4861,7 +4891,7 @@ msgstr "Invited"
 msgid "Invited. They choose their own password from the link."
 msgstr "Invited. They choose their own password from the link."
 
-#: src/features/settings/settings-page.tsx:381
+#: src/features/settings/settings-page.tsx:267
 msgid "Is everything answering"
 msgstr "Is everything answering"
 
@@ -5132,6 +5162,7 @@ msgid "Language"
 msgstr "Language"
 
 #: src/components/dashboard/dashboard-shell.tsx:109
+#: src/features/portability/portable-page.tsx:133
 #: src/routes/dashboard.languages.tsx:95
 msgid "Languages"
 msgstr "Languages"
@@ -5658,6 +5689,10 @@ msgstr "Move cards through the stages of this board."
 #: src/routes/dashboard.balances.tsx:193
 #~ msgid "Move it"
 #~ msgstr "Move it"
+
+#: src/features/portability/portable-page.tsx:75
+msgid "Move the supported site content as a versioned JSON bundle. Accounts, uploads, orders, and secrets stay out of the file."
+msgstr "Move the supported site content as a versioned JSON bundle. Accounts, uploads, orders, and secrets stay out of the file."
 
 #: src/components/editor/content-fields.tsx:403
 #: src/routes/dashboard.flows.tsx:888
@@ -6186,7 +6221,7 @@ msgstr "Nobody yet"
 #~ msgid "None yet. A site with no address is a site nobody can reach."
 #~ msgstr "None yet. A site with no address is a site nobody can reach."
 
-#: src/features/settings/settings-page.tsx:394
+#: src/features/settings/settings-page.tsx:280
 msgid "Not answering"
 msgstr "Not answering"
 
@@ -6206,7 +6241,7 @@ msgstr "Not chosen"
 #~ msgid "Not doing it"
 #~ msgstr "Not doing it"
 
-#: src/features/settings/settings-page.tsx:383
+#: src/features/settings/settings-page.tsx:269
 msgid "Not everything"
 msgstr "Not everything"
 
@@ -6490,6 +6525,10 @@ msgstr "Nothing was declared called {0}, so nothing can be asked about it."
 #~ msgid "Nothing was marked as a name or an address on the form this came from."
 #~ msgstr "Nothing was marked as a name or an address on the form this came from."
 
+#: src/features/portability/portable-page.tsx:130
+msgid "Nothing was overwritten"
+msgstr "Nothing was overwritten"
+
 #: src/components/dashboard/server-home.tsx:189
 #~ msgid "Nothing written on any site yet"
 #~ msgstr "Nothing written on any site yet"
@@ -6558,7 +6597,7 @@ msgstr "Numbered list"
 #~ msgid "off"
 #~ msgstr "off"
 
-#: src/features/settings/settings-page.tsx:172
+#: src/features/settings/settings-page.tsx:168
 msgid "Off"
 msgstr "Off"
 
@@ -6611,7 +6650,7 @@ msgstr "Older"
 #~ msgid "oldest: just now"
 #~ msgstr "oldest: just now"
 
-#: src/features/settings/settings-page.tsx:172
+#: src/features/settings/settings-page.tsx:168
 msgid "On"
 msgstr "On"
 
@@ -6677,7 +6716,7 @@ msgstr "On"
 msgid "on your own address"
 msgstr "on your own address"
 
-#: src/features/settings/settings-page.tsx:143
+#: src/features/settings/settings-page.tsx:139
 msgid "On. You will be asked for the digits when you sign in."
 msgstr "On. You will be asked for the digits when you sign in."
 
@@ -7335,7 +7374,7 @@ msgstr "Products"
 #~ msgid "Public base URL"
 #~ msgstr "Public base URL"
 
-#: src/components/dashboard/dashboard-shell.tsx:116
+#: src/components/dashboard/dashboard-shell.tsx:117
 #: src/components/editor/mavi-editor.tsx:684
 #: src/features/design/design-page.tsx:89
 #: src/features/design/publish-page.tsx:44
@@ -7457,6 +7496,10 @@ msgstr "Reaches nothing"
 msgid "Read"
 msgstr "Read"
 
+#: src/features/portability/portable-page.tsx:104
+msgid "Read a bundle from another site. Existing content is left alone; only valid, new records are added."
+msgstr "Read a bundle from another site. Existing content is left alone; only valid, new records are added."
+
 #. placeholder {0}: done.posts
 #. placeholder {1}: done.terms
 #: src/routes/dashboard.settings.tsx:308
@@ -7464,16 +7507,16 @@ msgstr "Read"
 #~ msgstr "Read in: {0} things written, {1} filed under."
 
 #: src/features/settings/settings-page.tsx:303
-msgid "Read in."
-msgstr "Read in."
+#~ msgid "Read in."
+#~ msgstr "Read in."
 
 #: src/routes/dashboard.api.tsx:139
 #~ msgid "Read it"
 #~ msgstr "Read it"
 
 #: src/features/settings/settings-page.tsx:337
-msgid "Read one in"
-msgstr "Read one in"
+#~ msgid "Read one in"
+#~ msgstr "Read one in"
 
 #: src/routes/dashboard.themes.tsx:654
 #~ msgid "Read this before offering the theme. A package that quietly left half a site behind looks exactly like one that did not."
@@ -7535,7 +7578,7 @@ msgstr "Ready to preview"
 #~ msgid "Recommended"
 #~ msgstr "Recommended"
 
-#: src/components/dashboard/dashboard-shell.tsx:106
+#: src/components/dashboard/dashboard-shell.tsx:105
 #: src/features/governance/audit-page.tsx:87
 #: src/features/people/roles-page.tsx:166
 msgid "Record"
@@ -7904,7 +7947,6 @@ msgstr "Samples"
 #: src/features/shop/coupons-page.tsx:247
 #: src/features/taxonomy/categories-page.tsx:281
 #: src/features/taxonomy/tags-page.tsx:181
-#: src/features/mail/letters-page.tsx:214
 msgid "Save"
 msgstr "Save"
 
@@ -7949,7 +7991,6 @@ msgstr "Save it"
 #: src/features/mail/letters-page.tsx:83
 #: src/features/settings/settings-page.tsx:47
 #: src/features/shop/coupons-page.tsx:165
-#: src/features/mail/letters-page.tsx:83
 msgid "Saved"
 msgstr "Saved"
 
@@ -8344,7 +8385,7 @@ msgstr "Serif"
 #~ msgid "Set it up"
 #~ msgstr "Set it up"
 
-#: src/features/settings/settings-page.tsx:235
+#: src/features/settings/settings-page.tsx:231
 msgid "Set one up"
 msgstr "Set one up"
 
@@ -8568,7 +8609,7 @@ msgstr "Sitemap"
 #~ msgid "Sites being given a theme's demo, and packages being written in. A transfer that was killed starts again after the last part it finished."
 #~ msgstr "Sites being given a theme's demo, and packages being written in. A transfer that was killed starts again after the last part it finished."
 
-#: src/features/settings/settings-page.tsx:178
+#: src/features/settings/settings-page.tsx:174
 msgid "Six digits from an app on your phone, as well as your password. It is asked for when you sign in and nowhere else."
 msgstr "Six digits from an app on your phone, as well as your password. It is asked for when you sign in and nowhere else."
 
@@ -8975,8 +9016,8 @@ msgstr "Tags"
 #~ msgstr "Take \"{0}\" out of the catalogue? What was already sold stays sold."
 
 #: src/features/settings/settings-page.tsx:329
-msgid "Take a copy"
-msgstr "Take a copy"
+#~ msgid "Take a copy"
+#~ msgstr "Take a copy"
 
 #: src/features/people/people-page.tsx:424
 msgid "Take everything this site holds about {email}? What was paid stays, with their address out of it. This cannot be undone."
@@ -9136,7 +9177,7 @@ msgstr "Text shown in search results"
 #~ msgid "That did not work."
 #~ msgstr "That did not work."
 
-#: src/features/settings/settings-page.tsx:307
+#: src/features/portability/portable-page.tsx:60
 msgid "That is not a copy of a site."
 msgstr "That is not a copy of a site."
 
@@ -9279,6 +9320,10 @@ msgstr "The code"
 #~ msgid "the content is on its way — within the minute"
 #~ msgstr "the content is on its way — within the minute"
 
+#: src/features/portability/portable-page.tsx:56
+msgid "The copy was read in."
+msgstr "The copy was read in."
+
 #: src/features/analytics/visitors-page.tsx:86
 msgid "The curve draws itself from the first visit on."
 msgstr "The curve draws itself from the first visit on."
@@ -9365,8 +9410,8 @@ msgid "The languages your content can be written in. This is separate from the l
 msgstr "The languages your content can be written in. This is separate from the language of this admin panel."
 
 #: src/features/settings/settings-page.tsx:323
-msgid "The languages, what things are filed under, and what has been written. Not the uploads, the accounts, or anything the site keeps sealed."
-msgstr "The languages, what things are filed under, and what has been written. Not the uploads, the accounts, or anything the site keeps sealed."
+#~ msgid "The languages, what things are filed under, and what has been written. Not the uploads, the accounts, or anything the site keeps sealed."
+#~ msgstr "The languages, what things are filed under, and what has been written. Not the uploads, the accounts, or anything the site keeps sealed."
 
 #. placeholder {0}: config.last_error
 #: src/routes/dashboard.plugins_.backup.tsx:464
@@ -9537,11 +9582,11 @@ msgstr "The site introduced to AI assistants, page by page."
 #~ msgid "The sites could not be read just now."
 #~ msgstr "The sites could not be read just now."
 
-#: src/features/settings/settings-page.tsx:211
+#: src/features/settings/settings-page.tsx:207
 msgid "The six digits"
 msgstr "The six digits"
 
-#: src/features/settings/settings-page.tsx:184
+#: src/features/settings/settings-page.tsx:180
 msgid "The six digits from your app to turn it off"
 msgstr "The six digits from your app to turn it off"
 
@@ -9996,11 +10041,11 @@ msgstr "Translations"
 msgid "Turn into"
 msgstr "Turn into"
 
-#: src/features/settings/settings-page.tsx:199
+#: src/features/settings/settings-page.tsx:195
 msgid "Turn it off"
 msgstr "Turn it off"
 
-#: src/features/settings/settings-page.tsx:225
+#: src/features/settings/settings-page.tsx:221
 msgid "Turn it on"
 msgstr "Turn it on"
 
@@ -10146,7 +10191,7 @@ msgstr "Uploads"
 msgid "URL"
 msgstr "URL"
 
-#: src/components/dashboard/dashboard-shell.tsx:115
+#: src/components/dashboard/dashboard-shell.tsx:116
 msgid "Usage"
 msgstr "Usage"
 
@@ -11165,6 +11210,7 @@ msgstr "Writing"
 #~ msgstr "writing the content — {0} parts done"
 
 #: src/features/analytics/usage-page.tsx:65
+#: src/features/portability/portable-page.tsx:135
 #: src/routes/dashboard.index.tsx:72
 msgid "Writings"
 msgstr "Writings"
@@ -11204,7 +11250,7 @@ msgstr "Written now, sent to everyone on the list."
 msgid "Yellow"
 msgstr "Yellow"
 
-#: src/features/settings/settings-page.tsx:383
+#: src/features/settings/settings-page.tsx:269
 msgid "Yes"
 msgstr "Yes"
 

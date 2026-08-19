@@ -112,6 +112,7 @@ function AuthenticatedShell({ children }: { children: React.ReactNode }) {
     api: t`API`,
     design: t`Design`,
     settings: t`Settings`,
+    portability: t`Import and export`,
     usage: t`Usage`,
     publish: t`Publish`,
   }
@@ -151,6 +152,7 @@ function AuthenticatedShell({ children }: { children: React.ReactNode }) {
       api: Code2,
       design: Palette,
       settings: Settings,
+      portability: Database,
       usage: Database,
       publish: Rocket,
     },

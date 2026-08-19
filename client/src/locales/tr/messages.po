@@ -814,8 +814,8 @@ msgstr "Kartla ödeme kendini bildirir, sağlayıcı tarafından imzalanır. Bur
 #~ msgstr "Burada ne ayarlarsanız ayarlayın, her resmin bir kopyası bu sunucuda kalır. Kova onun önündeki kopyadır, tek kopya değil — boşalan, süresi biten ya da kapatılan bir kova size resimleri değil yalnızca bir adresi kaybettirir."
 
 #: src/features/settings/settings-page.tsx:321
-msgid "A copy of what is written"
-msgstr "Yazılanların bir kopyası"
+#~ msgid "A copy of what is written"
+#~ msgstr "Yazılanların bir kopyası"
 
 #: src/routes/dashboard.content-types.tsx:92
 #~ msgid "a course"
@@ -1021,7 +1021,7 @@ msgstr "Bir ekran görüntüsü"
 msgid "A scheduled post needs a publish date"
 msgstr "Zamanlanmış bir yazının bir yayın tarihi olmalı"
 
-#: src/features/settings/settings-page.tsx:169
+#: src/features/settings/settings-page.tsx:165
 msgid "A second factor"
 msgstr "İkinci bir adım"
 
@@ -1308,7 +1308,7 @@ msgstr "Tablo ekle"
 #~ msgid "Add the domain you send from. A domain covers every address on it, so it is worth doing before adding addresses one at a time."
 #~ msgstr "Gönderim yaptığınız alan adını ekleyin. Bir alan adı, üzerindeki her adresi kapsar; adresleri tek tek eklemeden önce bunu yapmaya değer."
 
-#: src/features/settings/settings-page.tsx:205
+#: src/features/settings/settings-page.tsx:201
 msgid "Add this to your authenticator, then type what it shows."
 msgstr "Bunu doğrulayıcı uygulamanıza ekleyin, sonra gösterdiğini yazın."
 
@@ -1476,6 +1476,10 @@ msgstr "hepsi okundu"
 #: src/routes/console_.register.tsx:208
 #~ msgid "Already have an account? Sign in"
 #~ msgstr "Hesabınız var mı? Giriş yapın"
+
+#: src/features/portability/portable-page.tsx:136
+msgid "Already present"
+msgstr ""
 
 #: src/components/editor/bubble-menus.tsx:390
 #: src/components/editor/bubble-menus.tsx:393
@@ -1651,7 +1655,7 @@ msgstr "Bir adım daha"
 #~ msgid "Answered"
 #~ msgstr "Yanıtlandı"
 
-#: src/features/settings/settings-page.tsx:394
+#: src/features/settings/settings-page.tsx:280
 msgid "Answering"
 msgstr "Yanıt veriyor"
 
@@ -2093,7 +2097,7 @@ msgstr "Yazılıyor"
 #~ msgid "Bills"
 #~ msgstr "Faturalar"
 
-#: src/components/dashboard/dashboard-shell.tsx:107
+#: src/components/dashboard/dashboard-shell.tsx:106
 #: src/features/governance/trash-page.tsx:109
 msgid "Bin"
 msgstr "Çöp kutusu"
@@ -2426,6 +2430,10 @@ msgstr "Kategoriler"
 msgid "Categories & tags"
 msgstr "Kategoriler ve etiketler"
 
+#: src/features/portability/portable-page.tsx:134
+msgid "Categories and tags"
+msgstr ""
+
 #: src/routes/dashboard.api.tsx:223
 #~ msgid "Categories, per language."
 #~ msgstr "Kategoriler, dile göre."
@@ -2522,6 +2530,10 @@ msgstr ""
 #: src/components/flows/flow-settings.tsx:72
 #~ msgid "Choose a form above and its own fields are listed here"
 #~ msgstr "Yukarıdan bir form seçin, o formun kendi alanları burada listelensin"
+
+#: src/features/portability/portable-page.tsx:113
+msgid "Choose a JSON copy"
+msgstr ""
 
 #: src/routes/dashboard.mail.tsx:441
 #~ msgid "Choose a list first"
@@ -3771,6 +3783,14 @@ msgstr ""
 msgid "Download"
 msgstr "İndir"
 
+#: src/features/portability/portable-page.tsx:94
+msgid "Download a copy"
+msgstr ""
+
+#: src/features/portability/portable-page.tsx:85
+msgid "Download languages, content types, taxonomy, and writings with their revisions and assignments."
+msgstr ""
+
 #: src/routes/dashboard.plugins_.backup.tsx:546
 #~ msgid "Download the site"
 #~ msgstr "Siteyi indir"
@@ -4074,9 +4094,9 @@ msgstr ""
 msgid "Excerpt"
 msgstr "Özet"
 
-#: src/routes/dashboard.mail.tsx:498
-#~ msgid "Export"
-#~ msgstr "Dışa aktar"
+#: src/features/portability/portable-page.tsx:82
+msgid "Export"
+msgstr "Dışa aktar"
 
 #: src/routes/dashboard.flows.tsx:166
 #~ msgid "failed"
@@ -4721,6 +4741,7 @@ msgid "Image address"
 msgstr "Görsel adresi"
 
 #: src/components/editor/dialogs.tsx:452
+#: src/features/portability/portable-page.tsx:101
 msgid "Import"
 msgstr "İçe aktar"
 
@@ -4732,6 +4753,15 @@ msgstr "İçe / dışa aktar"
 #: src/routes/dashboard.plugins_.backup.tsx:595
 #~ msgid "Import an archive"
 #~ msgstr "Arşiv içe aktar"
+
+#: src/components/dashboard/dashboard-shell.tsx:115
+#: src/features/portability/portable-page.tsx:74
+msgid "Import and export"
+msgstr ""
+
+#: src/features/portability/portable-page.tsx:129
+msgid "Import complete"
+msgstr ""
 
 #: src/routes/dashboard.mail.tsx:490
 #~ msgid "Import CSV"
@@ -4861,7 +4891,7 @@ msgstr "Davet edildi"
 msgid "Invited. They choose their own password from the link."
 msgstr "Davet edildi. Parolasını bağlantıdan kendisi seçecek."
 
-#: src/features/settings/settings-page.tsx:381
+#: src/features/settings/settings-page.tsx:267
 msgid "Is everything answering"
 msgstr "Her şey yanıt veriyor mu"
 
@@ -5132,6 +5162,7 @@ msgid "Language"
 msgstr "Dil"
 
 #: src/components/dashboard/dashboard-shell.tsx:109
+#: src/features/portability/portable-page.tsx:133
 #: src/routes/dashboard.languages.tsx:95
 msgid "Languages"
 msgstr "Diller"
@@ -5658,6 +5689,10 @@ msgstr ""
 #: src/routes/dashboard.balances.tsx:193
 #~ msgid "Move it"
 #~ msgstr "Uygula"
+
+#: src/features/portability/portable-page.tsx:75
+msgid "Move the supported site content as a versioned JSON bundle. Accounts, uploads, orders, and secrets stay out of the file."
+msgstr ""
 
 #: src/components/editor/content-fields.tsx:403
 #: src/routes/dashboard.flows.tsx:888
@@ -6186,7 +6221,7 @@ msgstr "Henüz kimse yok"
 #~ msgid "None yet. A site with no address is a site nobody can reach."
 #~ msgstr "Henüz yok. Adresi olmayan siteye kimse ulaşamaz."
 
-#: src/features/settings/settings-page.tsx:394
+#: src/features/settings/settings-page.tsx:280
 msgid "Not answering"
 msgstr "Yanıt vermiyor"
 
@@ -6206,7 +6241,7 @@ msgstr "Seçilmedi"
 #~ msgid "Not doing it"
 #~ msgstr "Yapılmayacak"
 
-#: src/features/settings/settings-page.tsx:383
+#: src/features/settings/settings-page.tsx:269
 msgid "Not everything"
 msgstr "Hepsi değil"
 
@@ -6490,6 +6525,10 @@ msgstr "{0} adında bir şey tanımlanmadı, o yüzden ona dair bir şey sorulam
 #~ msgid "Nothing was marked as a name or an address on the form this came from."
 #~ msgstr "Bunun geldiği formda ad ya da adres olarak işaretlenmiş bir alan yok."
 
+#: src/features/portability/portable-page.tsx:130
+msgid "Nothing was overwritten"
+msgstr ""
+
 #: src/components/dashboard/server-home.tsx:189
 #~ msgid "Nothing written on any site yet"
 #~ msgstr "Hiçbir sitede henüz bir şey yazılmadı"
@@ -6558,7 +6597,7 @@ msgstr "Numaralı liste"
 #~ msgid "off"
 #~ msgstr "kapalı"
 
-#: src/features/settings/settings-page.tsx:172
+#: src/features/settings/settings-page.tsx:168
 msgid "Off"
 msgstr "Kapalı"
 
@@ -6611,7 +6650,7 @@ msgstr "Daha eski"
 #~ msgid "oldest: just now"
 #~ msgstr "en eski: az önce"
 
-#: src/features/settings/settings-page.tsx:172
+#: src/features/settings/settings-page.tsx:168
 msgid "On"
 msgstr "Açık"
 
@@ -6677,7 +6716,7 @@ msgstr "Açık"
 msgid "on your own address"
 msgstr "kendi adresinde"
 
-#: src/features/settings/settings-page.tsx:143
+#: src/features/settings/settings-page.tsx:139
 msgid "On. You will be asked for the digits when you sign in."
 msgstr "Açık. Oturum açarken haneler sorulacak."
 
@@ -7335,7 +7374,7 @@ msgstr "Ürünler"
 #~ msgid "Public base URL"
 #~ msgstr "Genel URL tabanı"
 
-#: src/components/dashboard/dashboard-shell.tsx:116
+#: src/components/dashboard/dashboard-shell.tsx:117
 #: src/components/editor/mavi-editor.tsx:684
 #: src/features/design/design-page.tsx:89
 #: src/features/design/publish-page.tsx:44
@@ -7457,6 +7496,10 @@ msgstr "Hiçbir şeye erişemez"
 msgid "Read"
 msgstr "Oku"
 
+#: src/features/portability/portable-page.tsx:104
+msgid "Read a bundle from another site. Existing content is left alone; only valid, new records are added."
+msgstr ""
+
 #. placeholder {0}: done.posts
 #. placeholder {1}: done.terms
 #: src/routes/dashboard.settings.tsx:308
@@ -7464,16 +7507,16 @@ msgstr "Oku"
 #~ msgstr "Okundu: {0} içerik, {1} etiket/kategori."
 
 #: src/features/settings/settings-page.tsx:303
-msgid "Read in."
-msgstr "Okundu."
+#~ msgid "Read in."
+#~ msgstr "Okundu."
 
 #: src/routes/dashboard.api.tsx:139
 #~ msgid "Read it"
 #~ msgstr "Oku"
 
 #: src/features/settings/settings-page.tsx:337
-msgid "Read one in"
-msgstr "Bir kopya oku"
+#~ msgid "Read one in"
+#~ msgstr "Bir kopya oku"
 
 #: src/routes/dashboard.themes.tsx:654
 #~ msgid "Read this before offering the theme. A package that quietly left half a site behind looks exactly like one that did not."
@@ -7535,7 +7578,7 @@ msgstr ""
 #~ msgid "Recommended"
 #~ msgstr "Önerilen"
 
-#: src/components/dashboard/dashboard-shell.tsx:106
+#: src/components/dashboard/dashboard-shell.tsx:105
 #: src/features/governance/audit-page.tsx:87
 #: src/features/people/roles-page.tsx:166
 msgid "Record"
@@ -7904,7 +7947,6 @@ msgstr ""
 #: src/features/shop/coupons-page.tsx:247
 #: src/features/taxonomy/categories-page.tsx:281
 #: src/features/taxonomy/tags-page.tsx:181
-#: src/features/mail/letters-page.tsx:214
 msgid "Save"
 msgstr "Kaydet"
 
@@ -7949,7 +7991,6 @@ msgstr "Kaydet"
 #: src/features/mail/letters-page.tsx:83
 #: src/features/settings/settings-page.tsx:47
 #: src/features/shop/coupons-page.tsx:165
-#: src/features/mail/letters-page.tsx:83
 msgid "Saved"
 msgstr "Kaydedildi"
 
@@ -8344,7 +8385,7 @@ msgstr "Tırnaklı"
 #~ msgid "Set it up"
 #~ msgstr "Ayarla"
 
-#: src/features/settings/settings-page.tsx:235
+#: src/features/settings/settings-page.tsx:231
 msgid "Set one up"
 msgstr "Kur"
 
@@ -8568,7 +8609,7 @@ msgstr "Site haritası"
 #~ msgid "Sites being given a theme's demo, and packages being written in. A transfer that was killed starts again after the last part it finished."
 #~ msgstr "Bir temanın demosu verilen siteler, ve içeri yazılan paketler. Yarıda kesilen bir taşıma, bitirdiği son parçadan sonra devam eder."
 
-#: src/features/settings/settings-page.tsx:178
+#: src/features/settings/settings-page.tsx:174
 msgid "Six digits from an app on your phone, as well as your password. It is asked for when you sign in and nowhere else."
 msgstr "Parolanızın yanında, telefonunuzdaki uygulamadan altı hane. Yalnızca oturum açarken sorulur."
 
@@ -8975,8 +9016,8 @@ msgstr "Etiketler"
 #~ msgstr "\"{0}\" katalogdan çıkarılsın mı? Satılmış olan satılmış kalır."
 
 #: src/features/settings/settings-page.tsx:329
-msgid "Take a copy"
-msgstr "Kopya al"
+#~ msgid "Take a copy"
+#~ msgstr "Kopya al"
 
 #: src/features/people/people-page.tsx:424
 msgid "Take everything this site holds about {email}? What was paid stays, with their address out of it. This cannot be undone."
@@ -9136,7 +9177,7 @@ msgstr "Arama sonuçlarında görünecek metin"
 #~ msgid "That did not work."
 #~ msgstr "Bu olmadı."
 
-#: src/features/settings/settings-page.tsx:307
+#: src/features/portability/portable-page.tsx:60
 msgid "That is not a copy of a site."
 msgstr "Bu bir site kopyası değil."
 
@@ -9279,6 +9320,10 @@ msgstr "Kod"
 #~ msgid "the content is on its way — within the minute"
 #~ msgstr "içerik yolda — bir dakika içinde"
 
+#: src/features/portability/portable-page.tsx:56
+msgid "The copy was read in."
+msgstr ""
+
 #: src/features/analytics/visitors-page.tsx:86
 msgid "The curve draws itself from the first visit on."
 msgstr "Eğri, ilk ziyaretten itibaren kendini çizer."
@@ -9365,8 +9410,8 @@ msgid "The languages your content can be written in. This is separate from the l
 msgstr "İçeriğinizin yazılabileceği diller. Bu, yönetim panelinin dilinden bağımsızdır."
 
 #: src/features/settings/settings-page.tsx:323
-msgid "The languages, what things are filed under, and what has been written. Not the uploads, the accounts, or anything the site keeps sealed."
-msgstr "Diller, içeriklerin altında olduğu etiket ve kategoriler ve yazılanlar. Yüklenen dosyalar, hesaplar ve sitenin mühürlü tuttukları değil."
+#~ msgid "The languages, what things are filed under, and what has been written. Not the uploads, the accounts, or anything the site keeps sealed."
+#~ msgstr "Diller, içeriklerin altında olduğu etiket ve kategoriler ve yazılanlar. Yüklenen dosyalar, hesaplar ve sitenin mühürlü tuttukları değil."
 
 #. placeholder {0}: config.last_error
 #: src/routes/dashboard.plugins_.backup.tsx:464
@@ -9537,11 +9582,11 @@ msgstr "Site, yapay zekâ asistanlarına sayfa sayfa tanıtılır."
 #~ msgid "The sites could not be read just now."
 #~ msgstr "Siteler şu anda okunamadı."
 
-#: src/features/settings/settings-page.tsx:211
+#: src/features/settings/settings-page.tsx:207
 msgid "The six digits"
 msgstr "Altı hane"
 
-#: src/features/settings/settings-page.tsx:184
+#: src/features/settings/settings-page.tsx:180
 msgid "The six digits from your app to turn it off"
 msgstr ""
 
@@ -9996,11 +10041,11 @@ msgstr "Çeviriler"
 msgid "Turn into"
 msgstr "Şuna dönüştür"
 
-#: src/features/settings/settings-page.tsx:199
+#: src/features/settings/settings-page.tsx:195
 msgid "Turn it off"
 msgstr "Kapat"
 
-#: src/features/settings/settings-page.tsx:225
+#: src/features/settings/settings-page.tsx:221
 msgid "Turn it on"
 msgstr "Aç"
 
@@ -10146,7 +10191,7 @@ msgstr "Yüklenenler"
 msgid "URL"
 msgstr "URL"
 
-#: src/components/dashboard/dashboard-shell.tsx:115
+#: src/components/dashboard/dashboard-shell.tsx:116
 msgid "Usage"
 msgstr "Kullanım"
 
@@ -11165,6 +11210,7 @@ msgstr "Yazma"
 #~ msgstr "içerik yazılıyor — {0} parça bitti"
 
 #: src/features/analytics/usage-page.tsx:65
+#: src/features/portability/portable-page.tsx:135
 #: src/routes/dashboard.index.tsx:72
 msgid "Writings"
 msgstr ""
@@ -11204,7 +11250,7 @@ msgstr ""
 msgid "Yellow"
 msgstr "Sarı"
 
-#: src/features/settings/settings-page.tsx:383
+#: src/features/settings/settings-page.tsx:269
 msgid "Yes"
 msgstr "Evet"
 

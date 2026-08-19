@@ -14,6 +14,7 @@ use std::{
 };
 
 use chrono::{Duration as ChronoDuration, Utc};
+use mavi_analytics::{ANALYTICS_RETENTION_JOB, AnalyticsRetentionJob, AnalyticsService};
 use mavi_audit::{AuditEntry, AuditService};
 use mavi_content::{
     ContentService, SCHEDULED_PUBLISH_JOB, ScheduledPublishJob, ScheduledPublishOutcome,
@@ -31,6 +32,7 @@ use mavi_media::{
     render_variant, variant_storage_key,
 };
 pub use mavi_observability::{WorkerMetrics, WorkerMetricsSnapshot};
+use mavi_settings::SettingsService;
 use mavi_storage::{Database, SiteTx};
 use serde_json::json;
 use tokio::sync::RwLock;
@@ -85,7 +87,9 @@ pub struct WorkerSupervisor {
     sites: Arc<RwLock<Arc<[SiteId]>>>,
     jobs: JobsService,
     content: ContentService,
+    analytics: AnalyticsService,
     forms: FormService,
+    settings: SettingsService,
     media: MediaService,
     file_store: Arc<dyn FileStore>,
     mail: MailService,
@@ -182,6 +186,7 @@ impl WorkerSupervisor {
             database,
             sites: Arc::new(RwLock::new(site_snapshot(sites))),
             jobs: JobsService::new([
+                ANALYTICS_RETENTION_JOB,
                 SCHEDULED_PUBLISH_JOB,
                 MEDIA_CLEANUP_JOB,
                 MEDIA_VARIANT_JOB,
@@ -189,7 +194,9 @@ impl WorkerSupervisor {
                 FORM_RETENTION_JOB,
             ]),
             content: ContentService,
+            analytics: AnalyticsService,
             forms: FormService,
+            settings: SettingsService,
             media: MediaService,
             file_store,
             mail: MailService,
@@ -270,6 +277,9 @@ impl WorkerSupervisor {
         self.forms
             .enqueue_retention_job(&mut transaction, &claim_context, &self.jobs, Utc::now())
             .await?;
+        self.analytics
+            .enqueue_retention_job(&mut transaction, &claim_context, &self.jobs, Utc::now())
+            .await?;
         let (mail_claim, claim) = if self.mail_first.fetch_xor(true, Ordering::Relaxed) {
             let mail_claim = self
                 .claim_mail_delivery(&mut transaction, &claim_context)
@@ -337,6 +347,10 @@ impl WorkerSupervisor {
             MEDIA_VARIANT_JOB.name,
             MEDIA_ORPHAN_CLEANUP_JOB.name,
             FORM_RETENTION_JOB.name,
+            // Retention is deliberately lowest priority: a newly discovered
+            // analytics pass must not delay an already queued publish or
+            // storage cleanup operation.
+            ANALYTICS_RETENTION_JOB.name,
         ] {
             claim = self
                 .jobs
@@ -427,6 +441,9 @@ impl WorkerSupervisor {
         }
         if claim.kind == FORM_RETENTION_JOB.name {
             return self.execute_form_retention(&context, &claim).await;
+        }
+        if claim.kind == ANALYTICS_RETENTION_JOB.name {
+            return self.execute_analytics_retention(&context, &claim).await;
         }
         let payload = match serde_json::from_value::<ScheduledPublishJob>(claim.payload.clone()) {
             Ok(payload) => payload,
@@ -781,6 +798,44 @@ impl WorkerSupervisor {
         let mut transaction = self.database.begin(context).await?;
         self.forms
             .prune_expired_submissions(&mut transaction, context, Utc::now(), payload.bucket)
+            .await?;
+        self.complete_claim(transaction, context, claim).await
+    }
+
+    async fn execute_analytics_retention(
+        &self,
+        context: &SiteContext,
+        claim: &JobClaim,
+    ) -> Result<()> {
+        let payload = match serde_json::from_value::<AnalyticsRetentionJob>(claim.payload.clone()) {
+            Ok(payload) if payload.bucket >= 0 => payload,
+            Ok(_) => {
+                return self
+                    .fail_claim(
+                        context,
+                        claim,
+                        "invalid analytics retention bucket".to_owned(),
+                    )
+                    .await;
+            }
+            Err(error) => {
+                return self
+                    .fail_claim(
+                        context,
+                        claim,
+                        format!("invalid analytics retention payload: {error}"),
+                    )
+                    .await;
+            }
+        };
+
+        let mut transaction = self.database.begin(context).await?;
+        let policy = self
+            .settings
+            .analytics_retention(&mut transaction, context)
+            .await?;
+        self.analytics
+            .prune_scheduled(&mut transaction, context, policy, payload.bucket)
             .await?;
         self.complete_claim(transaction, context, claim).await
     }

@@ -1246,6 +1246,29 @@
                   }
                 },
                 "additionalProperties": false
+              },
+              "analytics_retention": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "required": [
+                  "raw_days",
+                  "aggregate_days"
+                ],
+                "properties": {
+                  "raw_days": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 3650
+                  },
+                  "aggregate_days": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 3650
+                  }
+                },
+                "additionalProperties": false
               }
             },
             "additionalProperties": false

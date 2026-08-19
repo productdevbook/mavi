@@ -11,9 +11,10 @@ use chrono::{DateTime, NaiveDate, Utc};
 use mavi_audit::{AuditEntry, AuditService};
 use mavi_contract::{Endpoint, Method, Permission, Shape};
 use mavi_core::{
-    Action, AnalyticsEventId, Capability, Cursor, ErrorCode, MaviError, Page, PageRequest, Result,
-    SiteContext,
+    Action, AnalyticsEventId, AnalyticsRetentionPolicy, Capability, Cursor, ErrorCode, JobId,
+    MaviError, Page, PageRequest, Result, SiteContext,
 };
+use mavi_jobs::{JobKind, JobsService};
 use mavi_storage::SiteTx;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -29,6 +30,8 @@ pub const MAX_EVENT_NAME: usize = 120;
 pub const MAX_PATH: usize = 500;
 pub const MAX_VALUE: i64 = 9_000_000_000_000_000;
 pub const MAX_RETENTION_DAYS: u16 = 3_650;
+pub const ANALYTICS_RETENTION_JOB: JobKind = JobKind::new("analytics.retention", 5);
+pub const ANALYTICS_RETENTION_BUCKET_SECONDS: i64 = 24 * 60 * 60;
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -100,6 +103,13 @@ pub struct PruneAnalytics {
 pub struct PruneReceipt {
     pub deleted_events: u64,
     pub deleted_aggregates: u64,
+}
+
+/// Payload for the idempotent daily analytics retention job.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct AnalyticsRetentionJob {
+    pub bucket: i64,
 }
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -253,6 +263,31 @@ pub fn shapes() -> Vec<Shape> {
 }
 
 impl AnalyticsService {
+    /// Enqueues one retention pass per UTC day for the current site.
+    pub async fn enqueue_retention_job(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        jobs: &JobsService,
+        now: DateTime<Utc>,
+    ) -> Result<JobId> {
+        let bucket = now
+            .timestamp()
+            .div_euclid(ANALYTICS_RETENTION_BUCKET_SECONDS);
+        let payload = serde_json::to_value(AnalyticsRetentionJob { bucket })
+            .map_err(|_| MaviError::Internal)?;
+        let idempotency_key = format!("analytics:retention:{}:{}", context.site_id, bucket);
+        jobs.enqueue(
+            tx,
+            context,
+            ANALYTICS_RETENTION_JOB.name,
+            &payload,
+            None,
+            Some(&idempotency_key),
+        )
+        .await
+    }
+
     /// Records events and updates the daily roll-up in the caller's existing
     /// transaction. The endpoint intentionally does not write an audit row for
     /// every telemetry event; retention changes are audited separately.
@@ -450,6 +485,42 @@ impl AnalyticsService {
     ) -> Result<PruneReceipt> {
         validate_retention(input.raw_days)?;
         validate_retention(input.aggregate_days)?;
+        self.prune_inner(tx, context, input, "analytics.retention.pruned", None)
+            .await
+    }
+
+    pub async fn prune_scheduled(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        policy: AnalyticsRetentionPolicy,
+        bucket: i64,
+    ) -> Result<PruneReceipt> {
+        if bucket < 0 {
+            return Err(MaviError::validation("analytics_retention_bucket_invalid"));
+        }
+        let input = PruneAnalytics {
+            raw_days: policy.raw_days,
+            aggregate_days: policy.aggregate_days,
+        };
+        self.prune_inner(
+            tx,
+            context,
+            &input,
+            "analytics.retention.scheduled_pruned",
+            Some(bucket),
+        )
+        .await
+    }
+
+    async fn prune_inner(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        input: &PruneAnalytics,
+        audit_action: &str,
+        bucket: Option<i64>,
+    ) -> Result<PruneReceipt> {
         let deleted_events = sqlx::query(
             "delete from analytics_events
              where created_at < now() - ($1::bigint * interval '1 day')",
@@ -478,14 +549,15 @@ impl AnalyticsService {
                 tx,
                 context,
                 &AuditEntry {
-                    action: "analytics.retention.pruned".to_owned(),
+                    action: audit_action.to_owned(),
                     resource_type: "AnalyticsRetention".to_owned(),
                     resource_id: None,
                     payload: json!({
                         "raw_days": input.raw_days,
                         "aggregate_days": input.aggregate_days,
                         "deleted_events": receipt.deleted_events,
-                        "deleted_aggregates": receipt.deleted_aggregates
+                        "deleted_aggregates": receipt.deleted_aggregates,
+                        "bucket": bucket
                     }),
                 },
             )

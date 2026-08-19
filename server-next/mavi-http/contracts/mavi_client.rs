@@ -70,6 +70,14 @@ pub struct AnalyticsReceipt {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct AnalyticsRetention {
+    pub raw_days: i64,
+    pub aggregate_days: i64,
+}
+
+pub type AnalyticsRetentionUpdate = Option<Value>;
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ApiKeyCreated {
     pub id: String,
     pub site_id: String,
@@ -1803,6 +1811,7 @@ pub struct SiteSettings {
     pub timezone: String,
     pub canonical_url: Option<String>,
     pub mail_sender: MailSender,
+    pub analytics_retention: AnalyticsRetention,
     pub updated_at: String,
 }
 
@@ -2066,6 +2075,7 @@ pub struct UpdateSiteSettings {
     pub timezone: Option<String>,
     pub canonical_url: Option<String>,
     pub mail_sender: Option<MailSenderUpdate>,
+    pub analytics_retention: Option<AnalyticsRetentionUpdate>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

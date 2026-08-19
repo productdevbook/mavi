@@ -59,6 +59,13 @@ export interface AnalyticsReceipt {
   accepted: number;
 }
 
+export interface AnalyticsRetention {
+  raw_days: number;
+  aggregate_days: number;
+}
+
+export type AnalyticsRetentionUpdate = Record<string, unknown> | null;
+
 export interface ApiKeyCreated {
   id: string;
   site_id: string;
@@ -1580,6 +1587,7 @@ export interface SiteSettings {
   timezone: string;
   canonical_url: string | null;
   mail_sender: MailSender;
+  analytics_retention: AnalyticsRetention;
   updated_at: string;
 }
 
@@ -1807,6 +1815,7 @@ export interface UpdateSiteSettings {
   timezone?: string | null;
   canonical_url?: string | null;
   mail_sender?: MailSenderUpdate;
+  analytics_retention?: AnalyticsRetentionUpdate;
 }
 
 export interface UpdateStudent {

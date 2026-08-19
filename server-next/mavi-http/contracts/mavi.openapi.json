@@ -18284,6 +18284,49 @@
         },
         "additionalProperties": false
       },
+      "AnalyticsRetention": {
+        "type": "object",
+        "required": [
+          "raw_days",
+          "aggregate_days"
+        ],
+        "properties": {
+          "raw_days": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3650
+          },
+          "aggregate_days": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3650
+          }
+        },
+        "additionalProperties": false
+      },
+      "AnalyticsRetentionUpdate": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "required": [
+          "raw_days",
+          "aggregate_days"
+        ],
+        "properties": {
+          "raw_days": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3650
+          },
+          "aggregate_days": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3650
+          }
+        },
+        "additionalProperties": false
+      },
       "ApiKeyCreated": {
         "type": "object",
         "additionalProperties": false,
@@ -24807,6 +24850,7 @@
           "timezone",
           "canonical_url",
           "mail_sender",
+          "analytics_retention",
           "updated_at"
         ],
         "properties": {
@@ -24832,6 +24876,9 @@
           },
           "mail_sender": {
             "$ref": "#/components/schemas/MailSender"
+          },
+          "analytics_retention": {
+            "$ref": "#/components/schemas/AnalyticsRetention"
           },
           "updated_at": {
             "type": "string",
@@ -25767,6 +25814,9 @@
           },
           "mail_sender": {
             "$ref": "#/components/schemas/MailSenderUpdate"
+          },
+          "analytics_retention": {
+            "$ref": "#/components/schemas/AnalyticsRetentionUpdate"
           }
         },
         "additionalProperties": false

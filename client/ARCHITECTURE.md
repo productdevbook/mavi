@@ -20,6 +20,11 @@ scope, authorization, validation, and audit.
   `/api/v1/*` contract. Screens migrating to the rewrite use generated
   operation IDs from `@api-next`; bearer session storage, refusal handling and
   cursor walking stay in this boundary.
+- `src/lib/server-next-auth.ts` is the authenticated application boundary on
+  top of `server-next.ts`. Login stores only the bearer token, then obtains
+  the current person and effective Cedar grants from `auth.session.current`.
+  The client never rebuilds access by aggregating roles, and it never treats a
+  cached session as authorization.
 - `src/api/server-next.ts` is generated from
   `server-next/mavi-http/contracts/mavi.ts`. CI compares the files in both
   directions so the panel cannot silently drift from the Rust contract.
@@ -45,7 +50,10 @@ move between groups without invalidating bookmarks or API clients.
 
 ## Refactor order
 
-1. Keep route guards and the generated API boundary intact.
+1. Keep route guards and the generated API boundary intact. Setup, login,
+   password reset, root redirect, and the authenticated shell use
+   `server-next`; the old `@api` boundary is compatibility-only for domains
+   that have not yet received their canonical server implementation.
 2. Move route-level layout and navigation into shell components.
 3. Move one domain at a time into `src/features/<domain>`; auth, dashboard,
    content, media, taxonomy, shop, learning, automation, boards, design,

@@ -640,6 +640,12 @@ pub struct CredentialPage {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct CurrentSession {
+    pub person: PersonRecord,
+    pub grants: Vec<Grant>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct DailyAggregate {
     pub day: String,
     pub event_name: String,
@@ -2151,6 +2157,7 @@ pub const OPERATIONS: &[OperationDefinition] = &[
     OperationDefinition { name: "auth.email_verification.request", method: "post", path: "/api/v1/auth/email-verifications", request: Some("EmailVerificationRequest"), request_location: Some("json"), query: None, response: Some("EmailVerificationRequested"), response_location: None, status: 202, authentication: "public", capability: None, action: None },
     OperationDefinition { name: "auth.email_verification.redeem", method: "post", path: "/api/v1/auth/email-verifications/redeem", request: Some("EmailVerificationRedeem"), request_location: Some("json"), query: None, response: Some("Empty"), response_location: None, status: 204, authentication: "public", capability: None, action: None },
     OperationDefinition { name: "auth.session.revoke", method: "delete", path: "/api/v1/auth/sessions/current", request: None, request_location: None, query: None, response: Some("Empty"), response_location: None, status: 204, authentication: "account", capability: None, action: None },
+    OperationDefinition { name: "auth.session.current", method: "get", path: "/api/v1/auth/sessions/current", request: None, request_location: None, query: None, response: Some("CurrentSession"), response_location: None, status: 200, authentication: "account", capability: None, action: None },
     OperationDefinition { name: "auth.api_key.list", method: "get", path: "/api/v1/auth/api-keys", request: Some("ApiKeyListFilter"), request_location: Some("query"), query: None, response: Some("ApiKeyPage"), response_location: None, status: 200, authentication: "account", capability: Some("people"), action: Some("view") },
     OperationDefinition { name: "auth.api_key.create", method: "post", path: "/api/v1/auth/api-keys", request: Some("CreateApiKey"), request_location: Some("json"), query: None, response: Some("ApiKeyCreated"), response_location: None, status: 201, authentication: "account", capability: Some("people"), action: Some("write") },
     OperationDefinition { name: "auth.api_key.revoke", method: "delete", path: "/api/v1/auth/api-keys/{id}", request: None, request_location: None, query: None, response: Some("Empty"), response_location: None, status: 204, authentication: "account_or_assistant", capability: Some("people"), action: Some("delete") },

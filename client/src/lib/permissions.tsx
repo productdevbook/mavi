@@ -1,7 +1,7 @@
 /* eslint-disable react-refresh/only-export-components -- provider + hook share one file */
 import * as React from "react"
 
-import { api } from "@/lib/v1"
+import type { Grant } from "@api-next"
 
 export type Capability =
   | "content"
@@ -23,69 +23,42 @@ type Access = "view" | "write" | "delete"
 
 interface PermissionState {
   ready: boolean
-  role: string
   can: (capability: Capability, access?: Access) => boolean
-  reload: () => void
 }
 
 const PermissionContext = React.createContext<PermissionState | null>(null)
 
 /**
- * What the signed-in person may do, asked once and shared.
+ * What the signed-in person may do, received once with the current session and
+ * shared by the authenticated shell.
  *
  * Menus and buttons ask this before they draw: a screen nobody may open is a
  * screen nobody is shown, and a delete nobody may press is not offered. The
  * API decides the same question again on every request — this is the panel
  * being honest about it, not the guard itself.
  *
- * What it reads is the list of grants the API hands back with the account:
- * `content:write`, `shop:view`. Held as strings rather than unpacked, because
- * that is what the API says and two spellings of one thing is how a panel and
- * a server come to disagree.
+ * The grants stay in the server's structured vocabulary instead of being
+ * rebuilt from every role in the site. Aggregating all roles would show a
+ * person permissions they do not hold.
  */
 export function PermissionProvider({
   children,
+  grants,
 }: {
   children: React.ReactNode
+  grants: Grant[]
 }) {
-  const [grants, setGrants] = React.useState<string[] | null>(null)
-  const [role, setRole] = React.useState("")
-  const [ready, setReady] = React.useState(false)
-
-  const reload = React.useCallback(() => {
-    api("roles.list")
-      .then((roles) => {
-        const allGrants = roles.flatMap((r) => r.grants)
-        setGrants(allGrants)
-        setRole(roles[0]?.name ?? "Owner")
-        setReady(true)
-      })
-      .catch(() => {
-        setGrants(null)
-        setReady(true)
-      })
-  }, [])
-
-  React.useEffect(reload, [reload])
-
   const value = React.useMemo<PermissionState>(
     () => ({
-      ready,
-      role,
+      ready: true,
       can: (capability, access = "view") => {
-        if (!grants) return true
-
-        // Everything is `own` or not: a grant over one's own carries the same
-        // word, so the panel shows the screen and the API decides the row.
         return grants.some(
           (grant) =>
-            grant === `${capability}:${access}` ||
-            grant === `${capability}:${access}:own`
+            grant.capability === capability && grant.action === access,
         )
       },
-      reload,
     }),
-    [grants, role, ready, reload]
+    [grants],
   )
 
   return (
@@ -155,9 +128,7 @@ export function usePermissions(): PermissionState {
     // Outside a provider (a stray render) — permissive, the API still gates.
     return {
       ready: true,
-      role: "",
       can: () => true,
-      reload: () => {},
     }
   }
 

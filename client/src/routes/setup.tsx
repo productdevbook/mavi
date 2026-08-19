@@ -1,14 +1,14 @@
 /* eslint-disable react-refresh/only-export-components -- file-based route convention */
 import { createFileRoute, redirect } from "@tanstack/react-router"
 
-import { api } from "@/lib/v1"
+import { nextApi } from "@/lib/server-next"
 import { SetupPage } from "@/features/auth/setup-page"
 
 export const Route = createFileRoute("/setup")({
   loader: async () => {
-    const site = await api("open.site").catch(() => null)
+    const setup = await nextApi("setup.status").catch(() => null)
 
-    if (site) {
+    if (setup?.initialized) {
       throw redirect({ to: "/dashboard" })
     }
 

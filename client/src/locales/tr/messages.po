@@ -942,7 +942,7 @@ msgstr "Yeni bir tür"
 msgid "A new list"
 msgstr "Yeni bir liste"
 
-#: src/features/auth/forgotten-page.tsx:180
+#: src/features/auth/forgotten-page.tsx:131
 msgid "A new password"
 msgstr "Yeni bir parola"
 
@@ -1925,7 +1925,7 @@ msgstr "Asistanlar"
 msgid "At least twelve characters."
 msgstr "En az on iki karakter."
 
-#: src/features/auth/forgotten-page.tsx:127
+#: src/features/auth/forgotten-page.tsx:78
 msgid "At least twelve characters. Everything else that was open closes when you do this."
 msgstr "En az on iki karakter. Bunu yaptığınızda açık olan diğer her şey kapanır."
 
@@ -2508,6 +2508,15 @@ msgstr "Değiştirmek açık olan her şeyi kapatır; burada ve oturum açtığ�
 #~ msgid "Chat id"
 #~ msgstr "Sohbet kimliği"
 
+#. placeholder {0}: error.field
+#: src/lib/server-next-auth.ts:78
+msgid "Check the {0} field."
+msgstr ""
+
+#: src/lib/server-next-auth.ts:79
+msgid "Check the values and try again."
+msgstr ""
+
 #: src/components/editor/extensions/slash-command.tsx:119
 msgid "Checkbox to-do list"
 msgstr "Onay kutulu yapılacaklar"
@@ -2548,7 +2557,7 @@ msgstr ""
 #~ msgid "Choose a list first"
 #~ msgstr "Önce bir liste seçin"
 
-#: src/features/auth/forgotten-page.tsx:124
+#: src/features/auth/forgotten-page.tsx:75
 msgid "Choose a password"
 msgstr "Bir parola seçin"
 
@@ -3891,8 +3900,8 @@ msgid "Editor-in-chief"
 msgstr "Genel yayın yönetmeni"
 
 #: src/components/dashboard/content-type-editor.tsx:58
-#: src/features/auth/forgotten-page.tsx:195
-#: src/features/auth/login-page.tsx:85
+#: src/features/auth/forgotten-page.tsx:146
+#: src/features/auth/login-page.tsx:69
 #: src/features/auth/setup-page.tsx:112
 #: src/features/learning/students-page.tsx:205
 #: src/features/people/people-page.tsx:311
@@ -4438,8 +4447,8 @@ msgstr "Önce yazıya bir başlık verin"
 #~ msgstr "Git"
 
 #: src/features/auth/forgotten-page.tsx:111
-msgid "Go to sign in"
-msgstr ""
+#~ msgid "Go to sign in"
+#~ msgstr ""
 
 #. placeholder {0}: new Date(entry.goes_at).toLocaleDateString()
 #: src/routes/dashboard.trash.tsx:167
@@ -4709,7 +4718,7 @@ msgstr "Buraya nasıl gönderilir"
 #~ msgid "I have copied both"
 #~ msgstr "İkisini de kopyaladım"
 
-#: src/features/auth/login-page.tsx:134
+#: src/features/auth/login-page.tsx:102
 msgid "I have forgotten my password"
 msgstr "Parolamı unuttum"
 
@@ -4725,7 +4734,7 @@ msgstr "Bir şey istiyorum"
 #~ msgid "If it does not match, the steps after this one are skipped and the run is still counted as a success."
 #~ msgstr "Eşleşmezse bundan sonraki adımlar atlanır ve çalıştırma yine başarılı sayılır."
 
-#: src/features/auth/forgotten-page.tsx:164
+#: src/features/auth/forgotten-page.tsx:115
 msgid "If that address has an account here, a link is on its way. It works once and stops working after a day."
 msgstr "Bu adrese ait bir hesap varsa bağlantı yola çıktı. Bir kez çalışır ve bir gün sonra geçersiz olur."
 
@@ -5403,7 +5412,7 @@ msgstr "Görüntüle"
 #~ msgid "Look at it first"
 #~ msgstr "Önce bir bakın"
 
-#: src/features/auth/forgotten-page.tsx:161
+#: src/features/auth/forgotten-page.tsx:112
 msgid "Look in your email"
 msgstr "E-postanıza bakın"
 
@@ -6352,8 +6361,8 @@ msgstr "Henüz bir şey sayılmadı. Yayınlanan siteye ilk ziyaretçi gelince s
 #~ msgstr "Burada silinen hiçbir şey hemen gitmez. Otuz gün bekler — ister bir kişi silmiş olsun ister bir asistan — ve o zamana kadar olduğu gibi geri alınabilir."
 
 #: src/features/auth/forgotten-page.tsx:105
-msgid "Nothing else about your account changed. You can sign in the way you always have."
-msgstr ""
+#~ msgid "Nothing else about your account changed. You can sign in the way you always have."
+#~ msgstr ""
 
 #: src/components/assistant-connection.tsx:170
 #~ msgid "Nothing else. Accounts, credentials, backups, how the site is built and sending a mailing are deliberately not here — nor is deleting a post or a file. Those stay things a person does in this panel."
@@ -7088,8 +7097,8 @@ msgstr "Ödendi"
 msgid "Paragraph"
 msgstr "Paragraf"
 
-#: src/features/auth/forgotten-page.tsx:142
-#: src/features/auth/login-page.tsx:99
+#: src/features/auth/forgotten-page.tsx:93
+#: src/features/auth/login-page.tsx:83
 #: src/features/auth/setup-page.tsx:125
 #: src/learn/app.tsx:170
 msgid "Password"
@@ -7971,7 +7980,7 @@ msgstr "Kaydet"
 #~ msgid "Save changes"
 #~ msgstr "Değişiklikleri kaydet"
 
-#: src/features/auth/forgotten-page.tsx:155
+#: src/features/auth/forgotten-page.tsx:106
 msgid "Save it"
 msgstr "Kaydet"
 
@@ -8219,7 +8228,7 @@ msgstr ""
 #~ msgid "Send on Telegram"
 #~ msgstr "Telegram'dan gönder"
 
-#: src/features/auth/forgotten-page.tsx:211
+#: src/features/auth/forgotten-page.tsx:162
 msgid "Send the link"
 msgstr "Bağlantıyı gönder"
 
@@ -8499,14 +8508,14 @@ msgstr "Kısayollar"
 #~ msgid "Shown once and kept nowhere it can be read again. Send it however you normally reach them; if it is lost, give them access again and a new one appears."
 #~ msgstr "Bir kez gösterilir ve tekrar okunabileceği hiçbir yerde tutulmaz. Kişiye her zamanki yolunuzla iletin; kaybolursa yeniden erişim verin, yeni bir parola görünür."
 
-#: src/features/auth/login-page.tsx:70
-#: src/features/auth/login-page.tsx:127
+#: src/features/auth/login-page.tsx:54
+#: src/features/auth/login-page.tsx:95
 #: src/learn/app.tsx:152
 #: src/learn/app.tsx:188
 msgid "Sign in"
 msgstr "Giriş yap"
 
-#: src/features/auth/login-page.tsx:73
+#: src/features/auth/login-page.tsx:57
 msgid "Sign in to manage your site."
 msgstr "Sitenizi yönetmek için giriş yapın."
 
@@ -8555,8 +8564,8 @@ msgstr "Giriş yapıldı"
 #~ msgstr "İmza sırrı"
 
 #: src/routes/oauth.$provider.tsx:35
-msgid "Signing you in…"
-msgstr "Girişiniz yapılıyor…"
+#~ msgid "Signing you in…"
+#~ msgstr "Girişiniz yapılıyor…"
 
 #: src/routes/dashboard.users.tsx:213
 #~ msgid "signs in from the console"
@@ -8710,6 +8719,8 @@ msgstr "Bir şey bozuk"
 msgid "Something went wrong."
 msgstr "Bir şeyler ters gitti."
 
+#: src/lib/server-next-auth.ts:62
+#: src/lib/server-next-auth.ts:66
 #: src/lib/v1-said.ts:73
 msgid "Something went wrong. It has been written down."
 msgstr "Bir şeyler ters gitti. Bu not edildi."
@@ -9194,6 +9205,10 @@ msgstr "Arama sonuçlarında görünecek metin"
 #~ msgid "That did not work."
 #~ msgstr "Bu olmadı."
 
+#: src/lib/server-next-auth.ts:71
+msgid "That email or password is not correct."
+msgstr ""
+
 #: src/features/portability/portable-page.tsx:60
 msgid "That is not a copy of a site."
 msgstr "Bu bir site kopyası değil."
@@ -9608,8 +9623,8 @@ msgid "The six digits from your app to turn it off"
 msgstr ""
 
 #: src/features/auth/login-page.tsx:113
-msgid "The six digits from your authenticator"
-msgstr "Doğrulayıcı uygulamanızdaki altı hane"
+#~ msgid "The six digits from your authenticator"
+#~ msgstr "Doğrulayıcı uygulamanızdaki altı hane"
 
 #: src/routes/dashboard.themes.tsx:777
 #~ msgid "The theme's own version"
@@ -9851,6 +9866,10 @@ msgstr "Bu yazı açılamadı, bu yüzden hiç değiştirilmedi."
 #~ msgid "This really sends: mail goes to real addresses and any address step is really called. Go ahead?"
 #~ msgstr "Bu gerçekten gönderir: posta gerçek adreslere gider ve adres adımı gerçekten çağrılır. Devam edilsin mi?"
 
+#: src/lib/server-next-auth.ts:73
+msgid "This request conflicts with the current site state."
+msgstr ""
+
 #: src/features/people/roles-page.tsx:326
 msgid "This role came with the build and is not a site's to change."
 msgstr "Bu rol yazılımla birlikte gelir; site tarafından değiştirilemez."
@@ -10004,6 +10023,10 @@ msgstr "Bugünün tarihi"
 #: src/components/local-env.tsx:146
 #~ msgid "Tokens"
 #~ msgstr "Jetonlar"
+
+#: src/lib/server-next-auth.ts:75
+msgid "Too many attempts. Wait a little and try again."
+msgstr ""
 
 #: src/routes/dashboard.usage.tsx:198
 #~ msgid "Took"
@@ -10399,7 +10422,7 @@ msgstr "Silinmeyi bekleyenler"
 #~ msgid "Watching how sending is going"
 #~ msgstr "Gönderimin nasıl gittiğini izlemek"
 
-#: src/features/auth/forgotten-page.tsx:183
+#: src/features/auth/forgotten-page.tsx:134
 msgid "We will send a link to the address on the account."
 msgstr "Hesaptaki adrese bir bağlantı göndereceğiz."
 
@@ -11338,8 +11361,8 @@ msgstr "Evet ya da hayır"
 #~ msgstr "Hesabınız"
 
 #: src/features/auth/forgotten-page.tsx:102
-msgid "Your address is confirmed"
-msgstr ""
+#~ msgid "Your address is confirmed"
+#~ msgstr ""
 
 #: src/components/console/console-shell.tsx:82
 #~ msgid "Your agency"

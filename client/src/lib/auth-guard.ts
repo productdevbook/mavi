@@ -1,7 +1,7 @@
 import { redirect } from "@tanstack/react-router"
 
-import { api } from "@/lib/v1"
-import type { Me } from "@/lib/v1-auth"
+import { nextApi, ServerNextRefused } from "@/lib/server-next"
+import { whoAmI, type Me } from "@/lib/server-next-auth"
 
 export type { Me }
 
@@ -17,14 +17,21 @@ export async function requireAuth(currentHref: string): Promise<{
   /** What this site calls itself, for the tab and the header. */
   site: string | null
 }> {
-  const settings = await api("settings.read").catch(() => {
+  const user = await whoAmI().catch(() => {
     throw redirect({ to: "/login", search: { redirect: currentHref } })
   })
 
-  const user: Me = {
-    grants: [],
-    site: settings.name,
-  }
+  const site = await nextApi("settings.read")
+    .then((settings) => settings.name || null)
+    .catch((error: unknown) => {
+      // Site settings are permissioned. The session itself is the auth guard;
+      // a person who cannot view settings still gets the panel with its
+      // neutral site title.
+      if (error instanceof ServerNextRefused && error.code === "forbidden") {
+        return null
+      }
+      throw error
+    })
 
-  return { user, site: settings.name || null }
+  return { user, site }
 }

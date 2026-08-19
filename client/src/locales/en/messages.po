@@ -942,7 +942,7 @@ msgstr "A new kind"
 msgid "A new list"
 msgstr "A new list"
 
-#: src/features/auth/forgotten-page.tsx:180
+#: src/features/auth/forgotten-page.tsx:131
 msgid "A new password"
 msgstr "A new password"
 
@@ -1925,7 +1925,7 @@ msgstr "Assistants"
 msgid "At least twelve characters."
 msgstr "At least twelve characters."
 
-#: src/features/auth/forgotten-page.tsx:127
+#: src/features/auth/forgotten-page.tsx:78
 msgid "At least twelve characters. Everything else that was open closes when you do this."
 msgstr "At least twelve characters. Everything else that was open closes when you do this."
 
@@ -2508,6 +2508,15 @@ msgstr "Changing it closes everything that is open, here and everywhere else you
 #~ msgid "Chat id"
 #~ msgstr "Chat id"
 
+#. placeholder {0}: error.field
+#: src/lib/server-next-auth.ts:78
+msgid "Check the {0} field."
+msgstr "Check the {0} field."
+
+#: src/lib/server-next-auth.ts:79
+msgid "Check the values and try again."
+msgstr "Check the values and try again."
+
 #: src/components/editor/extensions/slash-command.tsx:119
 msgid "Checkbox to-do list"
 msgstr "Checkbox to-do list"
@@ -2548,7 +2557,7 @@ msgstr "Choose a JSON copy"
 #~ msgid "Choose a list first"
 #~ msgstr "Choose a list first"
 
-#: src/features/auth/forgotten-page.tsx:124
+#: src/features/auth/forgotten-page.tsx:75
 msgid "Choose a password"
 msgstr "Choose a password"
 
@@ -3891,8 +3900,8 @@ msgid "Editor-in-chief"
 msgstr "Editor-in-chief"
 
 #: src/components/dashboard/content-type-editor.tsx:58
-#: src/features/auth/forgotten-page.tsx:195
-#: src/features/auth/login-page.tsx:85
+#: src/features/auth/forgotten-page.tsx:146
+#: src/features/auth/login-page.tsx:69
 #: src/features/auth/setup-page.tsx:112
 #: src/features/learning/students-page.tsx:205
 #: src/features/people/people-page.tsx:311
@@ -4438,8 +4447,8 @@ msgstr "Give your post a title first"
 #~ msgstr "Go"
 
 #: src/features/auth/forgotten-page.tsx:111
-msgid "Go to sign in"
-msgstr "Go to sign in"
+#~ msgid "Go to sign in"
+#~ msgstr "Go to sign in"
 
 #. placeholder {0}: new Date(entry.goes_at).toLocaleDateString()
 #: src/routes/dashboard.trash.tsx:167
@@ -4709,7 +4718,7 @@ msgstr "How to send to it"
 #~ msgid "I have copied both"
 #~ msgstr "I have copied both"
 
-#: src/features/auth/login-page.tsx:134
+#: src/features/auth/login-page.tsx:102
 msgid "I have forgotten my password"
 msgstr "I have forgotten my password"
 
@@ -4725,7 +4734,7 @@ msgstr "I would like something"
 #~ msgid "If it does not match, the steps after this one are skipped and the run is still counted as a success."
 #~ msgstr "If it does not match, the steps after this one are skipped and the run is still counted as a success."
 
-#: src/features/auth/forgotten-page.tsx:164
+#: src/features/auth/forgotten-page.tsx:115
 msgid "If that address has an account here, a link is on its way. It works once and stops working after a day."
 msgstr "If that address has an account here, a link is on its way. It works once and stops working after a day."
 
@@ -5403,7 +5412,7 @@ msgstr "Look at it"
 #~ msgid "Look at it first"
 #~ msgstr "Look at it first"
 
-#: src/features/auth/forgotten-page.tsx:161
+#: src/features/auth/forgotten-page.tsx:112
 msgid "Look in your email"
 msgstr "Look in your email"
 
@@ -6352,8 +6361,8 @@ msgstr "Nothing counted yet. Numbers appear as soon as the published site has a 
 #~ msgstr "Nothing deleted here goes straight away. It waits thirty days, whether a person deleted it or an assistant did, and until then it can be put back exactly as it was."
 
 #: src/features/auth/forgotten-page.tsx:105
-msgid "Nothing else about your account changed. You can sign in the way you always have."
-msgstr "Nothing else about your account changed. You can sign in the way you always have."
+#~ msgid "Nothing else about your account changed. You can sign in the way you always have."
+#~ msgstr "Nothing else about your account changed. You can sign in the way you always have."
 
 #: src/components/assistant-connection.tsx:170
 #~ msgid "Nothing else. Accounts, credentials, backups, how the site is built and sending a mailing are deliberately not here — nor is deleting a post or a file. Those stay things a person does in this panel."
@@ -7088,8 +7097,8 @@ msgstr "Paid"
 msgid "Paragraph"
 msgstr "Paragraph"
 
-#: src/features/auth/forgotten-page.tsx:142
-#: src/features/auth/login-page.tsx:99
+#: src/features/auth/forgotten-page.tsx:93
+#: src/features/auth/login-page.tsx:83
 #: src/features/auth/setup-page.tsx:125
 #: src/learn/app.tsx:170
 msgid "Password"
@@ -7971,7 +7980,7 @@ msgstr "Save"
 #~ msgid "Save changes"
 #~ msgstr "Save changes"
 
-#: src/features/auth/forgotten-page.tsx:155
+#: src/features/auth/forgotten-page.tsx:106
 msgid "Save it"
 msgstr "Save it"
 
@@ -8219,7 +8228,7 @@ msgstr "Send message"
 #~ msgid "Send on Telegram"
 #~ msgstr "Send on Telegram"
 
-#: src/features/auth/forgotten-page.tsx:211
+#: src/features/auth/forgotten-page.tsx:162
 msgid "Send the link"
 msgstr "Send the link"
 
@@ -8499,14 +8508,14 @@ msgstr "Shortcuts"
 #~ msgid "Shown once and kept nowhere it can be read again. Send it however you normally reach them; if it is lost, give them access again and a new one appears."
 #~ msgstr "Shown once and kept nowhere it can be read again. Send it however you normally reach them; if it is lost, give them access again and a new one appears."
 
-#: src/features/auth/login-page.tsx:70
-#: src/features/auth/login-page.tsx:127
+#: src/features/auth/login-page.tsx:54
+#: src/features/auth/login-page.tsx:95
 #: src/learn/app.tsx:152
 #: src/learn/app.tsx:188
 msgid "Sign in"
 msgstr "Sign in"
 
-#: src/features/auth/login-page.tsx:73
+#: src/features/auth/login-page.tsx:57
 msgid "Sign in to manage your site."
 msgstr "Sign in to manage your site."
 
@@ -8555,8 +8564,8 @@ msgstr "Signed in"
 #~ msgstr "Signing secret"
 
 #: src/routes/oauth.$provider.tsx:35
-msgid "Signing you in…"
-msgstr "Signing you in…"
+#~ msgid "Signing you in…"
+#~ msgstr "Signing you in…"
 
 #: src/routes/dashboard.users.tsx:213
 #~ msgid "signs in from the console"
@@ -8710,6 +8719,8 @@ msgstr "Something is broken"
 msgid "Something went wrong."
 msgstr "Something went wrong."
 
+#: src/lib/server-next-auth.ts:62
+#: src/lib/server-next-auth.ts:66
 #: src/lib/v1-said.ts:73
 msgid "Something went wrong. It has been written down."
 msgstr "Something went wrong. It has been written down."
@@ -9194,6 +9205,10 @@ msgstr "Text shown in search results"
 #~ msgid "That did not work."
 #~ msgstr "That did not work."
 
+#: src/lib/server-next-auth.ts:71
+msgid "That email or password is not correct."
+msgstr "That email or password is not correct."
+
 #: src/features/portability/portable-page.tsx:60
 msgid "That is not a copy of a site."
 msgstr "That is not a copy of a site."
@@ -9608,8 +9623,8 @@ msgid "The six digits from your app to turn it off"
 msgstr "The six digits from your app to turn it off"
 
 #: src/features/auth/login-page.tsx:113
-msgid "The six digits from your authenticator"
-msgstr "The six digits from your authenticator"
+#~ msgid "The six digits from your authenticator"
+#~ msgstr "The six digits from your authenticator"
 
 #: src/routes/dashboard.themes.tsx:777
 #~ msgid "The theme's own version"
@@ -9851,6 +9866,10 @@ msgstr "This post could not be opened, so it has been left untouched."
 #~ msgid "This really sends: mail goes to real addresses and any address step is really called. Go ahead?"
 #~ msgstr "This really sends: mail goes to real addresses and any address step is really called. Go ahead?"
 
+#: src/lib/server-next-auth.ts:73
+msgid "This request conflicts with the current site state."
+msgstr "This request conflicts with the current site state."
+
 #: src/features/people/roles-page.tsx:326
 msgid "This role came with the build and is not a site's to change."
 msgstr "This role came with the build and is not a site's to change."
@@ -10004,6 +10023,10 @@ msgstr "Today's date"
 #: src/components/local-env.tsx:146
 #~ msgid "Tokens"
 #~ msgstr "Tokens"
+
+#: src/lib/server-next-auth.ts:75
+msgid "Too many attempts. Wait a little and try again."
+msgstr "Too many attempts. Wait a little and try again."
 
 #: src/routes/dashboard.usage.tsx:198
 #~ msgid "Took"
@@ -10399,7 +10422,7 @@ msgstr "Waiting to be thrown away"
 #~ msgid "Watching how sending is going"
 #~ msgstr "Watching how sending is going"
 
-#: src/features/auth/forgotten-page.tsx:183
+#: src/features/auth/forgotten-page.tsx:134
 msgid "We will send a link to the address on the account."
 msgstr "We will send a link to the address on the account."
 
@@ -11338,8 +11361,8 @@ msgstr "Yes or no"
 #~ msgstr "Your account"
 
 #: src/features/auth/forgotten-page.tsx:102
-msgid "Your address is confirmed"
-msgstr "Your address is confirmed"
+#~ msgid "Your address is confirmed"
+#~ msgstr "Your address is confirmed"
 
 #: src/components/console/console-shell.tsx:82
 #~ msgid "Your agency"

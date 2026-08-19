@@ -3,8 +3,7 @@ import { Link, useNavigate } from "@tanstack/react-router"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { Loader2 } from "lucide-react"
 
-import { signIn } from "@/lib/v1-auth"
-import { said } from "@/lib/v1-said"
+import { serverNextMessage, signIn } from "@/lib/server-next-auth"
 import { AuthPageFrame } from "@/features/auth/auth-page-frame"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -22,9 +21,6 @@ export function LoginPage({ redirectTo }: { redirectTo?: string }) {
 
   const [email, setEmail] = React.useState("")
   const [password, setPassword] = React.useState("")
-  const [code, setCode] = React.useState("")
-  const [moment, setMoment] = React.useState<string | null>(null)
-  const [wantsCode, setWantsCode] = React.useState(false)
   const [refused, setRefused] = React.useState("")
   const [busy, setBusy] = React.useState(false)
 
@@ -35,23 +31,11 @@ export function LoginPage({ redirectTo }: { redirectTo?: string }) {
     setRefused("")
 
     try {
-      const answer = await signIn(
-        email.trim(),
-        password,
-        code,
-        moment ?? undefined
-      )
-
-      if (!answer.done) {
-        setMoment(answer.moment)
-        setWantsCode(true)
-        setBusy(false)
-        return
-      }
+      await signIn(email.trim(), password)
 
       await navigate({ to: redirectTo ?? "/dashboard" })
     } catch (why) {
-      setRefused(said(why))
+      setRefused(serverNextMessage(why))
       setBusy(false)
     }
   }
@@ -106,22 +90,6 @@ export function LoginPage({ redirectTo }: { redirectTo?: string }) {
             onChange={(event) => setPassword(event.target.value)}
           />
         </div>
-
-        {wantsCode && (
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="login-code">
-              <Trans>The six digits from your authenticator</Trans>
-            </Label>
-            <Input
-              id="login-code"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              autoFocus
-              value={code}
-              onChange={(event) => setCode(event.target.value)}
-            />
-          </div>
-        )}
 
         <Button type="submit" disabled={!ready} className="w-full">
           {busy ? <Loader2 className="size-4 animate-spin" /> : t`Sign in`}

@@ -173,6 +173,19 @@ pub fn api() -> Api {
         .self_only(),
         Endpoint::new(
             Method::Get,
+            "/api/v1/auth/sessions/current",
+            "auth.session.current",
+            "Read the current account session",
+        )
+        .returns(200, "CurrentSession")
+        .self_only()
+        .refuses([
+            ErrorCode::Unauthenticated,
+            ErrorCode::NotFound,
+            ErrorCode::Internal,
+        ]),
+        Endpoint::new(
+            Method::Get,
             "/api/v1/auth/api-keys",
             "auth.api_key.list",
             "List assistant API key metadata",
@@ -482,6 +495,18 @@ fn identity_shapes() -> Vec<Shape> {
                     "id": {"type": "string", "format": "uuid"},
                     "token": {"type": "string"},
                     "expires_at": {"type": "string", "format": "date-time"},
+                },
+            }),
+        ),
+        Shape::new(
+            "CurrentSession",
+            json!({
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["person", "grants"],
+                "properties": {
+                    "person": {"$ref": "#/components/schemas/PersonRecord"},
+                    "grants": {"type": "array", "items": {"$ref": "#/components/schemas/Grant"}},
                 },
             }),
         ),
@@ -1011,6 +1036,12 @@ pub struct SessionCreated {
     pub id: SessionId,
     pub token: String,
     pub expires_at: DateTime<Utc>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct CurrentSession {
+    pub person: PersonRecord,
+    pub grants: Grants,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -1864,6 +1895,24 @@ impl IdentityService {
             )
             .await?;
         Ok(())
+    }
+
+    pub async fn current_session(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+    ) -> Result<CurrentSession> {
+        let Caller::Account {
+            person_id, grants, ..
+        } = &context.caller
+        else {
+            return Err(MaviError::Unauthenticated);
+        };
+
+        Ok(CurrentSession {
+            person: self.get_person(tx, context, *person_id).await?,
+            grants: grants.clone(),
+        })
     }
 
     async fn get_person(

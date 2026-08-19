@@ -164,7 +164,7 @@ function AuthenticatedShell({ children }: { children: React.ReactNode }) {
       <SidebarInset className="surface-bar bg-background">
         <DashboardHeader
           siteName={siteName}
-          userName={user.name}
+          userName={user.person.name}
           writing={writing}
         />
         <DashboardContent>{children}</DashboardContent>

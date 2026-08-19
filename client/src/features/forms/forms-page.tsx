@@ -6,7 +6,7 @@ import { toast } from "sonner"
 
 import { api, every } from "@/lib/v1"
 import { said } from "@/lib/v1-said"
-import type { Form, FormField } from "@api"
+import type { Form, FormField } from "@legacy-api"
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"

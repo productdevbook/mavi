@@ -1,141 +1,155 @@
-//! What a writing is filed under.
+//! Site-scoped taxonomy: categories, tags, trees and content assignments.
 //!
-//! Categories and tags are one thing with a `sort`, because a writing's
-//! relationship to either is the same relationship. What actually differs is
-//! one rule — a category may have a parent, a tag may not — and a rule is a
-//! constraint rather than a second table.
+//! Terms are deliberately one model with a closed `kind`: categories may have
+//! category parents, tags are always flat. Assignment replacement is an
+//! application command and runs in the same scoped transaction as its audit
+//! receipt.
 
-pub mod described;
-pub mod store;
-pub mod term;
+mod assignments;
+mod terms;
 
-use mavi_api::{Answers, Endpoint, Is, Method, Parameter, Who};
-use mavi_core::error::Code;
-use mavi_core::grant::{Access, Needs};
-use mavi_core::page::{Key, Keyset, Kind};
+use mavi_core::{ContentId, Page, Result, SiteContext, TermId};
+use mavi_storage::SiteTx;
 
-pub use term::{Sort, Term};
+pub use assignments::{
+    ContentTermAssignment, ContentTermAssignmentListFilter, ReplaceContentTerms,
+};
+pub use terms::{
+    CreateTerm, TERM_ASSIGNMENT_LIMIT, TERM_CYCLE, TERM_KIND_INVALID, TERM_LANGUAGE_INVALID,
+    TERM_NAME_INVALID, TERM_NOT_FOUND, TERM_PARENT_INVALID, TERM_PARENT_LANGUAGE_INVALID,
+    TERM_PARENT_NOT_FOUND, TERM_SLUG_INVALID, TERM_SLUG_TAKEN, Term, TermKind, TermListFilter,
+    UpdateTerm,
+};
 
-/// What holding `taxonomy` is about.
 pub const TAXONOMY: &str = "taxonomy";
 
 #[must_use]
-pub const fn to_read() -> Needs {
-    Needs::new(TAXONOMY, Access::View)
+pub fn api() -> mavi_contract::Api {
+    let mut api = mavi_contract::Api::new(terms::endpoints());
+    api.endpoints.extend(assignments::endpoints());
+    let mut shapes = terms::shapes();
+    shapes.extend(assignments::shapes());
+    api.with_shapes(shapes)
 }
 
-#[must_use]
-pub const fn to_write() -> Needs {
-    Needs::new(TAXONOMY, Access::Write)
-}
+#[derive(Clone, Copy, Debug, Default)]
+pub struct TaxonomyService;
 
-/// The panel's order, and the index in the schema matches it column for
-/// column. An index that does not match the order is one the planner ignores,
-/// and nothing reports it because the answer is still correct.
-pub const BY_RECENT: Keyset = Keyset(&[
-    Key::newest("created_at", Kind::Moment),
-    Key::newest("id", Kind::Id),
-]);
+impl TaxonomyService {
+    pub async fn list_terms(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        filter: &TermListFilter,
+    ) -> Result<Page<Term>> {
+        terms::list(tx, context, filter).await
+    }
 
-#[must_use]
-pub fn endpoints() -> Vec<Endpoint> {
-    vec![
-        Endpoint {
-            method: Method::Get,
-            path: "/api/terms",
-            named: "terms.list",
-            about: "What this site files things under.",
-            who: Who::AnAccount,
-            parameters: vec![
-                Parameter::query("sort", Is::Text, "`category` or `tag`. Both, unsaid."),
-                Parameter::query("language", Is::Text, "Only the ones written in this."),
-                Parameter::query("after", Is::Text, "The cursor the last page ended with."),
-                Parameter::query("limit", Is::Number, "How many, at most a hundred."),
-            ],
-            takes: None,
-            answers: Answers::With("TermPage"),
-            refuses: &[],
-            changes: false,
-        },
-        Endpoint {
-            method: Method::Post,
-            path: "/api/terms",
-            named: "terms.make",
-            about: "Makes one.",
-            who: Who::AnAccount,
-            parameters: Vec::new(),
-            takes: Some("NewTerm"),
-            answers: Answers::Made("Term"),
-            // The address is taken, or a tag was given a parent, or a parent
-            // would put a category under itself.
-            refuses: &[Code::Conflict, Code::NotFound],
-            changes: true,
-        },
-        Endpoint {
-            method: Method::Patch,
-            path: "/api/terms/{id}",
-            named: "terms.change",
-            about: "Renames one, or moves it under another.",
-            who: Who::AnAccount,
-            parameters: vec![Parameter::path("id", Is::Id, "Which one.")],
-            takes: Some("TermChanges"),
-            answers: Answers::With("Term"),
-            refuses: &[Code::NotFound, Code::Conflict],
-            changes: true,
-        },
-        Endpoint {
-            method: Method::Delete,
-            path: "/api/terms/{id}",
-            named: "terms.remove",
-            about: "Removes one. What was filed under it stays, filed under nothing.",
-            who: Who::AnAccount,
-            parameters: vec![Parameter::path("id", Is::Id, "Which one.")],
-            takes: None,
-            answers: Answers::Nothing,
-            refuses: &[Code::NotFound],
-            changes: true,
-        },
-        Endpoint {
-            method: Method::Put,
-            path: "/api/writings/{id}/terms",
-            named: "writings.file-under",
-            about: "Says what one writing is filed under. Replaces whatever it was.",
-            who: Who::AnAccount,
-            parameters: vec![Parameter::path("id", Is::Id, "Which writing.")],
-            takes: Some("Filing"),
-            // A list, because it answers what it is filed under now — and the
-            // shape it declares is the shape it answers with, which is the one
-            // thing an endpoint in the crate this replaces got wrong.
-            answers: Answers::With("TermList"),
-            refuses: &[Code::NotFound],
-            changes: true,
-        },
-    ]
+    pub async fn create_term(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        input: &CreateTerm,
+    ) -> Result<Term> {
+        terms::create(tx, context, input).await
+    }
+
+    pub async fn get_term(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        id: TermId,
+    ) -> Result<Term> {
+        terms::get(tx, context, id).await
+    }
+
+    pub async fn public_get_any(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        languages: &[String],
+        kind: &str,
+        slug: &str,
+    ) -> Result<Term> {
+        if languages.is_empty() {
+            return Err(mavi_core::MaviError::NotFound {
+                resource: TERM_NOT_FOUND,
+            });
+        }
+
+        for language in languages {
+            match terms::public_get(tx, context, kind, language, slug).await {
+                Ok(term) => return Ok(term),
+                Err(mavi_core::MaviError::NotFound { .. }) => {}
+                Err(error) => return Err(error),
+            }
+        }
+
+        Err(mavi_core::MaviError::NotFound {
+            resource: TERM_NOT_FOUND,
+        })
+    }
+
+    pub async fn update_term(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        id: TermId,
+        input: &UpdateTerm,
+    ) -> Result<Term> {
+        terms::update(tx, context, id, input).await
+    }
+
+    pub async fn delete_term(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        id: TermId,
+    ) -> Result<()> {
+        terms::delete(tx, context, id).await
+    }
+
+    pub async fn list_content_terms(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        content_id: ContentId,
+    ) -> Result<Vec<Term>> {
+        assignments::list_for_content(tx, context, content_id).await
+    }
+
+    pub async fn replace_content_terms(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        content_id: ContentId,
+        input: &ReplaceContentTerms,
+    ) -> Result<Vec<Term>> {
+        assignments::replace_for_content(tx, context, content_id, input).await
+    }
+
+    pub async fn list_term_content(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        term_id: TermId,
+        filter: &ContentTermAssignmentListFilter,
+    ) -> Result<Page<ContentTermAssignment>> {
+        assignments::list_content_for_term(tx, context, term_id, filter).await
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use mavi_api::Api;
 
     #[test]
-    fn everything_this_domain_answers_is_described_completely() {
-        let holes = Api::of(endpoints()).holes();
-
-        assert!(holes.is_empty(), "{holes:#?}");
-    }
-
-    #[test]
-    fn the_order_ends_with_something_unique() {
-        assert_eq!(
-            BY_RECENT.keys().last().expect("a key").column,
-            "id",
-            "an order that cannot break a tie"
-        );
-    }
-
-    #[test]
-    fn what_this_domain_asks_for_is_a_capability_the_site_has() {
-        assert!(mavi_people::is_a_capability(TAXONOMY));
+    fn taxonomy_api_is_canonical_and_site_scoped() {
+        let api = api();
+        api.validate().expect("taxonomy API contract");
+        assert!(api.endpoints.iter().all(|endpoint| {
+            (endpoint.path.starts_with("/api/v1/") || endpoint.path.starts_with("/public/v1/"))
+                && endpoint.scope == mavi_contract::Scope::Site
+        }));
     }
 }

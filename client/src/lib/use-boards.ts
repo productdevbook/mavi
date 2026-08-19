@@ -1,7 +1,7 @@
 import * as React from "react"
 
 import { api } from "@/lib/v1"
-import type { Board } from "@api"
+import type { Board } from "@legacy-api"
 
 /**
  * The boards this site has made, for the menu.

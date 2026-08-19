@@ -6,7 +6,7 @@ import { toast } from "sonner"
 import { api, every } from "@/lib/v1"
 import { said } from "@/lib/v1-said"
 import { money } from "@/lib/money"
-import type { Order } from "@api"
+import type { Order } from "@legacy-api"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {

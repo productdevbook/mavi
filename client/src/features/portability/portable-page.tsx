@@ -5,7 +5,7 @@ import { toast } from "sonner"
 
 import { api } from "@/lib/v1"
 import { said } from "@/lib/v1-said"
-import type { WhatWasRead } from "@api"
+import type { WhatWasRead } from "@legacy-api"
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"

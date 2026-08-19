@@ -57,12 +57,12 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet"
-import { nextApi } from "@/lib/server-next"
-import { serverNextMessage } from "@/lib/server-next-auth"
-import { signOut as authSignOut } from "@/lib/server-next-auth"
-import type { Content as Post, Term } from "@api-next"
+import { api } from "@/lib/api"
+import { apiMessage } from "@/lib/auth"
+import { signOut as authSignOut } from "@/lib/auth"
+import type { Content as Post, Term } from "@api"
 import { slugify } from "@/lib/editor-utils"
-import { contentPublishAt, contentStatus } from "@/lib/server-next-content"
+import { contentPublishAt, contentStatus } from "@/lib/content"
 import { useLanguages } from "@/lib/use-languages"
 import { useNarrowerThan } from "@/hooks/use-mobile"
 import { ModeToggle } from "@/components/mode-toggle"
@@ -220,8 +220,8 @@ export function MaviEditor({
     if (!postId || !editor) return
     let cancelled = false
     Promise.all([
-      nextApi("content.read", { path: { id: postId } }),
-      nextApi("taxonomy.content_terms.list", { path: { id: postId } }),
+      api("content.read", { path: { id: postId } }),
+      api("taxonomy.content_terms.list", { path: { id: postId } }),
     ])
       .then(([post, terms]) => {
         if (cancelled) return
@@ -252,7 +252,7 @@ export function MaviEditor({
       })
       .catch((why: unknown) => {
         if (cancelled) return
-        toast.error(serverNextMessage(why))
+        toast.error(apiMessage(why))
         navigate({ to: "/dashboard" })
       })
     return () => {
@@ -292,7 +292,7 @@ export function MaviEditor({
       try {
         const id = currentPostId
           ? (
-              await nextApi("content.update", {
+              await api("content.update", {
                 path: { id: currentPostId },
                 body: {
                   ...written,
@@ -303,7 +303,7 @@ export function MaviEditor({
               })
             ).id
           : (
-              await nextApi("content.create", {
+              await api("content.create", {
                 body: {
                   ...written,
                   slug: written.slug || slugify(nextMeta.title),
@@ -316,19 +316,19 @@ export function MaviEditor({
 
         if (publicationChanged && nextMeta.status !== "draft") {
           if (nextMeta.status === "published") {
-            await nextApi("content.publish", { path: { id } })
+            await api("content.publish", { path: { id } })
           } else if (nextMeta.status === "scheduled") {
-            await nextApi("content.schedule", {
+            await api("content.schedule", {
               path: { id },
               body: { at: new Date(nextMeta.publishAt).toISOString() },
             })
           } else if (nextMeta.status === "archived") {
-            await nextApi("content.archive", { path: { id } })
+            await api("content.archive", { path: { id } })
           }
         }
 
         if (termsChanged) {
-          await nextApi("taxonomy.content_terms.replace", {
+          await api("taxonomy.content_terms.replace", {
             path: { id },
             body: { term_ids: wantedTermIds },
           })
@@ -356,7 +356,7 @@ export function MaviEditor({
         return true
       } catch (why) {
         setSaveState("idle")
-        toast.error(serverNextMessage(why))
+        toast.error(apiMessage(why))
         return false
       }
     },

@@ -6,7 +6,7 @@ import { toast } from "sonner"
 import { api } from "@/lib/v1"
 import { said } from "@/lib/v1-said"
 import { formatBytes } from "@/lib/editor-utils"
-import type { Overview } from "@api"
+import type { Overview } from "@legacy-api"
 import { Figure } from "@/components/charts"
 import {
   DashboardError,

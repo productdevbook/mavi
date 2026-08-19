@@ -3,7 +3,7 @@ import { useLingui } from "@lingui/react/macro"
 import { Eye, Users } from "lucide-react"
 
 import { api } from "@/lib/v1"
-import type { Read } from "@api"
+import type { Read } from "@legacy-api"
 import { Bars, Curve, Figure, Panel } from "@/components/charts"
 import {
   DashboardLoading,

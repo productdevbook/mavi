@@ -6,7 +6,7 @@ import { toast } from "sonner"
 
 import { api, every } from "@/lib/v1"
 import { said } from "@/lib/v1-said"
-import type { Form, FormField, Sent as Submission } from "@api"
+import type { Form, FormField, Sent as Submission } from "@legacy-api"
 import {
   DashboardEmpty,
   DashboardLoading,

@@ -6,7 +6,7 @@ import { toast } from "sonner"
 import { api } from "@/lib/v1"
 import { said } from "@/lib/v1-said"
 import { useLanguages } from "@/lib/use-languages"
-import type { Letter } from "@api"
+import type { Letter } from "@legacy-api"
 import {
   DashboardEmpty,
   DashboardError,

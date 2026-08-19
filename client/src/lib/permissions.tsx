@@ -1,7 +1,7 @@
 /* eslint-disable react-refresh/only-export-components -- provider + hook share one file */
 import * as React from "react"
 
-import type { Grant } from "@api-next"
+import type { Grant } from "@api"
 
 export type Capability =
   | "content"

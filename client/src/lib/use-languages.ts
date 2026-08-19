@@ -1,7 +1,7 @@
 import * as React from "react"
 
-import { nextEvery } from "@/lib/server-next"
-import type { Language } from "@api-next"
+import { every } from "@/lib/api"
+import type { Language } from "@api"
 
 /**
  * The languages this site writes in. Loaded once per mount — the list is tiny
@@ -12,7 +12,7 @@ export function useLanguages() {
   const [loading, setLoading] = React.useState(true)
 
   React.useEffect(() => {
-    nextEvery("languages.list", { query: {} })
+    every("languages.list", { query: {} })
       .then(setLanguages)
       .catch(() => setLanguages([]))
       .finally(() => setLoading(false))

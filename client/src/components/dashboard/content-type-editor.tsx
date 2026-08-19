@@ -3,9 +3,9 @@ import { useLingui } from "@lingui/react/macro"
 import { Loader2, Plus, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
-import { nextApi } from "@/lib/server-next"
-import { serverNextMessage } from "@/lib/server-next-auth"
-import type { ContentFieldKind, ContentType, ContentTypeField } from "@api-next"
+import { api } from "@/lib/api"
+import { apiMessage } from "@/lib/auth"
+import type { ContentFieldKind, ContentType, ContentTypeField } from "@api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -64,14 +64,14 @@ export function ContentTypeEditor({
 
     try {
       const kindName = kind ? kind.kind : keyed(name)
-      const saved = await nextApi("content_types.upsert", {
+      const saved = await api("content_types.upsert", {
         path: { kind: kindName },
         body: { name, fields },
       })
 
       onDone(saved)
     } catch (why) {
-      toast.error(serverNextMessage(why))
+      toast.error(apiMessage(why))
       setSaving(false)
     }
   }

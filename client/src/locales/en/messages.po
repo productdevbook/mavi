@@ -1135,7 +1135,7 @@ msgstr "A token carries the grants of the key that made it. Keep it private: any
 #~ msgid "Account added"
 #~ msgstr "Account added"
 
-#: src/features/people/people-page.tsx:102
+#: src/features/people/people-page.tsx:101
 msgid "Account created"
 msgstr "Account created"
 
@@ -1147,7 +1147,7 @@ msgstr "Account created"
 #~ msgid "Account or organisation"
 #~ msgstr "Account or organisation"
 
-#: src/features/people/people-page.tsx:155
+#: src/features/people/people-page.tsx:154
 msgid "Account removed"
 msgstr "Account removed"
 
@@ -1155,7 +1155,7 @@ msgstr "Account removed"
 #~ msgid "Accounts"
 #~ msgstr "Accounts"
 
-#: src/features/people/people-page.tsx:168
+#: src/features/people/people-page.tsx:167
 msgid "Accounts that can sign in to this site and the roles that shape their access."
 msgstr "Accounts that can sign in to this site and the roles that shape their access."
 
@@ -1308,8 +1308,8 @@ msgstr "Add row before"
 msgid "Add somebody"
 msgstr "Add somebody"
 
-#: src/features/people/people-page.tsx:171
-#: src/features/people/people-page.tsx:273
+#: src/features/people/people-page.tsx:170
+#: src/features/people/people-page.tsx:272
 msgid "Add someone"
 msgstr "Add someone"
 
@@ -2397,8 +2397,8 @@ msgstr "Can open {summary} of {0} areas."
 #: src/features/mail/mail-page.tsx:276
 #: src/features/mail/mail-page.tsx:340
 #: src/features/media/media-page.tsx:192
-#: src/features/people/people-page.tsx:335
-#: src/features/people/people-page.tsx:365
+#: src/features/people/people-page.tsx:334
+#: src/features/people/people-page.tsx:364
 #: src/features/people/roles-page.tsx:448
 #: src/features/shop/coupons-page.tsx:250
 #: src/features/shop/products-page.tsx:270
@@ -2521,11 +2521,11 @@ msgstr "Changes made to this site will appear here."
 #~ msgstr "Chat id"
 
 #. placeholder {0}: error.field
-#: src/lib/server-next-auth.ts:78
+#: src/lib/auth.ts:78
 msgid "Check the {0} field."
 msgstr "Check the {0} field."
 
-#: src/lib/server-next-auth.ts:79
+#: src/lib/auth.ts:79
 msgid "Check the values and try again."
 msgstr "Check the values and try again."
 
@@ -2573,7 +2573,7 @@ msgstr "Choose a JSON copy"
 msgid "Choose a password"
 msgstr "Choose a password"
 
-#: src/features/people/people-page.tsx:320
+#: src/features/people/people-page.tsx:319
 msgid "Choose a role"
 msgstr "Choose a role"
 
@@ -3448,7 +3448,7 @@ msgstr "Create a tag once and reuse it across content in this language."
 msgid "Create a trigger and steps to automate work on this site."
 msgstr "Create a trigger and steps to automate work on this site."
 
-#: src/features/people/people-page.tsx:347
+#: src/features/people/people-page.tsx:346
 msgid "Create account"
 msgstr "Create account"
 
@@ -3464,7 +3464,7 @@ msgstr "Create an unordered list"
 #~ msgid "Create the account"
 #~ msgstr "Create the account"
 
-#: src/features/people/people-page.tsx:275
+#: src/features/people/people-page.tsx:274
 msgid "Create the account with an initial password, then share that password securely with its owner."
 msgstr "Create the account with an initial password, then share that password securely with its owner."
 
@@ -3928,7 +3928,7 @@ msgstr "Editing"
 #: src/features/auth/login-page.tsx:69
 #: src/features/auth/setup-page.tsx:112
 #: src/features/learning/students-page.tsx:205
-#: src/features/people/people-page.tsx:281
+#: src/features/people/people-page.tsx:280
 #: src/learn/app.tsx:159
 msgid "Email"
 msgstr "Email"
@@ -4874,7 +4874,7 @@ msgstr "Increase indent"
 #~ msgid "Individual"
 #~ msgstr "Individual"
 
-#: src/features/people/people-page.tsx:300
+#: src/features/people/people-page.tsx:299
 msgid "Initial password"
 msgstr "Initial password"
 
@@ -5339,7 +5339,7 @@ msgstr "Left"
 #~ msgid "Lessons"
 #~ msgstr "Lessons"
 
-#: src/features/people/people-page.tsx:244
+#: src/features/people/people-page.tsx:243
 msgid "Let back in"
 msgstr "Let back in"
 
@@ -5787,7 +5787,7 @@ msgstr "My courses"
 #: src/features/forms/forms-page.tsx:243
 #: src/features/integrations/api-page.tsx:152
 #: src/features/learning/students-page.tsx:216
-#: src/features/people/people-page.tsx:291
+#: src/features/people/people-page.tsx:290
 msgid "Name"
 msgstr "Name"
 
@@ -5986,7 +5986,7 @@ msgstr "Next"
 msgid "No {many} yet"
 msgstr "No {many} yet"
 
-#: src/features/people/people-page.tsx:183
+#: src/features/people/people-page.tsx:182
 msgid "No accounts yet."
 msgstr "No accounts yet."
 
@@ -6174,7 +6174,7 @@ msgstr "No people found"
 msgid "No results found"
 msgstr "No results found"
 
-#: src/features/people/people-page.tsx:226
+#: src/features/people/people-page.tsx:225
 msgid "No role"
 msgstr "No role"
 
@@ -7221,7 +7221,7 @@ msgstr "Paste the video link."
 #~ msgstr "Payments"
 
 #: src/components/dashboard/dashboard-shell.tsx:110
-#: src/features/people/people-page.tsx:167
+#: src/features/people/people-page.tsx:166
 #: src/features/people/roles-page.tsx:172
 msgid "People"
 msgstr "People"
@@ -7739,8 +7739,8 @@ msgstr "Regular expression"
 #: src/features/learning/course-page.tsx:139
 #: src/features/learning/course-page.tsx:164
 #: src/features/media/videos-page.tsx:122
-#: src/features/people/people-page.tsx:257
-#: src/features/people/people-page.tsx:367
+#: src/features/people/people-page.tsx:256
+#: src/features/people/people-page.tsx:366
 #: src/features/shop/coupons-page.tsx:122
 #: src/features/taxonomy/tags-page.tsx:243
 msgid "Remove"
@@ -7777,7 +7777,7 @@ msgstr "Remove link"
 msgid "Remove the picture"
 msgstr "Remove the picture"
 
-#: src/features/people/people-page.tsx:359
+#: src/features/people/people-page.tsx:358
 msgid "Remove this account?"
 msgstr "Remove this account?"
 
@@ -7809,7 +7809,7 @@ msgstr "Remove this tag?"
 #~ msgid "removed"
 #~ msgstr "removed"
 
-#: src/features/people/people-page.tsx:208
+#: src/features/people/people-page.tsx:207
 #: src/features/shop/coupons-page.tsx:46
 msgid "Removed"
 msgstr "Removed"
@@ -7931,11 +7931,11 @@ msgstr "Responds to input"
 #~ msgid "Right now"
 #~ msgstr "Right now"
 
-#: src/features/people/people-page.tsx:314
+#: src/features/people/people-page.tsx:313
 msgid "Role"
 msgstr "Role"
 
-#: src/features/people/people-page.tsx:124
+#: src/features/people/people-page.tsx:123
 msgid "Role changed"
 msgstr "Role changed"
 
@@ -8781,8 +8781,8 @@ msgstr "Something is broken"
 msgid "Something went wrong."
 msgstr "Something went wrong."
 
-#: src/lib/server-next-auth.ts:62
-#: src/lib/server-next-auth.ts:66
+#: src/lib/auth.ts:62
+#: src/lib/auth.ts:66
 #: src/lib/v1-said.ts:73
 msgid "Something went wrong. It has been written down."
 msgstr "Something went wrong. It has been written down."
@@ -8996,11 +8996,11 @@ msgstr "Superscript"
 #~ msgid "Support cases, which a quota increase is"
 #~ msgstr "Support cases, which a quota increase is"
 
-#: src/features/people/people-page.tsx:245
+#: src/features/people/people-page.tsx:244
 msgid "Suspend"
 msgstr "Suspend"
 
-#: src/features/people/people-page.tsx:207
+#: src/features/people/people-page.tsx:206
 msgid "Suspended"
 msgstr "Suspended"
 
@@ -9275,7 +9275,7 @@ msgstr "Text color"
 #~ msgid "That did not work."
 #~ msgstr "That did not work."
 
-#: src/lib/server-next-auth.ts:71
+#: src/lib/auth.ts:71
 msgid "That email or password is not correct."
 msgstr "That email or password is not correct."
 
@@ -9328,7 +9328,7 @@ msgstr "That request did not come from this site. Reload the page and try again.
 #~ msgid "The account agencies' top-ups arrive in. Neither secret is ever shown back — the screen says whether one is held."
 #~ msgstr "The account agencies' top-ups arrive in. Neither secret is ever shown back — the screen says whether one is held."
 
-#: src/features/people/people-page.tsx:361
+#: src/features/people/people-page.tsx:360
 msgid "The account will no longer be able to sign in. Its content and audit history remain."
 msgstr "The account will no longer be able to sign in. Its content and audit history remain."
 
@@ -9944,7 +9944,7 @@ msgstr "This post could not be opened, so it has been left untouched."
 #~ msgid "This really sends: mail goes to real addresses and any address step is really called. Go ahead?"
 #~ msgstr "This really sends: mail goes to real addresses and any address step is really called. Go ahead?"
 
-#: src/lib/server-next-auth.ts:73
+#: src/lib/auth.ts:73
 msgid "This request conflicts with the current site state."
 msgstr "This request conflicts with the current site state."
 
@@ -10110,7 +10110,7 @@ msgstr "Today's date"
 #~ msgid "Tokens"
 #~ msgstr "Tokens"
 
-#: src/lib/server-next-auth.ts:75
+#: src/lib/auth.ts:75
 msgid "Too many attempts. Wait a little and try again."
 msgstr "Too many attempts. Wait a little and try again."
 
@@ -10340,7 +10340,7 @@ msgstr "Usage"
 msgid "Use an IANA timezone such as Europe/Berlin or UTC."
 msgstr "Use an IANA timezone such as Europe/Berlin or UTC."
 
-#: src/features/people/people-page.tsx:309
+#: src/features/people/people-page.tsx:308
 msgid "Use at least {MINIMUM_PASSWORD} characters. The owner can use the password reset flow later."
 msgstr "Use at least {MINIMUM_PASSWORD} characters. The owner can use the password reset flow later."
 

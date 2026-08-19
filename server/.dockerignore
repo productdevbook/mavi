@@ -1,4 +1,6 @@
 target
-# The tests reach a database this image will never have, and the image does not
-# run them: what is not in the context is not sent to the daemon.
 **/tests
+.git
+.github
+*.md
+*.log

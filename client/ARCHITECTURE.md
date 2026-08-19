@@ -16,24 +16,26 @@ scope, authorization, validation, and audit.
   the renderer only draws destinations the current grants allow.
 - `src/lib/v1.ts` is the compatibility HTTP boundary for the old `/api/*`
   contract during the migration. No new screen may add a call to it.
-- `src/lib/server-next.ts` is the canonical HTTP boundary for the clean
-  `/api/v1/*` contract. Screens migrating to the rewrite use generated
-  operation IDs from `@api-next`; bearer session storage, refusal handling and
+- `src/lib/api.ts` is the canonical HTTP boundary for the clean `/api/v1/*`
+  contract. Screens migrating to the rewrite use generated operation IDs from
+  `@api`; bearer session storage, refusal handling and
   cursor walking stay in this boundary.
-- `src/lib/server-next-media.ts` is the media delivery boundary. Published
+- `src/lib/media.ts` is the media delivery boundary. Published
   content stores `/public/v1/files/{id}` URLs only; private panel previews use
   an authenticated download and revoke their object URL when unmounted.
 - `src/lib/upload.ts` is a thin typed media adapter. Its caller must choose
   visibility, so an image inserted into published content is public while
   course video remains private by default.
-- `src/lib/server-next-auth.ts` is the authenticated application boundary on
-  top of `server-next.ts`. Login stores only the bearer token, then obtains
+- `src/lib/auth.ts` is the authenticated application boundary on top of
+  `api.ts`. Login stores only the bearer token, then obtains
   the current person and effective Cedar grants from `auth.session.current`.
   The client never rebuilds access by aggregating roles, and it never treats a
   cached session as authorization.
-- `src/api/server-next.ts` is generated from
-  `server-next/mavi-http/contracts/mavi.ts`. CI compares the files in both
+- `src/api/server.ts` is generated from
+  `server/mavi-http/contracts/mavi.ts`. CI compares the files in both
   directions so the panel cannot silently drift from the Rust contract.
+- `src/api/legacy.ts` and `@legacy-api` are temporary compatibility artifacts
+  for screens whose domain slice has not yet moved to the canonical contract.
 - Generated shapes must not be duplicated in a screen. Cursor helpers are only
   available for operations whose generated answer is a page.
 - `src/components/editor/` and `src/components/mail/` contain shared editor
@@ -58,7 +60,7 @@ move between groups without invalidating bookmarks or API clients.
 
 1. Keep route guards and the generated API boundary intact. Setup, login,
    password reset, root redirect, authenticated shell, content, taxonomy and
-   media use `server-next`; the old `@api` boundary is compatibility-only for
+   media use `api`; the `@legacy-api` boundary is compatibility-only for
    domains that have not yet received their canonical server implementation.
 2. Move route-level layout and navigation into shell components.
 3. Move one domain at a time into `src/features/<domain>`; auth, dashboard,
@@ -68,5 +70,6 @@ move between groups without invalidating bookmarks or API clients.
 4. Replace local async states with the shared page contract.
 5. Add permission, API, and interaction acceptance tests before deleting the
    old route implementation.
-6. Migrate each screen from `@api` to `@api-next`, then delete the compatibility
-   boundary only after the whole panel runs against `server-next`.
+6. Migrate each screen from `@legacy-api` to `@api`, then delete the
+   compatibility boundary only after the whole panel runs against the
+   canonical server contract.

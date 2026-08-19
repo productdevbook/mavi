@@ -1,19 +1,25 @@
 [package]
 name = "mavi-settings"
-version = "0.0.0"
-edition = "2024"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
 publish = false
-description = "What this site is: its name, what it writes in, and which of those is its own."
+description = "Site settings and language configuration."
 
 [dependencies]
-mavi-api = { path = "../mavi-api" }
+base64.workspace = true
+chrono.workspace = true
+mavi-audit = { path = "../mavi-audit" }
+mavi-contract = { path = "../mavi-contract" }
 mavi-core = { path = "../mavi-core" }
-mavi-db = { path = "../mavi-db" }
-mavi-people = { path = "../mavi-people" }
-
-serde = { workspace = true }
-serde_json = { workspace = true }
-sqlx = { workspace = true }
+mavi-storage = { path = "../mavi-storage" }
+serde.workspace = true
+serde_json.workspace = true
+sqlx.workspace = true
+uuid.workspace = true
 
 [lints]
 workspace = true
+
+[dev-dependencies]
+tokio.workspace = true

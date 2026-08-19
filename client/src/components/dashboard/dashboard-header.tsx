@@ -8,7 +8,7 @@ import { ModeToggle } from "@/components/mode-toggle"
 import { ReportAProblem } from "@/components/report-a-problem"
 import { Button } from "@/components/ui/button"
 import { SidebarTrigger } from "@/components/ui/sidebar"
-import { signOut as authSignOut } from "@/lib/server-next-auth"
+import { signOut as authSignOut } from "@/lib/auth"
 
 interface DashboardHeaderProps {
   siteName?: string

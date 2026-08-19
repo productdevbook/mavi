@@ -1,34 +1,31 @@
 [package]
 name = "mavi"
-version = "0.0.0"
-edition = "2024"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
 publish = false
-description = "One installation, running: the API, and the worker beside it."
+description = "Mavi Open Source, rebuilt from a clean composition root."
 
 [[bin]]
 name = "mavi"
 path = "src/main.rs"
 
 [dependencies]
+axum.workspace = true
 mavi-core = { path = "../mavi-core" }
-mavi-db = { path = "../mavi-db" }
 mavi-design = { path = "../mavi-design" }
-mavi-everything = { path = "../mavi-everything" }
 mavi-files = { path = "../mavi-files" }
-mavi-flows = { path = "../mavi-flows" }
 mavi-http = { path = "../mavi-http" }
-mavi-people = { path = "../mavi-people" }
-mavi-sealed = { path = "../mavi-sealed" }
-mavi-serve = { path = "../mavi-serve" }
-mavi-shop = { path = "../mavi-shop" }
-mavi-work = { path = "../mavi-work" }
-
-axum = { workspace = true }
-serde_json = { workspace = true }
-tokio = { workspace = true, features = ["macros", "rt-multi-thread", "signal", "time"] }
-tracing = { workspace = true }
-tracing-subscriber = { workspace = true }
-uuid = { workspace = true }
+mavi-observability = { path = "../mavi-observability" }
+mavi-runtime = { path = "../mavi-runtime" }
+mavi-sealing = { path = "../mavi-sealing" }
+mavi-storage = { path = "../mavi-storage" }
+mavi-worker = { path = "../mavi-worker" }
+reqwest.workspace = true
+serde.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
 
 [lints]
 workspace = true

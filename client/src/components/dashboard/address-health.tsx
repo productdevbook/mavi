@@ -6,7 +6,7 @@ import { toast } from "sonner"
 import { api } from "@/lib/v1"
 import { said } from "@/lib/v1-said"
 import { Badge } from "@/components/ui/badge"
-import type { Check } from "@api"
+import type { Check } from "@legacy-api"
 
 export function AddressHealth() {
   const { t } = useLingui()

@@ -46,10 +46,10 @@ import {
 import { t } from "@lingui/core/macro"
 import { toast } from "sonner"
 
-import { ServerNextRefused } from "@/lib/server-next"
+import { ApiRefused } from "@/lib/api"
 import { upload } from "@/lib/upload"
-import { publicFileUrl } from "@/lib/server-next-media"
-import { serverNextMessage } from "@/lib/server-next-auth"
+import { publicFileUrl } from "@/lib/media"
+import { apiMessage } from "@/lib/auth"
 import { slugify } from "@/lib/editor-utils"
 import {
   alignedHeadingMarkdown,
@@ -187,8 +187,8 @@ export function buildExtensions({
               .run()
           } catch (error) {
             toast.error(
-              error instanceof ServerNextRefused
-                ? serverNextMessage(error)
+              error instanceof ApiRefused
+                ? apiMessage(error)
                 : t`Could not upload ${file.name}`
             )
           }
@@ -208,8 +208,8 @@ export function buildExtensions({
               .run()
           } catch (error) {
             toast.error(
-              error instanceof ServerNextRefused
-                ? serverNextMessage(error)
+              error instanceof ApiRefused
+                ? apiMessage(error)
                 : t`Could not upload ${file.name}`
             )
           }

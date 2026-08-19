@@ -3,9 +3,9 @@ import { useLingui } from "@lingui/react/macro"
 import { Languages as LanguagesIcon, Plus, Star, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
-import { nextApi, nextEvery } from "@/lib/server-next"
-import { serverNextMessage } from "@/lib/server-next-auth"
-import type { Language } from "@api-next"
+import { api, every } from "@/lib/api"
+import { apiMessage } from "@/lib/auth"
+import type { Language } from "@api"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -39,10 +39,10 @@ export function LanguagesPage() {
   const [going, setGoing] = React.useState<Language | null>(null)
 
   const load = React.useCallback(() => {
-    nextEvery("languages.list", { query: {} })
+    every("languages.list", { query: {} })
       .then(setLanguages)
       .catch((why: unknown) => {
-        toast.error(serverNextMessage(why))
+        toast.error(apiMessage(why))
         setLanguages([])
       })
   }, [])
@@ -53,26 +53,26 @@ export function LanguagesPage() {
     if (!code.trim()) return
 
     try {
-      await nextApi("languages.create", {
+      await api("languages.create", {
         body: { tag: code.trim(), name: name.trim() || code.trim() },
       })
       setCode("")
       setName("")
       load()
     } catch (why) {
-      toast.error(serverNextMessage(why))
+      toast.error(apiMessage(why))
     }
   }
 
   const makeDefault = async (language: Language) => {
     try {
-      await nextApi("languages.update", {
+      await api("languages.update", {
         path: { tag: language.tag },
         body: { is_default: true },
       })
       load()
     } catch (why) {
-      toast.error(serverNextMessage(why))
+      toast.error(apiMessage(why))
     }
   }
 
@@ -80,10 +80,10 @@ export function LanguagesPage() {
     if (!going) return
 
     try {
-      await nextApi("languages.delete", { path: { tag: going.tag } })
+      await api("languages.delete", { path: { tag: going.tag } })
       load()
     } catch (why) {
-      toast.error(serverNextMessage(why))
+      toast.error(apiMessage(why))
     } finally {
       setGoing(null)
     }

@@ -25,13 +25,13 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     strategy:
-      # Only the clean API runtime is published until the panel is regenerated
-      # against the canonical v1 contract. The legacy `server/` workspace and
-      # its panel are reference material, never this release image.
+      # Only the API runtime is published until the panel is regenerated
+      # against the canonical v1 contract. The panel is deployed separately
+      # and never baked into this release image.
       matrix:
         include:
           - name: mavi
-            context: server-next
+            context: server
             file: Dockerfile
     steps:
       # What is asked for by hand is checked before it is used as a ref or

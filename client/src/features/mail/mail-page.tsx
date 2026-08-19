@@ -5,7 +5,7 @@ import { toast } from "sonner"
 
 import { api, every } from "@/lib/v1"
 import { said } from "@/lib/v1-said"
-import type { List as MailList, Reader as Subscriber } from "@api"
+import type { List as MailList, Reader as Subscriber } from "@legacy-api"
 import {
   DashboardEmpty,
   DashboardError,

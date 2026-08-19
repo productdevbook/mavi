@@ -5,12 +5,12 @@ import { Check, Copy, Download, Upload } from "lucide-react"
 import { toast } from "sonner"
 
 import { cn } from "@/lib/utils"
-import { nextEvery } from "@/lib/server-next"
-import { ServerNextRefused } from "@/lib/server-next"
+import { every } from "@/lib/api"
+import { ApiRefused } from "@/lib/api"
 import { upload } from "@/lib/upload"
-import { publicFileUrl } from "@/lib/server-next-media"
-import { serverNextMessage } from "@/lib/server-next-auth"
-import type { File as Media } from "@api-next"
+import { publicFileUrl } from "@/lib/media"
+import { apiMessage } from "@/lib/auth"
+import type { File as Media } from "@api"
 import { downloadFile, shortcut } from "@/lib/editor-utils"
 import { htmlToMarkdown, markdownToHtml } from "@/lib/markdown"
 import { Button } from "@/components/ui/button"
@@ -66,8 +66,8 @@ export function EditorDialogs({ editor }: { editor: Editor }) {
         uploaded += 1
       } catch (error) {
         toast.error(
-          error instanceof ServerNextRefused
-            ? serverNextMessage(error)
+          error instanceof ApiRefused
+            ? apiMessage(error)
             : t`Could not upload ${file.name}`
         )
       }
@@ -126,7 +126,7 @@ function ImageUrlDialog({ editor, open, onClose }: DialogPartProps) {
       return
     }
     if (library) return
-    nextEvery("media.files.list", { query: { kind: "image" } })
+    every("media.files.list", { query: { kind: "image" } })
       .then((files) =>
         setLibrary(files.filter((file) => file.visibility === "public"))
       )

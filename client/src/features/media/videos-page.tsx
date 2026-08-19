@@ -3,9 +3,9 @@ import { useLingui } from "@lingui/react/macro"
 import { Film, Loader2, Trash2, Upload } from "lucide-react"
 import { toast } from "sonner"
 
-import { nextApi, nextEvery } from "@/lib/server-next"
-import { serverNextMessage } from "@/lib/server-next-auth"
-import type { File as VideoFile } from "@api-next"
+import { api, every } from "@/lib/api"
+import { apiMessage } from "@/lib/auth"
+import type { File as VideoFile } from "@api"
 import { Button } from "@/components/ui/button"
 import {
   DashboardEmpty,
@@ -21,10 +21,10 @@ export function VideosPage() {
   const chooser = React.useRef<HTMLInputElement>(null)
 
   const load = React.useCallback(() => {
-    nextEvery("media.files.list", { query: { kind: "video" } })
+    every("media.files.list", { query: { kind: "video" } })
       .then(setVideos)
       .catch((why: unknown) => {
-        toast.error(serverNextMessage(why))
+        toast.error(apiMessage(why))
         setVideos((held) => held ?? [])
       })
   }, [])
@@ -39,14 +39,14 @@ export function VideosPage() {
     setUploading(true)
 
     try {
-      await nextApi("media.files.upload", {
+      await api("media.files.upload", {
         query: { name: file.name, visibility: "private" },
         body: file,
       })
 
       load()
     } catch (why) {
-      toast.error(serverNextMessage(why))
+      toast.error(apiMessage(why))
     } finally {
       setUploading(false)
 
@@ -58,10 +58,10 @@ export function VideosPage() {
 
   const remove = async (video: VideoFile) => {
     try {
-      await nextApi("media.files.trash", { path: { id: video.id } })
+      await api("media.files.trash", { path: { id: video.id } })
       load()
     } catch (why) {
-      toast.error(serverNextMessage(why))
+      toast.error(apiMessage(why))
     }
   }
 

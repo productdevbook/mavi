@@ -993,8 +993,8 @@ msgid "A percentage"
 msgstr "A percentage"
 
 #: src/components/report-a-problem.tsx:187
-msgid "A picture of it"
-msgstr "A picture of it"
+#~ msgid "A picture of it"
+#~ msgstr "A picture of it"
 
 #: src/components/pricing-plans.tsx:70
 #~ msgid "A platform plan covers your agency account and the included sites. Additional sites start at $29/month."
@@ -1723,7 +1723,7 @@ msgstr "Anything already using it will stop showing it."
 msgid "Anything done"
 msgstr "Anything done"
 
-#: src/components/report-a-problem.tsx:176
+#: src/components/report-a-problem.tsx:161
 #: src/features/boards/board-page.tsx:228
 msgid "Anything else"
 msgstr "Anything else"
@@ -2383,7 +2383,7 @@ msgstr "Can open {summary} of {0} areas."
 #: src/components/editor/dialogs.tsx:223
 #: src/components/editor/dialogs.tsx:267
 #: src/components/editor/dialogs.tsx:357
-#: src/components/report-a-problem.tsx:229
+#: src/components/report-a-problem.tsx:178
 #: src/features/automation/flows-page.tsx:328
 #: src/features/boards/board-page.tsx:240
 #: src/features/boards/boards-page.tsx:223
@@ -2591,8 +2591,8 @@ msgstr "Choose a role"
 #~ msgstr "Choose one of the two above to begin. Everything else — your domain, the records to publish, the address you send from — comes after."
 
 #: src/components/report-a-problem.tsx:208
-msgid "Choose one, or paste it"
-msgstr "Choose one, or paste it"
+#~ msgid "Choose one, or paste it"
+#~ msgstr "Choose one, or paste it"
 
 #: src/components/pricing-plans.tsx:99
 #~ msgid "Choose plan"
@@ -4751,7 +4751,7 @@ msgstr "How to send to it"
 msgid "I have forgotten my password"
 msgstr "I have forgotten my password"
 
-#: src/components/report-a-problem.tsx:62
+#: src/components/report-a-problem.tsx:42
 msgid "I would like something"
 msgstr "I would like something"
 
@@ -4822,7 +4822,7 @@ msgstr "Import complete"
 msgid "In"
 msgstr "In"
 
-#: src/components/report-a-problem.tsx:165
+#: src/components/report-a-problem.tsx:150
 msgid "In a line"
 msgstr "In a line"
 
@@ -4987,7 +4987,7 @@ msgstr "issues found"
 msgid "It can use: {0}"
 msgstr "It can use: {0}"
 
-#: src/components/report-a-problem.tsx:61
+#: src/components/report-a-problem.tsx:41
 msgid "It cannot do something I need"
 msgstr "It cannot do something I need"
 
@@ -7788,8 +7788,8 @@ msgstr "Remove link"
 #~ msgstr "Remove stage"
 
 #: src/components/report-a-problem.tsx:198
-msgid "Remove the picture"
-msgstr "Remove the picture"
+#~ msgid "Remove the picture"
+#~ msgstr "Remove the picture"
 
 #: src/features/people/people-page.tsx:358
 msgid "Remove this account?"
@@ -7866,7 +7866,7 @@ msgstr "Replace…"
 
 #: src/components/dashboard/dashboard-header.tsx:67
 #: src/components/dashboard/dashboard-header.tsx:68
-#: src/components/report-a-problem.tsx:112
+#: src/components/report-a-problem.tsx:99
 msgid "Report a problem"
 msgstr "Report a problem"
 
@@ -8034,8 +8034,8 @@ msgstr "Runtime {0}"
 #~ msgstr "Said"
 
 #: src/components/report-a-problem.tsx:102
-msgid "Said. Whoever runs this machine can see it."
-msgstr "Said. Whoever runs this machine can see it."
+#~ msgid "Said. Whoever runs this machine can see it."
+#~ msgstr "Said. Whoever runs this machine can see it."
 
 #: src/components/report-a-problem.tsx:108
 #~ msgid "Said. Whoever runs this server can see it."
@@ -8148,7 +8148,7 @@ msgstr "Say the money for this order has arrived? The record will say you said s
 msgid "Say what a form accepts here, then have your own pages post to it. What it does not accept is refused rather than kept."
 msgstr "Say what a form accepts here, then have your own pages post to it. What it does not accept is refused rather than kept."
 
-#: src/components/report-a-problem.tsx:120
+#: src/components/report-a-problem.tsx:107
 msgid "Say what happened"
 msgstr "Say what happened"
 
@@ -8270,7 +8270,7 @@ msgstr "Select all"
 #~ msgid "Select your language"
 #~ msgstr "Select your language"
 
-#: src/components/report-a-problem.tsx:236
+#: src/components/report-a-problem.tsx:185
 #: src/features/mail/mail-page.tsx:366
 msgid "Send"
 msgstr "Send"
@@ -8797,7 +8797,7 @@ msgstr "Something failed"
 #~ msgid "Something is affected right now. Work you do here is saved as usual."
 #~ msgstr "Something is affected right now. Work you do here is saved as usual."
 
-#: src/components/report-a-problem.tsx:60
+#: src/components/report-a-problem.tsx:40
 msgid "Something is broken"
 msgstr "Something is broken"
 
@@ -9311,8 +9311,8 @@ msgid "That is not a copy of a site."
 msgstr "That is not a copy of a site."
 
 #: src/components/report-a-problem.tsx:68
-msgid "That is not a picture"
-msgstr "That is not a picture"
+#~ msgid "That is not a picture"
+#~ msgstr "That is not a picture"
 
 #: src/lib/v1-said.ts:28
 #~ msgid "That is not a sign-in we know."
@@ -9332,8 +9332,8 @@ msgstr "That is not a picture"
 #~ msgstr "That key stopped working"
 
 #: src/components/report-a-problem.tsx:72
-msgid "That picture is larger than four megabytes"
-msgstr "That picture is larger than four megabytes"
+#~ msgid "That picture is larger than four megabytes"
+#~ msgstr "That picture is larger than four megabytes"
 
 #: src/routes/oauth.tsx:53
 #~ msgid "That request could not be read"
@@ -9502,7 +9502,7 @@ msgstr "The first account"
 #~ msgid "The first one most sites want: a contact form that emails whoever answers it."
 #~ msgstr "The first one most sites want: a contact form that emails whoever answers it."
 
-#: src/components/report-a-problem.tsx:171
+#: src/components/report-a-problem.tsx:156
 msgid "The forms screen is empty"
 msgstr "The forms screen is empty"
 
@@ -9678,9 +9678,13 @@ msgstr "The same connector then works in Claude on the web, on the desktop and o
 #~ msgid "The same, with each body included."
 #~ msgstr "The same, with each body included."
 
+#: src/components/report-a-problem.tsx:172
+msgid "The screen, browser and language are sent with this to whoever runs this server, and nowhere else."
+msgstr "The screen, browser and language are sent with this to whoever runs this server, and nowhere else."
+
 #: src/components/report-a-problem.tsx:192
-msgid "The screenshot you attached"
-msgstr "The screenshot you attached"
+#~ msgid "The screenshot you attached"
+#~ msgstr "The screenshot you attached"
 
 #: src/routes/dashboard.flows.tsx:551
 #~ msgid "The secret"
@@ -10789,7 +10793,7 @@ msgstr "What it will look like"
 #~ msgid "What it will write"
 #~ msgstr "What it will write"
 
-#: src/components/report-a-problem.tsx:142
+#: src/components/report-a-problem.tsx:129
 msgid "What kind of thing"
 msgstr "What kind of thing"
 
@@ -10998,11 +11002,11 @@ msgstr "What went wrong"
 #~ msgid "What you have asked for"
 #~ msgstr "What you have asked for"
 
-#: src/components/report-a-problem.tsx:126
+#: src/components/report-a-problem.tsx:113
 msgid "What you have said before"
 msgstr "What you have said before"
 
-#: src/components/report-a-problem.tsx:182
+#: src/components/report-a-problem.tsx:167
 msgid "What you were doing, and what you expected instead. Not required."
 msgstr "What you were doing, and what you expected instead. Not required."
 
@@ -11105,8 +11109,8 @@ msgstr "Where to send the receipt"
 #~ msgstr "Where to trade the code"
 
 #: src/components/report-a-problem.tsx:223
-msgid "Which browser you are using, which screen you were on and anything the panel has already recorded going wrong are sent with this. It goes to whoever runs this server, and nowhere else."
-msgstr "Which browser you are using, which screen you were on and anything the panel has already recorded going wrong are sent with this. It goes to whoever runs this server, and nowhere else."
+#~ msgid "Which browser you are using, which screen you were on and anything the panel has already recorded going wrong are sent with this. It goes to whoever runs this server, and nowhere else."
+#~ msgstr "Which browser you are using, which screen you were on and anything the panel has already recorded going wrong are sent with this. It goes to whoever runs this server, and nowhere else."
 
 #: src/features/learning/students-page.tsx:230
 msgid "Which course"
@@ -11578,6 +11582,10 @@ msgstr "Your name"
 #: src/routes/dashboard.settings.tsx:207
 #~ msgid "Your password, to turn it off"
 #~ msgstr "Your password, to turn it off"
+
+#: src/components/report-a-problem.tsx:85
+msgid "Your report was sent to whoever runs this server."
+msgstr "Your report was sent to whoever runs this server."
 
 #: src/components/dashboard/allowed.tsx:37
 msgid "Your role does not reach this screen. Whoever runs the site can change that under People."

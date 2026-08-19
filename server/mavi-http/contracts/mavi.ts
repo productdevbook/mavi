@@ -520,6 +520,13 @@ export interface CreateProduct {
   on_sale?: boolean;
 }
 
+export interface CreateReport {
+  kind: ReportKind;
+  title: string;
+  body?: string;
+  context?: Record<string, unknown>;
+}
+
 export interface CreateRole {
   name: string;
   grants?: Grant[];
@@ -741,6 +748,24 @@ export interface EventListFilter {
   limit?: number;
   event_name?: string | null;
   path?: string | null;
+}
+
+export interface FeedbackReport {
+  id: string;
+  reporter_kind: "account" | "assistant";
+  kind: ReportKind;
+  title: string;
+  body: string;
+  context: Record<string, unknown>;
+  state: ReportState;
+  answer: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FeedbackReportPage {
+  items: FeedbackReport[];
+  next_cursor: string | null;
 }
 
 export interface File {
@@ -1519,6 +1544,16 @@ export interface ReplaceRoleGrants {
   grants: Grant[];
 }
 
+export type ReportKind = "broken" | "missing" | "wanted";
+
+export interface ReportListFilter {
+  after?: string | null;
+  limit?: number;
+  state?: ReportState;
+}
+
+export type ReportState = "open" | "closed";
+
 export type RetryDelivery = Record<string, unknown>;
 
 export interface Role {
@@ -1970,6 +2005,8 @@ export const operations = {
   "forms.submissions.delete": { method: "delete", path: "/api/v1/form-submissions/{id}", input: null, query: null, output: "Empty", status: 204, authentication: "account_or_assistant", permission: { capability: "forms", action: "delete" } },
   "forms.public.read": { method: "get", path: "/public/v1/forms/{slug}", input: null, query: null, output: "PublicForm", status: 200, authentication: "public", permission: null },
   "forms.public.submit": { method: "post", path: "/public/v1/forms/{slug}/submissions", input: { location: "json", shape: "SubmitForm" }, query: null, output: "SubmissionReceipt", status: 201, authentication: "public", permission: null },
+  "feedback.reports.create": { method: "post", path: "/api/v1/feedback/reports", input: { location: "json", shape: "CreateReport" }, query: null, output: "FeedbackReport", status: 201, authentication: "account_or_assistant", permission: { capability: "feedback", action: "write" } },
+  "feedback.reports.list": { method: "get", path: "/api/v1/feedback/reports", input: { location: "query", shape: "ReportListFilter" }, query: null, output: "FeedbackReportPage", status: 200, authentication: "account_or_assistant", permission: { capability: "feedback", action: "view" } },
   "mail.templates.list": { method: "get", path: "/api/v1/mail/templates", input: { location: "query", shape: "MailTemplateListFilter" }, query: null, output: "MailTemplatePage", status: 200, authentication: "account_or_assistant", permission: { capability: "mail", action: "view" } },
   "mail.templates.create": { method: "post", path: "/api/v1/mail/templates", input: { location: "json", shape: "CreateMailTemplate" }, query: null, output: "MailTemplate", status: 201, authentication: "account_or_assistant", permission: { capability: "mail", action: "write" } },
   "mail.templates.read": { method: "get", path: "/api/v1/mail/templates/{id}", input: null, query: null, output: "MailTemplate", status: 200, authentication: "account_or_assistant", permission: { capability: "mail", action: "view" } },
@@ -2172,6 +2209,8 @@ export interface OperationArguments {
   "forms.submissions.delete": { path: { id: string }; query?: never; body?: never; }
   "forms.public.read": { path: { slug: string }; query?: never; body?: never; }
   "forms.public.submit": { path: { slug: string }; query?: never; body: SubmitForm; }
+  "feedback.reports.create": { path?: never; query?: never; body: CreateReport; }
+  "feedback.reports.list": { path?: never; query: ReportListFilter; body?: never; }
   "mail.templates.list": { path?: never; query: MailTemplateListFilter; body?: never; }
   "mail.templates.create": { path?: never; query?: never; body: CreateMailTemplate; }
   "mail.templates.read": { path: { id: string }; query?: never; body?: never; }
@@ -2372,6 +2411,8 @@ export interface OperationResponses {
   "forms.submissions.delete": void;
   "forms.public.read": PublicForm;
   "forms.public.submit": SubmissionReceipt;
+  "feedback.reports.create": FeedbackReport;
+  "feedback.reports.list": FeedbackReportPage;
   "mail.templates.list": MailTemplatePage;
   "mail.templates.create": MailTemplate;
   "mail.templates.read": MailTemplate;

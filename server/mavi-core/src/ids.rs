@@ -89,6 +89,7 @@ typed_id!(BoardId);
 typed_id!(BoardListId);
 typed_id!(BoardCardId);
 typed_id!(BoardCommentId);
+typed_id!(FeedbackReportId);
 typed_id!(AnalyticsEventId);
 typed_id!(JobId);
 typed_id!(ContentId);

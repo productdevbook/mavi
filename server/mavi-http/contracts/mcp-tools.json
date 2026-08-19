@@ -3461,6 +3461,110 @@
       }
     },
     {
+      "name": "feedback.reports.create",
+      "description": "Create a site feedback report",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "object",
+            "required": [
+              "kind",
+              "title"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "broken",
+                  "missing",
+                  "wanted"
+                ]
+              },
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 300
+              },
+              "body": {
+                "type": "string",
+                "maxLength": 20000
+              },
+              "context": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "required": [
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false
+      },
+      "x-mavi": {
+        "authentication": "account_or_assistant",
+        "scope": "site",
+        "permission": {
+          "capability": "feedback",
+          "action": "write"
+        }
+      }
+    },
+    {
+      "name": "feedback.reports.list",
+      "description": "List site feedback reports with an opaque cursor",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "after": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 512
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100
+              },
+              "state": {
+                "type": "string",
+                "enum": [
+                  "open",
+                  "closed"
+                ]
+              }
+            }
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true
+      },
+      "x-mavi": {
+        "authentication": "account_or_assistant",
+        "scope": "site",
+        "permission": {
+          "capability": "feedback",
+          "action": "view"
+        }
+      }
+    },
+    {
       "name": "mail.templates.list",
       "description": "List site mail templates with an opaque cursor",
       "inputSchema": {

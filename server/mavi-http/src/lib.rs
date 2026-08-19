@@ -62,6 +62,7 @@ use mavi_design::{
     DesignChangeListFilter, DesignFile, DesignFileInput, DesignFileListFilter, DesignFileQuery,
     DesignService, StartDesignChange,
 };
+use mavi_feedback::{CreateReport, FeedbackService, Report, ReportListFilter};
 use mavi_flows::{
     CreateFlow, Flow, FlowListFilter, FlowRun, FlowService, RunListFilter, SimulateFlow,
     SimulationStep, TriggerDescription, UpdateFlow,
@@ -341,6 +342,7 @@ pub fn api() -> Api {
     api.extend(mavi_trash::api());
     api.extend(mavi_design::api());
     api.extend(mavi_forms::api());
+    api.extend(mavi_feedback::api());
     api.extend(mavi_mail::api());
     api.extend(mavi_shop::api());
     api.extend(mavi_courses::api());
@@ -506,6 +508,7 @@ where
         trash: TrashService,
         design: DesignService,
         forms: FormService,
+        feedback: FeedbackService,
         mail: MailService,
         shop: ShopService,
         courses: CoursesService,
@@ -658,6 +661,7 @@ where
         .merge(audit_trash_routes::<R>())
         .merge(design_routes::<R>())
         .merge(form_routes::<R>())
+        .merge(feedback_routes::<R>())
         .merge(mail_routes::<R>())
         .merge(course_routes::<R>())
         .merge(shop_routes::<R>())
@@ -1393,6 +1397,16 @@ where
             "/public/v1/forms/{slug}/submissions",
             post(submit_form::<R>),
         )
+}
+
+fn feedback_routes<R>() -> Router<HttpState<R>>
+where
+    R: SiteResolver,
+{
+    Router::new().route(
+        "/api/v1/feedback/reports",
+        get(list_feedback_reports::<R>).post(create_feedback_report::<R>),
+    )
 }
 
 fn mail_routes<R>() -> Router<HttpState<R>>
@@ -2302,6 +2316,7 @@ struct HttpState<R> {
     trash: TrashService,
     design: DesignService,
     forms: FormService,
+    feedback: FeedbackService,
     mail: MailService,
     shop: ShopService,
     courses: CoursesService,
@@ -2334,6 +2349,7 @@ impl<R> Clone for HttpState<R> {
             trash: self.trash,
             design: self.design,
             forms: self.forms,
+            feedback: self.feedback,
             mail: self.mail,
             shop: self.shop,
             courses: self.courses,
@@ -4870,6 +4886,56 @@ fn design_build_error_code(error: &MaviError) -> String {
         | MaviError::ProviderRateLimited { .. }
         | MaviError::Internal => DESIGN_BUILD_FAILED.to_owned(),
     }
+}
+
+async fn create_feedback_report<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Json(input): Json<CreateReport>,
+) -> Result<(StatusCode, Json<Report>), HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Feedback, Action::Write),
+        "FeedbackReport",
+        "feedback_reports",
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let report = state
+        .feedback
+        .create(&mut transaction, &context, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok((StatusCode::CREATED, Json(report)))
+}
+
+async fn list_feedback_reports<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Query(filter): Query<ReportListFilter>,
+) -> Result<Json<Page<Report>>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Feedback, Action::View),
+        "FeedbackReport",
+        "feedback_reports",
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let reports = state
+        .feedback
+        .list(&mut transaction, &filter)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(reports))
 }
 
 async fn list_forms<R>(

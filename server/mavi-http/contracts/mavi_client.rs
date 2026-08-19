@@ -595,6 +595,14 @@ pub struct CreateProduct {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct CreateReport {
+    pub kind: ReportKind,
+    pub title: String,
+    pub body: Option<String>,
+    pub context: Option<Value>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct CreateRole {
     pub name: String,
     pub grants: Option<Vec<Grant>>,
@@ -850,6 +858,26 @@ pub struct EventListFilter {
     pub limit: Option<i64>,
     pub event_name: Option<String>,
     pub path: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct FeedbackReport {
+    pub id: String,
+    pub reporter_kind: String,
+    pub kind: ReportKind,
+    pub title: String,
+    pub body: String,
+    pub context: Value,
+    pub state: ReportState,
+    pub answer: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct FeedbackReportPage {
+    pub items: Vec<FeedbackReport>,
+    pub next_cursor: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -1732,6 +1760,17 @@ pub struct ReplaceRoleGrants {
     pub grants: Vec<Grant>,
 }
 
+pub type ReportKind = String;
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ReportListFilter {
+    pub after: Option<String>,
+    pub limit: Option<i64>,
+    pub state: Option<ReportState>,
+}
+
+pub type ReportState = String;
+
 pub type RetryDelivery = Value;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -2243,6 +2282,8 @@ pub const OPERATIONS: &[OperationDefinition] = &[
     OperationDefinition { name: "forms.submissions.delete", method: "delete", path: "/api/v1/form-submissions/{id}", request: None, request_location: None, query: None, response: Some("Empty"), response_location: None, status: 204, authentication: "account_or_assistant", capability: Some("forms"), action: Some("delete") },
     OperationDefinition { name: "forms.public.read", method: "get", path: "/public/v1/forms/{slug}", request: None, request_location: None, query: None, response: Some("PublicForm"), response_location: None, status: 200, authentication: "public", capability: None, action: None },
     OperationDefinition { name: "forms.public.submit", method: "post", path: "/public/v1/forms/{slug}/submissions", request: Some("SubmitForm"), request_location: Some("json"), query: None, response: Some("SubmissionReceipt"), response_location: None, status: 201, authentication: "public", capability: None, action: None },
+    OperationDefinition { name: "feedback.reports.create", method: "post", path: "/api/v1/feedback/reports", request: Some("CreateReport"), request_location: Some("json"), query: None, response: Some("FeedbackReport"), response_location: None, status: 201, authentication: "account_or_assistant", capability: Some("feedback"), action: Some("write") },
+    OperationDefinition { name: "feedback.reports.list", method: "get", path: "/api/v1/feedback/reports", request: Some("ReportListFilter"), request_location: Some("query"), query: None, response: Some("FeedbackReportPage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("feedback"), action: Some("view") },
     OperationDefinition { name: "mail.templates.list", method: "get", path: "/api/v1/mail/templates", request: Some("MailTemplateListFilter"), request_location: Some("query"), query: None, response: Some("MailTemplatePage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("mail"), action: Some("view") },
     OperationDefinition { name: "mail.templates.create", method: "post", path: "/api/v1/mail/templates", request: Some("CreateMailTemplate"), request_location: Some("json"), query: None, response: Some("MailTemplate"), response_location: None, status: 201, authentication: "account_or_assistant", capability: Some("mail"), action: Some("write") },
     OperationDefinition { name: "mail.templates.read", method: "get", path: "/api/v1/mail/templates/{id}", request: None, request_location: None, query: None, response: Some("MailTemplate"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("mail"), action: Some("view") },

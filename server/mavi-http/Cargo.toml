@@ -22,6 +22,7 @@ mavi-core = { path = "../mavi-core" }
 mavi-design = { path = "../mavi-design" }
 mavi-flows = { path = "../mavi-flows" }
 mavi-forms = { path = "../mavi-forms" }
+mavi-feedback = { path = "../mavi-feedback" }
  mavi-jobs = { path = "../mavi-jobs" }
 mavi-mail = { path = "../mavi-mail" }
 mavi-media = { path = "../mavi-media" }

@@ -2,7 +2,11 @@ import type { Extensions } from "@tiptap/core"
 import { ReactNodeViewRenderer } from "@tiptap/react"
 import StarterKit from "@tiptap/starter-kit"
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight"
-import { Details, DetailsContent, DetailsSummary } from "@tiptap/extension-details"
+import {
+  Details,
+  DetailsContent,
+  DetailsSummary,
+} from "@tiptap/extension-details"
 import { Emoji, gitHubEmojis } from "@tiptap/extension-emoji"
 import FileHandler from "@tiptap/extension-file-handler"
 import Highlight from "@tiptap/extension-highlight"
@@ -33,12 +37,19 @@ import Underline from "@tiptap/extension-underline"
 import Typography from "@tiptap/extension-typography"
 import UniqueID from "@tiptap/extension-unique-id"
 import Youtube from "@tiptap/extension-youtube"
-import { CharacterCount, Focus, Placeholder, Selection } from "@tiptap/extensions"
+import {
+  CharacterCount,
+  Focus,
+  Placeholder,
+  Selection,
+} from "@tiptap/extensions"
 import { t } from "@lingui/core/macro"
 import { toast } from "sonner"
 
-import { Refused } from "@/lib/v1"
+import { ServerNextRefused } from "@/lib/server-next"
 import { upload } from "@/lib/upload"
+import { publicFileUrl } from "@/lib/server-next-media"
+import { serverNextMessage } from "@/lib/server-next-auth"
 import { slugify } from "@/lib/editor-utils"
 import {
   alignedHeadingMarkdown,
@@ -140,7 +151,10 @@ export function buildExtensions({
       height: 405,
     }),
 
-    Details.configure({ persist: true, HTMLAttributes: { class: "mavi-details" } }),
+    Details.configure({
+      persist: true,
+      HTMLAttributes: { class: "mavi-details" },
+    }),
     DetailsSummary,
     DetailsContent,
 
@@ -162,18 +176,20 @@ export function buildExtensions({
       onDrop: (editor, files, pos) => {
         files.forEach(async (file) => {
           try {
-            const media = await upload(file)
+            const media = await upload(file, "public")
             editor
               .chain()
               .insertContentAt(pos, {
                 type: "image",
-                attrs: { src: media.url, alt: file.name },
+                attrs: { src: publicFileUrl(media.id), alt: file.name },
               })
               .focus()
               .run()
           } catch (error) {
             toast.error(
-              error instanceof Refused ? error.message : t`Could not upload ${file.name}`
+              error instanceof ServerNextRefused
+                ? serverNextMessage(error)
+                : t`Could not upload ${file.name}`
             )
           }
         })
@@ -181,18 +197,20 @@ export function buildExtensions({
       onPaste: (editor, files) => {
         files.forEach(async (file) => {
           try {
-            const media = await upload(file)
+            const media = await upload(file, "public")
             editor
               .chain()
               .insertContentAt(editor.state.selection.anchor, {
                 type: "image",
-                attrs: { src: media.url, alt: file.name },
+                attrs: { src: publicFileUrl(media.id), alt: file.name },
               })
               .focus()
               .run()
           } catch (error) {
             toast.error(
-              error instanceof Refused ? error.message : t`Could not upload ${file.name}`
+              error instanceof ServerNextRefused
+                ? serverNextMessage(error)
+                : t`Could not upload ${file.name}`
             )
           }
         })
@@ -200,7 +218,14 @@ export function buildExtensions({
     }),
 
     UniqueID.configure({
-      types: ["heading", "paragraph", "blockquote", "codeBlock", "image", "table"],
+      types: [
+        "heading",
+        "paragraph",
+        "blockquote",
+        "codeBlock",
+        "image",
+        "table",
+      ],
     }),
 
     TableOfContents.configure({

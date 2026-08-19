@@ -20,6 +20,12 @@ scope, authorization, validation, and audit.
   `/api/v1/*` contract. Screens migrating to the rewrite use generated
   operation IDs from `@api-next`; bearer session storage, refusal handling and
   cursor walking stay in this boundary.
+- `src/lib/server-next-media.ts` is the media delivery boundary. Published
+  content stores `/public/v1/files/{id}` URLs only; private panel previews use
+  an authenticated download and revoke their object URL when unmounted.
+- `src/lib/upload.ts` is a thin typed media adapter. Its caller must choose
+  visibility, so an image inserted into published content is public while
+  course video remains private by default.
 - `src/lib/server-next-auth.ts` is the authenticated application boundary on
   top of `server-next.ts`. Login stores only the bearer token, then obtains
   the current person and effective Cedar grants from `auth.session.current`.
@@ -51,9 +57,9 @@ move between groups without invalidating bookmarks or API clients.
 ## Refactor order
 
 1. Keep route guards and the generated API boundary intact. Setup, login,
-   password reset, root redirect, and the authenticated shell use
-   `server-next`; the old `@api` boundary is compatibility-only for domains
-   that have not yet received their canonical server implementation.
+   password reset, root redirect, authenticated shell, content, taxonomy and
+   media use `server-next`; the old `@api` boundary is compatibility-only for
+   domains that have not yet received their canonical server implementation.
 2. Move route-level layout and navigation into shell components.
 3. Move one domain at a time into `src/features/<domain>`; auth, dashboard,
    content, media, taxonomy, shop, learning, automation, boards, design,

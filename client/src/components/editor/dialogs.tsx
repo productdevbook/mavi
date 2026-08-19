@@ -5,9 +5,12 @@ import { Check, Copy, Download, Upload } from "lucide-react"
 import { toast } from "sonner"
 
 import { cn } from "@/lib/utils"
-import { every, Refused } from "@/lib/v1"
+import { nextEvery } from "@/lib/server-next"
+import { ServerNextRefused } from "@/lib/server-next"
 import { upload } from "@/lib/upload"
-import type { File as Media } from "@api"
+import { publicFileUrl } from "@/lib/server-next-media"
+import { serverNextMessage } from "@/lib/server-next-auth"
+import type { File as Media } from "@api-next"
 import { downloadFile, shortcut } from "@/lib/editor-utils"
 import { htmlToMarkdown, markdownToHtml } from "@/lib/markdown"
 import { Button } from "@/components/ui/button"
@@ -54,12 +57,18 @@ export function EditorDialogs({ editor }: { editor: Editor }) {
     let uploaded = 0
     for (const file of Array.from(files)) {
       try {
-        const media = await upload(file)
-        editor.chain().focus().setImage({ src: media.url, alt: file.name }).run()
+        const media = await upload(file, "public")
+        editor
+          .chain()
+          .focus()
+          .setImage({ src: publicFileUrl(media.id), alt: file.name })
+          .run()
         uploaded += 1
       } catch (error) {
         toast.error(
-          error instanceof Refused ? error.message : t`Could not upload ${file.name}`
+          error instanceof ServerNextRefused
+            ? serverNextMessage(error)
+            : t`Could not upload ${file.name}`
         )
       }
     }
@@ -86,7 +95,11 @@ export function EditorDialogs({ editor }: { editor: Editor }) {
         open={open === "image-url"}
         onClose={close}
       />
-      <YoutubeDialog editor={editor} open={open === "youtube"} onClose={close} />
+      <YoutubeDialog
+        editor={editor}
+        open={open === "youtube"}
+        onClose={close}
+      />
       <LinkDialog editor={editor} open={open === "link"} onClose={close} />
       <TableDialog editor={editor} open={open === "table"} onClose={close} />
       <ExportDialog editor={editor} open={open === "export"} onClose={close} />
@@ -108,9 +121,15 @@ function ImageUrlDialog({ editor, open, onClose }: DialogPartProps) {
   const [library, setLibrary] = React.useState<Media[] | null>(null)
 
   React.useEffect(() => {
-    if (!open || library) return
-    every("files.list")
-      .then(setLibrary)
+    if (!open) {
+      setLibrary(null)
+      return
+    }
+    if (library) return
+    nextEvery("media.files.list", { query: { kind: "image" } })
+      .then((files) =>
+        setLibrary(files.filter((file) => file.visibility === "public"))
+      )
       .catch(() => setLibrary([]))
   }, [open, library])
 
@@ -127,7 +146,7 @@ function ImageUrlDialog({ editor, open, onClose }: DialogPartProps) {
     editor
       .chain()
       .focus()
-      .setImage({ src: `/uploads/${media.id}`, alt: media.name })
+      .setImage({ src: publicFileUrl(media.id), alt: media.name })
       .run()
     onClose()
   }
@@ -169,7 +188,7 @@ function ImageUrlDialog({ editor, open, onClose }: DialogPartProps) {
                     className="aspect-square overflow-hidden rounded-md border border-border hover:border-primary"
                   >
                     <img
-                      src={`/uploads/${media.id}`}
+                      src={publicFileUrl(media.id)}
                       alt={media.name}
                       className="size-full object-cover"
                     />
@@ -179,33 +198,33 @@ function ImageUrlDialog({ editor, open, onClose }: DialogPartProps) {
             )}
           </TabsContent>
           <TabsContent value="url">
-        <form onSubmit={submit} className="flex flex-col gap-3">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="image-src">{t`Image address`}</Label>
-            <Input
-              id="image-src"
-              autoFocus
-              value={src}
-              onChange={(event) => setSrc(event.target.value)}
-              placeholder="https://…/image.jpg"
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="image-alt">{t`Alt text`}</Label>
-            <Input
-              id="image-alt"
-              value={alt}
-              onChange={(event) => setAlt(event.target.value)}
-              placeholder={t`Short description of the image`}
-            />
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>
-              {t`Cancel`}
-            </Button>
-            <Button type="submit">{t`Add`}</Button>
-          </DialogFooter>
-        </form>
+            <form onSubmit={submit} className="flex flex-col gap-3">
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="image-src">{t`Image address`}</Label>
+                <Input
+                  id="image-src"
+                  autoFocus
+                  value={src}
+                  onChange={(event) => setSrc(event.target.value)}
+                  placeholder="https://…/image.jpg"
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="image-alt">{t`Alt text`}</Label>
+                <Input
+                  id="image-alt"
+                  value={alt}
+                  onChange={(event) => setAlt(event.target.value)}
+                  placeholder={t`Short description of the image`}
+                />
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={onClose}>
+                  {t`Cancel`}
+                </Button>
+                <Button type="submit">{t`Add`}</Button>
+              </DialogFooter>
+            </form>
           </TabsContent>
         </Tabs>
       </DialogContent>
@@ -220,7 +239,11 @@ function YoutubeDialog({ editor, open, onClose }: DialogPartProps) {
   const submit = (event: React.FormEvent) => {
     event.preventDefault()
     if (!url.trim()) return
-    editor.commands.setYoutubeVideo({ src: url.trim(), width: 720, height: 405 })
+    editor.commands.setYoutubeVideo({
+      src: url.trim(),
+      width: 720,
+      height: 405,
+    })
     setUrl("")
     onClose()
   }
@@ -322,7 +345,11 @@ function LinkDialog({ editor, open, onClose }: DialogPartProps) {
             />
           </div>
           <div className="flex items-center gap-2">
-            <Switch id="link-tab" checked={newTab} onCheckedChange={setNewTab} />
+            <Switch
+              id="link-tab"
+              checked={newTab}
+              onCheckedChange={setNewTab}
+            />
             <Label htmlFor="link-tab">{t`Open in new tab`}</Label>
           </div>
           <DialogFooter>
@@ -343,7 +370,11 @@ function TableDialog({ editor, open, onClose }: DialogPartProps) {
   const [withHeader, setWithHeader] = React.useState(true)
 
   const insert = (rows: number, cols: number) => {
-    editor.chain().focus().insertTable({ rows, cols, withHeaderRow: withHeader }).run()
+    editor
+      .chain()
+      .focus()
+      .insertTable({ rows, cols, withHeaderRow: withHeader })
+      .run()
     onClose()
   }
 

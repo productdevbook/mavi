@@ -12,7 +12,7 @@ export type { Thrown }
 
 /** Everything a site threw away, newest first. */
 export function inTheBin(): Promise<Thrown[]> {
-  return api("GET /api/trash")
+  return api("trash.list")
 }
 
 /**
@@ -22,10 +22,10 @@ export function inTheBin(): Promise<Thrown[]> {
  * came out of and this machine will not guess.
  */
 export function putBack(sort: string, id: string): Promise<void> {
-  return api("POST /api/trash/{sort}/{id}", { path: { sort, id } })
+  return api("trash.put-back", { path: { sort, id } })
 }
 
 /** Takes it away for good. */
 export function forGood(sort: string, id: string): Promise<void> {
-  return api("DELETE /api/trash/{sort}/{id}", { path: { sort, id } })
+  return api("trash.for-good", { path: { sort, id } })
 }

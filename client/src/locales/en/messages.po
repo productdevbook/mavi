@@ -258,7 +258,7 @@ msgstr "{0} files"
 #~ msgstr "{0} in {days} days"
 
 #. placeholder {0}: entry.called
-#: src/routes/dashboard.trash.tsx:103
+#: src/features/governance/trash-page.tsx:91
 msgid "{0} is back"
 msgstr "{0} is back"
 
@@ -1144,6 +1144,10 @@ msgstr "A site's own payment provider. Card details never reach this machine: wh
 #~ msgid "across {0} kinds"
 #~ msgstr "across {0} kinds"
 
+#: src/components/audit-record.tsx:19
+msgid "Action"
+msgstr "Action"
+
 #: src/routes/dashboard.languages.tsx:151
 #~ msgid "Active"
 #~ msgstr "Active"
@@ -1594,7 +1598,7 @@ msgstr "An email address"
 #~ msgid "An IAM user with ses:SendEmail. That is all sending needs. The account page below asks Amazon rather more, and says which permission is missing when one is."
 #~ msgstr "An IAM user with ses:SendEmail. That is all sending needs. The account page below asks Amazon rather more, and says which permission is missing when one is."
 
-#: src/routes/dashboard.trash.tsx:135
+#: src/features/governance/trash-page.tsx:117
 msgid "An image keeps its file while it is here, so a restored post still has its pictures. The file goes when the entry does."
 msgstr "An image keeps its file while it is here, so a restored post still has its pictures. The file goes when the entry does."
 
@@ -1682,7 +1686,7 @@ msgstr "Answering"
 msgid "Anything already using it will stop showing it."
 msgstr "Anything already using it will stop showing it."
 
-#: src/routes/dashboard.audit.tsx:93
+#: src/features/governance/audit-page.tsx:107
 msgid "Anything done"
 msgstr "Anything done"
 
@@ -1691,7 +1695,7 @@ msgstr "Anything done"
 msgid "Anything else"
 msgstr "Anything else"
 
-#: src/routes/dashboard.audit.tsx:100
+#: src/features/governance/audit-page.tsx:114
 msgid "Anything it was done to"
 msgstr "Anything it was done to"
 
@@ -2078,7 +2082,7 @@ msgstr "Being written"
 #~ msgstr "Bills"
 
 #: src/components/dashboard/dashboard-shell.tsx:107
-#: src/routes/dashboard.trash.tsx:125
+#: src/features/governance/trash-page.tsx:109
 msgid "Bin"
 msgstr "Bin"
 
@@ -2111,7 +2115,7 @@ msgstr "Blocks"
 msgid "Blue"
 msgstr "Blue"
 
-#: src/routes/dashboard.trash.tsx:77
+#: src/features/governance/trash-page.tsx:68
 msgid "board"
 msgstr "board"
 
@@ -2310,8 +2314,8 @@ msgstr "Came in"
 #~ msgstr "Came in through {0}, {1}."
 
 #: src/routes/dashboard.trash.tsx:75
-msgid "campaign"
-msgstr "campaign"
+#~ msgid "campaign"
+#~ msgstr "campaign"
 
 #: src/routes/dashboard.mail_.campaigns.$campaignId.tsx:29
 msgid "Campaign"
@@ -2373,7 +2377,7 @@ msgstr "Cancelled"
 msgid "Canonical URL"
 msgstr "Canonical URL"
 
-#: src/routes/dashboard.trash.tsx:78
+#: src/features/governance/trash-page.tsx:69
 msgid "card"
 msgstr "card"
 
@@ -2418,7 +2422,7 @@ msgstr "Categories & tags"
 #~ msgid "Category"
 #~ msgstr "Category"
 
-#: src/routes/dashboard.trash.tsx:73
+#: src/features/governance/trash-page.tsx:65
 msgid "category or tag"
 msgstr "category or tag"
 
@@ -2442,6 +2446,10 @@ msgstr "Change it"
 #: src/routes/dashboard.letters.tsx:104
 #~ msgid "Changed"
 #~ msgstr "Changed"
+
+#: src/features/governance/audit-page.tsx:125
+msgid "Changes made to this site will appear here."
+msgstr "Changes made to this site will appear here."
 
 #: src/components/assistant-connection.tsx:161
 #~ msgid "Changes things"
@@ -3291,7 +3299,7 @@ msgstr "Could not upload {0}"
 #~ msgid "Countries"
 #~ msgstr "Countries"
 
-#: src/routes/dashboard.trash.tsx:76
+#: src/features/governance/trash-page.tsx:67
 msgid "course"
 msgstr "course"
 
@@ -3560,6 +3568,10 @@ msgstr "Delete this file?"
 #~ msgid "deleted by {0}"
 #~ msgstr "deleted by {0}"
 
+#: src/features/governance/trash-page.tsx:110
+msgid "Deleted content waits thirty days before it is removed permanently, and can be restored in the meantime."
+msgstr "Deleted content waits thirty days before it is removed permanently, and can be restored in the meantime."
+
 #: src/routes/dashboard.usage.tsx:249
 #~ msgid "Delivered"
 #~ msgstr "Delivered"
@@ -3711,7 +3723,7 @@ msgid "Done."
 msgstr "Done."
 
 #: src/components/editor/dialogs.tsx:479
-#: src/routes/dashboard.audit.tsx:85
+#: src/features/governance/audit-page.tsx:97
 msgid "Download"
 msgstr "Download"
 
@@ -4067,6 +4079,10 @@ msgstr "Excerpt"
 msgid "Fields"
 msgstr "Fields"
 
+#: src/features/governance/trash-page.tsx:63
+msgid "file"
+msgstr "file"
+
 #: src/routes/dashboard.themes.tsx:850
 #~ msgid "file gone"
 #~ msgstr "file gone"
@@ -4078,6 +4094,14 @@ msgstr "Fields"
 #: src/components/ses-account.tsx:188
 #~ msgid "Fill in the region and the keys above and save them. Everything Amazon knows about this account then appears here: how much sending is left today, whether it is still in the sandbox, which senders are verified, and how the last two weeks went."
 #~ msgstr "Fill in the region and the keys above and save them. Everything Amazon knows about this account then appears here: how much sending is left today, whether it is still in the sandbox, which senders are verified, and how the last two weeks went."
+
+#: src/features/governance/audit-page.tsx:104
+msgid "Filter by action"
+msgstr "Filter by action"
+
+#: src/features/governance/audit-page.tsx:111
+msgid "Filter by subject"
+msgstr "Filter by subject"
 
 #: src/components/flows/flow-settings.tsx:107
 #~ msgid "Find a field"
@@ -4109,7 +4133,7 @@ msgstr "First byte"
 #~ msgid "Flood refused"
 #~ msgstr "Flood refused"
 
-#: src/routes/dashboard.trash.tsx:80
+#: src/features/governance/trash-page.tsx:70
 msgid "flow"
 msgstr "flow"
 
@@ -4192,7 +4216,7 @@ msgstr "Forget them"
 msgid "Forgotten."
 msgstr "Forgotten."
 
-#: src/routes/dashboard.trash.tsx:71
+#: src/features/governance/trash-page.tsx:64
 msgid "form"
 msgstr "form"
 
@@ -4635,8 +4659,8 @@ msgstr "If that address has an account here, a link is on its way. It works once
 #~ msgstr "If this step fails"
 
 #: src/routes/dashboard.trash.tsx:69
-msgid "image"
-msgstr "image"
+#~ msgid "image"
+#~ msgstr "image"
 
 #: src/components/editor/toolbar.tsx:610
 msgid "Image"
@@ -5351,8 +5375,8 @@ msgstr "Mail sendings are processed in the background directly from your lists."
 #~ msgstr "Mail sent"
 
 #: src/routes/dashboard.trash.tsx:74
-msgid "mailing list"
-msgstr "mailing list"
+#~ msgid "mailing list"
+#~ msgstr "mailing list"
 
 #: src/routes/dashboard.index.tsx:85
 msgid "Mailing list"
@@ -6202,8 +6226,8 @@ msgid "Nothing counted yet. Numbers appear as soon as the published site has a v
 msgstr "Nothing counted yet. Numbers appear as soon as the published site has a visitor."
 
 #: src/routes/dashboard.trash.tsx:127
-msgid "Nothing deleted here goes straight away. It waits thirty days, whether a person deleted it or an assistant did, and until then it can be put back exactly as it was."
-msgstr "Nothing deleted here goes straight away. It waits thirty days, whether a person deleted it or an assistant did, and until then it can be put back exactly as it was."
+#~ msgid "Nothing deleted here goes straight away. It waits thirty days, whether a person deleted it or an assistant did, and until then it can be put back exactly as it was."
+#~ msgstr "Nothing deleted here goes straight away. It waits thirty days, whether a person deleted it or an assistant did, and until then it can be put back exactly as it was."
 
 #: src/routes/forgotten.tsx:124
 msgid "Nothing else about your account changed. You can sign in the way you always have."
@@ -6227,7 +6251,7 @@ msgstr "Nothing for sale yet."
 #~ msgid "Nothing has been charged yet."
 #~ msgstr "Nothing has been charged yet."
 
-#: src/routes/dashboard.trash.tsx:149
+#: src/features/governance/trash-page.tsx:128
 msgid "Nothing has been deleted"
 msgstr "Nothing has been deleted"
 
@@ -6263,7 +6287,7 @@ msgstr "Nothing has come in yet"
 #~ msgid "Nothing has happened yet."
 #~ msgstr "Nothing has happened yet."
 
-#: src/routes/dashboard.audit.tsx:109
+#: src/features/governance/audit-page.tsx:124
 msgid "Nothing here yet."
 msgstr "Nothing here yet."
 
@@ -6490,7 +6514,7 @@ msgstr "Off"
 #~ msgid "Off while you are testing. A test key and a live key look alike, and this is the field that says which one you meant."
 #~ msgstr "Off while you are testing. A test key and a live key look alike, and this is the field that says which one you meant."
 
-#: src/routes/dashboard.audit.tsx:127
+#: src/features/governance/audit-page.tsx:143
 msgid "Older"
 msgstr "Older"
 
@@ -6958,7 +6982,7 @@ msgstr "Password changed — sign in again"
 #~ msgid "Password link"
 #~ msgstr "Password link"
 
-#: src/routes/dashboard.audit.tsx:134
+#: src/features/governance/audit-page.tsx:150
 msgid "Passwords, keys and tokens are never written here — an entry says a key was replaced, not what it was replaced with."
 msgstr "Passwords, keys and tokens are never written here — an entry says a key was replaced, not what it was replaced with."
 
@@ -7143,7 +7167,7 @@ msgstr "Plugins"
 
 #: src/components/dashboard/dashboard-shell.tsx:75
 #: src/components/editor/post-settings.tsx:477
-#: src/routes/dashboard.trash.tsx:68
+#: src/features/governance/trash-page.tsx:62
 msgid "post"
 msgstr "post"
 
@@ -7229,7 +7253,7 @@ msgstr "Previous"
 #~ msgid "Price, in the smallest unit"
 #~ msgstr "Price, in the smallest unit"
 
-#: src/routes/dashboard.trash.tsx:79
+#: src/features/governance/trash-page.tsx:66
 msgid "product"
 msgstr "product"
 
@@ -7319,8 +7343,8 @@ msgstr "Put a token where the … is. It is shown once, when you make it."
 #~ msgid "Put answers on a board"
 #~ msgstr "Put answers on a board"
 
+#: src/features/governance/trash-page.tsx:150
 #: src/routes/dashboard.letters.tsx:165
-#: src/routes/dashboard.trash.tsx:174
 msgid "Put it back"
 msgstr "Put it back"
 
@@ -7443,8 +7467,8 @@ msgstr "Ready to preview"
 #~ msgstr "Recommended"
 
 #: src/components/dashboard/dashboard-shell.tsx:106
+#: src/features/governance/audit-page.tsx:87
 #: src/features/people/roles-page.tsx:166
-#: src/routes/dashboard.audit.tsx:72
 msgid "Record"
 msgstr "Record"
 
@@ -9131,6 +9155,10 @@ msgstr "The address it answers on is made from the name and never changes, becau
 #~ msgid "The backup failed"
 #~ msgstr "The backup failed"
 
+#: src/features/governance/trash-page.tsx:124
+msgid "The bin could not be read just now."
+msgstr "The bin could not be read just now."
+
 #: src/routes/dashboard.platform-reports.tsx:258
 #~ msgid "The browser and the screen"
 #~ msgstr "The browser and the screen"
@@ -9344,6 +9372,10 @@ msgstr "The one you have"
 #: src/routes/dashboard.plugins_.video.tsx:196
 #~ msgid "The pull zone hostname is on the same tab — it looks like vz-… .b-cdn.net"
 #~ msgstr "The pull zone hostname is on the same tab — it looks like vz-… .b-cdn.net"
+
+#: src/features/governance/audit-page.tsx:121
+msgid "The record could not be read just now."
+msgstr "The record could not be read just now."
 
 #: src/components/dashboard/address-health.tsx:63
 #~ msgid "The registration is held with your registrar, not here; renewing it is done there."
@@ -9750,7 +9782,7 @@ msgstr "This site has no room left: it is using {0} of {1}."
 msgid "Those are not the digits the app is showing."
 msgstr "Those are not the digits the app is showing."
 
-#: src/routes/dashboard.trash.tsx:179
+#: src/features/governance/trash-page.tsx:155
 msgid "Throw it away now"
 msgstr "Throw it away now"
 
@@ -10079,8 +10111,8 @@ msgstr "Usage"
 #~ msgstr "Verifying an address or a domain"
 
 #: src/routes/dashboard.trash.tsx:70
-msgid "video"
-msgstr "video"
+#~ msgid "video"
+#~ msgstr "video"
 
 #: src/routes/dashboard.courses.$courseId.tsx:426
 #: src/routes/dashboard.plugins_.video.tsx:154
@@ -10175,7 +10207,7 @@ msgstr "Waiting for payment"
 #~ msgid "Waiting to be paid"
 #~ msgstr "Waiting to be paid"
 
-#: src/routes/dashboard.trash.tsx:133
+#: src/features/governance/trash-page.tsx:115
 msgid "Waiting to be thrown away"
 msgstr "Waiting to be thrown away"
 
@@ -10477,8 +10509,8 @@ msgstr "What one of these is made of, beyond its title and its text."
 #~ msgstr "What somebody on a site, or an assistant working on one, could not do."
 
 #: src/routes/dashboard.trash.tsx:72
-msgid "what somebody sent"
-msgstr "what somebody sent"
+#~ msgid "what somebody sent"
+#~ msgstr "what somebody sent"
 
 #: src/features/automation/flows-page.tsx:225
 msgid "What starts it"
@@ -10660,6 +10692,7 @@ msgstr "What you were doing, and what you expected instead. Not required."
 #~ msgid "Whatever was sent, as text"
 #~ msgstr "Whatever was sent, as text"
 
+#: src/components/audit-record.tsx:21
 #: src/routes/dashboard.forms_.$formId.tsx:172
 msgid "When"
 msgstr "When"
@@ -10688,7 +10721,7 @@ msgstr "When"
 #~ msgid "When something calls in"
 #~ msgstr "When something calls in"
 
-#: src/routes/dashboard.trash.tsx:151
+#: src/features/governance/trash-page.tsx:129
 msgid "When something is, it appears here first."
 msgstr "When something is, it appears here first."
 
@@ -10797,6 +10830,10 @@ msgstr "Which role"
 #~ msgid "Which service"
 #~ msgstr "Which service"
 
+#: src/components/audit-record.tsx:20
+msgid "Who"
+msgstr "Who"
+
 #: src/features/people/people-page.tsx:168
 msgid "Who can sign in to this site and write on it."
 msgstr "Who can sign in to this site and write on it."
@@ -10805,7 +10842,7 @@ msgstr "Who can sign in to this site and write on it."
 #~ msgid "Who did what to this site, and from where. Kept for six months."
 #~ msgstr "Who did what to this site, and from where. Kept for six months."
 
-#: src/routes/dashboard.audit.tsx:74
+#: src/features/governance/audit-page.tsx:88
 msgid "Who did what to this site, and when."
 msgstr "Who did what to this site, and when."
 

@@ -32,27 +32,28 @@ export type { Receipt, ReceiptPage }
  * What a phrase is drawn as, by the word it starts with. Read in order, so a
  * longer phrase can be answered before the word it starts with.
  */
-const DRAWN: [string, React.ComponentType<{ className?: string }>, boolean][] = [
-  ["signed in", LogIn, false],
-  ["signed out", LogOut, false],
-  ["sessions.", LogIn, false],
-  ["refused", Ban, true],
-  ["removed", Trash2, true],
-  ["took", Trash2, true],
-  ["delete", Trash2, true],
-  ["invited", UserPlus, false],
-  ["people.invite", UserPlus, false],
-  ["changed a person", UserCog, false],
-  ["chose a password", KeyRound, false],
-  ["passwords.", KeyRound, false],
-  ["replaced", KeyRound, true],
-  ["wrote a flow", Workflow, true],
-  ["flows.", Workflow, true],
-  ["wrote a theme file", Palette, false],
-  ["design.", Palette, false],
-  ["published", LogOut, false],
-  ["writings.", Palette, false],
-]
+const DRAWN: [string, React.ComponentType<{ className?: string }>, boolean][] =
+  [
+    ["signed in", LogIn, false],
+    ["signed out", LogOut, false],
+    ["sessions.", LogIn, false],
+    ["refused", Ban, true],
+    ["removed", Trash2, true],
+    ["took", Trash2, true],
+    ["delete", Trash2, true],
+    ["invited", UserPlus, false],
+    ["people.invite", UserPlus, false],
+    ["changed a person", UserCog, false],
+    ["chose a password", KeyRound, false],
+    ["passwords.", KeyRound, false],
+    ["replaced", KeyRound, true],
+    ["wrote a flow", Workflow, true],
+    ["flows.", Workflow, true],
+    ["wrote a theme file", Palette, false],
+    ["design.", Palette, false],
+    ["published", LogOut, false],
+    ["writings.", Palette, false],
+  ]
 
 export function drawing(action: string): {
   icon: React.ComponentType<{ className?: string }>
@@ -71,8 +72,10 @@ export function record(asking: {
   about?: string
   after?: string
   limit?: number
+  signal?: AbortSignal
 }): Promise<ReceiptPage> {
-  return api("GET /api/audit", { query: asking })
+  const { signal, ...query } = asking
+  return api("audit.list", { query, signal })
 }
 
 /** Where the whole thing is downloaded from. */

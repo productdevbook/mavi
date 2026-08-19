@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro"
 import { drawing, type Entry } from "@/lib/v1-audit"
 
 /**
@@ -7,9 +8,19 @@ import { drawing, type Entry } from "@/lib/v1-audit"
  * drift, and what drifts is which entries somebody's eye stops on.
  */
 export function AuditTable({ entries }: { entries: Entry[] }) {
+  const { t } = useLingui()
+
   return (
     <div className="overflow-x-auto rounded-xl border border-border">
       <table className="w-full text-sm">
+        <thead className="border-b border-border bg-muted/30 text-left text-xs text-muted-foreground">
+          <tr>
+            <th className="w-10 py-2 pl-3 font-normal" />
+            <th className="py-2 font-normal">{t`Action`}</th>
+            <th className="py-2 font-normal">{t`Who`}</th>
+            <th className="py-2 pr-3 text-right font-normal">{t`When`}</th>
+          </tr>
+        </thead>
         <tbody>
           {entries.map((entry) => {
             const { icon: Icon, grave } = drawing(entry.did)
@@ -35,11 +46,9 @@ export function AuditTable({ entries }: { entries: Entry[] }) {
                     {entry.about_id ? ` · ${entry.about_id}` : ""}
                   </p>
                 </td>
-                <td className="py-2 align-top">
-                  {entry.who_id ?? entry.who}
-                </td>
+                <td className="py-2 align-top">{entry.who_id ?? entry.who}</td>
                 <td className="py-2 pr-3 text-right align-top whitespace-nowrap text-muted-foreground">
-                  {entry.id}
+                  {new Date(entry.created_at).toLocaleString()}
                 </td>
               </tr>
             )

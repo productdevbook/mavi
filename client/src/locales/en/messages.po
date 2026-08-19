@@ -215,7 +215,7 @@ msgstr "{0} connects from its own servers, not from this computer, so it cannot 
 #~ msgstr "{0} enrolments"
 
 #. placeholder {0}: answer.files
-#: src/routes/dashboard.usage.tsx:76
+#: src/features/analytics/usage-page.tsx:61
 msgid "{0} files"
 msgstr "{0} files"
 
@@ -429,8 +429,8 @@ msgstr "{0} of {1}"
 
 #. placeholder {0}: answer.published
 #. placeholder {0}: stats.published
+#: src/features/analytics/usage-page.tsx:67
 #: src/routes/dashboard.index.tsx:74
-#: src/routes/dashboard.usage.tsx:82
 msgid "{0} published"
 msgstr "{0} published"
 
@@ -764,7 +764,7 @@ msgstr "0 results"
 #~ msgid "4. If a site is archived"
 #~ msgstr "4. If a site is archived"
 
-#: src/routes/dashboard.performance.tsx:82
+#: src/features/analytics/performance-page.tsx:73
 msgid "95th percentile"
 msgstr "95th percentile"
 
@@ -2271,7 +2271,7 @@ msgstr "Buy"
 #~ msgid "By metric"
 #~ msgstr "By metric"
 
-#: src/routes/dashboard.performance.tsx:74
+#: src/features/analytics/performance-page.tsx:65
 msgid "By page and metric"
 msgstr "By page and metric"
 
@@ -2536,8 +2536,8 @@ msgstr "Choose one, or paste it"
 #~ msgid "City"
 #~ msgstr "City"
 
+#: src/features/analytics/usage-page.tsx:74
 #: src/routes/dashboard.index.tsx:120
-#: src/routes/dashboard.usage.tsx:93
 msgid "clean"
 msgstr "clean"
 
@@ -4101,7 +4101,7 @@ msgstr "Finished"
 #~ msgid "Finished, and it did not"
 #~ msgstr "Finished, and it did not"
 
-#: src/routes/dashboard.performance.tsx:43
+#: src/features/analytics/performance-page.tsx:37
 msgid "First byte"
 msgstr "First byte"
 
@@ -4804,8 +4804,8 @@ msgstr "Is everything answering"
 msgid "Issue"
 msgstr "Issue"
 
+#: src/features/analytics/usage-page.tsx:74
 #: src/routes/dashboard.index.tsx:120
-#: src/routes/dashboard.usage.tsx:93
 msgid "issues found"
 msgstr "issues found"
 
@@ -5074,7 +5074,7 @@ msgstr "Large section heading"
 #~ msgid "Larger comes first"
 #~ msgstr "Larger comes first"
 
-#: src/routes/dashboard.performance.tsx:40
+#: src/features/analytics/performance-page.tsx:34
 msgid "Largest paint"
 msgstr "Largest paint"
 
@@ -5106,7 +5106,7 @@ msgstr "Largest paint"
 #~ msgid "Lately"
 #~ msgstr "Lately"
 
-#: src/routes/dashboard.performance.tsx:41
+#: src/features/analytics/performance-page.tsx:35
 msgid "Layout shift"
 msgstr "Layout shift"
 
@@ -5472,7 +5472,7 @@ msgstr "max {0} uses"
 #~ msgid "Measured months"
 #~ msgstr "Measured months"
 
-#: src/routes/dashboard.performance.tsx:63
+#: src/features/analytics/performance-page.tsx:57
 msgid "Measurements"
 msgstr "Measurements"
 
@@ -5486,7 +5486,7 @@ msgstr "Media"
 msgid "Media library"
 msgstr "Media library"
 
-#: src/routes/dashboard.performance.tsx:81
+#: src/features/analytics/performance-page.tsx:72
 msgid "Median"
 msgstr "Median"
 
@@ -5528,7 +5528,7 @@ msgstr "Merge cells"
 #~ msgid "Method"
 #~ msgstr "Method"
 
-#: src/routes/dashboard.performance.tsx:80
+#: src/features/analytics/performance-page.tsx:71
 msgid "Metric"
 msgstr "Metric"
 
@@ -5956,7 +5956,7 @@ msgstr "No media uploaded yet"
 #~ msgid "No other sites yet"
 #~ msgstr "No other sites yet"
 
-#: src/routes/dashboard.visitors.tsx:97
+#: src/features/analytics/visitors-page.tsx:92
 msgid "No pages counted yet."
 msgstr "No pages counted yet."
 
@@ -6197,7 +6197,7 @@ msgstr "Not set up"
 #~ msgid "Nothing by that name."
 #~ msgstr "Nothing by that name."
 
-#: src/routes/dashboard.visitors.tsx:82
+#: src/features/analytics/visitors-page.tsx:77
 msgid "Nothing counted yet. Numbers appear as soon as the published site has a visitor."
 msgstr "Nothing counted yet. Numbers appear as soon as the published site has a visitor."
 
@@ -6311,7 +6311,7 @@ msgstr "Nothing in it yet."
 #~ msgid "Nothing measured yet. Months are measured and billed automatically; your margin from Payments goes on top."
 #~ msgstr "Nothing measured yet. Months are measured and billed automatically; your margin from Payments goes on top."
 
-#: src/routes/dashboard.performance.tsx:57
+#: src/features/analytics/performance-page.tsx:52
 msgid "Nothing measured yet. Numbers appear once real visitors reach the published site."
 msgstr "Nothing measured yet. Numbers appear once real visitors reach the published site."
 
@@ -6902,25 +6902,25 @@ msgstr "Owner"
 #~ msgid "page"
 #~ msgstr "page"
 
+#: src/features/analytics/performance-page.tsx:70
 #: src/lib/use-content-types.ts:72
-#: src/routes/dashboard.performance.tsx:79
 msgid "Page"
 msgstr "Page"
 
-#: src/routes/dashboard.visitors.tsx:76
+#: src/features/analytics/visitors-page.tsx:71
 msgid "Page views"
 msgstr "Page views"
 
+#: src/features/analytics/visitors-page.tsx:91
 #: src/lib/use-content-types.ts:72
-#: src/routes/dashboard.visitors.tsx:96
 msgid "Pages"
 msgstr "Pages"
 
-#: src/routes/dashboard.performance.tsx:68
+#: src/features/analytics/performance-page.tsx:59
 msgid "Pages measured"
 msgstr "Pages measured"
 
-#: src/routes/dashboard.visitors.tsx:77
+#: src/features/analytics/visitors-page.tsx:72
 msgid "Pages read"
 msgstr "Pages read"
 
@@ -7045,7 +7045,7 @@ msgstr "People join it from your own pages, and leave it from any letter this si
 #~ msgstr "Per GB stored, monthly"
 
 #: src/components/dashboard/dashboard-shell.tsx:83
-#: src/routes/dashboard.performance.tsx:52
+#: src/features/analytics/performance-page.tsx:46
 msgid "Performance"
 msgstr "Performance"
 
@@ -7332,7 +7332,7 @@ msgstr "Put it back"
 #~ msgid "Queue"
 #~ msgstr "Queue"
 
-#: src/routes/dashboard.usage.tsx:91
+#: src/features/analytics/usage-page.tsx:72
 msgid "Queue issues"
 msgstr "Queue issues"
 
@@ -7394,7 +7394,7 @@ msgstr "Read without an account: what is published, and nothing else."
 #~ msgid "Read-only access to the contents of the repositories you build, and nothing else. It is stored encrypted and never shown again."
 #~ msgstr "Read-only access to the contents of the repositories you build, and nothing else. It is stored encrypted and never shown again."
 
-#: src/routes/dashboard.usage.tsx:86
+#: src/features/analytics/usage-page.tsx:70
 msgid "Readers"
 msgstr "Readers"
 
@@ -7680,7 +7680,7 @@ msgstr "Report a problem"
 #~ msgid "Reset a password"
 #~ msgstr "Reset a password"
 
-#: src/routes/dashboard.performance.tsx:42
+#: src/features/analytics/performance-page.tsx:36
 msgid "Responds to input"
 msgstr "Responds to input"
 
@@ -7792,7 +7792,7 @@ msgstr "Said. Whoever runs this machine can see it."
 #~ msgid "Said. Whoever runs this server can see it."
 #~ msgstr "Said. Whoever runs this server can see it."
 
-#: src/routes/dashboard.performance.tsx:83
+#: src/features/analytics/performance-page.tsx:74
 msgid "Samples"
 msgstr "Samples"
 
@@ -7991,6 +7991,10 @@ msgstr "Section title"
 #: src/features/people/roles-page.tsx:395
 msgid "See {0}"
 msgstr "See {0}"
+
+#: src/features/analytics/performance-page.tsx:47
+msgid "See how quickly the published site responds for real visitors."
+msgstr "See how quickly the published site responds for real visitors."
 
 #: src/routes/console.themes.tsx:241
 #~ msgid "See it"
@@ -8668,7 +8672,7 @@ msgstr "Stopped"
 #~ msgid "Storage by kind"
 #~ msgstr "Storage by kind"
 
-#: src/routes/dashboard.usage.tsx:74
+#: src/features/analytics/usage-page.tsx:59
 msgid "Storage used"
 msgstr "Storage used"
 
@@ -8676,7 +8680,7 @@ msgstr "Storage used"
 #~ msgid "Storage, mail, builds and the queue — no price anywhere on it."
 #~ msgstr "Storage, mail, builds and the queue — no price anywhere on it."
 
-#: src/routes/dashboard.usage.tsx:68
+#: src/features/analytics/usage-page.tsx:54
 msgid "Storage, writings, readers and the queue — no price anywhere on it."
 msgstr "Storage, writings, readers and the queue — no price anywhere on it."
 
@@ -9173,7 +9177,7 @@ msgstr "The code"
 #~ msgid "the content is on its way — within the minute"
 #~ msgstr "the content is on its way — within the minute"
 
-#: src/routes/dashboard.visitors.tsx:91
+#: src/features/analytics/visitors-page.tsx:86
 msgid "The curve draws itself from the first visit on."
 msgstr "The curve draws itself from the first visit on."
 
@@ -9316,8 +9320,8 @@ msgstr "The most common shortcuts in the editor."
 msgid "The new one"
 msgstr "The new one"
 
+#: src/features/analytics/usage-page.tsx:42
 #: src/routes/dashboard.index.tsx:55
-#: src/routes/dashboard.usage.tsx:50
 msgid "The numbers could not be read just now."
 msgstr "The numbers could not be read just now."
 
@@ -9900,6 +9904,10 @@ msgstr "Typed without case: launch2026 and LAUNCH2026 are one code."
 msgid "Underline"
 msgstr "Underline"
 
+#: src/features/analytics/visitors-page.tsx:67
+msgid "Understand which pages are being read without keeping personal identities."
+msgstr "Understand which pages are being read without keeping personal identities."
+
 #: src/components/editor/dialogs.tsx:537
 #: src/components/editor/toolbar.tsx:184
 msgid "Undo"
@@ -10101,7 +10109,7 @@ msgstr "Videos"
 msgid "View"
 msgstr "View"
 
-#: src/routes/dashboard.visitors.tsx:86
+#: src/features/analytics/visitors-page.tsx:81
 msgid "Views by day"
 msgstr "Views by day"
 
@@ -10114,7 +10122,7 @@ msgstr "Views by day"
 #~ msgstr "Violet"
 
 #: src/components/dashboard/dashboard-shell.tsx:82
-#: src/routes/dashboard.visitors.tsx:72
+#: src/features/analytics/visitors-page.tsx:66
 msgid "Visitors"
 msgstr "Visitors"
 
@@ -10536,7 +10544,7 @@ msgstr "What they may reach"
 #~ msgid "What this form is for — only you see this"
 #~ msgstr "What this form is for — only you see this"
 
-#: src/routes/dashboard.usage.tsx:66
+#: src/features/analytics/usage-page.tsx:53
 msgid "What this is holding"
 msgstr "What this is holding"
 
@@ -11019,8 +11027,8 @@ msgstr "Writing"
 #~ msgid "writing the content — {0} parts done"
 #~ msgstr "writing the content — {0} parts done"
 
+#: src/features/analytics/usage-page.tsx:65
 #: src/routes/dashboard.index.tsx:72
-#: src/routes/dashboard.usage.tsx:80
 msgid "Writings"
 msgstr "Writings"
 

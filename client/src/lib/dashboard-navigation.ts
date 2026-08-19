@@ -60,7 +60,6 @@ export interface DashboardNavLabels {
   configure: string
   contentTypes: string
   languages: string
-  plugins: string
   people: string
   roles: string
   api: string
@@ -100,7 +99,6 @@ interface CreateNavigationInput {
     trash: LucideIcon
     contentTypes: LucideIcon
     languages: LucideIcon
-    plugins: LucideIcon
     people: LucideIcon
     roles: LucideIcon
     api: LucideIcon
@@ -307,13 +305,6 @@ export function createDashboardNavigation({
           "/dashboard/languages",
           labels.languages,
           icons.languages,
-          "settings"
-        ),
-        item(
-          "plugins",
-          "/dashboard/plugins",
-          labels.plugins,
-          icons.plugins,
           "settings"
         ),
         item(

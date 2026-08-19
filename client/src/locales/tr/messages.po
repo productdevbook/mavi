@@ -782,8 +782,8 @@ msgstr ""
 #~ msgstr "Derleme giriş yapmaz. Kendisine aşağıda üretilen CMS_TOKEN verilir; bu siteyi yalnızca okuyabilir — yani onun için hiçbir parola saklanmaz ve kayda düşen bir jeton hiçbir şeye mal olmaz."
 
 #: src/components/mcp-connection.tsx:91
-msgid "A build token can read this site and change nothing, so an assistant connected with one is offered only the tools that read: it will not be able to write a post, upload a file or publish. That is usually not what you want here — sign in above instead."
-msgstr "Derleme jetonu bu siteyi okur ve hiçbir şeyi değiştiremez; onunla bağlanan bir asistana yalnızca okuyan araçlar açılır — yazı yazamaz, dosya yükleyemez, yayına alamaz. Burada istediğiniz genelde bu değildir; yukarıdan giriş yapın."
+#~ msgid "A build token can read this site and change nothing, so an assistant connected with one is offered only the tools that read: it will not be able to write a post, upload a file or publish. That is usually not what you want here — sign in above instead."
+#~ msgstr "Derleme jetonu bu siteyi okur ve hiçbir şeyi değiştiremez; onunla bağlanan bir asistana yalnızca okuyan araçlar açılır — yazı yazamaz, dosya yükleyemez, yayına alamaz. Burada istediğiniz genelde bu değildir; yukarıdan giriş yapın."
 
 #: src/routes/dashboard.mail.tsx:384
 #~ msgid "A campaign"
@@ -860,9 +860,13 @@ msgstr "Ön yüz bunları ?kind={0} ile ister"
 #~ msgid "A key cannot reach the accounts on this site or the invitations to it, cannot make another key of any kind, cannot read the storage and mail settings or the backups, and cannot empty the bin or send a mail campaign."
 #~ msgstr "Anahtar, bu sitedeki hesaplara ve davetlere erişemez, hiçbir türde ikinci bir anahtar üretemez, depolama ve posta ayarlarını ya da yedekleri okuyamaz, çöp kutusunu boşaltamaz ve posta kampanyası gönderemez."
 
+#: src/features/integrations/api-page.tsx:142
+msgid "A key carries the grants of the person who made it. Name each one so it can be identified and revoked later."
+msgstr ""
+
 #: src/routes/dashboard.api.tsx:105
-msgid "A key that carries what you carry, expires by itself, and can be taken back. Nothing is written with it that the record does not say was written by an assistant."
-msgstr "Sizin taşıdığınızı taşıyan, kendiliğinden süresi dolan ve geri alınabilen bir anahtar. Onunla yazılan hiçbir şey kayıtta asistan tarafından yazıldığı belirtilmeden geçmez."
+#~ msgid "A key that carries what you carry, expires by itself, and can be taken back. Nothing is written with it that the record does not say was written by an assistant."
+#~ msgstr "Sizin taşıdığınızı taşıyan, kendiliğinden süresi dolan ve geri alınabilen bir anahtar. Onunla yazılan hiçbir şey kayıtta asistan tarafından yazıldığı belirtilmeden geçmez."
 
 #: src/routes/dashboard.api.tsx:146
 #~ msgid "A key went with it, until {until}"
@@ -1046,12 +1050,12 @@ msgid "A site writes in one language unless a post says otherwise, so there has 
 msgstr "Bir yazı aksini söylemedikçe site tek bir dilde yazar, o yüzden bir tanesi olmalı."
 
 #: src/routes/dashboard.plugins.tsx:56
-msgid "A site's own mail server, so what it sends comes from it rather than from whoever runs the machine."
-msgstr "Sitenin kendi posta sunucusu; böylece gönderilenler makineyi işletenden değil siteden gelir."
+#~ msgid "A site's own mail server, so what it sends comes from it rather than from whoever runs the machine."
+#~ msgstr "Sitenin kendi posta sunucusu; böylece gönderilenler makineyi işletenden değil siteden gelir."
 
 #: src/routes/dashboard.plugins.tsx:61
-msgid "A site's own payment provider. Card details never reach this machine: what is kept is how to ask."
-msgstr "Sitenin kendi ödeme sağlayıcısı. Kart bilgileri bu makineye hiç ulaşmaz: saklanan yalnızca nasıl soracağıdır."
+#~ msgid "A site's own payment provider. Card details never reach this machine: what is kept is how to ask."
+#~ msgstr "Sitenin kendi ödeme sağlayıcısı. Kart bilgileri bu makineye hiç ulaşmaz: saklanan yalnızca nasıl soracağıdır."
 
 #: src/routes/dashboard.flows.tsx:744
 #~ msgid "A step cannot lead back to itself or to one before it."
@@ -1077,6 +1081,10 @@ msgstr "Sitenin kendi ödeme sağlayıcısı. Kart bilgileri bu makineye hiç ul
 #: src/routes/console.themes.tsx:142
 #~ msgid "A theme becomes a repository of your own to push to, and the site builds from it."
 #~ msgstr "Bir tema, push edebileceğiniz kendi deponuz olur; site de ondan derlenir."
+
+#: src/components/mcp-connection.tsx:90
+msgid "A token carries the grants of the key that made it. Keep it private: anybody who has it can use the connection until you take that key back."
+msgstr ""
 
 #: src/routes/dashboard.boards.tsx:184
 #~ msgid "A workshop"
@@ -1575,8 +1583,8 @@ msgstr "Sabit tutar"
 #~ msgstr "bir asistan"
 
 #: src/routes/dashboard.api.tsx:101
-msgid "An assistant"
-msgstr "Bir asistan"
+#~ msgid "An assistant"
+#~ msgstr "Bir asistan"
 
 #: src/components/assistant-connection.tsx:191
 #~ msgid "An assistant given a build token instead will not appear here — nothing was allowed, and it can only read."
@@ -1716,8 +1724,8 @@ msgstr "Bu sitenin sırayla işlediği her şey: talepler, onarımlar, başvurul
 #~ msgid "Anything this site works through in stages: applications, enquiries, jobs. You decide what the stages are and what they are called."
 #~ msgstr "Bu sitenin aşama aşama yürüttüğü her şey: başvurular, talepler, işler. Aşamaların neler olduğuna ve nasıl adlandırılacağına siz karar verirsiniz."
 
-#: src/components/dashboard/dashboard-shell.tsx:114
-#: src/routes/dashboard.api.tsx:80
+#: src/components/dashboard/dashboard-shell.tsx:112
+#: src/features/integrations/api-page.tsx:111
 msgid "API"
 msgstr "API"
 
@@ -1884,7 +1892,11 @@ msgstr "Telefondaki gibi"
 #~ msgid "Asking for a bigger quota"
 #~ msgstr "Daha yüksek kota istemek"
 
-#: src/components/mcp-connection.tsx:70
+#: src/features/integrations/api-page.tsx:140
+msgid "Assistant keys"
+msgstr ""
+
+#: src/components/mcp-connection.tsx:69
 msgid "Assistants"
 msgstr "Asistanlar"
 
@@ -1908,7 +1920,7 @@ msgstr "En az on iki karakter. Bunu yaptığınızda açık olan diğer her şey
 #~ msgid "Attempted"
 #~ msgstr "Denenen"
 
-#: src/components/dashboard/dashboard-shell.tsx:91
+#: src/components/dashboard/dashboard-shell.tsx:90
 msgid "Automate"
 msgstr "Otomasyon"
 
@@ -2119,7 +2131,7 @@ msgstr "Mavi"
 msgid "board"
 msgstr "pano"
 
-#: src/components/dashboard/dashboard-shell.tsx:105
+#: src/components/dashboard/dashboard-shell.tsx:104
 #: src/features/boards/board-page.tsx:120
 #: src/features/boards/boards-page.tsx:106
 #: src/features/people/roles-page.tsx:161
@@ -2400,7 +2412,7 @@ msgstr "kart"
 msgid "Case sensitive"
 msgstr "Büyük/küçük harf duyarlı"
 
-#: src/components/dashboard/dashboard-shell.tsx:89
+#: src/components/dashboard/dashboard-shell.tsx:88
 #: src/components/editor/post-settings.tsx:246
 #: src/features/taxonomy/categories-page.tsx:148
 msgid "Categories"
@@ -2645,7 +2657,7 @@ msgstr "Komut menüsü"
 #~ msgid "Comments"
 #~ msgstr "Yorumlar"
 
-#: src/components/dashboard/dashboard-shell.tsx:95
+#: src/components/dashboard/dashboard-shell.tsx:94
 msgid "Commerce"
 msgstr "Ticaret"
 
@@ -2657,7 +2669,7 @@ msgstr "Ticaret"
 #~ msgid "Configuration set"
 #~ msgstr "Yapılandırma kümesi"
 
-#: src/components/dashboard/dashboard-shell.tsx:108
+#: src/components/dashboard/dashboard-shell.tsx:107
 msgid "Configure"
 msgstr "Yapılandır"
 
@@ -2704,7 +2716,7 @@ msgstr "Yapılandır"
 #~ msgid "Connecting from a terminal instead"
 #~ msgstr "Bunun yerine terminalden bağlanmak"
 
-#: src/components/mcp-connection.tsx:86
+#: src/components/mcp-connection.tsx:85
 msgid "Connecting with a token instead, from a terminal"
 msgstr "Bunun yerine terminalden, jetonla bağlanmak"
 
@@ -2738,7 +2750,7 @@ msgstr "Bu dilde yazılmış içerik varsa silme engellenir — ne kadar olduğu
 #~ msgid "Content deleted"
 #~ msgstr "İçerik silindi"
 
-#: src/components/dashboard/dashboard-shell.tsx:109
+#: src/components/dashboard/dashboard-shell.tsx:108
 msgid "Content types"
 msgstr "İçerik türleri"
 
@@ -2785,13 +2797,12 @@ msgstr "{0} ile devam et"
 #~ msgstr "Kopyalandı. Önümüzdeki iki saat çalışır."
 
 #: src/routes/dashboard.api.tsx:117
-msgid "Copied. Shown once."
-msgstr "Kopyalandı. Yalnızca bir kez gösterilir."
+#~ msgid "Copied. Shown once."
+#~ msgstr "Kopyalandı. Yalnızca bir kez gösterilir."
 
 #: src/components/assistant-clients.tsx:119
 #: src/components/editor/bubble-menus.tsx:325
 #: src/components/editor/dialogs.tsx:468
-#: src/routes/dashboard.api.tsx:37
 #: src/routes/dashboard.forms_.$formId.tsx:51
 msgid "Copy"
 msgstr "Kopyala"
@@ -2820,21 +2831,45 @@ msgstr "Kodu kopyala"
 msgid "Copy text"
 msgstr "Metni kopyala"
 
-#: src/components/mcp-connection.tsx:78
+#: src/components/mcp-connection.tsx:77
 msgid "Copy the address"
 msgstr "Adresi kopyala"
 
-#: src/components/mcp-connection.tsx:97
+#: src/components/mcp-connection.tsx:96
 msgid "Copy the command"
 msgstr "Komutu kopyala"
 
-#: src/components/mcp-connection.tsx:114
+#: src/components/mcp-connection.tsx:113
 msgid "Copy the configuration"
 msgstr "Ayarı kopyala"
+
+#: src/features/integrations/api-page.tsx:125
+#~ msgid "Copy the content types command"
+#~ msgstr ""
+
+#: src/features/integrations/api-page.tsx:172
+msgid "Copy the new key"
+msgstr ""
+
+#: src/features/integrations/api-page.tsx:125
+msgid "Copy the products command"
+msgstr ""
+
+#: src/features/integrations/api-page.tsx:121
+msgid "Copy the public site command"
+msgstr ""
+
+#: src/features/integrations/api-page.tsx:121
+#~ msgid "Copy the writings command"
+#~ msgstr ""
 
 #: src/routes/dashboard.media.tsx:285
 #~ msgid "Copy them now"
 #~ msgstr "Şimdi kopyala"
+
+#: src/features/integrations/api-page.tsx:168
+msgid "Copy this key now. It is shown once."
+msgstr ""
 
 #: src/routes/dashboard.api.tsx:126
 #~ msgid "Copy with a key for a day"
@@ -2921,7 +2956,8 @@ msgstr "Yazını farklı biçimlerde kopyala, indir veya Markdown yükle."
 #~ msgstr "Site durumu değiştirilemedi"
 
 #: src/components/assistant-clients.tsx:106
-#: src/components/mcp-connection.tsx:28
+#: src/components/mcp-connection.tsx:27
+#: src/features/integrations/api-page.tsx:31
 #: src/routes/dashboard.forms_.$formId.tsx:39
 msgid "Could not copy it"
 msgstr "Kopyalanamadı"
@@ -3332,7 +3368,7 @@ msgstr "Kapak önizlemesi"
 #~ msgid "Crawlers, kept apart"
 #~ msgstr "Tarayıcı botlar, ayrı tutulur"
 
-#: src/components/dashboard/dashboard-shell.tsx:84
+#: src/components/dashboard/dashboard-shell.tsx:83
 #: src/components/editor/mavi-editor.tsx:621
 #: src/components/editor/mavi-editor.tsx:879
 msgid "Create"
@@ -3412,7 +3448,7 @@ msgstr "El yazısı"
 msgid "Custom"
 msgstr "Özel"
 
-#: src/components/dashboard/dashboard-shell.tsx:87
+#: src/components/dashboard/dashboard-shell.tsx:86
 msgid "Custom content"
 msgstr "Özel içerik"
 
@@ -3614,7 +3650,7 @@ msgstr ""
 msgid "Description text shown in search results."
 msgstr "Arama sonuçlarında görünecek açıklama metni."
 
-#: src/components/dashboard/dashboard-shell.tsx:115
+#: src/components/dashboard/dashboard-shell.tsx:113
 #: src/features/design/design-page.tsx:62
 #: src/features/people/roles-page.tsx:162
 msgid "Design"
@@ -3666,7 +3702,7 @@ msgstr "Tasarım"
 #~ msgid "Discount code"
 #~ msgstr "İndirim kodu"
 
-#: src/components/dashboard/dashboard-shell.tsx:98
+#: src/components/dashboard/dashboard-shell.tsx:97
 #: src/features/shop/coupons-page.tsx:73
 msgid "Discount codes"
 msgstr "İndirim kodları"
@@ -4001,7 +4037,7 @@ msgstr "Her sitede yazılar ve sayfalar var. Yayınladığınız şeyin kendine 
 #~ msgid "Everything this panel does, something else can do. The address is the one you reached this site on — the same program serves every site, and the address is the whole of the difference."
 #~ msgstr "Bu panelin yaptığı her şeyi başka bir program da yapabilir. Adres, bu siteye ulaştığınız adrestir — aynı program her siteye hizmet eder, farkın tamamı adrestir."
 
-#: src/routes/dashboard.api.tsx:82
+#: src/features/integrations/api-page.tsx:112
 msgid "Everything this panel does, something else can do. The address is the one you reached this site on."
 msgstr ""
 
@@ -4145,7 +4181,7 @@ msgstr "akış"
 #~ msgid "Flow written"
 #~ msgstr "Akış yazıldı"
 
-#: src/components/dashboard/dashboard-shell.tsx:94
+#: src/components/dashboard/dashboard-shell.tsx:93
 #: src/features/automation/flows-page.tsx:135
 #: src/features/people/roles-page.tsx:158
 #: src/routes/dashboard.index.tsx:112
@@ -4169,6 +4205,10 @@ msgstr "Katlanabilir detay bloğu"
 #: src/components/editor/toolbar.tsx:250
 msgid "Font"
 msgstr "Yazı tipi"
+
+#: src/features/integrations/api-page.tsx:156
+msgid "For example, website assistant"
+msgstr ""
 
 #: src/routes/dashboard.students.tsx:394
 #~ msgid "For how long"
@@ -4199,7 +4239,6 @@ msgstr "Biri yazıp sorduğunda içindir. Tek bir adres altındaki her şey, bu 
 #~ msgstr "Hangi site için"
 
 #: src/components/editor/content-fields.tsx:141
-#: src/routes/dashboard.plugins.tsx:188
 msgid "Forget it"
 msgstr "Unut"
 
@@ -4212,7 +4251,6 @@ msgstr "Unut"
 #~ msgstr "Bu değeri unut"
 
 #: src/features/people/people-page.tsx:435
-#: src/routes/dashboard.plugins.tsx:69
 msgid "Forgotten."
 msgstr "Unutuldu."
 
@@ -4235,7 +4273,7 @@ msgstr "Biçim"
 msgid "Formatting"
 msgstr "Biçimlendirme"
 
-#: src/components/dashboard/dashboard-shell.tsx:92
+#: src/components/dashboard/dashboard-shell.tsx:91
 #: src/features/forms/forms-page.tsx:146
 #: src/features/people/roles-page.tsx:156
 #: src/routes/dashboard.forms_.$formId.tsx:135
@@ -4411,8 +4449,8 @@ msgstr "Yeşil"
 #~ msgstr "gri: gönderildi · kırmızı: ulaşmadı"
 
 #: src/routes/dashboard.api.tsx:112
-msgid "Hand one over"
-msgstr "Bir anahtar ver"
+#~ msgid "Hand one over"
+#~ msgstr "Bir anahtar ver"
 
 #: src/routes/dashboard.platform-mail.tsx:171
 #~ msgid "Handed out to sites: {handedOut} a day"
@@ -4527,7 +4565,7 @@ msgstr "Metni renkli vurgula"
 #~ msgid "History"
 #~ msgstr "Geçmiş"
 
-#: src/components/dashboard/dashboard-shell.tsx:79
+#: src/components/dashboard/dashboard-shell.tsx:78
 msgid "Home"
 msgstr "Ana sayfa"
 
@@ -4779,7 +4817,7 @@ msgstr "3x3 tablo ekle"
 msgid "Insert the current date as text"
 msgstr "Tarihi metne yaz"
 
-#: src/components/dashboard/dashboard-shell.tsx:81
+#: src/components/dashboard/dashboard-shell.tsx:80
 msgid "Insights"
 msgstr "İçgörüler"
 
@@ -4834,8 +4872,8 @@ msgid "issues found"
 msgstr ""
 
 #: src/routes/dashboard.plugins.tsx:75
-msgid "It answered."
-msgstr "Yanıt verdi."
+#~ msgid "It answered."
+#~ msgstr "Yanıt verdi."
 
 #: src/routes/console.index.tsx:148
 #~ msgid "It answers on the address you give it. Everything else — its people, its content, its design — is set up from inside it."
@@ -4900,8 +4938,8 @@ msgstr "Kargoya verildi"
 #~ msgstr "Az önce kopyaladığınız metnin içinde; bir daha gösterilmez. Anahtarı elinde tutan, süresi dolana kadar bu siteye yazabilir — yapıştırmayı düşündüğünüz yere yapıştırın, başka bir yere gittiyse aşağıdan geri alın."
 
 #: src/routes/dashboard.api.tsx:119
-msgid "It is kept as a hash and cannot be read again. If it is lost, hand over another and take this one back."
-msgstr "Özet olarak saklanır ve bir daha okunamaz. Kaybolursa yenisini verin ve bunu geri alın."
+#~ msgid "It is kept as a hash and cannot be read again. If it is lost, hand over another and take this one back."
+#~ msgstr "Özet olarak saklanır ve bir daha okunamaz. Kaybolursa yenisini verin ve bunu geri alın."
 
 #: src/routes/dashboard.plugins_.backup.tsx:740
 #~ msgid "It landed"
@@ -5056,8 +5094,8 @@ msgstr "Kaç gün saklanır"
 #~ msgstr "Mühürlü tutulur ve geri okunmaz. Bir adım adıyla çağırır; adın işaret ettiği yer burasıdır."
 
 #: src/routes/dashboard.plugins.tsx:148
-msgid "kept, and not read back"
-msgstr "saklanıyor, geri okunmuyor"
+#~ msgid "kept, and not read back"
+#~ msgstr "saklanıyor, geri okunmuyor"
 
 #: src/components/form-fields-editor.tsx:161
 #~ msgid "Key"
@@ -5085,7 +5123,7 @@ msgstr "Klavye kısayolları"
 msgid "Language"
 msgstr "Dil"
 
-#: src/components/dashboard/dashboard-shell.tsx:110
+#: src/components/dashboard/dashboard-shell.tsx:109
 #: src/routes/dashboard.languages.tsx:95
 msgid "Languages"
 msgstr "Diller"
@@ -5126,6 +5164,11 @@ msgstr "En büyük boyama"
 #~ msgid "Last run {0}"
 #~ msgstr "Son çalışma {0}"
 
+#. placeholder {0}: new Date(key.last_seen_at).toLocaleString()
+#: src/features/integrations/api-page.tsx:197
+msgid "Last used {0}"
+msgstr ""
+
 #: src/routes/dashboard.flows.tsx:228
 #~ msgid "Lately"
 #~ msgstr "Son zamanlarda"
@@ -5134,7 +5177,7 @@ msgstr "En büyük boyama"
 msgid "Layout shift"
 msgstr "Yerleşim kayması"
 
-#: src/components/dashboard/dashboard-shell.tsx:100
+#: src/components/dashboard/dashboard-shell.tsx:99
 msgid "Learning"
 msgstr "Eğitim"
 
@@ -5223,7 +5266,7 @@ msgstr "Yeniden içeri al"
 #~ msgid "Letterhead"
 #~ msgstr "Antet"
 
-#: src/components/dashboard/dashboard-shell.tsx:99
+#: src/components/dashboard/dashboard-shell.tsx:98
 #: src/routes/dashboard.letters.tsx:109
 msgid "Letters"
 msgstr "Mektuplar"
@@ -5341,11 +5384,10 @@ msgstr "Küçük harf, harf, rakam ve tire. Bir kişinin hesabı bunun altında 
 #~ msgid "Made in the channel's own settings, under incoming webhooks. Anybody holding it can post to that channel, so it is treated as a password and kept out of the run record."
 #~ msgstr "Kanalın kendi ayarlarında, gelen webhook'lar altında üretilir. Elinde tutan herkes o kanala mesaj atabilir; bu yüzden parola gibi davranılır ve çalıştırma kaydına yazılmaz."
 
-#: src/components/dashboard/dashboard-shell.tsx:93
+#: src/components/dashboard/dashboard-shell.tsx:92
 #: src/features/people/roles-page.tsx:157
 #: src/routes/dashboard.mail_.campaigns.$campaignId.tsx:25
 #: src/routes/dashboard.mail.tsx:145
-#: src/routes/dashboard.plugins.tsx:55
 msgid "Mail"
 msgstr "Posta"
 
@@ -5382,6 +5424,10 @@ msgstr ""
 msgid "Mailing list"
 msgstr ""
 
+#: src/features/integrations/api-page.tsx:162
+msgid "Make a key"
+msgstr ""
+
 #: src/routes/dashboard.sites.tsx:559
 #~ msgid "Make a link"
 #~ msgstr "Bağlantı üret"
@@ -5413,6 +5459,10 @@ msgstr "Varsayılan yap"
 #: src/routes/dashboard.mail.tsx:275
 msgid "Make it"
 msgstr "Oluştur"
+
+#: src/features/integrations/api-page.tsx:184
+msgid "Make one when a terminal or deployment needs a non-browser connection."
+msgstr ""
 
 #: src/features/learning/start-teaching-page.tsx:101
 msgid "Make the course"
@@ -5500,7 +5550,7 @@ msgstr ""
 msgid "Measurements"
 msgstr "Ölçümler"
 
-#: src/components/dashboard/dashboard-shell.tsx:86
+#: src/components/dashboard/dashboard-shell.tsx:85
 #: src/features/people/roles-page.tsx:155
 msgid "Media"
 msgstr "Medya"
@@ -5641,6 +5691,7 @@ msgstr "Eğitimlerim"
 
 #: src/features/forms/forms-page.tsx:158
 #: src/features/forms/forms-page.tsx:243
+#: src/features/integrations/api-page.tsx:152
 #: src/features/learning/students-page.tsx:216
 #: src/features/people/people-page.tsx:321
 #: src/routes/dashboard.languages.tsx:117
@@ -5866,6 +5917,10 @@ msgstr "Henüz {many} yok"
 #: src/components/mail/account-choice.tsx:51
 #~ msgid "No Amazon account needed. Up to {aDay} messages a day, from your own domain."
 #~ msgstr "Amazon hesabı gerekmez. Günde {aDay} iletiye kadar, kendi alan adınızdan."
+
+#: src/features/integrations/api-page.tsx:183
+msgid "No assistant keys yet."
+msgstr ""
 
 #: src/routes/dashboard.plugins_.backup.tsx:492
 #~ msgid "No backups yet"
@@ -6120,7 +6175,6 @@ msgstr "Henüz kimse yok"
 #~ msgstr "Henüz yok. Adresi olmayan siteye kimse ulaşamaz."
 
 #: src/features/settings/settings-page.tsx:394
-#: src/routes/dashboard.plugins.tsx:123
 msgid "Not answering"
 msgstr "Yanıt vermiyor"
 
@@ -6178,8 +6232,8 @@ msgstr "Satışta değil"
 #~ msgstr "Tanımlı değil"
 
 #: src/routes/dashboard.plugins.tsx:119
-msgid "Not set up"
-msgstr "Kurulmadı"
+#~ msgid "Not set up"
+#~ msgstr "Kurulmadı"
 
 #: src/components/plugin-forms.tsx:354
 #~ msgid "Not set yet"
@@ -6188,6 +6242,10 @@ msgstr "Kurulmadı"
 #: src/routes/dashboard.students.tsx:132
 #~ msgid "Not started yet"
 #~ msgstr "Henüz başlamadı"
+
+#: src/features/integrations/api-page.tsx:198
+msgid "Not used yet"
+msgstr ""
 
 #: src/routes/dashboard.platform-mail.tsx:207
 #~ msgid "Not using the service"
@@ -6260,8 +6318,8 @@ msgstr "Hiçbir şey silinmedi"
 #~ msgstr "Kimseye hiçbir şey verilmedi. Bu sayfayı kapatabilirsiniz."
 
 #: src/routes/dashboard.api.tsx:134
-msgid "Nothing has been handed over."
-msgstr "Henüz anahtar verilmedi."
+#~ msgid "Nothing has been handed over."
+#~ msgstr "Henüz anahtar verilmedi."
 
 #: src/routes/dashboard.transfers.tsx:142
 #~ msgid "Nothing has been moved yet."
@@ -6489,7 +6547,6 @@ msgstr "Numaralı liste"
 #~ msgstr "kapalı"
 
 #: src/features/settings/settings-page.tsx:172
-#: src/routes/dashboard.plugins.tsx:116
 msgid "Off"
 msgstr "Kapalı"
 
@@ -6815,7 +6872,7 @@ msgstr "Hesabı aç"
 #~ msgid "Opens the status page in a new tab"
 #~ msgstr "Durum sayfasını yeni sekmede açar"
 
-#: src/components/dashboard/dashboard-shell.tsx:104
+#: src/components/dashboard/dashboard-shell.tsx:103
 msgid "Operations"
 msgstr "İşlemler"
 
@@ -6858,7 +6915,7 @@ msgstr "Sipariş #{0}"
 #~ msgid "Order received"
 #~ msgstr "Sipariş alındı"
 
-#: src/components/dashboard/dashboard-shell.tsx:97
+#: src/components/dashboard/dashboard-shell.tsx:96
 #: src/features/shop/orders-page.tsx:136
 #: src/routes/dashboard.index.tsx:106
 msgid "Orders"
@@ -6872,7 +6929,7 @@ msgstr ""
 msgid "Orders will appear here after a customer completes checkout."
 msgstr ""
 
-#: src/components/dashboard/dashboard-shell.tsx:88
+#: src/components/dashboard/dashboard-shell.tsx:87
 msgid "Organize"
 msgstr "Düzenle"
 
@@ -6901,7 +6958,7 @@ msgstr ""
 #~ msgid "over {0} days"
 #~ msgstr "{0} gün içinde"
 
-#: src/components/dashboard/dashboard-shell.tsx:80
+#: src/components/dashboard/dashboard-shell.tsx:79
 #: src/routes/dashboard.index.tsx:66
 msgid "Overview"
 msgstr "Özet"
@@ -6994,7 +7051,7 @@ msgstr "Parolalar, anahtarlar ve token'lar buraya hiç yazılmaz — bir kayıt 
 msgid "Paste an image address, drag and drop one, or pick from your media library."
 msgstr "Bir görsel adresi yapıştırın, sürükleyip bırakın veya medya kütüphanenizden seçin."
 
-#: src/components/mcp-connection.tsx:81
+#: src/components/mcp-connection.tsx:80
 msgid "Paste it wherever a program asks for a server address and nothing else. You will be sent here to sign in and asked whether to allow it, and it will then be able to do what you can — writing included. This is the way to connect."
 msgstr "Bir program sunucu adresi istediğinde yalnızca bunu yapıştırın. Giriş yapmak üzere buraya yönlendirilir, izin verip vermeyeceğiniz sorulur; ardından sizin yapabildiklerinizi yapabilir — yazmak dahil. Bağlanmanın yolu budur."
 
@@ -7043,10 +7100,10 @@ msgstr "Video bağlantısını yapıştır."
 #~ msgstr "Ödeme alınamadı"
 
 #: src/routes/dashboard.plugins.tsx:60
-msgid "Payments"
-msgstr "Ödemeler"
+#~ msgid "Payments"
+#~ msgstr "Ödemeler"
 
-#: src/components/dashboard/dashboard-shell.tsx:112
+#: src/components/dashboard/dashboard-shell.tsx:110
 #: src/features/people/people-page.tsx:167
 #: src/features/people/roles-page.tsx:164
 msgid "People"
@@ -7068,7 +7125,7 @@ msgstr "Kişiler kendi sayfalarınızdan katılır ve sitenin gönderdiği herha
 #~ msgid "Per GB stored, monthly"
 #~ msgstr "Depolanan GB başına, aylık"
 
-#: src/components/dashboard/dashboard-shell.tsx:83
+#: src/components/dashboard/dashboard-shell.tsx:82
 #: src/features/analytics/performance-page.tsx:46
 msgid "Performance"
 msgstr "Performans"
@@ -7145,8 +7202,8 @@ msgstr "Düz metin bloğu"
 
 #: src/components/dashboard/dashboard-shell.tsx:111
 #: src/routes/dashboard.plugins.tsx:88
-msgid "Plugins"
-msgstr "Eklentiler"
+#~ msgid "Plugins"
+#~ msgstr "Eklentiler"
 
 #: src/routes/dashboard.platform-billing.tsx:157
 #~ msgid "Point Stripe's webhook at /api/billing/payments/stripe on this server's own address."
@@ -7165,7 +7222,7 @@ msgstr "Eklentiler"
 #~ msgid "Port"
 #~ msgstr "Port"
 
-#: src/components/dashboard/dashboard-shell.tsx:75
+#: src/components/dashboard/dashboard-shell.tsx:74
 #: src/components/editor/post-settings.tsx:477
 #: src/features/governance/trash-page.tsx:62
 msgid "post"
@@ -7219,7 +7276,7 @@ msgstr "yazi-adresi"
 #~ msgid "Postcode"
 #~ msgstr "Posta kodu"
 
-#: src/components/dashboard/dashboard-shell.tsx:85
+#: src/components/dashboard/dashboard-shell.tsx:84
 #: src/lib/use-content-types.ts:71
 msgid "Posts"
 msgstr "Yazılar"
@@ -7257,7 +7314,7 @@ msgstr "Önceki"
 msgid "product"
 msgstr "ürün"
 
-#: src/components/dashboard/dashboard-shell.tsx:96
+#: src/components/dashboard/dashboard-shell.tsx:95
 #: src/features/shop/products-page.tsx:124
 msgid "Products"
 msgstr "Ürünler"
@@ -7266,7 +7323,7 @@ msgstr "Ürünler"
 #~ msgid "Public base URL"
 #~ msgstr "Genel URL tabanı"
 
-#: src/components/dashboard/dashboard-shell.tsx:118
+#: src/components/dashboard/dashboard-shell.tsx:116
 #: src/components/editor/mavi-editor.tsx:684
 #: src/features/design/design-page.tsx:89
 #: src/features/design/publish-page.tsx:44
@@ -7335,7 +7392,7 @@ msgstr "Yayınlanıyor."
 msgid "Purple"
 msgstr "Mor"
 
-#: src/components/mcp-connection.tsx:119
+#: src/components/mcp-connection.tsx:118
 msgid "Put a token where the … is. It is shown once, when you make it."
 msgstr "… yerine bir jeton koyun. Jeton yalnızca üretildiği anda gösterilir."
 
@@ -7410,7 +7467,7 @@ msgstr "Bir kopya oku"
 #~ msgid "Read this before offering the theme. A package that quietly left half a site behind looks exactly like one that did not."
 #~ msgstr "Temayı sunmadan önce bunu okuyun. Sitenin yarısını sessizce geride bırakan bir paket, bırakmayanla birebir aynı görünür."
 
-#: src/routes/dashboard.api.tsx:92
+#: src/features/integrations/api-page.tsx:118
 msgid "Read without an account: what is published, and nothing else."
 msgstr "Hesapsız okunur: yalnızca yayında olanlar."
 
@@ -7750,7 +7807,7 @@ msgstr "Rol değiştirildi"
 msgid "Role made"
 msgstr "Rol oluşturuldu"
 
-#: src/components/dashboard/dashboard-shell.tsx:113
+#: src/components/dashboard/dashboard-shell.tsx:111
 #: src/features/people/roles-page.tsx:273
 msgid "Roles"
 msgstr "Roller"
@@ -7835,7 +7892,6 @@ msgstr ""
 #: src/features/taxonomy/categories-page.tsx:281
 #: src/features/taxonomy/tags-page.tsx:181
 #: src/routes/dashboard.letters.tsx:208
-#: src/routes/dashboard.plugins.tsx:171
 msgid "Save"
 msgstr "Kaydet"
 
@@ -7880,7 +7936,6 @@ msgstr "Kaydet"
 #: src/features/settings/settings-page.tsx:47
 #: src/features/shop/coupons-page.tsx:165
 #: src/routes/dashboard.letters.tsx:80
-#: src/routes/dashboard.plugins.tsx:81
 msgid "Saved"
 msgstr "Kaydedildi"
 
@@ -8296,7 +8351,7 @@ msgstr "Kur"
 #~ msgid "Setting it up, field by field:"
 #~ msgstr "Alan alan kurulumu:"
 
-#: src/components/dashboard/dashboard-shell.tsx:116
+#: src/components/dashboard/dashboard-shell.tsx:114
 #: src/features/people/roles-page.tsx:165
 msgid "Settings"
 msgstr "Ayarlar"
@@ -8608,7 +8663,7 @@ msgstr "Aşamalar"
 #~ msgid "Start"
 #~ msgstr "Başla"
 
-#: src/components/dashboard/dashboard-shell.tsx:101
+#: src/components/dashboard/dashboard-shell.tsx:100
 msgid "Start a course"
 msgstr "Bir eğitim başlatın"
 
@@ -8743,7 +8798,7 @@ msgstr "Üstü çizili"
 #~ msgid "Strong"
 #~ msgstr "Güçlü"
 
-#: src/components/dashboard/dashboard-shell.tsx:103
+#: src/components/dashboard/dashboard-shell.tsx:102
 #: src/features/learning/course-page.tsx:241
 #: src/features/learning/students-page.tsx:74
 #: src/routes/dashboard.index.tsx:100
@@ -8834,8 +8889,8 @@ msgid "switched on"
 msgstr "açık"
 
 #: src/routes/dashboard.plugins.tsx:116
-msgid "Switched on"
-msgstr "Açık"
+#~ msgid "Switched on"
+#~ msgstr "Açık"
 
 #: src/routes/dashboard.plugins_.email.tsx:186
 #~ msgid "Switched on. Add the domain you send from below."
@@ -8886,7 +8941,7 @@ msgstr "İçindekiler"
 #~ msgid "Tagline"
 #~ msgstr "Slogan"
 
-#: src/components/dashboard/dashboard-shell.tsx:90
+#: src/components/dashboard/dashboard-shell.tsx:89
 #: src/components/editor/post-settings.tsx:298
 #: src/features/taxonomy/tags-page.tsx:119
 msgid "Tags"
@@ -8922,8 +8977,8 @@ msgstr "{email} hakkında bu sitenin tuttuğu her şey silinsin mi? Ödenenler k
 #~ msgstr "Kaldır"
 
 #: src/routes/dashboard.api.tsx:152
-msgid "Take it back"
-msgstr "Geri al"
+#~ msgid "Take it back"
+#~ msgstr "Geri al"
 
 #: src/routes/dashboard.balances.tsx:184
 #~ msgid "Take it off instead"
@@ -8945,13 +9000,18 @@ msgstr "Sepetten çıkar"
 msgid "Take them down"
 msgstr "Yayından kaldır"
 
+#: src/features/integrations/api-page.tsx:204
+#: src/features/integrations/api-page.tsx:205
+msgid "Take this key back"
+msgstr ""
+
 #: src/routes/dashboard.plugins_.backup.tsx:531
 #~ msgid "Take this site away"
 #~ msgstr "Bu siteyi yanınıza alın"
 
 #: src/routes/dashboard.api.tsx:147
-msgid "Taken back"
-msgstr "Geri alındı"
+#~ msgid "Taken back"
+#~ msgstr "Geri alındı"
 
 #: src/features/forms/forms-page.tsx:271
 msgid "Taking answers"
@@ -9270,6 +9330,18 @@ msgstr "Formlar ekranı boş"
 #~ msgid "The host is still preparing this one. It can be saved now and will play when it is done."
 #~ msgstr "Sunucu bunu hâlâ hazırlıyor. Şimdi kaydedebilirsiniz; hazır olunca oynar."
 
+#: src/features/integrations/api-page.tsx:86
+msgid "The key was made."
+msgstr ""
+
+#: src/features/integrations/api-page.tsx:100
+msgid "The key was taken back."
+msgstr ""
+
+#: src/features/integrations/api-page.tsx:179
+msgid "The keys could not be read just now."
+msgstr ""
+
 #: src/routes/dashboard.api.tsx:228
 #~ msgid "The languages this site writes in."
 #~ msgstr "Bu sitenin yazdığı diller."
@@ -9413,6 +9485,10 @@ msgstr "Eklediğiniz ekran görüntüsü"
 #: src/components/setup/setup-wizard.tsx:305
 #~ msgid "The server is taking longer than expected to restart. Reload this page in a moment."
 #~ msgstr "Sunucunun yeniden başlaması beklenenden uzun sürüyor. Bir süre sonra bu sayfayı yenileyin."
+
+#: src/features/integrations/api-page.tsx:170
+msgid "The server stores only a hash. If this value is lost, revoke the key and make another."
+msgstr ""
 
 #: src/routes/console.billing.tsx:163
 #~ msgid "The server's tariff"
@@ -9578,7 +9654,7 @@ msgstr "Artık oturum açamaz. Yazdıkları kalır, kayıttaki yaptıkları da k
 #~ msgid "this address"
 #~ msgstr "bu adres"
 
-#: src/components/mcp-connection.tsx:72
+#: src/components/mcp-connection.tsx:71
 msgid "This address answers the Model Context Protocol, so an assistant can be pointed at it and asked to do the work rather than told how."
 msgstr "Bu adres Model Context Protocol konuşur; bir asistanı buraya yöneltip nasıl yapılacağını anlatmak yerine işi doğrudan isteyebilirsiniz."
 
@@ -9887,8 +9963,8 @@ msgstr "Çeviriler"
 #~ msgstr "Tekrar dene"
 
 #: src/routes/dashboard.plugins.tsx:179
-msgid "Try it"
-msgstr "Dene"
+#~ msgid "Try it"
+#~ msgstr "Dene"
 
 #: src/components/editor/block-handle.tsx:163
 msgid "Turn into"
@@ -9966,10 +10042,8 @@ msgstr "Değişiklik bekleniyor"
 msgid "Untick"
 msgstr "Seçimi bırak"
 
-#. placeholder {0}: new Date(key.expires_at).toLocaleString()
 #. placeholder {0}: new Date(row.expires_at).toLocaleDateString()
 #: src/features/shop/coupons-page.tsx:113
-#: src/routes/dashboard.api.tsx:142
 msgid "until {0}"
 msgstr "{0} tarihine kadar"
 
@@ -10046,7 +10120,7 @@ msgstr "Yüklenenler"
 msgid "URL"
 msgstr "URL"
 
-#: src/components/dashboard/dashboard-shell.tsx:117
+#: src/components/dashboard/dashboard-shell.tsx:115
 msgid "Usage"
 msgstr "Kullanım"
 
@@ -10132,7 +10206,7 @@ msgstr "Kullanım"
 #~ msgid "Video settings"
 #~ msgstr "Video ayarları"
 
-#: src/components/dashboard/dashboard-shell.tsx:102
+#: src/components/dashboard/dashboard-shell.tsx:101
 #: src/routes/dashboard.videos.tsx:85
 msgid "Videos"
 msgstr "Videolar"
@@ -10153,7 +10227,7 @@ msgstr "Güne göre görüntülenme"
 #~ msgid "Violet"
 #~ msgstr "Mor"
 
-#: src/components/dashboard/dashboard-shell.tsx:82
+#: src/components/dashboard/dashboard-shell.tsx:81
 #: src/features/analytics/visitors-page.tsx:66
 msgid "Visitors"
 msgstr "Ziyaretçiler"
@@ -10382,7 +10456,7 @@ msgstr "Altındaki içerik kalır; yalnızca bu etiketle ilişkisi biter."
 #~ msgid "What is live"
 #~ msgstr "Yayında olan"
 
-#: src/routes/dashboard.api.tsx:90
+#: src/features/integrations/api-page.tsx:116
 msgid "What is published"
 msgstr "Yayında olanlar"
 
@@ -10593,8 +10667,8 @@ msgstr "Bunun tuttukları"
 #~ msgstr "Bu sitenin bu ay kullandığı ve bunun için borcu."
 
 #: src/routes/dashboard.plugins.tsx:90
-msgid "What this site plugs into. Anything not here is not something it can be made to talk to."
-msgstr "Bu sitenin bağlandığı şeyler. Burada olmayan bir şeyle konuşturulamaz."
+#~ msgid "What this site plugs into. Anything not here is not something it can be made to talk to."
+#~ msgstr "Bu sitenin bağlandığı şeyler. Burada olmayan bir şeyle konuşturulamaz."
 
 #: src/routes/dashboard.content-types.tsx:61
 msgid "What this site publishes"

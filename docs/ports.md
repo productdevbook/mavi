@@ -44,11 +44,21 @@ and what it says. How mail leaves a machine is not its business, and a host
 that already sends mail should not gain a second way to.
 
 The worker hands the adapter a `MailDeliveryRequest`, not only rendered text.
-It contains the site-scoped delivery id, durable attempt number and optional
-idempotency key. The worker commits the lease before calling the adapter and
-records the provider receipt or retry afterwards. A provider can therefore
-deduplicate a retry without receiving a database handle or learning anything
-about another site.
+It contains the site-scoped delivery id, durable attempt number, delivery
+purpose, optional idempotency key and a protected campaign unsubscribe URL.
+Campaign adapters emit that URL as `List-Unsubscribe` and
+`List-Unsubscribe-Post`; transactional adapters must not invent one. The
+worker commits the lease before calling the adapter and records the provider
+receipt or retry afterwards. A provider can therefore deduplicate a retry
+without receiving a database handle or learning anything about another site.
+
+The self-host composition root includes an HTTPS webhook adapter when
+`MAVI_MAIL_WEBHOOK_URL` is set. Its request and response contract is deliberately
+small: it receives the typed delivery metadata and returns JSON
+`{"reference":"..."}`. SMTP or a vendor SDK can sit behind that endpoint
+without entering the Mavi domain crates. If the variable is absent, the
+runtime uses a fail-closed adapter and leaves an auditable retry/dead state
+rather than silently dropping mail.
 
 ## Why building is a port and not an option
 

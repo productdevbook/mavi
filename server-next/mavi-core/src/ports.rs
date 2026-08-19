@@ -37,6 +37,26 @@ pub trait Mailer: Debug + Send + Sync {
     ) -> BoxFuture<'a, Result<MailDeliveryReceipt>>;
 }
 
+/// Whether a provider-facing message is a one-to-one system message or a
+/// list delivery. Providers use this to apply the correct deliverability
+/// policy without inspecting template text.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MailDeliveryPurpose {
+    Transactional,
+    Campaign,
+}
+
+impl MailDeliveryPurpose {
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Transactional => "transactional",
+            Self::Campaign => "campaign",
+        }
+    }
+}
+
 /// The complete provider-facing contract for one outbox attempt.
 ///
 /// Providers must use `delivery_id` and the optional idempotency key when the
@@ -50,6 +70,7 @@ pub struct MailDeliveryRequest {
     pub delivery_id: MailDeliveryId,
     pub attempt_number: u16,
     pub idempotency_key: Option<String>,
+    pub purpose: MailDeliveryPurpose,
     pub message: MailMessage,
 }
 
@@ -59,6 +80,10 @@ pub struct MailMessage {
     pub subject: String,
     pub body: String,
     pub content_type: MailContentType,
+    /// A bearer URL for list deliveries. Provider adapters should emit it as
+    /// `List-Unsubscribe` and `List-Unsubscribe-Post`; it is never exposed by
+    /// the administrative delivery DTO.
+    pub unsubscribe_url: Option<String>,
 }
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]

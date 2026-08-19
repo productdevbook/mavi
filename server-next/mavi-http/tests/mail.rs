@@ -118,6 +118,16 @@ async fn mail_routes_validate_templates_lists_unsubscribe_and_provider_neutral_o
     .await;
     assert_eq!(unknown_unsubscribe.status(), StatusCode::OK);
 
+    let settings = send(
+        &app,
+        Method::PATCH,
+        "/api/v1/settings",
+        Some(&owner_token),
+        Some(json!({"canonical_url": "https://mail.example.test"})),
+    )
+    .await;
+    assert_eq!(settings.status(), StatusCode::OK);
+
     let delivery = send(
         &app,
         Method::POST,

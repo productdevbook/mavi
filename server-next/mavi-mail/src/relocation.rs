@@ -33,6 +33,7 @@ pub struct MailRelocation {
     pub memberships: Vec<MailListMemberRelocation>,
     pub deliveries: Vec<MailDeliveryRelocation>,
     pub attempts: Vec<MailDeliveryAttemptRelocation>,
+    pub unsubscribe_tokens: Vec<MailUnsubscribeTokenRelocation>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -123,6 +124,18 @@ pub struct MailDeliveryAttemptRelocation {
     pub finished_at: Option<DateTime<Utc>>,
 }
 
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct MailUnsubscribeTokenRelocation {
+    pub id: Uuid,
+    pub delivery_id: Uuid,
+    pub reader_id: Uuid,
+    #[serde(with = "base64_bytes")]
+    pub token_hash: Vec<u8>,
+    pub created_at: DateTime<Utc>,
+    pub used_at: Option<DateTime<Utc>>,
+}
+
 impl MailRelocation {
     #[must_use]
     pub fn empty(source_site_id: SiteId) -> Self {
@@ -136,6 +149,7 @@ impl MailRelocation {
             memberships: Vec::new(),
             deliveries: Vec::new(),
             attempts: Vec::new(),
+            unsubscribe_tokens: Vec::new(),
         }
     }
 
@@ -157,6 +171,7 @@ impl MailRelocation {
             self.memberships.len(),
             self.deliveries.len(),
             self.attempts.len(),
+            self.unsubscribe_tokens.len(),
         ];
         if counts
             .iter()
@@ -281,6 +296,24 @@ impl MailRelocation {
             }
         }
 
+        let mut unsubscribe_token_ids = BTreeSet::new();
+        let mut unsubscribe_hashes = BTreeSet::new();
+        let mut unsubscribe_deliveries = BTreeSet::new();
+        for token in &self.unsubscribe_tokens {
+            if token.id.is_nil()
+                || !unsubscribe_token_ids.insert(token.id)
+                || !delivery_ids.contains(&token.delivery_id)
+                || !reader_ids.contains(&token.reader_id)
+                || token.token_hash.len() != 32
+                || !unsubscribe_hashes.insert(token.token_hash.as_slice())
+                || !unsubscribe_deliveries.insert(token.delivery_id)
+            {
+                return Err(MaviError::validation(
+                    "mail_relocation_unsubscribe_token_invalid",
+                ));
+            }
+        }
+
         let bytes = serde_json::to_vec(self).map_err(|_| MaviError::Internal)?;
         if bytes.len() > MAX_MAIL_RELOCATION_BYTES {
             return Err(MaviError::validation("mail_relocation_too_large"));
@@ -296,6 +329,7 @@ impl MailRelocation {
             self.memberships.len(),
             self.deliveries.len(),
             self.attempts.len(),
+            self.unsubscribe_tokens.len(),
         ]
         .into_iter()
         .try_fold(0usize, usize::checked_add)
@@ -420,6 +454,7 @@ impl MailService {
         .iter()
         .map(|row| {
             let status: String = row.try_get("status").map_err(|_| MaviError::Internal)?;
+            let purpose: String = row.try_get("purpose").map_err(|_| MaviError::Internal)?;
             let body_protected: bool = row
                 .try_get("body_protected")
                 .map_err(|_| MaviError::Internal)?;
@@ -440,8 +475,9 @@ impl MailService {
                 content_type: row
                     .try_get("content_type")
                     .map_err(|_| MaviError::Internal)?,
-                purpose: row.try_get("purpose").map_err(|_| MaviError::Internal)?,
-                status: normalize_protected_delivery_status(&status, body_protected).to_owned(),
+                purpose: purpose.clone(),
+                status: normalize_protected_delivery_status(&status, body_protected, &purpose)
+                    .to_owned(),
                 attempts: row.try_get("attempts").map_err(|_| MaviError::Internal)?,
                 available_at: row
                     .try_get("available_at")
@@ -503,6 +539,30 @@ impl MailService {
         })
         .collect::<Result<Vec<_>>>()?;
 
+        let unsubscribe_tokens = sqlx::query(
+            "select id, delivery_id, reader_id, token_hash, created_at, used_at
+               from mail_unsubscribe_tokens where site_id = $1
+              order by created_at asc, id asc",
+        )
+        .bind(context.site_id.into_uuid())
+        .fetch_all(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?
+        .iter()
+        .map(|row| {
+            Ok(MailUnsubscribeTokenRelocation {
+                id: row.try_get("id").map_err(|_| MaviError::Internal)?,
+                delivery_id: row
+                    .try_get("delivery_id")
+                    .map_err(|_| MaviError::Internal)?,
+                reader_id: row.try_get("reader_id").map_err(|_| MaviError::Internal)?,
+                token_hash: row.try_get("token_hash").map_err(|_| MaviError::Internal)?,
+                created_at: row.try_get("created_at").map_err(|_| MaviError::Internal)?,
+                used_at: row.try_get("used_at").map_err(|_| MaviError::Internal)?,
+            })
+        })
+        .collect::<Result<Vec<_>>>()?;
+
         let relocation = MailRelocation {
             format: MAIL_RELOCATION_FORMAT.to_owned(),
             version: MAIL_RELOCATION_VERSION,
@@ -513,6 +573,7 @@ impl MailService {
             memberships,
             deliveries,
             attempts,
+            unsubscribe_tokens,
         };
         relocation.validate_for_relocation(context.site_id)?;
         Ok(relocation)
@@ -633,6 +694,24 @@ impl MailService {
             .await
             .map_err(|_| MaviError::Internal)?;
             sqlx::query(
+                "delete from mail_delivery_links
+                  where site_id = $1 and delivery_id = $2",
+            )
+            .bind(context.site_id.into_uuid())
+            .bind(delivery.id)
+            .execute(tx.conn())
+            .await
+            .map_err(|_| MaviError::Internal)?;
+            sqlx::query(
+                "delete from mail_unsubscribe_tokens
+                  where site_id = $1 and delivery_id = $2",
+            )
+            .bind(context.site_id.into_uuid())
+            .bind(delivery.id)
+            .execute(tx.conn())
+            .await
+            .map_err(|_| MaviError::Internal)?;
+            sqlx::query(
                 "insert into mail_deliveries
                     (site_id, id, template_id, list_id, recipient, subject, body, body_protected,
                      content_type, purpose, status, attempts, available_at, lease_owner, lease_until,
@@ -666,6 +745,7 @@ impl MailService {
             .bind(normalize_protected_delivery_status(
                 &delivery.status,
                 delivery.body_protected,
+                &delivery.purpose,
             ))
             .bind(delivery.attempts)
             .bind(delivery.available_at)
@@ -708,6 +788,28 @@ impl MailService {
             .map_err(|error| map_write_error(&error))?;
         }
 
+        for token in &relocation.unsubscribe_tokens {
+            sqlx::query(
+                "insert into mail_unsubscribe_tokens
+                    (site_id, id, delivery_id, reader_id, token_hash, created_at, used_at)
+                 values ($1, $2, $3, $4, $5, $6, $7)
+                 on conflict (site_id, id) do update set
+                    delivery_id = excluded.delivery_id, reader_id = excluded.reader_id,
+                    token_hash = excluded.token_hash, created_at = excluded.created_at,
+                    used_at = excluded.used_at",
+            )
+            .bind(context.site_id.into_uuid())
+            .bind(token.id)
+            .bind(token.delivery_id)
+            .bind(token.reader_id)
+            .bind(&token.token_hash)
+            .bind(token.created_at)
+            .bind(token.used_at)
+            .execute(tx.conn())
+            .await
+            .map_err(|error| map_write_error(&error))?;
+        }
+
         AuditService
             .record(
                 tx,
@@ -723,6 +825,7 @@ impl MailService {
                         "memberships": relocation.memberships.len(),
                         "deliveries": relocation.deliveries.len(),
                         "attempts": relocation.attempts.len(),
+                        "unsubscribe_tokens": relocation.unsubscribe_tokens.len(),
                         "leases_reset": true,
                         "provider_credentials": "separate_capability",
                     }),
@@ -736,8 +839,13 @@ fn normalize_delivery_status(status: &str) -> &str {
     if status == "sending" { "retry" } else { status }
 }
 
-fn normalize_protected_delivery_status(status: &str, body_protected: bool) -> &str {
-    if body_protected && matches!(status, "queued" | "retry" | "sending") {
+fn normalize_protected_delivery_status<'a>(
+    status: &'a str,
+    body_protected: bool,
+    purpose: &str,
+) -> &'a str {
+    if (body_protected || purpose == "campaign") && matches!(status, "queued" | "retry" | "sending")
+    {
         "cancelled"
     } else {
         normalize_delivery_status(status)
@@ -844,7 +952,9 @@ fn map_write_error(error: &sqlx::Error) -> MaviError {
                     | "mail_templates_site_key_language_active"
                     | "mail_lists_site_slug_active"
                     | "mail_readers_site_email_active"
-                    | "mail_readers_site_unsubscribe_token",
+                    | "mail_readers_site_unsubscribe_token"
+                    | "mail_unsubscribe_tokens_site_token_hash"
+                    | "mail_unsubscribe_tokens_site_delivery",
             )
         )
     {
@@ -863,10 +973,17 @@ mod tests {
         assert_eq!(normalize_attempt_status("sending"), "retry");
         assert_eq!(normalize_delivery_status("sent"), "sent");
         assert_eq!(
-            normalize_protected_delivery_status("queued", true),
+            normalize_protected_delivery_status("queued", true, "transactional"),
             "cancelled"
         );
-        assert_eq!(normalize_protected_delivery_status("sent", true), "sent");
+        assert_eq!(
+            normalize_protected_delivery_status("sent", true, "transactional"),
+            "sent"
+        );
+        assert_eq!(
+            normalize_protected_delivery_status("queued", false, "campaign"),
+            "cancelled"
+        );
     }
 
     #[test]

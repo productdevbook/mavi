@@ -2597,6 +2597,7 @@ where
                     subject: "Reset your Mavi password".to_owned(),
                     body,
                     content_type: MailContentType::Plain,
+                    unsubscribe_url: None,
                 },
                 Some(&idempotency_key),
                 state.sealer.as_ref(),
@@ -2660,6 +2661,7 @@ where
                     subject: "Verify your Mavi email".to_owned(),
                     body,
                     content_type: MailContentType::Plain,
+                    unsubscribe_url: None,
                 },
                 Some(&idempotency_key),
                 state.sealer.as_ref(),
@@ -5479,7 +5481,13 @@ where
     let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
     let count = state
         .mail
-        .send_campaign(&mut transaction, &context, list_id, &input)
+        .send_campaign(
+            &mut transaction,
+            &context,
+            list_id,
+            &input,
+            state.sealer.as_ref(),
+        )
         .await
         .map_err(HttpError)?;
     transaction.commit().await.map_err(HttpError)?;

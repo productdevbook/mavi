@@ -521,6 +521,7 @@ impl MailService {
             subject: rendered.subject,
             body: rendered.body,
             content_type: rendered.content_type,
+            unsubscribe_url: None,
         })
     }
 }

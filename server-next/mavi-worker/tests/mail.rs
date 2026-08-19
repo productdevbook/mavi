@@ -71,6 +71,7 @@ async fn enqueue_message(
                 subject: "A queued message".to_owned(),
                 body: "The worker should deliver this.".to_owned(),
                 content_type: mavi_core::ports::MailContentType::Plain,
+                unsubscribe_url: None,
             },
             Some(key),
         )

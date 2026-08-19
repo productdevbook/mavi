@@ -452,7 +452,7 @@ msgstr ""
 
 #. placeholder {0}: hover.rows
 #. placeholder {1}: hover.cols
-#: src/components/editor/dialogs.tsx:356
+#: src/components/editor/dialogs.tsx:387
 msgid "{0} rows × {1} columns"
 msgstr "{0} satır × {1} sütun"
 
@@ -710,7 +710,7 @@ msgstr "{one} silindi"
 #~ msgid "{unread} not read yet"
 #~ msgstr "{unread} tanesi okunmadı"
 
-#: src/components/editor/dialogs.tsx:68
+#: src/components/editor/dialogs.tsx:77
 msgid "{uploaded, plural, one {# image added} other {# images added}}"
 msgstr "{uploaded, plural, one {# görsel eklendi} other {# görsel eklendi}}"
 
@@ -724,7 +724,7 @@ msgstr "{uploaded, plural, one {# görsel eklendi} other {# görsel eklendi}}"
 #~ msgid "{window} days"
 #~ msgstr "{window} gün"
 
-#: src/components/editor/dialogs.tsx:489
+#: src/components/editor/dialogs.tsx:520
 msgid "# Heading\n"
 "\n"
 "Paste your Markdown here…"
@@ -1160,7 +1160,7 @@ msgstr ""
 #~ msgid "Active"
 #~ msgstr "Etkin"
 
-#: src/components/editor/dialogs.tsx:206
+#: src/components/editor/dialogs.tsx:225
 #: src/features/boards/board-page.tsx:238
 #: src/features/learning/course-page.tsx:192
 #: src/features/mail/mail-page.tsx:221
@@ -1180,7 +1180,7 @@ msgstr "Alıntı bloğu ekle"
 msgid "Add a horizontal rule"
 msgstr "Yatay çizgi ekle"
 
-#: src/components/editor/dialogs.tsx:302
+#: src/components/editor/dialogs.tsx:325
 msgid "Add a hyperlink to the selected text."
 msgstr "Seçili metne köprü ekle."
 
@@ -1251,7 +1251,7 @@ msgstr "Sola sütun ekle"
 msgid "Add custom connector, and paste the address."
 msgstr "Özel bağlayıcı ekle deyin ve adresi yapıştırın."
 
-#: src/components/editor/dialogs.tsx:386
+#: src/components/editor/dialogs.tsx:417
 msgid "Add header row"
 msgstr "Başlık satırı ekle"
 
@@ -1259,7 +1259,7 @@ msgstr "Başlık satırı ekle"
 msgid "Add hyperlinked text"
 msgstr "Köprü metni ekle"
 
-#: src/components/editor/dialogs.tsx:139
+#: src/components/editor/dialogs.tsx:158
 msgid "Add image"
 msgstr "Görsel ekle"
 
@@ -1301,7 +1301,7 @@ msgstr "Kişi ekle"
 msgid "Add someone"
 msgstr "Kişi ekle"
 
-#: src/components/editor/dialogs.tsx:354
+#: src/components/editor/dialogs.tsx:385
 msgid "Add table"
 msgstr "Tablo ekle"
 
@@ -1338,7 +1338,7 @@ msgstr "Bunu doğrulayıcı uygulamanıza ekleyin, sonra gösterdiğini yazın."
 #~ msgid "Additional active sites cost $29/month when your plan's included slots are full. The $199 activation fee still applies to each newly created site."
 #~ msgstr "Planınızdaki dahil slotlar dolduğunda ek aktif siteler ayda 29 $ tutar. Yeni oluşturulan her site için 199 $ aktivasyon ücreti yine uygulanır."
 
-#: src/components/editor/dialogs.tsx:306
+#: src/components/editor/dialogs.tsx:329
 msgid "Address"
 msgstr "Adres"
 
@@ -1492,7 +1492,7 @@ msgstr ""
 
 #: src/components/editor/bubble-menus.tsx:390
 #: src/components/editor/bubble-menus.tsx:393
-#: src/components/editor/dialogs.tsx:194
+#: src/components/editor/dialogs.tsx:213
 msgid "Alt text"
 msgstr "Alternatif metin"
 
@@ -1703,7 +1703,7 @@ msgstr "Yanıt veriyor"
 #~ msgid "Anything"
 #~ msgstr "Herhangi biri"
 
-#: src/features/media/media-page.tsx:206
+#: src/features/media/media-page.tsx:188
 msgid "Anything already using it will stop showing it."
 msgstr "Bunu kullanan her yerde görünmeyi bırakır."
 
@@ -1769,7 +1769,7 @@ msgstr "Sonraki yayında gelir"
 #~ msgstr "Başvurular"
 
 #: src/components/editor/bubble-menus.tsx:267
-#: src/components/editor/dialogs.tsx:332
+#: src/components/editor/dialogs.tsx:359
 msgid "Apply"
 msgstr "Uygula"
 
@@ -2127,7 +2127,7 @@ msgstr "Blok menüsü"
 #~ msgid "Blocked"
 #~ msgstr "Engelli"
 
-#: src/components/editor/dialogs.tsx:523
+#: src/components/editor/dialogs.tsx:554
 #: src/components/editor/extensions/slash-command.tsx:129
 #: src/components/editor/extensions/slash-command.tsx:138
 #: src/components/editor/extensions/slash-command.tsx:147
@@ -2152,7 +2152,7 @@ msgid "Boards"
 msgstr "Panolar"
 
 #: src/components/editor/bubble-menus.tsx:122
-#: src/components/editor/dialogs.tsx:513
+#: src/components/editor/dialogs.tsx:544
 #: src/components/editor/toolbar.tsx:306
 msgid "Bold"
 msgstr "Kalın"
@@ -2262,7 +2262,7 @@ msgstr ""
 #~ msgid "Built-in integrations you can switch on and configure."
 #~ msgstr "Açıp yapılandırabileceğiniz yerleşik entegrasyonlar."
 
-#: src/components/editor/dialogs.tsx:527
+#: src/components/editor/dialogs.tsx:558
 #: src/components/editor/extensions/slash-command.tsx:100
 #: src/components/editor/toolbar.tsx:519
 msgid "Bullet list"
@@ -2368,9 +2368,9 @@ msgstr "{0} alanın {summary} tanesini açabilir."
 #~ msgstr "gönderebilir"
 
 #: src/components/dashboard/content-type-editor.tsx:229
-#: src/components/editor/dialogs.tsx:204
-#: src/components/editor/dialogs.tsx:244
-#: src/components/editor/dialogs.tsx:330
+#: src/components/editor/dialogs.tsx:223
+#: src/components/editor/dialogs.tsx:267
+#: src/components/editor/dialogs.tsx:357
 #: src/components/report-a-problem.tsx:236
 #: src/features/automation/flows-page.tsx:329
 #: src/features/boards/board-page.tsx:231
@@ -2384,7 +2384,7 @@ msgstr "{0} alanın {summary} tanesini açabilir."
 #: src/features/learning/students-page.tsx:246
 #: src/features/mail/mail-page.tsx:276
 #: src/features/mail/mail-page.tsx:340
-#: src/features/media/media-page.tsx:210
+#: src/features/media/media-page.tsx:192
 #: src/features/people/people-page.tsx:353
 #: src/features/people/people-page.tsx:377
 #: src/features/people/roles-page.tsx:454
@@ -2599,7 +2599,7 @@ msgstr ""
 #~ msgid "Clean the list before sending again"
 #~ msgstr "Yeniden göndermeden önce listeyi temizleyin"
 
-#: src/components/editor/dialogs.tsx:519
+#: src/components/editor/dialogs.tsx:550
 #: src/components/editor/toolbar.tsx:469
 msgid "Clear formatting"
 msgstr "Biçimi temizle"
@@ -2650,7 +2650,7 @@ msgstr "Kod"
 msgid "Code (en, de, pt-BR)"
 msgstr "Kod (tr, en, de)"
 
-#: src/components/editor/dialogs.tsx:531
+#: src/components/editor/dialogs.tsx:562
 #: src/components/editor/extensions/slash-command.tsx:136
 #: src/components/editor/toolbar.tsx:110
 #: src/components/editor/toolbar.tsx:572
@@ -2683,7 +2683,7 @@ msgstr "Sütun"
 #~ msgid "Coming back to it on {0}"
 #~ msgstr "{0} tarihinde dönülecek"
 
-#: src/components/editor/dialogs.tsx:541
+#: src/components/editor/dialogs.tsx:572
 msgid "Command menu"
 msgstr "Komut menüsü"
 
@@ -2836,7 +2836,7 @@ msgstr "İçerik türleri"
 
 #: src/components/assistant-clients.tsx:119
 #: src/components/editor/bubble-menus.tsx:325
-#: src/components/editor/dialogs.tsx:468
+#: src/components/editor/dialogs.tsx:499
 #: src/features/forms/form-detail-page.tsx:47
 msgid "Copy"
 msgstr "Kopyala"
@@ -2913,7 +2913,7 @@ msgstr ""
 #~ msgid "Copy without a key"
 #~ msgstr "Anahtarsız kopyala"
 
-#: src/components/editor/dialogs.tsx:442
+#: src/components/editor/dialogs.tsx:473
 msgid "Copy your post in different formats, download it, or import Markdown."
 msgstr "Yazını farklı biçimlerde kopyala, indir veya Markdown yükle."
 
@@ -3338,9 +3338,9 @@ msgstr "Kopyalanamadı"
 #~ msgstr "Dil güncellenemedi"
 
 #. placeholder {0}: file.name
-#: src/components/editor/dialogs.tsx:62
-#: src/components/editor/extensions/index.ts:176
-#: src/components/editor/extensions/index.ts:195
+#: src/components/editor/dialogs.tsx:71
+#: src/components/editor/extensions/index.ts:192
+#: src/components/editor/extensions/index.ts:213
 msgid "Could not upload {0}"
 msgstr "{0} yüklenemedi"
 
@@ -3561,8 +3561,8 @@ msgstr "Varsayılan"
 #: src/features/content/content-list.tsx:301
 #: src/features/content/content-list.tsx:325
 #: src/features/content/languages-page.tsx:164
-#: src/features/media/media-page.tsx:187
-#: src/features/media/media-page.tsx:212
+#: src/features/media/media-page.tsx:169
+#: src/features/media/media-page.tsx:194
 #: src/features/people/roles-page.tsx:172
 #: src/features/taxonomy/categories-page.tsx:308
 #: src/features/taxonomy/categories-page.tsx:334
@@ -3617,7 +3617,7 @@ msgstr "Bu {one} silinsin mi?"
 msgid "Delete this category?"
 msgstr "Bu kategori silinsin mi?"
 
-#: src/features/media/media-page.tsx:204
+#: src/features/media/media-page.tsx:186
 msgid "Delete this file?"
 msgstr "Bu dosya silinsin mi?"
 
@@ -3796,7 +3796,7 @@ msgstr "Yapıldı"
 msgid "Done."
 msgstr ""
 
-#: src/components/editor/dialogs.tsx:479
+#: src/components/editor/dialogs.tsx:510
 #: src/features/governance/audit-page.tsx:97
 msgid "Download"
 msgstr "İndir"
@@ -3891,7 +3891,7 @@ msgstr "Formu düzenle"
 #~ msgid "Edit theme"
 #~ msgstr "Temayı düzenle"
 
-#: src/components/editor/dialogs.tsx:535
+#: src/components/editor/dialogs.tsx:566
 msgid "Editing"
 msgstr "Düzenleme"
 
@@ -3921,7 +3921,7 @@ msgstr "E-posta"
 #~ msgid "emails sent"
 #~ msgstr "gönderilen e-posta"
 
-#: src/components/editor/dialogs.tsx:246
+#: src/components/editor/dialogs.tsx:269
 msgid "Embed"
 msgstr "Göm"
 
@@ -3929,7 +3929,7 @@ msgstr "Göm"
 msgid "Embed a video"
 msgstr "Video gömme ekle"
 
-#: src/components/editor/dialogs.tsx:543
+#: src/components/editor/dialogs.tsx:574
 msgid "Emoji"
 msgstr "Emoji"
 
@@ -4189,7 +4189,7 @@ msgstr ""
 #~ msgid "Find a field"
 #~ msgstr "Alan ara"
 
-#: src/components/editor/dialogs.tsx:540
+#: src/components/editor/dialogs.tsx:571
 #: src/components/editor/find-replace.tsx:73
 #: src/components/editor/toolbar.tsx:667
 msgid "Find and replace"
@@ -4234,7 +4234,7 @@ msgstr "akış"
 msgid "Flows"
 msgstr "Akışlar"
 
-#: src/components/editor/dialogs.tsx:549
+#: src/components/editor/dialogs.tsx:580
 #: src/components/editor/mavi-editor.tsx:520
 msgid "Focus mode"
 msgstr "Odak modu"
@@ -4315,7 +4315,7 @@ msgstr "form"
 msgid "Format"
 msgstr "Biçim"
 
-#: src/components/editor/dialogs.tsx:511
+#: src/components/editor/dialogs.tsx:542
 msgid "Formatting"
 msgstr "Biçimlendirme"
 
@@ -4370,7 +4370,7 @@ msgstr "Formlar"
 msgid "Full width"
 msgstr "Tam genişlik"
 
-#: src/components/editor/dialogs.tsx:550
+#: src/components/editor/dialogs.tsx:581
 #: src/components/editor/mavi-editor.tsx:535
 msgid "Fullscreen"
 msgstr "Tam ekran"
@@ -4525,7 +4525,7 @@ msgid "Header row"
 msgstr "Başlık satırı"
 
 #. placeholder {0}: node.attrs.level
-#: src/components/editor/extensions/index.ts:217
+#: src/components/editor/extensions/index.ts:242
 msgid "Heading {0}"
 msgstr "Başlık {0}"
 
@@ -4534,7 +4534,7 @@ msgstr "Başlık {0}"
 msgid "Heading 1"
 msgstr "Başlık 1"
 
-#: src/components/editor/dialogs.tsx:525
+#: src/components/editor/dialogs.tsx:556
 msgid "Heading 1–6"
 msgstr "Başlık 1–6"
 
@@ -4754,16 +4754,16 @@ msgstr "Görsel"
 msgid "Image (URL)"
 msgstr "Görsel (URL)"
 
-#: src/components/editor/dialogs.tsx:184
+#: src/components/editor/dialogs.tsx:203
 msgid "Image address"
 msgstr "Görsel adresi"
 
-#: src/components/editor/dialogs.tsx:452
+#: src/components/editor/dialogs.tsx:483
 #: src/features/portability/portable-page.tsx:101
 msgid "Import"
 msgstr "İçe aktar"
 
-#: src/components/editor/dialogs.tsx:440
+#: src/components/editor/dialogs.tsx:471
 #: src/components/editor/mavi-editor.tsx:543
 msgid "Import / export"
 msgstr "İçe / dışa aktar"
@@ -4850,7 +4850,7 @@ msgstr "Girintiyi artır"
 #~ msgid "Individual"
 #~ msgstr "Bireysel"
 
-#: src/components/editor/dialogs.tsx:517
+#: src/components/editor/dialogs.tsx:548
 #: src/components/editor/extensions/slash-command.tsx:241
 #: src/components/editor/toolbar.tsx:338
 msgid "Inline code"
@@ -5054,7 +5054,7 @@ msgstr "Kargoya verildi"
 #~ msgstr "Duracak. Şimdiye kadar yazdığı yerinde kalır."
 
 #: src/components/editor/bubble-menus.tsx:130
-#: src/components/editor/dialogs.tsx:514
+#: src/components/editor/dialogs.tsx:545
 #: src/components/editor/toolbar.tsx:314
 msgid "Italic"
 msgstr "İtalik"
@@ -5125,7 +5125,7 @@ msgstr "Anahtarı"
 msgid "Justify"
 msgstr "İki yana yasla"
 
-#: src/components/editor/extensions/index.ts:228
+#: src/components/editor/extensions/index.ts:253
 msgid "Keep going, type “/” to add a block…"
 msgstr "Devam et, “/” ile blok ekle…"
 
@@ -5157,7 +5157,7 @@ msgstr "Kaç gün saklanır"
 #~ msgid "Key"
 #~ msgstr "Anahtar"
 
-#: src/components/editor/dialogs.tsx:571
+#: src/components/editor/dialogs.tsx:602
 msgid "Keyboard shortcuts"
 msgstr "Klavye kısayolları"
 
@@ -5346,8 +5346,8 @@ msgid "Line height"
 msgstr "Satır aralığı"
 
 #: src/components/editor/bubble-menus.tsx:244
-#: src/components/editor/dialogs.tsx:301
-#: src/components/editor/dialogs.tsx:518
+#: src/components/editor/dialogs.tsx:324
+#: src/components/editor/dialogs.tsx:549
 #: src/components/editor/extensions/slash-command.tsx:210
 #: src/components/editor/toolbar.tsx:602
 msgid "Link"
@@ -5361,7 +5361,7 @@ msgstr "Bağlantı adresi"
 #~ msgid "Link copied. It works once."
 #~ msgstr "Bağlantı kopyalandı. Bir kez çalışır."
 
-#: src/components/editor/dialogs.tsx:321
+#: src/components/editor/dialogs.tsx:344
 msgid "Link text"
 msgstr "Bağlantı metni"
 
@@ -5388,7 +5388,7 @@ msgstr "Canlı"
 #~ msgid "Live from this site's own records — every message it sent and every file it holds. Billed when the month closes."
 #~ msgstr "Bu sitenin kendi kayıtlarından canlı — gönderdiği her ileti ve tuttuğu her dosya. Ay kapanınca faturalanır."
 
-#: src/components/editor/dialogs.tsx:156
+#: src/components/editor/dialogs.tsx:175
 msgid "Loading…"
 msgstr "Yükleniyor…"
 
@@ -5561,7 +5561,7 @@ msgstr "Bitti olarak işaretle"
 msgid "Mark selection as code"
 msgstr "Seçimi kod olarak işaretle"
 
-#: src/components/editor/dialogs.tsx:432
+#: src/components/editor/dialogs.tsx:463
 msgid "Markdown imported"
 msgstr "Markdown içeri aktarıldı"
 
@@ -5612,8 +5612,8 @@ msgstr "Ölçümler"
 msgid "Media"
 msgstr "Medya"
 
-#: src/components/editor/dialogs.tsx:150
-#: src/features/media/media-page.tsx:119
+#: src/components/editor/dialogs.tsx:169
+#: src/features/media/media-page.tsx:94
 msgid "Media library"
 msgstr "Medya kütüphanesi"
 
@@ -5629,7 +5629,7 @@ msgstr ""
 msgid "Medium section heading"
 msgstr "Orta bölüm başlığı"
 
-#: src/components/editor/dialogs.tsx:542
+#: src/components/editor/dialogs.tsx:573
 msgid "Mention someone"
 msgstr "Kişi etiketle"
 
@@ -6096,7 +6096,7 @@ msgstr ""
 msgid "No lists yet."
 msgstr "Henüz liste yok."
 
-#: src/components/editor/dialogs.tsx:160
+#: src/components/editor/dialogs.tsx:179
 msgid "No media uploaded yet"
 msgstr "Henüz medya yüklenmedi"
 
@@ -6191,7 +6191,7 @@ msgstr "Henüz etiket yok."
 #~ msgid "No videos yet"
 #~ msgstr "Henüz video yok"
 
-#: src/features/media/videos-page.tsx:116
+#: src/features/media/videos-page.tsx:98
 msgid "No videos yet."
 msgstr "Henüz video yok."
 
@@ -6530,7 +6530,7 @@ msgstr "Henüz satış yok."
 #~ msgid "Nothing to show"
 #~ msgstr "Gösterilecek bir şey yok"
 
-#: src/features/media/media-page.tsx:148
+#: src/features/media/media-page.tsx:135
 msgid "Nothing uploaded yet."
 msgstr "Henüz bir şey yüklenmedi."
 
@@ -6603,7 +6603,7 @@ msgstr "Henüz yok. Biri sizi bir eğitime eklediğinde burada görünür."
 #~ msgid "Number"
 #~ msgstr "Sayı"
 
-#: src/components/editor/dialogs.tsx:528
+#: src/components/editor/dialogs.tsx:559
 #: src/components/editor/extensions/slash-command.tsx:109
 #: src/components/editor/toolbar.tsx:527
 msgid "Numbered list"
@@ -6907,7 +6907,7 @@ msgstr "Aç"
 #~ msgid "Open an agency account"
 #~ msgstr "İşletme hesabı aç"
 
-#: src/components/editor/dialogs.tsx:326
+#: src/components/editor/dialogs.tsx:353
 msgid "Open in new tab"
 msgstr "Yeni sekmede aç"
 
@@ -7091,7 +7091,7 @@ msgstr ""
 msgid "Paid"
 msgstr "Ödendi"
 
-#: src/components/editor/dialogs.tsx:526
+#: src/components/editor/dialogs.tsx:557
 #: src/components/editor/extensions/slash-command.tsx:55
 #: src/components/editor/toolbar.tsx:102
 msgid "Paragraph"
@@ -7124,7 +7124,7 @@ msgstr "Parolalar, anahtarlar ve token'lar buraya hiç yazılmaz — bir kayıt 
 #~ msgid "Past their date"
 #~ msgstr "Tarihi geçen"
 
-#: src/components/editor/dialogs.tsx:141
+#: src/components/editor/dialogs.tsx:160
 msgid "Paste an image address, drag and drop one, or pick from your media library."
 msgstr "Bir görsel adresi yapıştırın, sürükleyip bırakın veya medya kütüphanenizden seçin."
 
@@ -7140,7 +7140,7 @@ msgstr "Bir program sunucu adresi istediğinde yalnızca bunu yapıştırın. Gi
 msgid "Paste the HTML here"
 msgstr "HTML'i buraya yapıştırın"
 
-#: src/components/editor/dialogs.tsx:233
+#: src/components/editor/dialogs.tsx:256
 msgid "Paste the video link."
 msgstr "Video bağlantısını yapıştır."
 
@@ -7385,6 +7385,10 @@ msgstr "Önceki"
 #~ msgid "Price, in the smallest unit"
 #~ msgstr "Fiyat, en küçük birimle"
 
+#: src/features/media/media-page.tsx:108
+msgid "Private"
+msgstr ""
+
 #: src/features/governance/trash-page.tsx:66
 msgid "product"
 msgstr "ürün"
@@ -7393,6 +7397,10 @@ msgstr "ürün"
 #: src/features/shop/products-page.tsx:124
 msgid "Products"
 msgstr "Ürünler"
+
+#: src/features/media/media-page.tsx:109
+msgid "Public"
+msgstr ""
 
 #: src/components/plugin-forms.tsx:127
 #~ msgid "Public base URL"
@@ -7496,7 +7504,7 @@ msgstr ""
 #~ msgid "Queue waiting"
 #~ msgstr "Kuyrukta bekleyen"
 
-#: src/components/editor/dialogs.tsx:530
+#: src/components/editor/dialogs.tsx:561
 #: src/components/editor/extensions/slash-command.tsx:127
 #: src/components/editor/toolbar.tsx:109
 #: src/components/editor/toolbar.tsx:564
@@ -7613,7 +7621,7 @@ msgstr "Kayıt"
 msgid "Red"
 msgstr "Kırmızı"
 
-#: src/components/editor/dialogs.tsx:538
+#: src/components/editor/dialogs.tsx:569
 #: src/components/editor/toolbar.tsx:192
 msgid "Redo"
 msgstr "İleri al"
@@ -7686,7 +7694,7 @@ msgstr "Düzenli ifade"
 #: src/features/forms/forms-page.tsx:466
 #: src/features/learning/course-page.tsx:139
 #: src/features/learning/course-page.tsx:164
-#: src/features/media/videos-page.tsx:140
+#: src/features/media/videos-page.tsx:122
 #: src/features/people/people-page.tsx:248
 #: src/features/people/people-page.tsx:379
 #: src/features/shop/coupons-page.tsx:122
@@ -7785,7 +7793,7 @@ msgstr "Değiştir"
 msgid "Replace all"
 msgstr "Tümünü değiştir"
 
-#: src/components/editor/dialogs.tsx:494
+#: src/components/editor/dialogs.tsx:525
 msgid "Replace content"
 msgstr "İçeriği değiştir"
 
@@ -8137,11 +8145,11 @@ msgstr "Arama ve Yapay Zekâ"
 #~ msgid "Secret key"
 #~ msgstr "Gizli anahtar"
 
-#: src/components/editor/extensions/index.ts:208
+#: src/components/editor/extensions/index.ts:233
 msgid "section"
 msgstr "bölüm"
 
-#: src/components/editor/extensions/index.ts:220
+#: src/components/editor/extensions/index.ts:245
 msgid "Section title"
 msgstr "Bölüm başlığı"
 
@@ -8174,7 +8182,7 @@ msgstr ""
 msgid "Select"
 msgstr "Seç"
 
-#: src/components/editor/dialogs.tsx:539
+#: src/components/editor/dialogs.tsx:570
 msgid "Select all"
 msgstr "Tümünü seç"
 
@@ -8481,7 +8489,7 @@ msgstr "Ayarlar, sonra Tools & MCP, sonra New MCP Server — aşağıdaki dosyay
 msgid "Shop"
 msgstr "Mağaza"
 
-#: src/components/editor/dialogs.tsx:199
+#: src/components/editor/dialogs.tsx:218
 msgid "Short description of the image"
 msgstr "Görseli tanımlayan kısa metin"
 
@@ -8493,7 +8501,7 @@ msgstr "Liste sayfalarında görünecek kısa açıklama"
 msgid "Short name"
 msgstr "Kısa ad"
 
-#: src/components/editor/dialogs.tsx:551
+#: src/components/editor/dialogs.tsx:582
 #: src/components/editor/mavi-editor.tsx:549
 msgid "Shortcuts"
 msgstr "Kısayollar"
@@ -8760,7 +8768,7 @@ msgstr "Öğretmeye başla"
 #~ msgid "Start working"
 #~ msgstr "Çalışmaya başla"
 
-#: src/components/editor/extensions/index.ts:226
+#: src/components/editor/extensions/index.ts:251
 msgid "Start writing, or type “/” for commands…"
 msgstr "Yazmaya başla veya komutlar için “/” yaz…"
 
@@ -8870,7 +8878,7 @@ msgstr ""
 #~ msgstr "Kayıtlı — değiştirmek için yazın"
 
 #: src/components/editor/bubble-menus.tsx:146
-#: src/components/editor/dialogs.tsx:516
+#: src/components/editor/dialogs.tsx:547
 #: src/components/editor/toolbar.tsx:330
 msgid "Strikethrough"
 msgstr "Üstü çizili"
@@ -9111,7 +9119,7 @@ msgstr "Yanıt alıyor"
 #~ msgid "Taking money from your customers"
 #~ msgstr "Müşterilerinizden tahsilat"
 
-#: src/components/editor/dialogs.tsx:529
+#: src/components/editor/dialogs.tsx:560
 #: src/components/editor/extensions/slash-command.tsx:118
 #: src/components/editor/toolbar.tsx:535
 msgid "Task list"
@@ -9177,8 +9185,8 @@ msgstr "Arama motorlarına hoş geldin der, haritanın yerini gösterir."
 #~ msgstr "Bağlantı test ediliyor…"
 
 #: src/components/dashboard/content-type-editor.tsx:54
-#: src/components/editor/dialogs.tsx:316
-#: src/components/editor/dialogs.tsx:425
+#: src/components/editor/dialogs.tsx:339
+#: src/components/editor/dialogs.tsx:456
 msgid "Text"
 msgstr "Metin"
 
@@ -9509,7 +9517,7 @@ msgstr "Ödeme geldi"
 #~ msgid "The monthly plan fee is taken from your agency balance. It pays for your agency account and the number of active site slots shown above. It is not automatically a separate charge to a site owner."
 #~ msgstr "Aylık plan ücreti ajans bakiyenizden alınır. Ajans hesabınızı ve yukarıda belirtilen aktif site slotlarını kapsar. Site sahibine otomatik olarak ayrıca yansıtılan bir ücret değildir."
 
-#: src/components/editor/dialogs.tsx:573
+#: src/components/editor/dialogs.tsx:604
 msgid "The most common shortcuts in the editor."
 msgstr "Editörde en sık kullanılan kısayollar."
 
@@ -10120,7 +10128,7 @@ msgstr "Büyük küçük harf farketmez: launch2026 ile LAUNCH2026 aynı koddur.
 #~ msgstr "Kategorisiz"
 
 #: src/components/editor/bubble-menus.tsx:138
-#: src/components/editor/dialogs.tsx:515
+#: src/components/editor/dialogs.tsx:546
 #: src/components/editor/toolbar.tsx:322
 msgid "Underline"
 msgstr "Altı çizili"
@@ -10129,7 +10137,7 @@ msgstr "Altı çizili"
 msgid "Understand which pages are being read without keeping personal identities."
 msgstr ""
 
-#: src/components/editor/dialogs.tsx:537
+#: src/components/editor/dialogs.tsx:568
 #: src/components/editor/toolbar.tsx:184
 msgid "Undo"
 msgstr "Geri al"
@@ -10183,10 +10191,10 @@ msgstr "Başlıksız"
 msgid "Untitled post"
 msgstr "Başlıksız yazı"
 
-#: src/features/media/media-page.tsx:128
-#: src/features/media/media-page.tsx:153
-#: src/features/media/videos-page.tsx:98
-#: src/features/media/videos-page.tsx:120
+#: src/features/media/media-page.tsx:117
+#: src/features/media/media-page.tsx:140
+#: src/features/media/videos-page.tsx:80
+#: src/features/media/videos-page.tsx:102
 msgid "Upload"
 msgstr "Yükle"
 
@@ -10198,15 +10206,15 @@ msgstr "Yükle"
 #~ msgid "Upload a video"
 #~ msgstr "Video yükle"
 
-#: src/features/media/videos-page.tsx:117
+#: src/features/media/videos-page.tsx:99
 msgid "Upload a video to use in a course lesson."
 msgstr ""
 
-#: src/features/media/media-page.tsx:149
+#: src/features/media/media-page.tsx:136
 msgid "Upload an image or file to start building this site's library."
 msgstr ""
 
-#: src/features/media/media-page.tsx:120
+#: src/features/media/media-page.tsx:95
 msgid "Upload and manage the files used by this site."
 msgstr ""
 
@@ -10234,7 +10242,7 @@ msgstr "Görsel yükle"
 msgid "Uploads"
 msgstr "Yüklenenler"
 
-#: src/components/editor/dialogs.tsx:147
+#: src/components/editor/dialogs.tsx:166
 msgid "URL"
 msgstr "URL"
 
@@ -10325,11 +10333,11 @@ msgstr "Kullanım"
 #~ msgstr "Video ayarları"
 
 #: src/components/dashboard/dashboard-shell.tsx:101
-#: src/features/media/videos-page.tsx:89
+#: src/features/media/videos-page.tsx:71
 msgid "Videos"
 msgstr "Videolar"
 
-#: src/components/editor/dialogs.tsx:547
+#: src/components/editor/dialogs.tsx:578
 msgid "View"
 msgstr "Görünüm"
 
@@ -10344,6 +10352,10 @@ msgstr "Güne göre görüntülenme"
 #: src/lib/board-words.ts:47
 #~ msgid "Violet"
 #~ msgstr "Mor"
+
+#: src/features/media/media-page.tsx:104
+msgid "Visibility"
+msgstr ""
 
 #: src/components/dashboard/dashboard-shell.tsx:81
 #: src/features/analytics/visitors-page.tsx:66
@@ -10462,7 +10474,7 @@ msgstr "Hesaptaki adrese bir bağlantı göndereceğiz."
 #~ msgid "What a flow signs in with"
 #~ msgstr "Bir akışın neyle oturum açtığı"
 
-#: src/features/media/videos-page.tsx:90
+#: src/features/media/videos-page.tsx:72
 msgid "What a lesson plays. Nothing here is public: a video is watched by somebody the course lets in."
 msgstr "Bir dersin oynattığı şey. Buradakiler herkese açık değildir: videoyu yalnızca eğitimin içeri aldığı kişi izler."
 
@@ -11487,6 +11499,6 @@ msgstr "Sizinkiler"
 msgid "YouTube"
 msgstr "YouTube"
 
-#: src/components/editor/dialogs.tsx:232
+#: src/components/editor/dialogs.tsx:255
 msgid "YouTube video"
 msgstr "YouTube videosu"

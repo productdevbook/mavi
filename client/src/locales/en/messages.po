@@ -452,7 +452,7 @@ msgstr "{0} received."
 
 #. placeholder {0}: hover.rows
 #. placeholder {1}: hover.cols
-#: src/components/editor/dialogs.tsx:356
+#: src/components/editor/dialogs.tsx:387
 msgid "{0} rows × {1} columns"
 msgstr "{0} rows × {1} columns"
 
@@ -710,7 +710,7 @@ msgstr "{one} deleted"
 #~ msgid "{unread} not read yet"
 #~ msgstr "{unread} not read yet"
 
-#: src/components/editor/dialogs.tsx:68
+#: src/components/editor/dialogs.tsx:77
 msgid "{uploaded, plural, one {# image added} other {# images added}}"
 msgstr "{uploaded, plural, one {# image added} other {# images added}}"
 
@@ -724,7 +724,7 @@ msgstr "{uploaded, plural, one {# image added} other {# images added}}"
 #~ msgid "{window} days"
 #~ msgstr "{window} days"
 
-#: src/components/editor/dialogs.tsx:489
+#: src/components/editor/dialogs.tsx:520
 msgid "# Heading\n"
 "\n"
 "Paste your Markdown here…"
@@ -1160,7 +1160,7 @@ msgstr "Action"
 #~ msgid "Active"
 #~ msgstr "Active"
 
-#: src/components/editor/dialogs.tsx:206
+#: src/components/editor/dialogs.tsx:225
 #: src/features/boards/board-page.tsx:238
 #: src/features/learning/course-page.tsx:192
 #: src/features/mail/mail-page.tsx:221
@@ -1180,7 +1180,7 @@ msgstr "Add a blockquote"
 msgid "Add a horizontal rule"
 msgstr "Add a horizontal rule"
 
-#: src/components/editor/dialogs.tsx:302
+#: src/components/editor/dialogs.tsx:325
 msgid "Add a hyperlink to the selected text."
 msgstr "Add a hyperlink to the selected text."
 
@@ -1251,7 +1251,7 @@ msgstr "Add column before"
 msgid "Add custom connector, and paste the address."
 msgstr "Add custom connector, and paste the address."
 
-#: src/components/editor/dialogs.tsx:386
+#: src/components/editor/dialogs.tsx:417
 msgid "Add header row"
 msgstr "Add header row"
 
@@ -1259,7 +1259,7 @@ msgstr "Add header row"
 msgid "Add hyperlinked text"
 msgstr "Add hyperlinked text"
 
-#: src/components/editor/dialogs.tsx:139
+#: src/components/editor/dialogs.tsx:158
 msgid "Add image"
 msgstr "Add image"
 
@@ -1301,7 +1301,7 @@ msgstr "Add somebody"
 msgid "Add someone"
 msgstr "Add someone"
 
-#: src/components/editor/dialogs.tsx:354
+#: src/components/editor/dialogs.tsx:385
 msgid "Add table"
 msgstr "Add table"
 
@@ -1338,7 +1338,7 @@ msgstr "Add this to your authenticator, then type what it shows."
 #~ msgid "Additional active sites cost $29/month when your plan's included slots are full. The $199 activation fee still applies to each newly created site."
 #~ msgstr "Additional active sites cost $29/month when your plan's included slots are full. The $199 activation fee still applies to each newly created site."
 
-#: src/components/editor/dialogs.tsx:306
+#: src/components/editor/dialogs.tsx:329
 msgid "Address"
 msgstr "Address"
 
@@ -1492,7 +1492,7 @@ msgstr "Already present"
 
 #: src/components/editor/bubble-menus.tsx:390
 #: src/components/editor/bubble-menus.tsx:393
-#: src/components/editor/dialogs.tsx:194
+#: src/components/editor/dialogs.tsx:213
 msgid "Alt text"
 msgstr "Alt text"
 
@@ -1703,7 +1703,7 @@ msgstr "Answering"
 #~ msgid "Anything"
 #~ msgstr "Anything"
 
-#: src/features/media/media-page.tsx:206
+#: src/features/media/media-page.tsx:188
 msgid "Anything already using it will stop showing it."
 msgstr "Anything already using it will stop showing it."
 
@@ -1769,7 +1769,7 @@ msgstr "Appears on next publish"
 #~ msgstr "Applications"
 
 #: src/components/editor/bubble-menus.tsx:267
-#: src/components/editor/dialogs.tsx:332
+#: src/components/editor/dialogs.tsx:359
 msgid "Apply"
 msgstr "Apply"
 
@@ -2127,7 +2127,7 @@ msgstr "Block menu"
 #~ msgid "Blocked"
 #~ msgstr "Blocked"
 
-#: src/components/editor/dialogs.tsx:523
+#: src/components/editor/dialogs.tsx:554
 #: src/components/editor/extensions/slash-command.tsx:129
 #: src/components/editor/extensions/slash-command.tsx:138
 #: src/components/editor/extensions/slash-command.tsx:147
@@ -2152,7 +2152,7 @@ msgid "Boards"
 msgstr "Boards"
 
 #: src/components/editor/bubble-menus.tsx:122
-#: src/components/editor/dialogs.tsx:513
+#: src/components/editor/dialogs.tsx:544
 #: src/components/editor/toolbar.tsx:306
 msgid "Bold"
 msgstr "Bold"
@@ -2262,7 +2262,7 @@ msgstr "Building preview."
 #~ msgid "Built-in integrations you can switch on and configure."
 #~ msgstr "Built-in integrations you can switch on and configure."
 
-#: src/components/editor/dialogs.tsx:527
+#: src/components/editor/dialogs.tsx:558
 #: src/components/editor/extensions/slash-command.tsx:100
 #: src/components/editor/toolbar.tsx:519
 msgid "Bullet list"
@@ -2368,9 +2368,9 @@ msgstr "Can open {summary} of {0} areas."
 #~ msgstr "can send"
 
 #: src/components/dashboard/content-type-editor.tsx:229
-#: src/components/editor/dialogs.tsx:204
-#: src/components/editor/dialogs.tsx:244
-#: src/components/editor/dialogs.tsx:330
+#: src/components/editor/dialogs.tsx:223
+#: src/components/editor/dialogs.tsx:267
+#: src/components/editor/dialogs.tsx:357
 #: src/components/report-a-problem.tsx:236
 #: src/features/automation/flows-page.tsx:329
 #: src/features/boards/board-page.tsx:231
@@ -2384,7 +2384,7 @@ msgstr "Can open {summary} of {0} areas."
 #: src/features/learning/students-page.tsx:246
 #: src/features/mail/mail-page.tsx:276
 #: src/features/mail/mail-page.tsx:340
-#: src/features/media/media-page.tsx:210
+#: src/features/media/media-page.tsx:192
 #: src/features/people/people-page.tsx:353
 #: src/features/people/people-page.tsx:377
 #: src/features/people/roles-page.tsx:454
@@ -2599,7 +2599,7 @@ msgstr "clean"
 #~ msgid "Clean the list before sending again"
 #~ msgstr "Clean the list before sending again"
 
-#: src/components/editor/dialogs.tsx:519
+#: src/components/editor/dialogs.tsx:550
 #: src/components/editor/toolbar.tsx:469
 msgid "Clear formatting"
 msgstr "Clear formatting"
@@ -2650,7 +2650,7 @@ msgstr "Code"
 msgid "Code (en, de, pt-BR)"
 msgstr "Code (en, de, pt-BR)"
 
-#: src/components/editor/dialogs.tsx:531
+#: src/components/editor/dialogs.tsx:562
 #: src/components/editor/extensions/slash-command.tsx:136
 #: src/components/editor/toolbar.tsx:110
 #: src/components/editor/toolbar.tsx:572
@@ -2683,7 +2683,7 @@ msgstr "Column"
 #~ msgid "Coming back to it on {0}"
 #~ msgstr "Coming back to it on {0}"
 
-#: src/components/editor/dialogs.tsx:541
+#: src/components/editor/dialogs.tsx:572
 msgid "Command menu"
 msgstr "Command menu"
 
@@ -2836,7 +2836,7 @@ msgstr "Content types"
 
 #: src/components/assistant-clients.tsx:119
 #: src/components/editor/bubble-menus.tsx:325
-#: src/components/editor/dialogs.tsx:468
+#: src/components/editor/dialogs.tsx:499
 #: src/features/forms/form-detail-page.tsx:47
 msgid "Copy"
 msgstr "Copy"
@@ -2913,7 +2913,7 @@ msgstr "Copy this key now. It is shown once."
 #~ msgid "Copy without a key"
 #~ msgstr "Copy without a key"
 
-#: src/components/editor/dialogs.tsx:442
+#: src/components/editor/dialogs.tsx:473
 msgid "Copy your post in different formats, download it, or import Markdown."
 msgstr "Copy your post in different formats, download it, or import Markdown."
 
@@ -3338,9 +3338,9 @@ msgstr "Could not copy it"
 #~ msgstr "Could not update language"
 
 #. placeholder {0}: file.name
-#: src/components/editor/dialogs.tsx:62
-#: src/components/editor/extensions/index.ts:176
-#: src/components/editor/extensions/index.ts:195
+#: src/components/editor/dialogs.tsx:71
+#: src/components/editor/extensions/index.ts:192
+#: src/components/editor/extensions/index.ts:213
 msgid "Could not upload {0}"
 msgstr "Could not upload {0}"
 
@@ -3561,8 +3561,8 @@ msgstr "Default"
 #: src/features/content/content-list.tsx:301
 #: src/features/content/content-list.tsx:325
 #: src/features/content/languages-page.tsx:164
-#: src/features/media/media-page.tsx:187
-#: src/features/media/media-page.tsx:212
+#: src/features/media/media-page.tsx:169
+#: src/features/media/media-page.tsx:194
 #: src/features/people/roles-page.tsx:172
 #: src/features/taxonomy/categories-page.tsx:308
 #: src/features/taxonomy/categories-page.tsx:334
@@ -3617,7 +3617,7 @@ msgstr "Delete this {one}?"
 msgid "Delete this category?"
 msgstr "Delete this category?"
 
-#: src/features/media/media-page.tsx:204
+#: src/features/media/media-page.tsx:186
 msgid "Delete this file?"
 msgstr "Delete this file?"
 
@@ -3796,7 +3796,7 @@ msgstr "Done"
 msgid "Done."
 msgstr "Done."
 
-#: src/components/editor/dialogs.tsx:479
+#: src/components/editor/dialogs.tsx:510
 #: src/features/governance/audit-page.tsx:97
 msgid "Download"
 msgstr "Download"
@@ -3891,7 +3891,7 @@ msgstr "Edit the form"
 #~ msgid "Edit theme"
 #~ msgstr "Edit theme"
 
-#: src/components/editor/dialogs.tsx:535
+#: src/components/editor/dialogs.tsx:566
 msgid "Editing"
 msgstr "Editing"
 
@@ -3921,7 +3921,7 @@ msgstr "Email"
 #~ msgid "emails sent"
 #~ msgstr "emails sent"
 
-#: src/components/editor/dialogs.tsx:246
+#: src/components/editor/dialogs.tsx:269
 msgid "Embed"
 msgstr "Embed"
 
@@ -3929,7 +3929,7 @@ msgstr "Embed"
 msgid "Embed a video"
 msgstr "Embed a video"
 
-#: src/components/editor/dialogs.tsx:543
+#: src/components/editor/dialogs.tsx:574
 msgid "Emoji"
 msgstr "Emoji"
 
@@ -4189,7 +4189,7 @@ msgstr "Filter by subject"
 #~ msgid "Find a field"
 #~ msgstr "Find a field"
 
-#: src/components/editor/dialogs.tsx:540
+#: src/components/editor/dialogs.tsx:571
 #: src/components/editor/find-replace.tsx:73
 #: src/components/editor/toolbar.tsx:667
 msgid "Find and replace"
@@ -4234,7 +4234,7 @@ msgstr "flow"
 msgid "Flows"
 msgstr "Flows"
 
-#: src/components/editor/dialogs.tsx:549
+#: src/components/editor/dialogs.tsx:580
 #: src/components/editor/mavi-editor.tsx:520
 msgid "Focus mode"
 msgstr "Focus mode"
@@ -4315,7 +4315,7 @@ msgstr "form"
 msgid "Format"
 msgstr "Format"
 
-#: src/components/editor/dialogs.tsx:511
+#: src/components/editor/dialogs.tsx:542
 msgid "Formatting"
 msgstr "Formatting"
 
@@ -4370,7 +4370,7 @@ msgstr "Forms"
 msgid "Full width"
 msgstr "Full width"
 
-#: src/components/editor/dialogs.tsx:550
+#: src/components/editor/dialogs.tsx:581
 #: src/components/editor/mavi-editor.tsx:535
 msgid "Fullscreen"
 msgstr "Fullscreen"
@@ -4525,7 +4525,7 @@ msgid "Header row"
 msgstr "Header row"
 
 #. placeholder {0}: node.attrs.level
-#: src/components/editor/extensions/index.ts:217
+#: src/components/editor/extensions/index.ts:242
 msgid "Heading {0}"
 msgstr "Heading {0}"
 
@@ -4534,7 +4534,7 @@ msgstr "Heading {0}"
 msgid "Heading 1"
 msgstr "Heading 1"
 
-#: src/components/editor/dialogs.tsx:525
+#: src/components/editor/dialogs.tsx:556
 msgid "Heading 1–6"
 msgstr "Heading 1–6"
 
@@ -4754,16 +4754,16 @@ msgstr "Image"
 msgid "Image (URL)"
 msgstr "Image (URL)"
 
-#: src/components/editor/dialogs.tsx:184
+#: src/components/editor/dialogs.tsx:203
 msgid "Image address"
 msgstr "Image address"
 
-#: src/components/editor/dialogs.tsx:452
+#: src/components/editor/dialogs.tsx:483
 #: src/features/portability/portable-page.tsx:101
 msgid "Import"
 msgstr "Import"
 
-#: src/components/editor/dialogs.tsx:440
+#: src/components/editor/dialogs.tsx:471
 #: src/components/editor/mavi-editor.tsx:543
 msgid "Import / export"
 msgstr "Import / export"
@@ -4850,7 +4850,7 @@ msgstr "Increase indent"
 #~ msgid "Individual"
 #~ msgstr "Individual"
 
-#: src/components/editor/dialogs.tsx:517
+#: src/components/editor/dialogs.tsx:548
 #: src/components/editor/extensions/slash-command.tsx:241
 #: src/components/editor/toolbar.tsx:338
 msgid "Inline code"
@@ -5054,7 +5054,7 @@ msgstr "It has gone"
 #~ msgstr "It will stop. What it has already written stays."
 
 #: src/components/editor/bubble-menus.tsx:130
-#: src/components/editor/dialogs.tsx:514
+#: src/components/editor/dialogs.tsx:545
 #: src/components/editor/toolbar.tsx:314
 msgid "Italic"
 msgstr "Italic"
@@ -5125,7 +5125,7 @@ msgstr "Its key"
 msgid "Justify"
 msgstr "Justify"
 
-#: src/components/editor/extensions/index.ts:228
+#: src/components/editor/extensions/index.ts:253
 msgid "Keep going, type “/” to add a block…"
 msgstr "Keep going, type “/” to add a block…"
 
@@ -5157,7 +5157,7 @@ msgstr "Kept for, in days"
 #~ msgid "Key"
 #~ msgstr "Key"
 
-#: src/components/editor/dialogs.tsx:571
+#: src/components/editor/dialogs.tsx:602
 msgid "Keyboard shortcuts"
 msgstr "Keyboard shortcuts"
 
@@ -5346,8 +5346,8 @@ msgid "Line height"
 msgstr "Line height"
 
 #: src/components/editor/bubble-menus.tsx:244
-#: src/components/editor/dialogs.tsx:301
-#: src/components/editor/dialogs.tsx:518
+#: src/components/editor/dialogs.tsx:324
+#: src/components/editor/dialogs.tsx:549
 #: src/components/editor/extensions/slash-command.tsx:210
 #: src/components/editor/toolbar.tsx:602
 msgid "Link"
@@ -5361,7 +5361,7 @@ msgstr "Link address"
 #~ msgid "Link copied. It works once."
 #~ msgstr "Link copied. It works once."
 
-#: src/components/editor/dialogs.tsx:321
+#: src/components/editor/dialogs.tsx:344
 msgid "Link text"
 msgstr "Link text"
 
@@ -5388,7 +5388,7 @@ msgstr "Live"
 #~ msgid "Live from this site's own records — every message it sent and every file it holds. Billed when the month closes."
 #~ msgstr "Live from this site's own records — every message it sent and every file it holds. Billed when the month closes."
 
-#: src/components/editor/dialogs.tsx:156
+#: src/components/editor/dialogs.tsx:175
 msgid "Loading…"
 msgstr "Loading…"
 
@@ -5561,7 +5561,7 @@ msgstr "Mark as finished"
 msgid "Mark selection as code"
 msgstr "Mark selection as code"
 
-#: src/components/editor/dialogs.tsx:432
+#: src/components/editor/dialogs.tsx:463
 msgid "Markdown imported"
 msgstr "Markdown imported"
 
@@ -5612,8 +5612,8 @@ msgstr "Measurements"
 msgid "Media"
 msgstr "Media"
 
-#: src/components/editor/dialogs.tsx:150
-#: src/features/media/media-page.tsx:119
+#: src/components/editor/dialogs.tsx:169
+#: src/features/media/media-page.tsx:94
 msgid "Media library"
 msgstr "Media library"
 
@@ -5629,7 +5629,7 @@ msgstr "Median"
 msgid "Medium section heading"
 msgstr "Medium section heading"
 
-#: src/components/editor/dialogs.tsx:542
+#: src/components/editor/dialogs.tsx:573
 msgid "Mention someone"
 msgstr "Mention someone"
 
@@ -6096,7 +6096,7 @@ msgstr "No letters yet."
 msgid "No lists yet."
 msgstr "No lists yet."
 
-#: src/components/editor/dialogs.tsx:160
+#: src/components/editor/dialogs.tsx:179
 msgid "No media uploaded yet"
 msgstr "No media uploaded yet"
 
@@ -6191,7 +6191,7 @@ msgstr "No tags yet."
 #~ msgid "No videos yet"
 #~ msgstr "No videos yet"
 
-#: src/features/media/videos-page.tsx:116
+#: src/features/media/videos-page.tsx:98
 msgid "No videos yet."
 msgstr "No videos yet."
 
@@ -6530,7 +6530,7 @@ msgstr "Nothing sold yet."
 #~ msgid "Nothing to show"
 #~ msgstr "Nothing to show"
 
-#: src/features/media/media-page.tsx:148
+#: src/features/media/media-page.tsx:135
 msgid "Nothing uploaded yet."
 msgstr "Nothing uploaded yet."
 
@@ -6603,7 +6603,7 @@ msgstr "Nothing yet. When somebody puts you on a course it appears here."
 #~ msgid "Number"
 #~ msgstr "Number"
 
-#: src/components/editor/dialogs.tsx:528
+#: src/components/editor/dialogs.tsx:559
 #: src/components/editor/extensions/slash-command.tsx:109
 #: src/components/editor/toolbar.tsx:527
 msgid "Numbered list"
@@ -6907,7 +6907,7 @@ msgstr "Open"
 #~ msgid "Open an agency account"
 #~ msgstr "Open an agency account"
 
-#: src/components/editor/dialogs.tsx:326
+#: src/components/editor/dialogs.tsx:353
 msgid "Open in new tab"
 msgstr "Open in new tab"
 
@@ -7091,7 +7091,7 @@ msgstr "Pages read"
 msgid "Paid"
 msgstr "Paid"
 
-#: src/components/editor/dialogs.tsx:526
+#: src/components/editor/dialogs.tsx:557
 #: src/components/editor/extensions/slash-command.tsx:55
 #: src/components/editor/toolbar.tsx:102
 msgid "Paragraph"
@@ -7124,7 +7124,7 @@ msgstr "Passwords, keys and tokens are never written here — an entry says a ke
 #~ msgid "Past their date"
 #~ msgstr "Past their date"
 
-#: src/components/editor/dialogs.tsx:141
+#: src/components/editor/dialogs.tsx:160
 msgid "Paste an image address, drag and drop one, or pick from your media library."
 msgstr "Paste an image address, drag and drop one, or pick from your media library."
 
@@ -7140,7 +7140,7 @@ msgstr "Paste it wherever a program asks for a server address and nothing else. 
 msgid "Paste the HTML here"
 msgstr "Paste the HTML here"
 
-#: src/components/editor/dialogs.tsx:233
+#: src/components/editor/dialogs.tsx:256
 msgid "Paste the video link."
 msgstr "Paste the video link."
 
@@ -7385,6 +7385,10 @@ msgstr "Previous"
 #~ msgid "Price, in the smallest unit"
 #~ msgstr "Price, in the smallest unit"
 
+#: src/features/media/media-page.tsx:108
+msgid "Private"
+msgstr "Private"
+
 #: src/features/governance/trash-page.tsx:66
 msgid "product"
 msgstr "product"
@@ -7393,6 +7397,10 @@ msgstr "product"
 #: src/features/shop/products-page.tsx:124
 msgid "Products"
 msgstr "Products"
+
+#: src/features/media/media-page.tsx:109
+msgid "Public"
+msgstr "Public"
 
 #: src/components/plugin-forms.tsx:127
 #~ msgid "Public base URL"
@@ -7496,7 +7504,7 @@ msgstr "Queue issues"
 #~ msgid "Queue waiting"
 #~ msgstr "Queue waiting"
 
-#: src/components/editor/dialogs.tsx:530
+#: src/components/editor/dialogs.tsx:561
 #: src/components/editor/extensions/slash-command.tsx:127
 #: src/components/editor/toolbar.tsx:109
 #: src/components/editor/toolbar.tsx:564
@@ -7613,7 +7621,7 @@ msgstr "Record"
 msgid "Red"
 msgstr "Red"
 
-#: src/components/editor/dialogs.tsx:538
+#: src/components/editor/dialogs.tsx:569
 #: src/components/editor/toolbar.tsx:192
 msgid "Redo"
 msgstr "Redo"
@@ -7686,7 +7694,7 @@ msgstr "Regular expression"
 #: src/features/forms/forms-page.tsx:466
 #: src/features/learning/course-page.tsx:139
 #: src/features/learning/course-page.tsx:164
-#: src/features/media/videos-page.tsx:140
+#: src/features/media/videos-page.tsx:122
 #: src/features/people/people-page.tsx:248
 #: src/features/people/people-page.tsx:379
 #: src/features/shop/coupons-page.tsx:122
@@ -7785,7 +7793,7 @@ msgstr "Replace"
 msgid "Replace all"
 msgstr "Replace all"
 
-#: src/components/editor/dialogs.tsx:494
+#: src/components/editor/dialogs.tsx:525
 msgid "Replace content"
 msgstr "Replace content"
 
@@ -8137,11 +8145,11 @@ msgstr "Search & AI"
 #~ msgid "Secret key"
 #~ msgstr "Secret key"
 
-#: src/components/editor/extensions/index.ts:208
+#: src/components/editor/extensions/index.ts:233
 msgid "section"
 msgstr "section"
 
-#: src/components/editor/extensions/index.ts:220
+#: src/components/editor/extensions/index.ts:245
 msgid "Section title"
 msgstr "Section title"
 
@@ -8174,7 +8182,7 @@ msgstr "See how quickly the published site responds for real visitors."
 msgid "Select"
 msgstr "Select"
 
-#: src/components/editor/dialogs.tsx:539
+#: src/components/editor/dialogs.tsx:570
 msgid "Select all"
 msgstr "Select all"
 
@@ -8481,7 +8489,7 @@ msgstr "Settings, then Tools & MCP, then New MCP Server — which opens the file
 msgid "Shop"
 msgstr "Shop"
 
-#: src/components/editor/dialogs.tsx:199
+#: src/components/editor/dialogs.tsx:218
 msgid "Short description of the image"
 msgstr "Short description of the image"
 
@@ -8493,7 +8501,7 @@ msgstr "Short description shown on listing pages"
 msgid "Short name"
 msgstr "Short name"
 
-#: src/components/editor/dialogs.tsx:551
+#: src/components/editor/dialogs.tsx:582
 #: src/components/editor/mavi-editor.tsx:549
 msgid "Shortcuts"
 msgstr "Shortcuts"
@@ -8760,7 +8768,7 @@ msgstr "Start teaching"
 #~ msgid "Start working"
 #~ msgstr "Start working"
 
-#: src/components/editor/extensions/index.ts:226
+#: src/components/editor/extensions/index.ts:251
 msgid "Start writing, or type “/” for commands…"
 msgstr "Start writing, or type “/” for commands…"
 
@@ -8870,7 +8878,7 @@ msgstr "Storage, writings, readers and the queue — no price anywhere on it."
 #~ msgstr "Stored — type to replace"
 
 #: src/components/editor/bubble-menus.tsx:146
-#: src/components/editor/dialogs.tsx:516
+#: src/components/editor/dialogs.tsx:547
 #: src/components/editor/toolbar.tsx:330
 msgid "Strikethrough"
 msgstr "Strikethrough"
@@ -9111,7 +9119,7 @@ msgstr "Taking answers"
 #~ msgid "Taking money from your customers"
 #~ msgstr "Taking money from your customers"
 
-#: src/components/editor/dialogs.tsx:529
+#: src/components/editor/dialogs.tsx:560
 #: src/components/editor/extensions/slash-command.tsx:118
 #: src/components/editor/toolbar.tsx:535
 msgid "Task list"
@@ -9177,8 +9185,8 @@ msgstr "Tells search engines they are welcome, and where the map is."
 #~ msgstr "Testing connection…"
 
 #: src/components/dashboard/content-type-editor.tsx:54
-#: src/components/editor/dialogs.tsx:316
-#: src/components/editor/dialogs.tsx:425
+#: src/components/editor/dialogs.tsx:339
+#: src/components/editor/dialogs.tsx:456
 msgid "Text"
 msgstr "Text"
 
@@ -9509,7 +9517,7 @@ msgstr "The money arrived"
 #~ msgid "The monthly plan fee is taken from your agency balance. It pays for your agency account and the number of active site slots shown above. It is not automatically a separate charge to a site owner."
 #~ msgstr "The monthly plan fee is taken from your agency balance. It pays for your agency account and the number of active site slots shown above. It is not automatically a separate charge to a site owner."
 
-#: src/components/editor/dialogs.tsx:573
+#: src/components/editor/dialogs.tsx:604
 msgid "The most common shortcuts in the editor."
 msgstr "The most common shortcuts in the editor."
 
@@ -10120,7 +10128,7 @@ msgstr "Typed without case: launch2026 and LAUNCH2026 are one code."
 #~ msgstr "Uncategorized"
 
 #: src/components/editor/bubble-menus.tsx:138
-#: src/components/editor/dialogs.tsx:515
+#: src/components/editor/dialogs.tsx:546
 #: src/components/editor/toolbar.tsx:322
 msgid "Underline"
 msgstr "Underline"
@@ -10129,7 +10137,7 @@ msgstr "Underline"
 msgid "Understand which pages are being read without keeping personal identities."
 msgstr "Understand which pages are being read without keeping personal identities."
 
-#: src/components/editor/dialogs.tsx:537
+#: src/components/editor/dialogs.tsx:568
 #: src/components/editor/toolbar.tsx:184
 msgid "Undo"
 msgstr "Undo"
@@ -10183,10 +10191,10 @@ msgstr "Untitled"
 msgid "Untitled post"
 msgstr "Untitled post"
 
-#: src/features/media/media-page.tsx:128
-#: src/features/media/media-page.tsx:153
-#: src/features/media/videos-page.tsx:98
-#: src/features/media/videos-page.tsx:120
+#: src/features/media/media-page.tsx:117
+#: src/features/media/media-page.tsx:140
+#: src/features/media/videos-page.tsx:80
+#: src/features/media/videos-page.tsx:102
 msgid "Upload"
 msgstr "Upload"
 
@@ -10198,15 +10206,15 @@ msgstr "Upload"
 #~ msgid "Upload a video"
 #~ msgstr "Upload a video"
 
-#: src/features/media/videos-page.tsx:117
+#: src/features/media/videos-page.tsx:99
 msgid "Upload a video to use in a course lesson."
 msgstr "Upload a video to use in a course lesson."
 
-#: src/features/media/media-page.tsx:149
+#: src/features/media/media-page.tsx:136
 msgid "Upload an image or file to start building this site's library."
 msgstr "Upload an image or file to start building this site's library."
 
-#: src/features/media/media-page.tsx:120
+#: src/features/media/media-page.tsx:95
 msgid "Upload and manage the files used by this site."
 msgstr "Upload and manage the files used by this site."
 
@@ -10234,7 +10242,7 @@ msgstr "Upload image"
 msgid "Uploads"
 msgstr "Uploads"
 
-#: src/components/editor/dialogs.tsx:147
+#: src/components/editor/dialogs.tsx:166
 msgid "URL"
 msgstr "URL"
 
@@ -10325,11 +10333,11 @@ msgstr "Usage"
 #~ msgstr "Video settings"
 
 #: src/components/dashboard/dashboard-shell.tsx:101
-#: src/features/media/videos-page.tsx:89
+#: src/features/media/videos-page.tsx:71
 msgid "Videos"
 msgstr "Videos"
 
-#: src/components/editor/dialogs.tsx:547
+#: src/components/editor/dialogs.tsx:578
 msgid "View"
 msgstr "View"
 
@@ -10344,6 +10352,10 @@ msgstr "Views by day"
 #: src/lib/board-words.ts:47
 #~ msgid "Violet"
 #~ msgstr "Violet"
+
+#: src/features/media/media-page.tsx:104
+msgid "Visibility"
+msgstr "Visibility"
 
 #: src/components/dashboard/dashboard-shell.tsx:81
 #: src/features/analytics/visitors-page.tsx:66
@@ -10462,7 +10474,7 @@ msgstr "We will send a link to the address on the account."
 #~ msgid "What a flow signs in with"
 #~ msgstr "What a flow signs in with"
 
-#: src/features/media/videos-page.tsx:90
+#: src/features/media/videos-page.tsx:72
 msgid "What a lesson plays. Nothing here is public: a video is watched by somebody the course lets in."
 msgstr "What a lesson plays. Nothing here is public: a video is watched by somebody the course lets in."
 
@@ -11487,6 +11499,6 @@ msgstr "Yours"
 msgid "YouTube"
 msgstr "YouTube"
 
-#: src/components/editor/dialogs.tsx:232
+#: src/components/editor/dialogs.tsx:255
 msgid "YouTube video"
 msgstr "YouTube video"

@@ -3,10 +3,11 @@ import { useLingui } from "@lingui/react/macro"
 import { HardDrive, Loader2, Trash2, Upload } from "lucide-react"
 import { toast } from "sonner"
 
-import { api, every, Refused } from "@/lib/v1"
-import { said } from "@/lib/v1-said"
-import type { File as Media } from "@api"
+import { nextApi, nextEvery } from "@/lib/server-next"
+import { serverNextMessage } from "@/lib/server-next-auth"
+import type { File as Media, FileVisibility } from "@api-next"
 import { formatBytes } from "@/lib/editor-utils"
+import { usePrivateFileUrl } from "@/lib/server-next-media"
 import { Button } from "@/components/ui/button"
 import {
   DashboardEmpty,
@@ -23,29 +24,28 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
-/** Where an uploaded file is served from. */
-const at = (id: string) => `/uploads/${id}`
-
-/**
- * What has been uploaded.
- *
- * An upload is the bytes themselves rather than JSON, so it is the one call
- * the panel makes without the typed client — and what kind of file it is comes
- * from those bytes at the far end, not from the name beside them.
- */
+/** What has been uploaded, with visibility kept explicit at upload time. */
 export function MediaPage() {
   const { t } = useLingui()
   const [media, setMedia] = React.useState<Media[] | null>(null)
   const [going, setGoing] = React.useState<Media | null>(null)
   const [uploading, setUploading] = React.useState(false)
+  const [visibility, setVisibility] = React.useState<FileVisibility>("private")
   const chooser = React.useRef<HTMLInputElement>(null)
 
   const load = React.useCallback(() => {
-    every("files.list")
+    nextEvery("media.files.list", { query: {} })
       .then(setMedia)
       .catch((why: unknown) => {
-        toast.error(said(why))
+        toast.error(serverNextMessage(why))
         setMedia((held) => held ?? [])
       })
   }, [])
@@ -58,56 +58,31 @@ export function MediaPage() {
     setUploading(true)
     let done = 0
 
-    try {
-      for (const file of Array.from(files)) {
-        // The bytes as they are, with the name alongside: what kind of file it
-        // is comes from the bytes at the far end rather than from the name.
-        const response = await fetch(
-          `/api/files?name=${encodeURIComponent(file.name)}`,
-          { method: "POST", body: file }
-        )
-
-        if (response.ok) {
-          done += 1
-        } else {
-          const why = await response.json().catch(() => null)
-
-          toast.error(
-            said(
-              new Refused(
-                response.status,
-                String(why?.error?.code ?? "internal"),
-                why?.error?.key ?? null,
-                why?.error?.named ?? {},
-                String(why?.error?.message ?? response.statusText)
-              )
-            )
-          )
-        }
+    for (const file of Array.from(files)) {
+      try {
+        await nextApi("media.files.upload", {
+          query: { name: file.name, visibility },
+          body: file,
+        })
+        done += 1
+      } catch (why) {
+        toast.error(serverNextMessage(why))
       }
-    } catch (why) {
-      toast.error(said(why))
-    } finally {
-      setUploading(false)
     }
 
-    if (chooser.current) {
-      chooser.current.value = ""
-    }
-
-    if (done > 0) {
-      load()
-    }
+    setUploading(false)
+    if (chooser.current) chooser.current.value = ""
+    if (done > 0) load()
   }
 
   const remove = async () => {
     if (!going) return
 
     try {
-      await api("files.remove", { path: { id: going.id } })
+      await nextApi("media.files.trash", { path: { id: going.id } })
       setMedia((held) => held?.filter((one) => one.id !== going.id) ?? null)
     } catch (why) {
-      toast.error(said(why))
+      toast.error(serverNextMessage(why))
     } finally {
       setGoing(null)
     }
@@ -120,6 +95,20 @@ export function MediaPage() {
         description={t`Upload and manage the files used by this site.`}
         actions={
           <>
+            <Select
+              value={visibility}
+              onValueChange={(value) =>
+                setVisibility((value as FileVisibility) ?? "private")
+              }
+            >
+              <SelectTrigger className="w-32" aria-label={t`Visibility`}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="private">{t`Private`}</SelectItem>
+                <SelectItem value="public">{t`Public`}</SelectItem>
+              </SelectContent>
+            </Select>
             <Button
               onClick={() => chooser.current?.click()}
               disabled={uploading}
@@ -127,11 +116,9 @@ export function MediaPage() {
               {uploading ? <Loader2 className="animate-spin" /> : <Upload />}
               {t`Upload`}
             </Button>
-
             <input
               ref={chooser}
               type="file"
-              accept="image/png,image/jpeg,image/gif,image/webp"
               multiple
               className="hidden"
               onChange={(event) => void upload(event.target.files)}
@@ -162,12 +149,7 @@ export function MediaPage() {
               className="overflow-hidden rounded-xl border border-border"
             >
               {item.mime.startsWith("image/") ? (
-                <img
-                  src={at(item.id)}
-                  alt={item.name}
-                  loading="lazy"
-                  className="aspect-square w-full object-cover"
-                />
+                <MediaThumbnail file={item} alt={item.name} />
               ) : (
                 <div className="flex aspect-square items-center justify-center bg-muted">
                   <HardDrive className="size-8 text-muted-foreground" />
@@ -178,7 +160,7 @@ export function MediaPage() {
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-xs font-medium">{item.name}</p>
                   <p className="text-xs text-muted-foreground">
-                    {formatBytes(item.bytes)}
+                    {formatBytes(item.bytes)} · {item.visibility}
                   </p>
                 </div>
                 <Button
@@ -214,6 +196,23 @@ export function MediaPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+    </div>
+  )
+}
+
+function MediaThumbnail({ file, alt }: { file: Media; alt: string }) {
+  const src = usePrivateFileUrl(file)
+
+  return src ? (
+    <img
+      src={src}
+      alt={alt}
+      loading="lazy"
+      className="aspect-square w-full object-cover"
+    />
+  ) : (
+    <div className="flex aspect-square items-center justify-center bg-muted">
+      <Loader2 className="size-8 animate-spin text-muted-foreground" />
     </div>
   )
 }

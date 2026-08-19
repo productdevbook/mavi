@@ -60,6 +60,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Cedar authorizes HTTP resources and role/person grant delegation cannot escalate.
   - [-] Role deletion, ownership invariants and full assistant lifecycle UI.
     - [x] Protected owner role, assigned-role deletion conflict, audited unassigned-role deletion and canonical `roles.delete` contract are implemented in this slice; assistant lifecycle UI remains open.
+    - [x] Account-only API-key metadata listing, one-time token creation response, assistant self-revocation guard and revoked-key audit lifecycle are implemented in this slice.
 - [x] Student identity isolated from panel accounts.
   - [x] Invitation tokens are single-use hashes; activation creates a separate expiring student session.
   - [x] Student sessions carry no panel grants and are rejected by account/operator endpoints.

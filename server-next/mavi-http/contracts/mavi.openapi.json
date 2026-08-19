@@ -571,6 +571,109 @@
       }
     },
     "/api/v1/auth/api-keys": {
+      "get": {
+        "operationId": "auth.api_key.list",
+        "summary": "List assistant API key metadata",
+        "tags": [
+          "auth"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiKeyPage"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "maxLength": 512
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "name": "revoked",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-mavi": {
+          "scope": "site",
+          "authentication": "account",
+          "mutation": "none",
+          "permission": {
+            "capability": "people",
+            "action": "view"
+          },
+          "errors": [
+            "forbidden",
+            "validation",
+            "internal"
+          ]
+        }
+      },
       "post": {
         "operationId": "auth.api_key.create",
         "summary": "Create an assistant API key",
@@ -584,6 +687,26 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiKeyCreated"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
@@ -627,6 +750,8 @@
             "action": "write"
           },
           "errors": [
+            "forbidden",
+            "validation",
             "internal"
           ]
         }
@@ -642,6 +767,26 @@
         "responses": {
           "204": {
             "description": "Successful response"
+          },
+          "403": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
           },
           "500": {
             "description": "Request refused",
@@ -683,6 +828,8 @@
             "action": "delete"
           },
           "errors": [
+            "forbidden",
+            "not_found",
             "internal"
           ]
         }
@@ -17608,19 +17755,37 @@
       },
       "ApiKeyCreated": {
         "type": "object",
+        "additionalProperties": false,
         "required": [
           "id",
+          "site_id",
+          "person_id",
           "name",
+          "prefix",
           "token",
-          "grants"
+          "grants",
+          "expires_at",
+          "created_at"
         ],
         "properties": {
           "id": {
             "type": "string",
             "format": "uuid"
           },
+          "site_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "person_id": {
+            "type": "string",
+            "format": "uuid"
+          },
           "name": {
             "type": "string"
+          },
+          "prefix": {
+            "type": "string",
+            "maxLength": 16
           },
           "token": {
             "type": "string"
@@ -17637,9 +17802,119 @@
               "null"
             ],
             "format": "date-time"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ApiKeyListFilter": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "after": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 512
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "revoked": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          }
+        }
+      },
+      "ApiKeyPage": {
+        "type": "object",
+        "required": [
+          "items",
+          "next_cursor"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApiKeyRecord"
+            }
+          },
+          "next_cursor": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 512
           }
         },
         "additionalProperties": false
+      },
+      "ApiKeyRecord": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "site_id",
+          "person_id",
+          "name",
+          "prefix",
+          "grants",
+          "expires_at",
+          "revoked_at",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "site_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "person_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "prefix": {
+            "type": "string",
+            "maxLength": 16
+          },
+          "grants": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Grant"
+            }
+          },
+          "expires_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "revoked_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
       },
       "AssignCard": {
         "type": "object",
@@ -18884,6 +19159,7 @@
       },
       "CreateApiKey": {
         "type": "object",
+        "additionalProperties": false,
         "required": [
           "name",
           "grants"
@@ -18906,8 +19182,7 @@
             ],
             "format": "date-time"
           }
-        },
-        "additionalProperties": false
+        }
       },
       "CreateBoard": {
         "type": "object",

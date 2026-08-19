@@ -71,11 +71,11 @@ use mavi_forms::{
     SubmissionListFilter, SubmissionReceipt, SubmitForm, UpdateForm,
 };
 use mavi_identity::{
-    ApiKeyCreated, CreateApiKey, CreatePerson, CreateRole, EmailVerificationRedeemInput,
-    EmailVerificationRequestInput, EmailVerificationRequested, IdentityService, LoginInput,
-    PasswordResetRedeemInput, PasswordResetRequestInput, PasswordResetRequested, PeopleListFilter,
-    Person, PersonRecord, ReplaceRoleGrants, Role, RoleListFilter, SessionCreated, SetupInput,
-    SetupStatus, UpdatePersonStatus, audit_action,
+    ApiKeyCreated, ApiKeyListFilter, ApiKeyRecord, CreateApiKey, CreatePerson, CreateRole,
+    EmailVerificationRedeemInput, EmailVerificationRequestInput, EmailVerificationRequested,
+    IdentityService, LoginInput, PasswordResetRedeemInput, PasswordResetRequestInput,
+    PasswordResetRequested, PeopleListFilter, Person, PersonRecord, ReplaceRoleGrants, Role,
+    RoleListFilter, SessionCreated, SetupInput, SetupStatus, UpdatePersonStatus, audit_action,
 };
 use mavi_jobs::{Job, JobListFilter, JobsService};
 use mavi_mail::{
@@ -1136,7 +1136,10 @@ where
             post(redeem_email_verification::<R>),
         )
         .route("/api/v1/auth/sessions/current", delete(revoke_session::<R>))
-        .route("/api/v1/auth/api-keys", post(create_api_key::<R>))
+        .route(
+            "/api/v1/auth/api-keys",
+            get(list_api_keys::<R>).post(create_api_key::<R>),
+        )
         .route("/api/v1/auth/api-keys/{id}", delete(revoke_api_key::<R>))
         .route(
             "/api/v1/people",
@@ -2686,6 +2689,31 @@ where
         .map_err(HttpError)?;
     transaction.commit().await.map_err(HttpError)?;
     Ok(StatusCode::NO_CONTENT)
+}
+
+async fn list_api_keys<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Query(filter): Query<ApiKeyListFilter>,
+) -> Result<Json<Page<ApiKeyRecord>>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::People, Action::View),
+        "ApiKey",
+        "api_key_collection",
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let page = state
+        .identity
+        .list_api_keys(&mut transaction, &context, &filter)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(page))
 }
 
 async fn create_api_key<R>(

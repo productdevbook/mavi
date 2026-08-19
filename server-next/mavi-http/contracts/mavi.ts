@@ -61,10 +61,37 @@ export interface AnalyticsReceipt {
 
 export interface ApiKeyCreated {
   id: string;
+  site_id: string;
+  person_id: string;
   name: string;
+  prefix: string;
   token: string;
   grants: Grant[];
-  expires_at?: string | null;
+  expires_at: string | null;
+  created_at: string;
+}
+
+export interface ApiKeyListFilter {
+  after?: string | null;
+  limit?: number;
+  revoked?: boolean | null;
+}
+
+export interface ApiKeyPage {
+  items: ApiKeyRecord[];
+  next_cursor: string | null;
+}
+
+export interface ApiKeyRecord {
+  id: string;
+  site_id: string;
+  person_id: string;
+  name: string;
+  prefix: string;
+  grants: Grant[];
+  expires_at: string | null;
+  revoked_at: string | null;
+  created_at: string;
 }
 
 export interface AssignCard {
@@ -1746,6 +1773,7 @@ export const operations = {
   "auth.email_verification.request": { method: "post", path: "/api/v1/auth/email-verifications", input: { location: "json", shape: "EmailVerificationRequest" }, query: null, output: "EmailVerificationRequested", status: 202, authentication: "public", permission: null },
   "auth.email_verification.redeem": { method: "post", path: "/api/v1/auth/email-verifications/redeem", input: { location: "json", shape: "EmailVerificationRedeem" }, query: null, output: "Empty", status: 204, authentication: "public", permission: null },
   "auth.session.revoke": { method: "delete", path: "/api/v1/auth/sessions/current", input: null, query: null, output: "Empty", status: 204, authentication: "account", permission: null },
+  "auth.api_key.list": { method: "get", path: "/api/v1/auth/api-keys", input: { location: "query", shape: "ApiKeyListFilter" }, query: null, output: "ApiKeyPage", status: 200, authentication: "account", permission: { capability: "people", action: "view" } },
   "auth.api_key.create": { method: "post", path: "/api/v1/auth/api-keys", input: { location: "json", shape: "CreateApiKey" }, query: null, output: "ApiKeyCreated", status: 201, authentication: "account", permission: { capability: "people", action: "write" } },
   "auth.api_key.revoke": { method: "delete", path: "/api/v1/auth/api-keys/{id}", input: null, query: null, output: "Empty", status: 204, authentication: "account_or_assistant", permission: { capability: "people", action: "delete" } },
   "people.list": { method: "get", path: "/api/v1/people", input: { location: "query", shape: "PeopleListFilter" }, query: null, output: "PersonPage", status: 200, authentication: "account_or_assistant", permission: { capability: "people", action: "view" } },
@@ -1936,6 +1964,7 @@ export interface OperationArguments {
   "auth.email_verification.request": { path?: never; query?: never; body: EmailVerificationRequest; }
   "auth.email_verification.redeem": { path?: never; query?: never; body: EmailVerificationRedeem; }
   "auth.session.revoke": { path?: never; query?: never; body?: never; }
+  "auth.api_key.list": { path?: never; query: ApiKeyListFilter; body?: never; }
   "auth.api_key.create": { path?: never; query?: never; body: CreateApiKey; }
   "auth.api_key.revoke": { path: { id: string }; query?: never; body?: never; }
   "people.list": { path?: never; query: PeopleListFilter; body?: never; }
@@ -2124,6 +2153,7 @@ export interface OperationResponses {
   "auth.email_verification.request": EmailVerificationRequested;
   "auth.email_verification.redeem": void;
   "auth.session.revoke": void;
+  "auth.api_key.list": ApiKeyPage;
   "auth.api_key.create": ApiKeyCreated;
   "auth.api_key.revoke": void;
   "people.list": PersonPage;

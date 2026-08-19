@@ -97,7 +97,10 @@ export default defineConfig({
       "/api": {
         target: process.env.VITE_API_PROXY_TARGET ?? "http://localhost:8080",
         changeOrigin: true,
-        rewrite: (requestPath) => requestPath.replace(/^\/api/, ""),
+      },
+      "/public": {
+        target: process.env.VITE_API_PROXY_TARGET ?? "http://localhost:8080",
+        changeOrigin: true,
       },
     },
   },

@@ -195,7 +195,7 @@ export function FormsPage() {
                   )}
                 </p>
                 <p className="truncate font-mono text-xs text-muted-foreground">
-                  /api/forms/{form.slug}/filled
+                  /public/v1/forms/{form.slug}/submissions
                 </p>
               </div>
 
@@ -257,7 +257,7 @@ export function FormsPage() {
                   }}
                 />
                 <p className="font-mono text-xs text-muted-foreground">
-                  /api/forms/{draft.slug || keyed(draft.name)}/filled
+                  /public/v1/forms/{draft.slug || keyed(draft.name)}/submissions
                 </p>
               </div>
 

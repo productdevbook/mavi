@@ -37,9 +37,20 @@ export default defineConfig({
       "/api": {
         target: process.env.VITE_API_PROXY_TARGET ?? "http://localhost:8080",
         changeOrigin: true,
-        rewrite: (requestPath) => requestPath.replace(/^\/api/, ""),
       },
-      "/uploads": {
+      "/public": {
+        target: process.env.VITE_API_PROXY_TARGET ?? "http://localhost:8080",
+        changeOrigin: true,
+      },
+      "/student": {
+        target: process.env.VITE_API_PROXY_TARGET ?? "http://localhost:8080",
+        changeOrigin: true,
+      },
+      "/mcp": {
+        target: process.env.VITE_API_PROXY_TARGET ?? "http://localhost:8080",
+        changeOrigin: true,
+      },
+      "/openapi.json": {
         target: process.env.VITE_API_PROXY_TARGET ?? "http://localhost:8080",
         changeOrigin: true,
       },

@@ -147,7 +147,9 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] The self-host composition root provides a fail-closed HTTPS webhook
     Mailer adapter with typed purpose/attempt/idempotency metadata and provider
     receipt validation; SMTP/cloud SDKs remain behind that host boundary.
-  - [ ] Provider-specific bounce/complaint webhooks, sender-domain policy and
+  - [x] Normalized provider-event webhook, site-scoped idempotency, permanent
+    bounce/complaint suppression and queued campaign cancellation.
+  - [ ] Vendor-specific signature/payload adapters, sender-domain policy and
     provider rate-limit feedback remain host/cloud deliverability work.
 
 ## Commerce and learning

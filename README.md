@@ -91,6 +91,9 @@ The clean API reads these at its binary boundary:
 | `MAVI_WORKER_LEASE_SECONDS` | worker default | Queue lease duration. |
 | `MAVI_WORKER_POLL_MILLIS` | worker default | Queue poll interval. |
 | `MAVI_TRUSTED_PROXY_CIDRS` | none | Explicit proxy networks allowed to provide forwarded client IPs. |
+| `MAVI_MAIL_WEBHOOK_URL` | none | Trusted HTTPS gateway used for outbound mail; absent means fail-closed delivery. |
+| `MAVI_MAIL_WEBHOOK_TOKEN` | none | Optional bearer credential sent to the outbound mail gateway. |
+| `MAVI_MAIL_WEBHOOK_INGEST_TOKEN` | none | Separate bearer credential required by the gateway for normalized bounce/complaint callbacks. |
 | `RUST_LOG` | `info` | |
 
 ## Self-host and cloud boundary

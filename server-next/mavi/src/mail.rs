@@ -14,7 +14,9 @@ use serde::{Deserialize, Serialize};
 
 const WEBHOOK_ENV: &str = "MAVI_MAIL_WEBHOOK_URL";
 const TOKEN_ENV: &str = "MAVI_MAIL_WEBHOOK_TOKEN";
+const INGEST_TOKEN_ENV: &str = "MAVI_MAIL_WEBHOOK_INGEST_TOKEN";
 const MAX_ENDPOINT_CHARS: usize = 2_048;
+const MAX_TOKEN_CHARS: usize = 4_096;
 const MAX_REFERENCE_CHARS: usize = 1_024;
 
 /// Builds the mail adapter once at process startup.
@@ -36,8 +38,16 @@ pub fn from_env() -> Result<Arc<dyn Mailer>> {
                 .map_err(|_| MaviError::validation("mail_webhook_token_not_unicode"))
         })
         .transpose()?
-        .map(|value| value.trim().to_owned())
-        .filter(|value| !value.is_empty());
+        .map(|value| {
+            let value = value.trim().to_owned();
+            if value.is_empty() {
+                Ok(None)
+            } else {
+                validate_token(&value).map(Some)
+            }
+        })
+        .transpose()?
+        .flatten();
     let client = reqwest::Client::builder()
         .connect_timeout(Duration::from_secs(5))
         .timeout(Duration::from_secs(20))
@@ -50,11 +60,35 @@ pub fn from_env() -> Result<Arc<dyn Mailer>> {
     }))
 }
 
-#[derive(Clone, Debug)]
+/// Reads the separate credential used by a trusted provider gateway when it
+/// posts normalized delivery events back to Mavi. It is intentionally not the
+/// outbound provider token: the two directions have different trust paths.
+pub fn ingest_token_from_env() -> Result<Option<Arc<str>>> {
+    let Some(value) = env::var_os(INGEST_TOKEN_ENV) else {
+        return Ok(None);
+    };
+    let value = value
+        .into_string()
+        .map_err(|_| MaviError::validation("mail_webhook_ingest_token_not_unicode"))?;
+    let value = validate_token(&value)?;
+    Ok(Some(Arc::<str>::from(value)))
+}
+
+#[derive(Clone)]
 struct WebhookMailer {
     client: reqwest::Client,
     endpoint: String,
     token: Option<String>,
+}
+
+impl std::fmt::Debug for WebhookMailer {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("WebhookMailer")
+            .field("endpoint", &self.endpoint)
+            .field("token", &self.token.as_ref().map(|_| "[redacted]"))
+            .finish_non_exhaustive()
+    }
 }
 
 impl Mailer for WebhookMailer {
@@ -173,9 +207,21 @@ fn validate_reference(value: &str) -> Result<String> {
     Ok(value.to_owned())
 }
 
+fn validate_token(value: &str) -> Result<String> {
+    let value = value.trim();
+    if value.is_empty()
+        || value.chars().count() > MAX_TOKEN_CHARS
+        || value.chars().any(char::is_whitespace)
+        || value.chars().any(char::is_control)
+    {
+        return Err(MaviError::validation("mail_webhook_token_invalid"));
+    }
+    Ok(value.to_owned())
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{validate_endpoint, validate_reference};
+    use super::{validate_endpoint, validate_reference, validate_token};
 
     #[test]
     fn webhook_endpoint_rejects_embedded_credentials_and_fragments() {
@@ -192,5 +238,14 @@ mod tests {
             "provider-1"
         );
         assert!(validate_reference("provider\n-1").is_err());
+    }
+
+    #[test]
+    fn webhook_tokens_are_bounded_and_whitespace_free() {
+        assert_eq!(
+            validate_token(" gateway-token ").expect("token"),
+            "gateway-token"
+        );
+        assert!(validate_token("bad token").is_err());
     }
 }

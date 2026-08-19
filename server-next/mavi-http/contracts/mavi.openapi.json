@@ -9796,6 +9796,98 @@
         }
       }
     },
+    "/internal/v1/mail/provider-events": {
+      "post": {
+        "operationId": "mail.provider_events.receive",
+        "summary": "Receive one normalized provider delivery event",
+        "tags": [
+          "mail"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MailProviderEventReceipt"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReceiveMailProviderEvent"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "webhookAuth": []
+          }
+        ],
+        "x-mavi": {
+          "scope": "site",
+          "authentication": "webhook",
+          "mutation": {
+            "webhook": {
+              "idempotent": true
+            }
+          },
+          "permission": null,
+          "errors": [
+            "unauthenticated",
+            "validation",
+            "conflict",
+            "internal"
+          ]
+        }
+      }
+    },
     "/api/v1/shop/products": {
       "get": {
         "operationId": "shop.products.list",
@@ -17929,6 +18021,11 @@
       "bearerAuth": {
         "type": "http",
         "scheme": "bearer"
+      },
+      "webhookAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "A deployment-configured provider webhook credential."
       }
     },
     "schemas": {
@@ -22229,6 +22326,13 @@
         },
         "additionalProperties": false
       },
+      "MailBounceClass": {
+        "type": "string",
+        "enum": [
+          "transient",
+          "permanent"
+        ]
+      },
       "MailContentType": {
         "type": "string",
         "enum": [
@@ -22455,6 +22559,36 @@
           }
         },
         "additionalProperties": false
+      },
+      "MailProviderEventKind": {
+        "type": "string",
+        "enum": [
+          "delivered",
+          "bounced",
+          "complained"
+        ]
+      },
+      "MailProviderEventReceipt": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "duplicate",
+          "suppressed",
+          "cancelled_deliveries"
+        ],
+        "properties": {
+          "duplicate": {
+            "type": "boolean"
+          },
+          "suppressed": {
+            "type": "boolean"
+          },
+          "cancelled_deliveries": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        }
       },
       "MailPurpose": {
         "type": "string",
@@ -24062,6 +24196,71 @@
           }
         },
         "additionalProperties": false
+      },
+      "ReceiveMailProviderEvent": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "provider",
+          "event_id",
+          "recipient",
+          "kind",
+          "occurred_at"
+        ],
+        "properties": {
+          "provider": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "event_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "delivery_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "recipient": {
+            "type": "string",
+            "format": "email"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/MailProviderEventKind"
+          },
+          "bounce_class": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/MailBounceClass"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "provider_reference": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 1024
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 2000
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
       },
       "RenderedMail": {
         "type": "object",

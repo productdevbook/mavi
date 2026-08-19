@@ -60,6 +60,14 @@ without entering the Mavi domain crates. If the variable is absent, the
 runtime uses a fail-closed adapter and leaves an auditable retry/dead state
 rather than silently dropping mail.
 
+The reverse direction is a separate normalized webhook boundary. A trusted
+gateway authenticates with `MAVI_MAIL_WEBHOOK_INGEST_TOKEN` and posts one
+`mail.provider_events.receive` event at a time. Mavi stores the provider event
+ID under site scope, so retries are idempotent. Permanent bounces and
+complaints suppress the reader and cancel queued campaign deliveries; transient
+bounces do not create permanent suppression. Vendor signature parsing and
+provider-specific payload translation remain in the gateway adapter.
+
 ## Why building is a port and not an option
 
 The same argument, and the sharpest case of it. A design that has to be built

@@ -132,7 +132,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Forms/submissions use composite keys, RLS, Cedar grants and mutation audit receipts.
   - [x] Per-form `kept_days` is enforced by an idempotent site-scoped `forms.retention` job; expired answers are redacted behind a tombstone and the system audit receipt commits atomically, with worker and cross-site tests.
   - [x] Versioned `mavi.forms.submissions` JSON export returns only active rows through a bounded opaque cursor, includes the form declaration, and records an audit receipt in the same transaction.
-  - [ ] Spam/rate-limit controls.
+  - [x] Public submissions enter a site+action edge window keyed by privacy-preserving peer/device signals; limit responses expose `Retry-After` and write one site-scoped `forms.security.edge_rate_limited` audit receipt per source window.
 - [-] Mail templates, delivery queue, retries and provider adapters.
   - [x] Strict site-scoped templates render bounded `{{variable}}` placeholders and expose preview without sending.
   - [x] Mailing lists/readers use normalized addresses, hashed unsubscribe tokens and explicit standing states.

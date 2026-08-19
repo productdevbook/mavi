@@ -2,10 +2,13 @@ use axum::{
     Router,
     http::{Method, StatusCode},
 };
+use mavi_core::SiteContext;
+use mavi_http::EdgeThrottlePolicy;
 use serde_json::json;
+use std::time::Duration;
 
 mod support;
-use support::{bootstrap, response_json, send};
+use support::{bootstrap, response_json, send, send_with_peer};
 
 #[tokio::test]
 #[ignore = "requires TEST_DATABASE_URL and a non-superuser PostgreSQL role"]
@@ -177,6 +180,74 @@ async fn form_routes_validate_public_submissions_cursor_inbox_and_permissions() 
     )
     .await;
     assert_eq!(reader_write.status(), StatusCode::FORBIDDEN);
+}
+
+#[tokio::test]
+#[ignore = "requires TEST_DATABASE_URL and a non-superuser PostgreSQL role"]
+async fn public_form_submissions_are_site_scoped_rate_limited_and_audited() {
+    let (app, database, site_id) = support::build_app_with_edge_policy(EdgeThrottlePolicy {
+        ip_limit: 2,
+        ip_window: Duration::from_mins(1),
+        device_limit: 100,
+        device_window: Duration::from_mins(10),
+        max_buckets: 32,
+    })
+    .await;
+    let owner_token = bootstrap(&app, "HTTP forms edge throttle test").await;
+
+    let form = send(
+        &app,
+        Method::POST,
+        "/api/v1/forms",
+        Some(&owner_token),
+        Some(json!({"slug": "contact", "name": "Contact us"})),
+    )
+    .await;
+    assert_eq!(form.status(), StatusCode::CREATED);
+    let peer = "198.51.100.20:4242".parse().expect("peer");
+
+    for _ in 0..2 {
+        let response = send_with_peer(
+            &app,
+            Method::POST,
+            "/public/v1/forms/contact/submissions",
+            peer,
+            Some(json!({"answers": {}})),
+        )
+        .await;
+        assert_eq!(response.status(), StatusCode::CREATED);
+    }
+
+    let limited = send_with_peer(
+        &app,
+        Method::POST,
+        "/public/v1/forms/contact/submissions",
+        peer,
+        Some(json!({"answers": {}})),
+    )
+    .await;
+    assert_eq!(limited.status(), StatusCode::TOO_MANY_REQUESTS);
+    assert_eq!(limited.headers()["retry-after"], "60");
+    assert_eq!(
+        response_json(limited).await["error"]["code"],
+        "rate_limited"
+    );
+
+    let context = SiteContext::public(site_id);
+    let mut transaction = database.begin(&context).await.expect("audit scope");
+    let (count, scope, action): (i64, Option<String>, Option<String>) = sqlx::query_as(
+        "select count(*), max(payload->>'scope'), max(payload->>'action')
+           from audit_events
+          where site_id = $1 and action = 'forms.security.edge_rate_limited'",
+    )
+    .bind(site_id.into_uuid())
+    .fetch_one(transaction.conn())
+    .await
+    .expect("forms edge audit");
+    assert_eq!(count, 1);
+    assert_eq!(scope.as_deref(), Some("ip"));
+    assert_eq!(action.as_deref(), Some("forms.public.submit"));
+    transaction.commit().await.expect("audit commit");
 }
 
 async fn create_reader(app: &Router, owner_token: &str) -> String {

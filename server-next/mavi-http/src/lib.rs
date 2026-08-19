@@ -69,7 +69,7 @@ use mavi_flows::{
 use mavi_forms::{
     CreateForm, Form, FormListFilter, FormService, FormSubmission, FormSubmissionExport,
     PublicForm, SeenCount, SubmissionExportFilter, SubmissionListFilter, SubmissionReceipt,
-    SubmitForm, UpdateForm,
+    SubmitForm, UpdateForm, audit_action as forms_audit_action,
 };
 use mavi_identity::{
     ApiKeyCreated, ApiKeyListFilter, ApiKeyRecord, CreateApiKey, CreatePerson, CreateRole,
@@ -2423,13 +2423,17 @@ async fn record_edge_throttle<R>(
 where
     R: SiteResolver,
 {
+    let audit_action = match action {
+        EdgeAction::FormSubmissionCreate => forms_audit_action::SECURITY_EDGE_RATE_LIMITED,
+        _ => audit_action::SECURITY_EDGE_RATE_LIMITED,
+    };
     let mut transaction = state.runtime.begin(context).await?;
     AuditService
         .record(
             &mut transaction,
             context,
             &AuditEntry {
-                action: audit_action::SECURITY_EDGE_RATE_LIMITED.to_owned(),
+                action: audit_action.to_owned(),
                 resource_type: "Site".to_owned(),
                 resource_id: Some(context.site_id.into_uuid()),
                 payload: json!({

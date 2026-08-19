@@ -1227,6 +1227,123 @@
         }
       }
     },
+    "/api/v1/people/{id}/roles": {
+      "put": {
+        "operationId": "people.roles.replace",
+        "summary": "Replace a person's roles",
+        "tags": [
+          "people"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonRecord"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReplacePersonRoles"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-mavi": {
+          "scope": "site",
+          "authentication": "account_or_assistant",
+          "mutation": {
+            "permissioned": {
+              "idempotent": true
+            }
+          },
+          "permission": {
+            "capability": "people",
+            "action": "write"
+          },
+          "errors": [
+            "forbidden",
+            "validation",
+            "conflict",
+            "not_found",
+            "internal"
+          ]
+        }
+      }
+    },
     "/api/v1/roles": {
       "get": {
         "operationId": "roles.list",
@@ -24981,6 +25098,22 @@
             }
           }
         }
+      },
+      "ReplacePersonRoles": {
+        "type": "object",
+        "required": [
+          "role_ids"
+        ],
+        "properties": {
+          "role_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "additionalProperties": false
       },
       "ReplaceRoleGrants": {
         "type": "object",

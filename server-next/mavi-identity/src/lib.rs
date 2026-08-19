@@ -298,6 +298,27 @@ pub fn api() -> Api {
             ErrorCode::Internal,
         ]),
         Endpoint::new(
+            Method::Put,
+            "/api/v1/people/{id}/roles",
+            "people.roles.replace",
+            "Replace a person's roles",
+        )
+        .account_or_assistant()
+        .requires(Permission {
+            capability: Capability::People,
+            action: Action::Write,
+        })
+        .takes("ReplacePersonRoles")
+        .returns(200, "PersonRecord")
+        .changes(true)
+        .refuses([
+            ErrorCode::Forbidden,
+            ErrorCode::Validation,
+            ErrorCode::Conflict,
+            ErrorCode::NotFound,
+            ErrorCode::Internal,
+        ]),
+        Endpoint::new(
             Method::Get,
             "/api/v1/roles",
             "roles.list",
@@ -629,6 +650,16 @@ fn identity_shapes() -> Vec<Shape> {
                 "type": "object",
                 "required": ["status"],
                 "properties": {"status": {"$ref": "#/components/schemas/PersonListFilterStatus"}},
+            }),
+        ),
+        Shape::new(
+            "ReplacePersonRoles",
+            json!({
+                "type": "object",
+                "required": ["role_ids"],
+                "properties": {
+                    "role_ids": {"type": "array", "items": {"type": "string", "format": "uuid"}},
+                },
             }),
         ),
         Shape::new(
@@ -967,6 +998,11 @@ pub struct CreatePerson {
 #[derive(Clone, Debug, Deserialize)]
 pub struct UpdatePersonStatus {
     pub status: PersonStatus,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct ReplacePersonRoles {
+    pub role_ids: Vec<RoleId>,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
@@ -2135,6 +2171,91 @@ impl IdentityService {
                     resource_type: "Person".to_owned(),
                     resource_id: Some(person_id.into_uuid()),
                     payload: serde_json::json!({"status": input.status}),
+                },
+            )
+            .await?;
+        Ok(person)
+    }
+
+    pub async fn replace_person_roles(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        person_id: PersonId,
+        input: &ReplacePersonRoles,
+        now: DateTime<Utc>,
+    ) -> Result<PersonRecord> {
+        require_context_grant(context, Grant::new(Capability::People, Action::Write))?;
+        let changes_current_person = match &context.caller {
+            Caller::Account {
+                person_id: current_id,
+                ..
+            }
+            | Caller::Assistant {
+                person_id: Some(current_id),
+                ..
+            } => *current_id == person_id,
+            _ => false,
+        };
+        if changes_current_person {
+            return Err(MaviError::conflict("cannot_change_current_person_roles"));
+        }
+
+        let role_ids = unique_role_ids(&input.role_ids);
+        ensure_roles_are_delegable(tx, context, &role_ids).await?;
+
+        sqlx::query(
+            "select id from people
+              where site_id = $1 and id = $2
+              for update",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(person_id.into_uuid())
+        .fetch_optional(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?
+        .ok_or(MaviError::NotFound {
+            resource: PERSON_NOT_FOUND,
+        })?;
+
+        sqlx::query("delete from person_roles where site_id = $1 and person_id = $2")
+            .bind(context.site_id.into_uuid())
+            .bind(person_id.into_uuid())
+            .execute(tx.conn())
+            .await
+            .map_err(|_| MaviError::Internal)?;
+
+        for role_id in &role_ids {
+            sqlx::query(
+                "insert into person_roles (site_id, person_id, role_id)
+                 values ($1, $2, $3)",
+            )
+            .bind(context.site_id.into_uuid())
+            .bind(person_id.into_uuid())
+            .bind(role_id.into_uuid())
+            .execute(tx.conn())
+            .await
+            .map_err(|_| MaviError::Internal)?;
+        }
+
+        sqlx::query("update people set updated_at = $3 where site_id = $1 and id = $2")
+            .bind(context.site_id.into_uuid())
+            .bind(person_id.into_uuid())
+            .bind(now)
+            .execute(tx.conn())
+            .await
+            .map_err(|_| MaviError::Internal)?;
+
+        let person = self.get_person(tx, context, person_id).await?;
+        AuditService
+            .record(
+                tx,
+                context,
+                &AuditEntry {
+                    action: "people.person.roles_replaced".to_owned(),
+                    resource_type: "Person".to_owned(),
+                    resource_id: Some(person_id.into_uuid()),
+                    payload: serde_json::json!({"role_count": role_ids.len()}),
                 },
             )
             .await?;

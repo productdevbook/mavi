@@ -76,8 +76,8 @@ use mavi_identity::{
     CurrentSession, EmailVerificationRedeemInput, EmailVerificationRequestInput,
     EmailVerificationRequested, IdentityService, LoginInput, PasswordResetRedeemInput,
     PasswordResetRequestInput, PasswordResetRequested, PeopleListFilter, Person, PersonRecord,
-    ReplaceRoleGrants, Role, RoleListFilter, SessionCreated, SetupInput, SetupStatus,
-    UpdatePersonStatus, audit_action,
+    ReplacePersonRoles, ReplaceRoleGrants, Role, RoleListFilter, SessionCreated, SetupInput,
+    SetupStatus, UpdatePersonStatus, audit_action,
 };
 use mavi_jobs::{Job, JobListFilter, JobsService};
 use mavi_mail::{
@@ -1185,6 +1185,7 @@ where
             "/api/v1/people/{id}/status",
             axum::routing::patch(update_person_status::<R>),
         )
+        .route("/api/v1/people/{id}/roles", put(replace_person_roles::<R>))
         .route("/api/v1/roles", get(list_roles::<R>).post(create_role::<R>))
         .route("/api/v1/roles/{id}", delete(delete_role::<R>))
         .route("/api/v1/roles/{id}/grants", put(replace_role_grants::<R>))
@@ -2953,6 +2954,32 @@ where
     let person = state
         .identity
         .update_person_status(&mut transaction, &context, id, &input, Utc::now())
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(person))
+}
+
+async fn replace_person_roles<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<PersonId>,
+    Json(input): Json<ReplacePersonRoles>,
+) -> Result<Json<PersonRecord>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::People, Action::Write),
+        "Person",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let person = state
+        .identity
+        .replace_person_roles(&mut transaction, &context, id, &input, Utc::now())
         .await
         .map_err(HttpError)?;
     transaction.commit().await.map_err(HttpError)?;

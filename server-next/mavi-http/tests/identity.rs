@@ -132,6 +132,40 @@ async fn role_lifecycle_protects_owner_and_assigned_roles() {
     )
     .await;
     assert_eq!(person.status(), StatusCode::CREATED);
+    let person_id = response_json(person).await["id"]
+        .as_str()
+        .expect("person id")
+        .to_owned();
+
+    let replacement = send(
+        &app,
+        Method::POST,
+        "/api/v1/roles",
+        Some(&owner_token),
+        Some(json!({
+            "name": "replacement",
+            "grants": [{"capability": "content", "action": "view"}]
+        })),
+    )
+    .await;
+    assert_eq!(replacement.status(), StatusCode::CREATED);
+    let replacement_id = response_json(replacement).await["id"]
+        .as_str()
+        .expect("replacement role id")
+        .to_owned();
+    let replaced = send(
+        &app,
+        Method::PUT,
+        &format!("/api/v1/people/{person_id}/roles"),
+        Some(&owner_token),
+        Some(json!({"role_ids": [replacement_id]})),
+    )
+    .await;
+    assert_eq!(replaced.status(), StatusCode::OK);
+    assert_eq!(
+        response_json(replaced).await["role_ids"],
+        json!([replacement_id])
+    );
 
     let assigned_delete = send(
         &app,

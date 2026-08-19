@@ -17045,6 +17045,16 @@
               }
             }
           },
+          "429": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Request refused",
             "content": {
@@ -17080,6 +17090,7 @@
           "permission": null,
           "errors": [
             "validation",
+            "rate_limited",
             "internal"
           ]
         }

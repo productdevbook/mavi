@@ -38,6 +38,7 @@ pub enum EdgeAction {
     EmailVerificationRequest,
     EmailVerificationRedeem,
     FormSubmissionCreate,
+    AnalyticsEventCreate,
 }
 
 impl EdgeAction {
@@ -50,6 +51,7 @@ impl EdgeAction {
             Self::EmailVerificationRequest => "auth.email_verification.request",
             Self::EmailVerificationRedeem => "auth.email_verification.redeem",
             Self::FormSubmissionCreate => "forms.public.submit",
+            Self::AnalyticsEventCreate => "analytics.public.ingest",
         }
     }
 }
@@ -470,6 +472,7 @@ pub(crate) fn action_for(request: &Request<Body>) -> Option<EdgeAction> {
         "/api/v1/auth/email-verifications" => Some(EdgeAction::EmailVerificationRequest),
         "/api/v1/auth/email-verifications/redeem" => Some(EdgeAction::EmailVerificationRedeem),
         path if is_public_form_submission(path) => Some(EdgeAction::FormSubmissionCreate),
+        "/public/v1/analytics/events" => Some(EdgeAction::AnalyticsEventCreate),
         _ => None,
     }
 }
@@ -666,6 +669,23 @@ mod tests {
             .body(Body::empty())
             .expect("request");
         assert_eq!(action_for(&nested_slug), None);
+
+        let analytics = Request::builder()
+            .method(Method::POST)
+            .uri("/public/v1/analytics/events")
+            .body(Body::empty())
+            .expect("request");
+        assert_eq!(
+            action_for(&analytics),
+            Some(EdgeAction::AnalyticsEventCreate)
+        );
+
+        let analytics_get = Request::builder()
+            .method(Method::GET)
+            .uri("/public/v1/analytics/events")
+            .body(Body::empty())
+            .expect("request");
+        assert_eq!(action_for(&analytics_get), None);
     }
 
     #[test]

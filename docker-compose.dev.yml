@@ -22,6 +22,8 @@ services:
     build:
       context: ./server-next
       dockerfile: Dockerfile
+      secrets:
+        - sccache-env
     restart: unless-stopped
     environment:
       # Point this at any PostgreSQL you like — the bundled "postgres"
@@ -51,3 +53,7 @@ services:
 volumes:
   postgres-data:
   api-data:
+
+secrets:
+  sccache-env:
+    file: ${SCCACHE_ENV_FILE:-/home/mkpc/.config/sccache/s3.env}

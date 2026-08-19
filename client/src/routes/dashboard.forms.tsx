@@ -8,6 +8,7 @@ import { toast } from "sonner"
 import { api, every } from "@/lib/v1"
 import { said } from "@/lib/v1-said"
 import type { Form, FormField } from "@api"
+import { DashboardPageHeader } from "@/components/dashboard/dashboard-page"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -145,28 +146,35 @@ function FormsRoute() {
 
   return (
     <>
-      <div className="mb-6 flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-lg font-semibold">{t`Forms`}</h1>
-          <p className="text-sm text-muted-foreground">
-            {t`Say what a form accepts here, then have your own pages post to it. What it does not accept is refused rather than kept.`}
-          </p>
-        </div>
-        <Button
-          onClick={() =>
-            setDraft({
-              id: null,
-              name: "",
-              slug: "",
-              fields: [{ key: "name", label: t`Name`, required: true, kind: "text", options: [] }],
-              open: true,
-              kept_days: 365,
-            })
-          }
-        >
-          <Plus /> {t`New form`}
-        </Button>
-      </div>
+      <DashboardPageHeader
+        className="mb-6"
+        title={t`Forms`}
+        description={t`Say what a form accepts here, then have your own pages post to it. What it does not accept is refused rather than kept.`}
+        actions={
+          <Button
+            onClick={() =>
+              setDraft({
+                id: null,
+                name: "",
+                slug: "",
+                fields: [
+                  {
+                    key: "name",
+                    label: t`Name`,
+                    required: true,
+                    kind: "text",
+                    options: [],
+                  },
+                ],
+                open: true,
+                kept_days: 365,
+              })
+            }
+          >
+            <Plus /> {t`New form`}
+          </Button>
+        }
+      />
 
       {!forms ? (
         <div className="flex justify-center py-16">

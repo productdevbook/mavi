@@ -8,7 +8,6 @@ import {
   GraduationCap,
   HardDrive,
   Inbox,
-  Loader2,
   Mails,
   ShoppingCart,
   Users,
@@ -20,6 +19,11 @@ import type { Overview } from "@api"
 import { Figure } from "@/components/charts"
 import { inBytes } from "@/lib/bytes"
 import { AddressHealth } from "@/components/dashboard/address-health"
+import {
+  DashboardError,
+  DashboardLoading,
+  DashboardPageHeader,
+} from "@/components/dashboard/dashboard-page"
 
 export const Route = createFileRoute("/dashboard/")({
   component: HomeRoute,
@@ -48,28 +52,20 @@ function SiteHome() {
 
   if (stats === "failed") {
     return (
-      <p className="text-sm text-muted-foreground">
-        {t`The numbers could not be read just now.`}
-      </p>
+      <DashboardError message={t`The numbers could not be read just now.`} />
     )
   }
 
   if (!stats) {
-    return (
-      <div className="flex justify-center py-16">
-        <Loader2 className="size-6 animate-spin text-muted-foreground" />
-      </div>
-    )
+    return <DashboardLoading />
   }
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-lg font-semibold">{t`Overview`}</h1>
-        <p className="text-sm text-muted-foreground">
-          {t`Everything this site adds up to.`}
-        </p>
-      </div>
+      <DashboardPageHeader
+        title={t`Overview`}
+        description={t`Everything this site adds up to.`}
+      />
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Figure
@@ -81,9 +77,7 @@ function SiteHome() {
         <Figure
           label={t`Forms`}
           value={stats.forms}
-          hint={
-            stats.unread > 0 ? t`${stats.unread} unread` : t`all read`
-          }
+          hint={stats.unread > 0 ? t`${stats.unread} unread` : t`all read`}
           icon={Inbox}
           tone={stats.unread > 0 ? "warn" : undefined}
         />

@@ -9,6 +9,7 @@ import { api } from "@/lib/v1"
 import { said } from "@/lib/v1-said"
 import type { SecondStanding, SecondToSetUp, Settings } from "@api"
 import { AddressHealth } from "@/components/dashboard/address-health"
+import { DashboardPageHeader } from "@/components/dashboard/dashboard-page"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -59,12 +60,10 @@ function SettingsRoute() {
 
   return (
     <div className="flex max-w-2xl flex-col gap-8">
-      <div>
-        <h1 className="text-lg font-semibold">{t`This site`}</h1>
-        <p className="text-sm text-muted-foreground">
-          {t`What it is called and where it answers.`}
-        </p>
-      </div>
+      <DashboardPageHeader
+        title={t`This site`}
+        description={t`What it is called and where it answers.`}
+      />
 
       <section className="flex flex-col gap-3">
         <div className="flex flex-col gap-1.5">

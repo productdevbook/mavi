@@ -28,6 +28,7 @@ import { toast } from "sonner"
 import { api } from "@/lib/v1"
 import { said } from "@/lib/v1-said"
 import type { Role } from "@api"
+import { DashboardPageHeader } from "@/components/dashboard/dashboard-page"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -271,17 +272,15 @@ function RolesRoute() {
 
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="text-xl font-semibold tracking-tight">{t`Roles`}</h1>
-          <p className="max-w-xl text-sm text-muted-foreground">
-            {t`What each role on this site may read, write and delete. Menus follow this — a screen a role cannot open is not shown to it.`}
-          </p>
-        </div>
-        <Button onClick={() => setCreating(true)}>
-          <Plus className="size-4" /> {t`New role`}
-        </Button>
-      </div>
+      <DashboardPageHeader
+        title={t`Roles`}
+        description={t`What each role on this site may read, write and delete. Menus follow this — a screen a role cannot open is not shown to it.`}
+        actions={
+          <Button onClick={() => setCreating(true)}>
+            <Plus className="size-4" /> {t`New role`}
+          </Button>
+        }
+      />
 
       <div className="flex flex-col gap-5">
         {roles.map((role) => {

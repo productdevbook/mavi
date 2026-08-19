@@ -29,7 +29,7 @@ msgstr ""
 #~ msgstr "\"{0}\" goes from the host as well as from here, and does not go to the bin. Any lesson using it will have no video."
 
 #. placeholder {0}: going?.title
-#: src/components/dashboard/content-list.tsx:313
+#: src/components/dashboard/content-list.tsx:312
 msgid "\"{0}\" goes to the bin, and can be taken back out of it."
 msgstr "\"{0}\" goes to the bin, and can be taken back out of it."
 
@@ -44,7 +44,7 @@ msgstr "\"{0}\" goes to the bin, and can be taken back out of it."
 #~ msgstr "\"{0}\" loses their account, their access and how far they got. This does not go to the bin."
 
 #. placeholder {0}: pendingDelete?.name
-#: src/routes/dashboard.categories.tsx:337
+#: src/routes/dashboard.categories.tsx:333
 msgid "\"{0}\" will be permanently deleted. This cannot be undone."
 msgstr "\"{0}\" will be permanently deleted. This cannot be undone."
 
@@ -178,8 +178,8 @@ msgstr "{0} connects from its own servers, not from this computer, so it cannot 
 
 #. placeholder {0}: answer.days
 #: src/routes/dashboard.performance.tsx:130
-msgid "{0} days"
-msgstr "{0} days"
+#~ msgid "{0} days"
+#~ msgstr "{0} days"
 
 #. placeholder {0}: health.domain_days_left
 #: src/components/dashboard/address-health.tsx:57
@@ -189,19 +189,19 @@ msgstr "{0} days"
 #. placeholder {0}: answer.mail.delivered
 #. placeholder {1}: answer.mail.bounced
 #: src/routes/dashboard.usage.tsx:118
-msgid "{0} delivered, {1} bounced"
-msgstr "{0} delivered, {1} bounced"
+#~ msgid "{0} delivered, {1} bounced"
+#~ msgstr "{0} delivered, {1} bounced"
 
 #. placeholder {0}: done.acted_on
 #: src/components/dashboard/content-list.tsx:124
-msgid "{0} done."
-msgstr "{0} done."
+#~ msgid "{0} done."
+#~ msgstr "{0} done."
 
 #. placeholder {0}: done.acted_on
 #. placeholder {1}: done.left_alone.length
 #: src/components/dashboard/content-list.tsx:121
-msgid "{0} done. {1} were left alone."
-msgstr "{0} done. {1} were left alone."
+#~ msgid "{0} done. {1} were left alone."
+#~ msgstr "{0} done. {1} were left alone."
 
 #. placeholder {0}: i18n.number(row.emails)
 #. placeholder {1}: sizeOf(row.storage_bytes)
@@ -214,8 +214,8 @@ msgstr "{0} done. {1} were left alone."
 #~ msgid "{0} enrolments"
 #~ msgstr "{0} enrolments"
 
-#. placeholder {0}: kind.count
-#: src/routes/dashboard.usage.tsx:153
+#. placeholder {0}: answer.files
+#: src/routes/dashboard.usage.tsx:76
 msgid "{0} files"
 msgstr "{0} files"
 
@@ -227,8 +227,8 @@ msgstr "{0} files"
 
 #. placeholder {0}: design.changed.length
 #: src/routes/dashboard.design.tsx:102
-msgid "{0} files changed. None of it is live yet."
-msgstr "{0} files changed. None of it is live yet."
+#~ msgid "{0} files changed. None of it is live yet."
+#~ msgstr "{0} files changed. None of it is live yet."
 
 #. placeholder {0}: checklist.report.media.copied
 #. placeholder {1}: checklist.report.media.kept
@@ -244,8 +244,8 @@ msgstr "{0} files changed. None of it is live yet."
 
 #. placeholder {0}: issues.length
 #: src/routes/dashboard.index.tsx:246
-msgid "{0} found"
-msgstr "{0} found"
+#~ msgid "{0} found"
+#~ msgstr "{0} found"
 
 #. placeholder {0}: stats.visitors.reduce((all, day) => all + day.visitors, 0)
 #. placeholder {0}: sum(stats.arrived)
@@ -254,10 +254,10 @@ msgstr "{0} found"
 #: src/routes/dashboard.index.tsx:146
 #: src/routes/dashboard.index.tsx:152
 #: src/routes/dashboard.index.tsx:158
-msgid "{0} in {days} days"
-msgstr "{0} in {days} days"
+#~ msgid "{0} in {days} days"
+#~ msgstr "{0} in {days} days"
 
-#. placeholder {0}: entry.name
+#. placeholder {0}: entry.called
 #: src/routes/dashboard.trash.tsx:103
 msgid "{0} is back"
 msgstr "{0} is back"
@@ -296,18 +296,18 @@ msgstr "{0} is wanted."
 
 #. placeholder {0}: score.samples
 #: src/routes/dashboard.performance.tsx:123
-msgid "{0} measured"
-msgstr "{0} measured"
+#~ msgid "{0} measured"
+#~ msgstr "{0} measured"
 
 #. placeholder {0}: Math.round(video.seconds / 60)
 #: src/routes/dashboard.videos.tsx:163
-msgid "{0} minutes"
-msgstr "{0} minutes"
+#~ msgid "{0} minutes"
+#~ msgstr "{0} minutes"
 
 #. placeholder {0}: totals.unseen
 #: src/routes/dashboard.index.tsx:124
-msgid "{0} not read yet"
-msgstr "{0} not read yet"
+#~ msgid "{0} not read yet"
+#~ msgstr "{0} not read yet"
 
 #. placeholder {0}: watching.position
 #. placeholder {1}: watching.total
@@ -369,8 +369,8 @@ msgstr "{0} of {1}"
 #: src/routes/dashboard.coupons.tsx:109
 #: src/routes/dashboard.media.tsx:129
 #: src/routes/dashboard.settings.tsx:83
-msgid "{0} of {1} used"
-msgstr "{0} of {1} used"
+#~ msgid "{0} of {1} used"
+#~ msgstr "{0} of {1} used"
 
 #. placeholder {0}: site.sent_today
 #. placeholder {1}: site.a_day
@@ -392,8 +392,8 @@ msgstr "{0} of {1} used"
 
 #. placeholder {0}: people[list.id].length
 #: src/routes/dashboard.mail.tsx:288
-msgid "{0} on it"
-msgstr "{0} on it"
+#~ msgid "{0} on it"
+#~ msgstr "{0} on it"
 
 #. placeholder {0}: row.opened
 #: src/routes/dashboard.mail.tsx:202
@@ -402,8 +402,8 @@ msgstr "{0} on it"
 
 #. placeholder {0}: totals.orders
 #: src/routes/dashboard.index.tsx:202
-msgid "{0} orders"
-msgstr "{0} orders"
+#~ msgid "{0} orders"
+#~ msgstr "{0} orders"
 
 #. placeholder {0}: add((one) => one.subscribers)
 #: src/components/dashboard/server-home.tsx:111
@@ -412,8 +412,8 @@ msgstr "{0} orders"
 
 #. placeholder {0}: row.per_shopper
 #: src/routes/dashboard.coupons.tsx:113
-msgid "{0} per person"
-msgstr "{0} per person"
+#~ msgid "{0} per person"
+#~ msgstr "{0} per person"
 
 #. placeholder {0}: done.moved
 #. placeholder {1}: done.posts
@@ -427,16 +427,28 @@ msgstr "{0} per person"
 #~ msgid "{0} pictures now come from this server; {1} posts were rewritten."
 #~ msgstr "{0} pictures now come from this server; {1} posts were rewritten."
 
+#. placeholder {0}: answer.published
+#. placeholder {0}: stats.published
+#: src/routes/dashboard.index.tsx:74
+#: src/routes/dashboard.usage.tsx:82
+msgid "{0} published"
+msgstr "{0} published"
+
 #. placeholder {0}: form.submissions
 #: src/routes/dashboard.forms.tsx:209
-msgid "{0} received"
-msgstr "{0} received"
+#~ msgid "{0} received"
+#~ msgstr "{0} received"
 
 #. placeholder {0}: form.submissions
 #. placeholder {1}: form.unseen
 #: src/routes/dashboard.forms_.$formId.tsx:155
-msgid "{0} received, {1} not yet opened."
-msgstr "{0} received, {1} not yet opened."
+#~ msgid "{0} received, {1} not yet opened."
+#~ msgstr "{0} received, {1} not yet opened."
+
+#. placeholder {0}: rows.length
+#: src/routes/dashboard.forms_.$formId.tsx:142
+msgid "{0} received."
+msgstr "{0} received."
 
 #. placeholder {0}: hover.rows
 #. placeholder {1}: hover.cols
@@ -474,8 +486,8 @@ msgstr "{0} rows × {1} columns"
 
 #. placeholder {0}: campaign.sent_count
 #: src/routes/dashboard.mail.tsx:233
-msgid "{0} sent"
-msgstr "{0} sent"
+#~ msgid "{0} sent"
+#~ msgstr "{0} sent"
 
 #. placeholder {0}: agency.sites
 #. placeholder {0}: invite.site_limit
@@ -511,8 +523,8 @@ msgstr "{0} sent"
 
 #. placeholder {0}: language.posts
 #: src/routes/dashboard.languages.tsx:150
-msgid "{0} things are written in it"
-msgstr "{0} things are written in it"
+#~ msgid "{0} things are written in it"
+#~ msgstr "{0} things are written in it"
 
 #. placeholder {0}: named.posts
 #: src/lib/v1-said.ts:61
@@ -520,7 +532,7 @@ msgid "{0} things are written in that language."
 msgstr "{0} things are written in that language."
 
 #. placeholder {0}: chosen.size
-#: src/components/dashboard/content-list.tsx:187
+#: src/components/dashboard/content-list.tsx:176
 msgid "{0} ticked"
 msgstr "{0} ticked"
 
@@ -535,14 +547,19 @@ msgstr "{0} ticked"
 #~ msgid "{0} unbilled. Set an hourly rate under Payments to bill it."
 #~ msgstr "{0} unbilled. Set an hourly rate under Payments to bill it."
 
+#. placeholder {0}: stats.unread
+#: src/routes/dashboard.index.tsx:80
+msgid "{0} unread"
+msgstr "{0} unread"
+
 #. placeholder {0}: formatBytes(room.storage_used_bytes)
 #. placeholder {0}: formatBytes(site.storage_used_bytes)
 #. placeholder {0}: row.used
 #: src/routes/dashboard.coupons.tsx:124
 #: src/routes/dashboard.media.tsx:130
 #: src/routes/dashboard.settings.tsx:84
-msgid "{0} used"
-msgstr "{0} used"
+#~ msgid "{0} used"
+#~ msgstr "{0} used"
 
 #. placeholder {0}: row.unconfirmed
 #: src/routes/dashboard.mail.tsx:305
@@ -566,8 +583,8 @@ msgstr "{0} used"
 
 #. placeholder {0}: kind.posts
 #: src/routes/dashboard.content-types.tsx:102
-msgid "{0} written"
-msgstr "{0} written"
+#~ msgid "{0} written"
+#~ msgstr "{0} written"
 
 #. placeholder {0}: page.offset + 1
 #. placeholder {1}: Math.min(page.offset + page.limit, page.total)
@@ -619,20 +636,20 @@ msgstr "{0}'s own instructions"
 #. placeholder {0}: build.seconds
 #: src/routes/dashboard.usage.tsx:132
 #: src/routes/dashboard.usage.tsx:210
-msgid "{0}s"
-msgstr "{0}s"
+#~ msgid "{0}s"
+#~ msgstr "{0}s"
 
 #: src/components/ses-health.tsx:104
 #~ msgid "{count} of them · Amazon reviews at {reviewAt}%, pauses at {pauseAt}%"
 #~ msgstr "{count} of them · Amazon reviews at {reviewAt}%, pauses at {pauseAt}%"
 
 #: src/routes/dashboard.visitors.tsx:94
-msgid "{days} days"
-msgstr "{days} days"
+#~ msgid "{days} days"
+#~ msgstr "{days} days"
 
 #: src/routes/dashboard.students.tsx:237
-msgid "{days} days more"
-msgstr "{days} days more"
+#~ msgid "{days} days more"
+#~ msgstr "{days} days more"
 
 #. placeholder {0}: all.length
 #: src/learn/app.tsx:612
@@ -662,8 +679,8 @@ msgstr "{done} of {0} finished"
 #~ msgstr "{hours}h {minutes}m"
 
 #: src/routes/dashboard.students.tsx:406
-msgid "{length} days"
-msgstr "{length} days"
+#~ msgid "{length} days"
+#~ msgstr "{length} days"
 
 #: src/components/editor/status-bar.tsx:66
 msgid "{minutes, plural, one {# min read} other {# min read}}"
@@ -685,7 +702,7 @@ msgstr "{minutes, plural, one {# min read} other {# min read}}"
 #~ msgid "{one} days"
 #~ msgstr "{one} days"
 
-#: src/components/dashboard/content-list.tsx:139
+#: src/components/dashboard/content-list.tsx:123
 msgid "{one} deleted"
 msgstr "{one} deleted"
 
@@ -704,8 +721,8 @@ msgstr "{uploaded, plural, one {# image added} other {# images added}}"
 #: src/routes/dashboard.index.tsx:107
 #: src/routes/dashboard.performance.tsx:84
 #: src/routes/dashboard.visitors.tsx:77
-msgid "{window} days"
-msgstr "{window} days"
+#~ msgid "{window} days"
+#~ msgstr "{window} days"
 
 #: src/components/editor/dialogs.tsx:489
 msgid "# Heading\n"
@@ -747,6 +764,10 @@ msgstr "0 results"
 #~ msgid "4. If a site is archived"
 #~ msgstr "4. If a site is archived"
 
+#: src/routes/dashboard.performance.tsx:82
+msgid "95th percentile"
+msgstr "95th percentile"
+
 #: src/routes/dashboard.boards.tsx:148
 #~ msgid "A board is for the work that arrives rather than the work you publish. A form takes an answer and the answer sits there; a board turns it into something with a state, an owner and a history — so \"did anyone get back to them\" is a question the screen answers instead of one somebody has to remember."
 #~ msgstr "A board is for the work that arrives rather than the work you publish. A form takes an answer and the answer sits there; a board turns it into something with a state, an owner and a history — so \"did anyone get back to them\" is a question the screen answers instead of one somebody has to remember."
@@ -765,18 +786,18 @@ msgid "A build token can read this site and change nothing, so an assistant conn
 msgstr "A build token can read this site and change nothing, so an assistant connected with one is offered only the tools that read: it will not be able to write a post, upload a file or publish. That is usually not what you want here — sign in above instead."
 
 #: src/routes/dashboard.mail.tsx:384
-msgid "A campaign"
-msgstr "A campaign"
+#~ msgid "A campaign"
+#~ msgstr "A campaign"
 
 #: src/components/plugin-forms.tsx:446
 #~ msgid "A campaign can go out as any of these. Each one has to be verified in SES too — an address is not a sender until Amazon says so."
 #~ msgstr "A campaign can go out as any of these. Each one has to be verified in SES too — an address is not a sender until Amazon says so."
 
-#: src/routes/dashboard.boards_.$boardId.tsx:290
+#: src/routes/dashboard.boards_.$boardId.tsx:191
 msgid "A card"
 msgstr "A card"
 
-#: src/routes/dashboard.orders.tsx:130
+#: src/routes/dashboard.orders.tsx:139
 msgid "A card payment says so itself, signed by the provider. Say it here only for money that arrived another way — it is written down as you saying so."
 msgstr "A card payment says so itself, signed by the provider. Say it here only for money that arrived another way — it is written down as you saying so."
 
@@ -792,7 +813,7 @@ msgstr "A card payment says so itself, signed by the provider. Say it here only 
 #~ msgid "A copy of every picture stays on this server whatever you set here. The bucket is a copy in front of it, never the only one — so a bucket that is emptied, expired or switched off costs you an address, not the pictures."
 #~ msgstr "A copy of every picture stays on this server whatever you set here. The bucket is a copy in front of it, never the only one — so a bucket that is emptied, expired or switched off costs you an address, not the pictures."
 
-#: src/routes/dashboard.settings.tsx:486
+#: src/routes/dashboard.settings.tsx:328
 msgid "A copy of what is written"
 msgstr "A copy of what is written"
 
@@ -805,8 +826,8 @@ msgid "A course holds modules and lessons, and people are put on it for as long 
 msgstr "A course holds modules and lessons, and people are put on it for as long as you say. Nothing is open to anybody until you say it is."
 
 #: src/components/dashboard/content-type-editor.tsx:76
-msgid "A date"
-msgstr "A date"
+#~ msgid "A date"
+#~ msgstr "A date"
 
 #: src/routes/dashboard.boards_.$boardId.tsx:517
 #~ msgid "A date here is what puts it on the \"past their date\" count when it goes by."
@@ -825,21 +846,21 @@ msgstr "A discount code, if you have one"
 #~ msgid "A folder inside the data directory."
 #~ msgstr "A folder inside the data directory."
 
-#. placeholder {0}: kind.slug
-#: src/components/dashboard/content-type-editor.tsx:162
-#~ msgid "A front end asks for these with ?kind={0}"
-#~ msgstr "A front end asks for these with ?kind={0}"
+#. placeholder {0}: kind.kind
+#: src/components/dashboard/content-type-editor.tsx:111
+msgid "A front end asks for these with ?kind={0}"
+msgstr "A front end asks for these with ?kind={0}"
 
 #. placeholder {0}: kind.key
 #: src/components/dashboard/content-type-editor.tsx:200
-msgid "A front end asks for these with ?type={0}"
-msgstr "A front end asks for these with ?type={0}"
+#~ msgid "A front end asks for these with ?type={0}"
+#~ msgstr "A front end asks for these with ?type={0}"
 
 #: src/routes/dashboard.api.tsx:159
 #~ msgid "A key cannot reach the accounts on this site or the invitations to it, cannot make another key of any kind, cannot read the storage and mail settings or the backups, and cannot empty the bin or send a mail campaign."
 #~ msgstr "A key cannot reach the accounts on this site or the invitations to it, cannot make another key of any kind, cannot read the storage and mail settings or the backups, and cannot empty the bin or send a mail campaign."
 
-#: src/routes/dashboard.api.tsx:127
+#: src/routes/dashboard.api.tsx:105
 msgid "A key that carries what you carry, expires by itself, and can be taken back. Nothing is written with it that the record does not say was written by an assistant."
 msgstr "A key that carries what you carry, expires by itself, and can be taken back. Nothing is written with it that the record does not say was written by an assistant."
 
@@ -851,11 +872,11 @@ msgstr "A key that carries what you carry, expires by itself, and can be taken b
 msgid "A language is two letters, and a place after them where there is one: en, or en-GB."
 msgstr "A language is two letters, and a place after them where there is one: en, or en-GB."
 
-#: src/routes/dashboard.courses.$courseId.tsx:258
+#: src/routes/dashboard.courses.$courseId.tsx:184
 msgid "A lesson"
 msgstr "A lesson"
 
-#: src/routes/dashboard.forms.tsx:358
+#: src/routes/dashboard.forms.tsx:353
 msgid "A line of text"
 msgstr "A line of text"
 
@@ -888,11 +909,11 @@ msgstr "A line of text"
 msgid "A new board"
 msgstr "A new board"
 
-#: src/routes/dashboard.boards_.$boardId.tsx:302
+#: src/routes/dashboard.boards_.$boardId.tsx:204
 msgid "A new card"
 msgstr "A new card"
 
-#: src/routes/dashboard.coupons.tsx:187
+#: src/routes/dashboard.coupons.tsx:175
 msgid "A new code"
 msgstr "A new code"
 
@@ -900,27 +921,27 @@ msgstr "A new code"
 #~ msgid "A new course"
 #~ msgstr "A new course"
 
-#: src/routes/dashboard.design.tsx:254
+#: src/routes/dashboard.design.tsx:185
 msgid "A new file"
 msgstr "A new file"
 
-#: src/routes/dashboard.flows.tsx:322
+#: src/routes/dashboard.flows.tsx:207
 msgid "A new flow"
 msgstr "A new flow"
 
-#: src/components/dashboard/content-type-editor.tsx:116
+#: src/components/dashboard/content-type-editor.tsx:88
 msgid "A new kind"
 msgstr "A new kind"
 
-#: src/routes/dashboard.mail.tsx:351
+#: src/routes/dashboard.mail.tsx:251
 msgid "A new list"
 msgstr "A new list"
 
-#: src/routes/forgotten.tsx:149
+#: src/routes/forgotten.tsx:199
 msgid "A new password"
 msgstr "A new password"
 
-#: src/routes/dashboard.products.tsx:200
+#: src/routes/dashboard.products.tsx:201
 msgid "A new product"
 msgstr "A new product"
 
@@ -932,12 +953,12 @@ msgstr "A new product"
 #~ msgid "A new site"
 #~ msgstr "A new site"
 
-#: src/routes/dashboard.tags.tsx:145
+#: src/routes/dashboard.tags.tsx:150
 msgid "A new tag"
 msgstr "A new tag"
 
-#: src/components/dashboard/content-type-editor.tsx:74
-#: src/routes/dashboard.forms.tsx:361
+#: src/components/dashboard/content-type-editor.tsx:56
+#: src/routes/dashboard.forms.tsx:356
 msgid "A number"
 msgstr "A number"
 
@@ -949,24 +970,24 @@ msgstr "A number"
 msgid "A paid plan is needed for this; developer mode is where custom connectors live."
 msgstr "A paid plan is needed for this; developer mode is where custom connectors live."
 
-#: src/routes/dashboard.courses.$courseId.tsx:284
+#: src/routes/dashboard.courses.$courseId.tsx:210
 msgid "A part of the course"
 msgstr "A part of the course"
 
 #. placeholder {0}: password?.who ?? ""
 #: src/routes/dashboard.students.tsx:281
-msgid "A password for {0}"
-msgstr "A password for {0}"
+#~ msgid "A password for {0}"
+#~ msgstr "A password for {0}"
 
 #: src/lib/v1-said.ts:33
 msgid "A password is at least twelve characters."
 msgstr "A password is at least twelve characters."
 
-#: src/routes/dashboard.coupons.tsx:216
+#: src/routes/dashboard.coupons.tsx:204
 msgid "A percentage"
 msgstr "A percentage"
 
-#: src/components/report-a-problem.tsx:244
+#: src/components/report-a-problem.tsx:194
 msgid "A picture of it"
 msgstr "A picture of it"
 
@@ -991,11 +1012,11 @@ msgstr "A picture of it"
 #~ msgid "A repository to build from. This one brings no content."
 #~ msgstr "A repository to build from. This one brings no content."
 
-#: src/components/editor/mavi-editor.tsx:310
+#: src/components/editor/mavi-editor.tsx:269
 msgid "A scheduled post needs a publish date"
 msgstr "A scheduled post needs a publish date"
 
-#: src/routes/dashboard.settings.tsx:192
+#: src/routes/dashboard.settings.tsx:178
 msgid "A second factor"
 msgstr "A second factor"
 
@@ -1019,11 +1040,11 @@ msgstr "A site already answers to that name."
 msgid "A site writes in one language unless a post says otherwise, so there has to be one."
 msgstr "A site writes in one language unless a post says otherwise, so there has to be one."
 
-#: src/routes/dashboard.plugins.tsx:63
+#: src/routes/dashboard.plugins.tsx:56
 msgid "A site's own mail server, so what it sends comes from it rather than from whoever runs the machine."
 msgstr "A site's own mail server, so what it sends comes from it rather than from whoever runs the machine."
 
-#: src/routes/dashboard.plugins.tsx:68
+#: src/routes/dashboard.plugins.tsx:61
 msgid "A site's own payment provider. Card details never reach this machine: what is kept is how to ask."
 msgstr "A site's own payment provider. Card details never reach this machine: what is kept is how to ask."
 
@@ -1032,8 +1053,8 @@ msgstr "A site's own payment provider. Card details never reach this machine: wh
 #~ msgstr "A step cannot lead back to itself or to one before it."
 
 #: src/routes/dashboard.flows.tsx:301
-msgid "a step since removed"
-msgstr "a step since removed"
+#~ msgid "a step since removed"
+#~ msgstr "a step since removed"
 
 #: src/routes/dashboard.themes.tsx:782
 #~ msgid "a tag or a commit, if you have one"
@@ -1069,8 +1090,8 @@ msgstr "a step since removed"
 #~ msgstr "Accepts"
 
 #: src/routes/dashboard.students.tsx:134
-msgid "Access ended"
-msgstr "Access ended"
+#~ msgid "Access ended"
+#~ msgstr "Access ended"
 
 #: src/routes/dashboard.platform-mail.tsx:126
 #~ msgid "Access key"
@@ -1082,8 +1103,8 @@ msgstr "Access ended"
 #~ msgstr "Access key ID"
 
 #: src/routes/dashboard.students.tsx:133
-msgid "Access running"
-msgstr "Access running"
+#~ msgid "Access running"
+#~ msgstr "Access running"
 
 #: src/components/publish-panel.tsx:240
 #~ msgid "Access token"
@@ -1110,8 +1131,8 @@ msgstr "Access running"
 #~ msgstr "Account or organisation"
 
 #: src/routes/dashboard.usage.tsx:96
-msgid "Accounts"
-msgstr "Accounts"
+#~ msgid "Accounts"
+#~ msgstr "Accounts"
 
 #. placeholder {0}: stats.kinds.length
 #: src/routes/dashboard.index.tsx:114
@@ -1123,11 +1144,10 @@ msgstr "Accounts"
 #~ msgstr "Active"
 
 #: src/components/editor/dialogs.tsx:206
-#: src/routes/dashboard.boards_.$boardId.tsx:260
-#: src/routes/dashboard.boards_.$boardId.tsx:335
-#: src/routes/dashboard.courses.$courseId.tsx:267
-#: src/routes/dashboard.mail.tsx:310
-#: src/routes/dashboard.tags.tsx:148
+#: src/routes/dashboard.boards_.$boardId.tsx:237
+#: src/routes/dashboard.courses.$courseId.tsx:193
+#: src/routes/dashboard.mail.tsx:213
+#: src/routes/dashboard.tags.tsx:153
 msgid "Add"
 msgstr "Add"
 
@@ -1147,7 +1167,7 @@ msgstr "Add a horizontal rule"
 msgid "Add a hyperlink to the selected text."
 msgstr "Add a hyperlink to the selected text."
 
-#: src/routes/dashboard.content-types.tsx:72
+#: src/routes/dashboard.content-types.tsx:67
 msgid "Add a kind"
 msgstr "Add a kind"
 
@@ -1155,7 +1175,7 @@ msgstr "Add a kind"
 #~ msgid "Add a lesson"
 #~ msgstr "Add a lesson"
 
-#: src/routes/dashboard.courses.$courseId.tsx:289
+#: src/routes/dashboard.courses.$courseId.tsx:215
 msgid "Add a part"
 msgstr "Add a part"
 
@@ -1172,7 +1192,7 @@ msgstr "Add a part"
 #~ msgid "Add a stage"
 #~ msgstr "Add a stage"
 
-#: src/components/editor/post-settings.tsx:348
+#: src/components/editor/post-settings.tsx:304
 msgid "Add a tag and press Enter"
 msgstr "Add a tag and press Enter"
 
@@ -1184,8 +1204,8 @@ msgstr "Add an image from a link"
 #~ msgid "Add and verify a domain first, then any address at it can be used here."
 #~ msgstr "Add and verify a domain first, then any address at it can be used here."
 
-#: src/components/editor/post-settings.tsx:334
-#: src/routes/dashboard.categories.tsx:212
+#: src/components/editor/post-settings.tsx:290
+#: src/routes/dashboard.categories.tsx:208
 msgid "Add category"
 msgstr "Add category"
 
@@ -1213,7 +1233,7 @@ msgstr "Add hyperlinked text"
 msgid "Add image"
 msgstr "Add image"
 
-#: src/routes/dashboard.languages.tsx:122
+#: src/routes/dashboard.languages.tsx:121
 msgid "Add language"
 msgstr "Add language"
 
@@ -1236,13 +1256,13 @@ msgstr "Add row before"
 #~ msgid "Add site"
 #~ msgstr "Add site"
 
-#: src/routes/dashboard.mail.tsx:320
-#: src/routes/dashboard.students.tsx:147
+#: src/routes/dashboard.mail.tsx:223
+#: src/routes/dashboard.students.tsx:82
 msgid "Add somebody"
 msgstr "Add somebody"
 
-#: src/routes/dashboard.users.tsx:178
-#: src/routes/dashboard.users.tsx:309
+#: src/routes/dashboard.users.tsx:176
+#: src/routes/dashboard.users.tsx:302
 msgid "Add someone"
 msgstr "Add someone"
 
@@ -1258,7 +1278,7 @@ msgstr "Add table"
 #~ msgid "Add the domain you send from. A domain covers every address on it, so it is worth doing before adding addresses one at a time."
 #~ msgstr "Add the domain you send from. A domain covers every address on it, so it is worth doing before adding addresses one at a time."
 
-#: src/routes/dashboard.settings.tsx:228
+#: src/routes/dashboard.settings.tsx:214
 msgid "Add this to your authenticator, then type what it shows."
 msgstr "Add this to your authenticator, then type what it shows."
 
@@ -1284,12 +1304,12 @@ msgid "Address"
 msgstr "Address"
 
 #: src/routes/dashboard.users.tsx:211
-msgid "Address not proved"
-msgstr "Address not proved"
+#~ msgid "Address not proved"
+#~ msgstr "Address not proved"
 
 #: src/components/dashboard/address-health.tsx:57
-msgid "Addresses"
-msgstr "Addresses"
+#~ msgid "Addresses"
+#~ msgstr "Addresses"
 
 #: src/components/ses-account.tsx:393
 #~ msgid "Addresses Amazon refuses"
@@ -1316,7 +1336,7 @@ msgstr "Addresses"
 #~ msgid "Adjustment"
 #~ msgstr "Adjustment"
 
-#: src/routes/dashboard.forms.tsx:300
+#: src/routes/dashboard.forms.tsx:295
 msgid "After this, what came in is deleted by the machine itself."
 msgstr "After this, what came in is deleted by the machine itself."
 
@@ -1411,7 +1431,7 @@ msgstr "Alignment"
 #~ msgid "All {0} pictures ({1}) have a copy in storage this server controls."
 #~ msgstr "All {0} pictures ({1}) have a copy in storage this server controls."
 
-#: src/routes/dashboard.index.tsx:124
+#: src/routes/dashboard.index.tsx:80
 msgid "all read"
 msgstr "all read"
 
@@ -1512,7 +1532,7 @@ msgstr "Altogether"
 #~ msgid "An agency can only be opened from a link you make here. Send it however you like — it works once, and stops working after a fortnight."
 #~ msgstr "An agency can only be opened from a link you make here. Send it however you like — it works once, and stops working after a fortnight."
 
-#: src/routes/dashboard.coupons.tsx:217
+#: src/routes/dashboard.coupons.tsx:205
 msgid "An amount"
 msgstr "An amount"
 
@@ -1532,7 +1552,7 @@ msgstr "An amount"
 #~ msgid "an assistant"
 #~ msgstr "an assistant"
 
-#: src/routes/dashboard.api.tsx:123
+#: src/routes/dashboard.api.tsx:101
 msgid "An assistant"
 msgstr "An assistant"
 
@@ -1544,7 +1564,7 @@ msgstr "An assistant"
 #~ msgid "An assistant pointed at this site can be asked to do the work rather than told how to do it — find a post and correct it, tell you what came in through the forms this week, put a piece online."
 #~ msgstr "An assistant pointed at this site can be asked to do the work rather than told how to do it — find a post and correct it, tell you what came in through the forms this week, put a piece online."
 
-#: src/routes/dashboard.forms.tsx:360
+#: src/routes/dashboard.forms.tsx:355
 msgid "An email address"
 msgstr "An email address"
 
@@ -1564,8 +1584,8 @@ msgstr "An image keeps its file while it is here, so a restored post still has i
 #~ msgid "An order is marked paid by the payment service, never from here. What you can do here is say a parcel has gone."
 #~ msgstr "An order is marked paid by the payment service, never from here. What you can do here is say a parcel has gone."
 
-#: src/components/dashboard/content-type-editor.tsx:223
-#: src/routes/dashboard.forms.tsx:385
+#: src/components/dashboard/content-type-editor.tsx:134
+#: src/routes/dashboard.forms.tsx:380
 msgid "Another"
 msgstr "Another"
 
@@ -1581,7 +1601,7 @@ msgstr "Another"
 msgid "Another stage"
 msgstr "Another stage"
 
-#: src/routes/dashboard.flows.tsx:367
+#: src/routes/dashboard.flows.tsx:257
 msgid "Another step"
 msgstr "Another step"
 
@@ -1601,8 +1621,7 @@ msgstr "Another step"
 #~ msgid "Answered"
 #~ msgstr "Answered"
 
-#: src/components/dashboard/address-health.tsx:73
-#: src/routes/dashboard.settings.tsx:557
+#: src/routes/dashboard.settings.tsx:399
 msgid "Answering"
 msgstr "Answering"
 
@@ -1641,7 +1660,7 @@ msgstr "Answering"
 #~ msgid "Anything"
 #~ msgstr "Anything"
 
-#: src/routes/dashboard.media.tsx:213
+#: src/routes/dashboard.media.tsx:198
 msgid "Anything already using it will stop showing it."
 msgstr "Anything already using it will stop showing it."
 
@@ -1649,8 +1668,8 @@ msgstr "Anything already using it will stop showing it."
 msgid "Anything done"
 msgstr "Anything done"
 
-#: src/components/report-a-problem.tsx:233
-#: src/routes/dashboard.boards_.$boardId.tsx:316
+#: src/components/report-a-problem.tsx:183
+#: src/routes/dashboard.boards_.$boardId.tsx:218
 msgid "Anything else"
 msgstr "Anything else"
 
@@ -1675,8 +1694,8 @@ msgstr "Anything this site works through in order: enquiries, repairs, applicati
 #~ msgid "Anything this site works through in stages: applications, enquiries, jobs. You decide what the stages are and what they are called."
 #~ msgstr "Anything this site works through in stages: applications, enquiries, jobs. You decide what the stages are and what they are called."
 
-#: src/components/dashboard/dashboard-shell.tsx:214
-#: src/routes/dashboard.api.tsx:101
+#: src/components/dashboard/dashboard-shell.tsx:114
+#: src/routes/dashboard.api.tsx:80
 msgid "API"
 msgstr "API"
 
@@ -1747,7 +1766,7 @@ msgstr "Archived"
 #~ msgid "Archiving stops the public site and active usage charges, but keeps its data and media stored. Storage costs $9/month until you restore or delete the site."
 #~ msgstr "Archiving stops the public site and active usage charges, but keeps its data and media stored. Storage costs $9/month until you restore or delete the site."
 
-#: src/routes/dashboard.roles.tsx:348
+#: src/routes/dashboard.roles.tsx:336
 msgid "Area"
 msgstr "Area"
 
@@ -1779,8 +1798,7 @@ msgstr "As it comes"
 #~ msgid "as many as they like"
 #~ msgstr "as many as they like"
 
-#: src/routes/dashboard.coupons.tsx:250
-#: src/routes/dashboard.coupons.tsx:260
+#: src/routes/dashboard.coupons.tsx:228
 msgid "as often as they like"
 msgstr "as often as they like"
 
@@ -1856,17 +1874,21 @@ msgstr "Assistants"
 #~ msgid "At least {MINIMUM_PASSWORD} characters. Changing it signs you out everywhere, this browser included."
 #~ msgstr "At least {MINIMUM_PASSWORD} characters. Changing it signs you out everywhere, this browser included."
 
-#: src/routes/setup.tsx:141
+#: src/routes/setup.tsx:159
 msgid "At least twelve characters."
 msgstr "At least twelve characters."
 
-#: src/routes/forgotten.tsx:96
+#: src/routes/forgotten.tsx:146
 msgid "At least twelve characters. Everything else that was open closes when you do this."
 msgstr "At least twelve characters. Everything else that was open closes when you do this."
 
 #: src/routes/dashboard.usage.tsx:245
-msgid "Attempted"
-msgstr "Attempted"
+#~ msgid "Attempted"
+#~ msgstr "Attempted"
+
+#: src/components/dashboard/dashboard-shell.tsx:91
+msgid "Automate"
+msgstr "Automate"
 
 #: src/learn/app.tsx:382
 msgid "Back"
@@ -1876,7 +1898,7 @@ msgstr "Back"
 msgid "Back in Connectors, create a custom connector and paste the address."
 msgstr "Back in Connectors, create a custom connector and paste the address."
 
-#: src/components/editor/mavi-editor.tsx:537
+#: src/components/editor/mavi-editor.tsx:485
 msgid "Back to editing"
 msgstr "Back to editing"
 
@@ -1952,8 +1974,8 @@ msgid "Basket"
 msgstr "Basket"
 
 #: src/routes/dashboard.coupons.tsx:234
-msgid "Basket has to reach"
-msgstr "Basket has to reach"
+#~ msgid "Basket has to reach"
+#~ msgstr "Basket has to reach"
 
 #: src/routes/dashboard.plugins.tsx:39
 #~ msgid "Be paid through iyzico or Stripe. The card is typed on their page, never on yours — and an order is marked paid when they say so, not when a browser comes back."
@@ -1964,8 +1986,8 @@ msgstr "Basket has to reach"
 #~ msgstr "Being made"
 
 #: src/routes/dashboard.videos.tsx:112
-msgid "Being made ready"
-msgstr "Being made ready"
+#~ msgid "Being made ready"
+#~ msgstr "Being made ready"
 
 #: src/routes/console.transfers.tsx:74
 #~ msgid "Being moved"
@@ -1984,7 +2006,7 @@ msgstr "Being made ready"
 #~ msgid "being worked on"
 #~ msgstr "being worked on"
 
-#: src/routes/dashboard.courses.$courseId.tsx:152
+#: src/routes/dashboard.courses.$courseId.tsx:116
 msgid "Being written"
 msgstr "Being written"
 
@@ -2037,7 +2059,7 @@ msgstr "Being written"
 #~ msgid "Bills"
 #~ msgstr "Bills"
 
-#: src/components/dashboard/dashboard-shell.tsx:142
+#: src/components/dashboard/dashboard-shell.tsx:107
 #: src/routes/dashboard.trash.tsx:125
 msgid "Bin"
 msgstr "Bin"
@@ -2075,10 +2097,10 @@ msgstr "Blue"
 msgid "board"
 msgstr "board"
 
-#: src/components/dashboard/dashboard-shell.tsx:208
-#: src/routes/dashboard.boards_.$boardId.tsx:167
+#: src/components/dashboard/dashboard-shell.tsx:105
+#: src/routes/dashboard.boards_.$boardId.tsx:123
 #: src/routes/dashboard.boards.tsx:107
-#: src/routes/dashboard.roles.tsx:175
+#: src/routes/dashboard.roles.tsx:163
 msgid "Boards"
 msgstr "Boards"
 
@@ -2093,16 +2115,16 @@ msgstr "Bold"
 #~ msgstr "Bot token"
 
 #: src/routes/dashboard.usage.tsx:251
-msgid "Bounced"
-msgstr "Bounced"
+#~ msgid "Bounced"
+#~ msgstr "Bounced"
 
 #: src/components/ses-account.tsx:976
 #~ msgid "bounced for good"
 #~ msgstr "bounced for good"
 
 #: src/routes/dashboard.index.tsx:181
-msgid "Bounced or complained"
-msgstr "Bounced or complained"
+#~ msgid "Bounced or complained"
+#~ msgstr "Bounced or complained"
 
 #: src/components/ses-account.tsx:637
 #~ msgid "Bounces"
@@ -2117,9 +2139,9 @@ msgstr "Bounced or complained"
 #~ msgid "Branch"
 #~ msgstr "Branch"
 
-#: src/routes/dashboard.platform-reports.tsx:53
-#~ msgid "Broken"
-#~ msgstr "Broken"
+#: src/routes/dashboard.publish.tsx:38
+msgid "Broken"
+msgstr "Broken"
 
 #: src/components/editor/palette.ts:18
 msgid "Brown"
@@ -2129,7 +2151,7 @@ msgstr "Brown"
 #~ msgid "Bucket"
 #~ msgstr "Bucket"
 
-#: src/routes/dashboard.design.tsx:126
+#: src/routes/dashboard.design.tsx:93
 msgid "Build a preview"
 msgstr "Build a preview"
 
@@ -2150,8 +2172,8 @@ msgstr "Build a preview"
 #~ msgstr "Build variables"
 
 #: src/routes/dashboard.publish.tsx:70
-msgid "Building"
-msgstr "Building"
+#~ msgid "Building"
+#~ msgstr "Building"
 
 #: src/routes/dashboard.api.tsx:298
 #~ msgid "Building a front end"
@@ -2161,21 +2183,25 @@ msgstr "Building"
 #~ msgid "Building only what changed"
 #~ msgstr "Building only what changed"
 
+#: src/routes/dashboard.design.tsx:40
+msgid "Building preview."
+msgstr "Building preview."
+
 #: src/routes/dashboard.design.tsx:60
-msgid "Building. The address appears when it is done."
-msgstr "Building. The address appears when it is done."
+#~ msgid "Building. The address appears when it is done."
+#~ msgstr "Building. The address appears when it is done."
 
 #: src/routes/dashboard.design.tsx:63
 #~ msgid "Building. The address updates when it is done."
 #~ msgstr "Building. The address updates when it is done."
 
 #: src/routes/dashboard.design.tsx:126
-msgid "Building…"
-msgstr "Building…"
+#~ msgid "Building…"
+#~ msgstr "Building…"
 
 #: src/routes/dashboard.roles.tsx:312
-msgid "Built-in"
-msgstr "Built-in"
+#~ msgid "Built-in"
+#~ msgstr "Built-in"
 
 #: src/routes/dashboard.plugins.tsx:89
 #~ msgid "Built-in integrations you can switch on and configure."
@@ -2212,12 +2238,16 @@ msgid "Buy"
 msgstr "Buy"
 
 #: src/routes/dashboard.performance.tsx:110
-msgid "By measurement"
-msgstr "By measurement"
+#~ msgid "By measurement"
+#~ msgstr "By measurement"
 
 #: src/routes/dashboard.performance.tsx:106
 #~ msgid "By metric"
 #~ msgstr "By metric"
+
+#: src/routes/dashboard.performance.tsx:74
+msgid "By page and metric"
+msgstr "By page and metric"
 
 #: src/components/flows/pieces.tsx:64
 #~ msgid "By whatever this site sends by"
@@ -2257,16 +2287,20 @@ msgstr "Came in"
 msgid "campaign"
 msgstr "campaign"
 
+#: src/routes/dashboard.mail_.campaigns.$campaignId.tsx:29
+msgid "Campaign"
+msgstr "Campaign"
+
 #: src/lib/audit-looks.ts:67
 #~ msgid "Campaign sent"
 #~ msgstr "Campaign sent"
 
 #: src/routes/dashboard.mail.tsx:188
-msgid "Campaigns"
-msgstr "Campaigns"
+#~ msgid "Campaigns"
+#~ msgstr "Campaigns"
 
 #. placeholder {0}: CAPABILITY_ORDER.length
-#: src/routes/dashboard.roles.tsx:322
+#: src/routes/dashboard.roles.tsx:310
 msgid "Can open {summary} of {0} areas."
 msgstr "Can open {summary} of {0} areas."
 
@@ -2274,33 +2308,33 @@ msgstr "Can open {summary} of {0} areas."
 #~ msgid "can send"
 #~ msgstr "can send"
 
-#: src/components/dashboard/content-list.tsx:317
-#: src/components/dashboard/content-type-editor.tsx:316
+#: src/components/dashboard/content-list.tsx:316
+#: src/components/dashboard/content-type-editor.tsx:227
 #: src/components/editor/dialogs.tsx:204
 #: src/components/editor/dialogs.tsx:244
 #: src/components/editor/dialogs.tsx:330
-#: src/components/report-a-problem.tsx:286
-#: src/routes/dashboard.boards_.$boardId.tsx:328
+#: src/components/report-a-problem.tsx:236
+#: src/routes/dashboard.boards_.$boardId.tsx:230
 #: src/routes/dashboard.boards.tsx:210
 #: src/routes/dashboard.boards.tsx:232
-#: src/routes/dashboard.categories.tsx:298
-#: src/routes/dashboard.categories.tsx:341
-#: src/routes/dashboard.coupons.tsx:283
-#: src/routes/dashboard.design.tsx:282
-#: src/routes/dashboard.flows.tsx:438
-#: src/routes/dashboard.forms.tsx:308
-#: src/routes/dashboard.forms.tsx:330
-#: src/routes/dashboard.languages.tsx:189
-#: src/routes/dashboard.mail.tsx:368
-#: src/routes/dashboard.mail.tsx:432
-#: src/routes/dashboard.media.tsx:217
-#: src/routes/dashboard.products.tsx:266
-#: src/routes/dashboard.roles.tsx:461
-#: src/routes/dashboard.students.tsx:415
-#: src/routes/dashboard.tags.tsx:186
-#: src/routes/dashboard.tags.tsx:238
-#: src/routes/dashboard.users.tsx:359
-#: src/routes/dashboard.users.tsx:383
+#: src/routes/dashboard.categories.tsx:294
+#: src/routes/dashboard.categories.tsx:337
+#: src/routes/dashboard.coupons.tsx:251
+#: src/routes/dashboard.design.tsx:213
+#: src/routes/dashboard.flows.tsx:329
+#: src/routes/dashboard.forms.tsx:303
+#: src/routes/dashboard.forms.tsx:325
+#: src/routes/dashboard.languages.tsx:183
+#: src/routes/dashboard.mail.tsx:268
+#: src/routes/dashboard.mail.tsx:332
+#: src/routes/dashboard.media.tsx:202
+#: src/routes/dashboard.products.tsx:267
+#: src/routes/dashboard.roles.tsx:449
+#: src/routes/dashboard.students.tsx:241
+#: src/routes/dashboard.tags.tsx:191
+#: src/routes/dashboard.tags.tsx:243
+#: src/routes/dashboard.users.tsx:352
+#: src/routes/dashboard.users.tsx:376
 msgid "Cancel"
 msgstr "Cancel"
 
@@ -2309,7 +2343,7 @@ msgstr "Cancel"
 msgid "Cancelled"
 msgstr "Cancelled"
 
-#: src/components/editor/post-settings.tsx:510
+#: src/components/editor/post-settings.tsx:466
 msgid "Canonical URL"
 msgstr "Canonical URL"
 
@@ -2318,8 +2352,8 @@ msgid "card"
 msgstr "card"
 
 #: src/routes/dashboard.usage.tsx:97
-msgid "Cards"
-msgstr "Cards"
+#~ msgid "Cards"
+#~ msgstr "Cards"
 
 #: src/learn/app.tsx:431
 #: src/learn/app.tsx:626
@@ -2336,13 +2370,13 @@ msgstr "Cards"
 msgid "Case sensitive"
 msgstr "Case sensitive"
 
-#: src/components/dashboard/dashboard-shell.tsx:135
-#: src/components/editor/post-settings.tsx:290
-#: src/routes/dashboard.categories.tsx:159
+#: src/components/dashboard/dashboard-shell.tsx:89
+#: src/components/editor/post-settings.tsx:246
+#: src/routes/dashboard.categories.tsx:155
 msgid "Categories"
 msgstr "Categories"
 
-#: src/routes/dashboard.roles.tsx:168
+#: src/routes/dashboard.roles.tsx:156
 msgid "Categories & tags"
 msgstr "Categories & tags"
 
@@ -2367,11 +2401,11 @@ msgid "Center the paragraph"
 msgstr "Center the paragraph"
 
 #. placeholder {0}: CAPABILITY_LABELS[capability]
-#: src/routes/dashboard.roles.tsx:404
+#: src/routes/dashboard.roles.tsx:392
 msgid "Change {0}"
 msgstr "Change {0}"
 
-#: src/routes/dashboard.users.tsx:299
+#: src/routes/dashboard.users.tsx:292
 msgid "Change it"
 msgstr "Change it"
 
@@ -2387,7 +2421,7 @@ msgstr "Change it"
 #~ msgid "Changes things"
 #~ msgstr "Changes things"
 
-#: src/routes/dashboard.users.tsx:270
+#: src/routes/dashboard.users.tsx:263
 msgid "Changing it closes everything that is open, here and everywhere else you are signed in."
 msgstr "Changing it closes everything that is open, here and everywhere else you are signed in."
 
@@ -2412,8 +2446,12 @@ msgid "Checkbox to-do list"
 msgstr "Checkbox to-do list"
 
 #: src/routes/dashboard.coupons.tsx:74
-msgid "Checked twice: once when somebody types it into the basket, and again when the order is made — because a code with one use left can be used by somebody else in the minute in between."
-msgstr "Checked twice: once when somebody types it into the basket, and again when the order is made — because a code with one use left can be used by somebody else in the minute in between."
+#~ msgid "Checked twice: once when somebody types it into the basket, and again when the order is made — because a code with one use left can be used by somebody else in the minute in between."
+#~ msgstr "Checked twice: once when somebody types it into the basket, and again when the order is made — because a code with one use left can be used by somebody else in the minute in between."
+
+#: src/routes/dashboard.coupons.tsx:77
+msgid "Checked twice: once when somebody types it into the basket, and again when the order is made."
+msgstr "Checked twice: once when somebody types it into the basket, and again when the order is made."
 
 #: src/routes/dashboard.themes.tsx:716
 #~ msgid "Checksum"
@@ -2439,7 +2477,7 @@ msgstr "Checked twice: once when somebody types it into the basket, and again wh
 #~ msgid "Choose a list first"
 #~ msgstr "Choose a list first"
 
-#: src/routes/forgotten.tsx:93
+#: src/routes/forgotten.tsx:143
 msgid "Choose a password"
 msgstr "Choose a password"
 
@@ -2456,7 +2494,7 @@ msgstr "Choose a password"
 #~ msgid "Choose one of the two above to begin. Everything else — your domain, the records to publish, the address you send from — comes after."
 #~ msgstr "Choose one of the two above to begin. Everything else — your domain, the records to publish, the address you send from — comes after."
 
-#: src/components/report-a-problem.tsx:265
+#: src/components/report-a-problem.tsx:215
 msgid "Choose one, or paste it"
 msgstr "Choose one, or paste it"
 
@@ -2471,6 +2509,11 @@ msgstr "Choose one, or paste it"
 #: src/shop/app.tsx:404
 #~ msgid "City"
 #~ msgstr "City"
+
+#: src/routes/dashboard.index.tsx:120
+#: src/routes/dashboard.usage.tsx:93
+msgid "clean"
+msgstr "clean"
 
 #: src/components/ses-health.tsx:274
 #~ msgid "Clean the list before sending again"
@@ -2487,23 +2530,23 @@ msgstr "Clear formatting"
 #~ msgstr "clicked"
 
 #: src/routes/dashboard.settings.tsx:383
-msgid "Client id"
-msgstr "Client id"
+#~ msgid "Client id"
+#~ msgstr "Client id"
 
 #: src/routes/dashboard.settings.tsx:389
-msgid "Client secret"
-msgstr "Client secret"
+#~ msgid "Client secret"
+#~ msgstr "Client secret"
 
 #: src/routes/console.customers.tsx:236
 #~ msgid "Clocked work, bills and server use, one site at a time."
 #~ msgstr "Clocked work, bills and server use, one site at a time."
 
 #: src/components/editor/find-replace.tsx:75
-#: src/routes/dashboard.design.tsx:328
+#: src/routes/dashboard.design.tsx:259
 msgid "Close"
 msgstr "Close"
 
-#: src/routes/dashboard.courses.$courseId.tsx:162
+#: src/routes/dashboard.courses.$courseId.tsx:126
 msgid "Close it"
 msgstr "Close it"
 
@@ -2523,7 +2566,7 @@ msgstr "Close it"
 msgid "Code"
 msgstr "Code"
 
-#: src/routes/dashboard.languages.tsx:112
+#: src/routes/dashboard.languages.tsx:111
 msgid "Code (en, de, pt-BR)"
 msgstr "Code (en, de, pt-BR)"
 
@@ -2568,6 +2611,10 @@ msgstr "Command menu"
 #~ msgid "Comments"
 #~ msgstr "Comments"
 
+#: src/components/dashboard/dashboard-shell.tsx:95
+msgid "Commerce"
+msgstr "Commerce"
+
 #: src/components/flows/flow-settings.tsx:466
 #~ msgid "Compared how"
 #~ msgstr "Compared how"
@@ -2576,9 +2623,9 @@ msgstr "Command menu"
 #~ msgid "Configuration set"
 #~ msgstr "Configuration set"
 
-#: src/routes/dashboard.plugins.tsx:144
-#~ msgid "Configure"
-#~ msgstr "Configure"
+#: src/components/dashboard/dashboard-shell.tsx:108
+msgid "Configure"
+msgstr "Configure"
 
 #: src/components/setup/setup-wizard.tsx:745
 #~ msgid "Confirm use of a weak password"
@@ -2645,12 +2692,11 @@ msgstr "Connecting with a token instead, from a terminal"
 #~ msgid "contains"
 #~ msgstr "contains"
 
-#: src/components/dashboard/dashboard-shell.tsx:122
-#: src/routes/dashboard.roles.tsx:167
+#: src/routes/dashboard.roles.tsx:155
 msgid "Content"
 msgstr "Content"
 
-#: src/routes/dashboard.languages.tsx:185
+#: src/routes/dashboard.languages.tsx:179
 msgid "Content already written in this language blocks removal — you'll be told how much there is."
 msgstr "Content already written in this language blocks removal — you'll be told how much there is."
 
@@ -2658,7 +2704,7 @@ msgstr "Content already written in this language blocks removal — you'll be to
 #~ msgid "Content deleted"
 #~ msgstr "Content deleted"
 
-#: src/components/dashboard/dashboard-shell.tsx:205
+#: src/components/dashboard/dashboard-shell.tsx:109
 msgid "Content types"
 msgstr "Content types"
 
@@ -2672,7 +2718,7 @@ msgstr "Content types"
 #~ msgstr "Continue to the dashboard"
 
 #. placeholder {0}: provider.label
-#: src/routes/login.tsx:184
+#: src/routes/login.tsx:164
 msgid "Continue with {0}"
 msgstr "Continue with {0}"
 
@@ -2704,14 +2750,14 @@ msgstr "Continue with {0}"
 #~ msgid "Copied. It works for the next two hours."
 #~ msgstr "Copied. It works for the next two hours."
 
-#: src/routes/dashboard.api.tsx:139
+#: src/routes/dashboard.api.tsx:117
 msgid "Copied. Shown once."
 msgstr "Copied. Shown once."
 
 #: src/components/assistant-clients.tsx:119
 #: src/components/editor/bubble-menus.tsx:325
 #: src/components/editor/dialogs.tsx:468
-#: src/routes/dashboard.api.tsx:36
+#: src/routes/dashboard.api.tsx:37
 #: src/routes/dashboard.forms_.$formId.tsx:51
 msgid "Copy"
 msgstr "Copy"
@@ -3223,20 +3269,20 @@ msgstr "Could not upload {0}"
 msgid "course"
 msgstr "course"
 
-#: src/components/dashboard/content-type-editor.tsx:132
-#: src/routes/dashboard.students.tsx:375
+#: src/components/dashboard/content-type-editor.tsx:104
+#: src/routes/dashboard.students.tsx:221
 msgid "Course"
 msgstr "Course"
 
 #: src/components/dashboard/content-type-editor.tsx:141
-msgid "Courses"
-msgstr "Courses"
+#~ msgid "Courses"
+#~ msgstr "Courses"
 
 #: src/routes/dashboard.themes.tsx:502
 #~ msgid "Cover"
 #~ msgstr "Cover"
 
-#: src/components/editor/post-settings.tsx:410
+#: src/components/editor/post-settings.tsx:366
 msgid "Cover image"
 msgstr "Cover image"
 
@@ -3244,7 +3290,7 @@ msgstr "Cover image"
 #~ msgid "Cover kept"
 #~ msgstr "Cover kept"
 
-#: src/components/editor/post-settings.tsx:469
+#: src/components/editor/post-settings.tsx:425
 msgid "Cover preview"
 msgstr "Cover preview"
 
@@ -3252,8 +3298,9 @@ msgstr "Cover preview"
 #~ msgid "Crawlers, kept apart"
 #~ msgstr "Crawlers, kept apart"
 
-#: src/components/editor/mavi-editor.tsx:673
-#: src/components/editor/mavi-editor.tsx:931
+#: src/components/dashboard/dashboard-shell.tsx:84
+#: src/components/editor/mavi-editor.tsx:621
+#: src/components/editor/mavi-editor.tsx:879
 msgid "Create"
 msgstr "Create"
 
@@ -3272,6 +3319,11 @@ msgstr "Create an unordered list"
 #: src/components/setup/setup-wizard.tsx:622
 #~ msgid "Create your administrator account"
 #~ msgstr "Create your administrator account"
+
+#. placeholder {0}: many.toLocaleLowerCase()
+#: src/components/dashboard/content-list.tsx:135
+msgid "Create, edit, and publish {0}."
+msgstr "Create, edit, and publish {0}."
 
 #: src/routes/dashboard.plugins_.s3.tsx:157
 #: src/routes/dashboard.plugins_.video.tsx:340
@@ -3306,6 +3358,10 @@ msgstr "Cursive"
 msgid "Custom"
 msgstr "Custom"
 
+#: src/components/dashboard/dashboard-shell.tsx:87
+msgid "Custom content"
+msgstr "Custom content"
+
 #: src/components/console/console-shell.tsx:78
 #: src/routes/console.customers.tsx:234
 #~ msgid "Customers"
@@ -3315,12 +3371,12 @@ msgstr "Custom"
 #~ msgid "Cyan"
 #~ msgstr "Cyan"
 
-#: src/components/editor/mavi-editor.tsx:970
+#: src/components/editor/mavi-editor.tsx:918
 #: src/components/mode-toggle.tsx:43
 msgid "Dark"
 msgstr "Dark"
 
-#: src/components/editor/mavi-editor.tsx:615
+#: src/components/editor/mavi-editor.tsx:563
 msgid "Dashboard"
 msgstr "Dashboard"
 
@@ -3353,8 +3409,8 @@ msgstr "Dashboard"
 #~ msgstr "days after they start"
 
 #: src/routes/dashboard.usage.tsx:235
-msgid "Dead"
-msgstr "Dead"
+#~ msgid "Dead"
+#~ msgstr "Dead"
 
 #: src/components/editor/toolbar.tsx:543
 msgid "Decrease indent"
@@ -3368,21 +3424,21 @@ msgstr "Decrease indent"
 #: src/components/editor/palette.ts:48
 #: src/components/editor/toolbar.tsx:288
 #: src/components/editor/toolbar.tsx:650
-#: src/routes/dashboard.languages.tsx:143
+#: src/routes/dashboard.languages.tsx:142
 msgid "Default"
 msgstr "Default"
 
-#: src/components/dashboard/content-list.tsx:295
-#: src/components/dashboard/content-list.tsx:319
+#: src/components/dashboard/content-list.tsx:294
+#: src/components/dashboard/content-list.tsx:318
 #: src/components/editor/block-handle.tsx:186
 #: src/components/editor/bubble-menus.tsx:415
-#: src/routes/dashboard.categories.tsx:317
-#: src/routes/dashboard.categories.tsx:343
-#: src/routes/dashboard.languages.tsx:166
-#: src/routes/dashboard.media.tsx:194
-#: src/routes/dashboard.media.tsx:219
-#: src/routes/dashboard.roles.tsx:186
-#: src/routes/dashboard.tags.tsx:214
+#: src/routes/dashboard.categories.tsx:313
+#: src/routes/dashboard.categories.tsx:339
+#: src/routes/dashboard.languages.tsx:160
+#: src/routes/dashboard.media.tsx:179
+#: src/routes/dashboard.media.tsx:204
+#: src/routes/dashboard.roles.tsx:174
+#: src/routes/dashboard.tags.tsx:219
 msgid "Delete"
 msgstr "Delete"
 
@@ -3396,7 +3452,7 @@ msgid "Delete column"
 msgstr "Delete column"
 
 #. placeholder {0}: CAPABILITY_LABELS[capability]
-#: src/routes/dashboard.roles.tsx:405
+#: src/routes/dashboard.roles.tsx:393
 msgid "Delete in {0}"
 msgstr "Delete in {0}"
 
@@ -3404,7 +3460,7 @@ msgstr "Delete in {0}"
 #~ msgid "Delete one, and any image left with no owner."
 #~ msgstr "Delete one, and any image left with no owner."
 
-#: src/routes/dashboard.roles.tsx:331
+#: src/routes/dashboard.roles.tsx:319
 msgid "Delete role"
 msgstr "Delete role"
 
@@ -3417,11 +3473,11 @@ msgid "Delete table"
 msgstr "Delete table"
 
 #. placeholder {0}: role.name
-#: src/routes/dashboard.roles.tsx:261
+#: src/routes/dashboard.roles.tsx:249
 msgid "Delete the \"{0}\" role? Move its people to another role first — this only removes the role, not the accounts."
 msgstr "Delete the \"{0}\" role? Move its people to another role first — this only removes the role, not the accounts."
 
-#: src/components/dashboard/content-list.tsx:311
+#: src/components/dashboard/content-list.tsx:310
 msgid "Delete this {one}?"
 msgstr "Delete this {one}?"
 
@@ -3429,11 +3485,11 @@ msgstr "Delete this {one}?"
 #~ msgid "Delete this backup?"
 #~ msgstr "Delete this backup?"
 
-#: src/routes/dashboard.categories.tsx:335
+#: src/routes/dashboard.categories.tsx:331
 msgid "Delete this category?"
 msgstr "Delete this category?"
 
-#: src/routes/dashboard.media.tsx:211
+#: src/routes/dashboard.media.tsx:196
 msgid "Delete this file?"
 msgstr "Delete this file?"
 
@@ -3459,8 +3515,8 @@ msgstr "Delete this file?"
 #~ msgstr "deleted by {0}"
 
 #: src/routes/dashboard.usage.tsx:249
-msgid "Delivered"
-msgstr "Delivered"
+#~ msgid "Delivered"
+#~ msgstr "Delivered"
 
 #: src/routes/dashboard.plugins_.video.tsx:274
 #~ msgid "Delivery hostname"
@@ -3496,13 +3552,13 @@ msgstr "Delivered"
 #~ msgid "Describe what a form accepts here, then have your own pages post to it."
 #~ msgstr "Describe what a form accepts here, then have your own pages post to it."
 
-#: src/components/editor/post-settings.tsx:527
+#: src/components/editor/post-settings.tsx:483
 msgid "Description text shown in search results."
 msgstr "Description text shown in search results."
 
-#: src/components/dashboard/dashboard-shell.tsx:215
-#: src/routes/dashboard.design.tsx:97
-#: src/routes/dashboard.roles.tsx:176
+#: src/components/dashboard/dashboard-shell.tsx:115
+#: src/routes/dashboard.design.tsx:66
+#: src/routes/dashboard.roles.tsx:164
 msgid "Design"
 msgstr "Design"
 
@@ -3524,12 +3580,12 @@ msgstr "Design"
 #~ msgstr "Did not arrive"
 
 #: src/routes/dashboard.publish.tsx:73
-msgid "Did not build"
-msgstr "Did not build"
+#~ msgid "Did not build"
+#~ msgstr "Did not build"
 
 #: src/routes/dashboard.videos.tsx:114
-msgid "Did not work"
-msgstr "Did not work"
+#~ msgid "Did not work"
+#~ msgstr "Did not work"
 
 #: src/routes/dashboard.plugins.tsx:118
 #~ msgid "Disabled"
@@ -3552,8 +3608,8 @@ msgstr "Did not work"
 #~ msgid "Discount code"
 #~ msgstr "Discount code"
 
-#: src/components/dashboard/dashboard-shell.tsx:196
-#: src/routes/dashboard.coupons.tsx:72
+#: src/components/dashboard/dashboard-shell.tsx:98
+#: src/routes/dashboard.coupons.tsx:75
 msgid "Discount codes"
 msgstr "Discount codes"
 
@@ -3575,8 +3631,8 @@ msgstr "Divider"
 #~ msgstr "Does everything, always."
 
 #: src/components/dashboard/address-health.tsx:76
-msgid "Does not point here"
-msgstr "Does not point here"
+#~ msgid "Does not point here"
+#~ msgstr "Does not point here"
 
 #: src/routes/dashboard.transfers.tsx:151
 #~ msgid "Doing"
@@ -3604,6 +3660,10 @@ msgstr "Done"
 #~ msgid "Done, and it went the way you wanted"
 #~ msgstr "Done, and it went the way you wanted"
 
+#: src/components/dashboard/content-list.tsx:111
+msgid "Done."
+msgstr "Done."
+
 #: src/components/editor/dialogs.tsx:479
 #: src/routes/dashboard.audit.tsx:85
 msgid "Download"
@@ -3622,7 +3682,7 @@ msgstr "Download"
 msgid "Draft"
 msgstr "Draft"
 
-#: src/components/editor/mavi-editor.tsx:364
+#: src/components/editor/mavi-editor.tsx:312
 msgid "Draft saved"
 msgstr "Draft saved"
 
@@ -3658,12 +3718,12 @@ msgstr "Duplicate"
 #~ msgid "Each language has its own tags. Link them so a post's tag can point at its counterpart in another language."
 #~ msgstr "Each language has its own tags. Link them so a post's tag can point at its counterpart in another language."
 
-#: src/components/dashboard/content-list.tsx:282
+#: src/components/dashboard/content-list.tsx:281
 #: src/components/editor/bubble-menus.tsx:331
-#: src/components/editor/mavi-editor.tsx:672
-#: src/components/editor/mavi-editor.tsx:931
-#: src/routes/dashboard.categories.tsx:309
-#: src/routes/dashboard.forms.tsx:213
+#: src/components/editor/mavi-editor.tsx:620
+#: src/components/editor/mavi-editor.tsx:879
+#: src/routes/dashboard.categories.tsx:305
+#: src/routes/dashboard.forms.tsx:208
 msgid "Edit"
 msgstr "Edit"
 
@@ -3671,7 +3731,11 @@ msgstr "Edit"
 #~ msgid "Edit board"
 #~ msgstr "Edit board"
 
-#: src/routes/dashboard.forms.tsx:235
+#: src/routes/dashboard.design.tsx:69
+msgid "Edit site templates and static files."
+msgstr "Edit site templates and static files."
+
+#: src/routes/dashboard.forms.tsx:230
 msgid "Edit the form"
 msgstr "Edit the form"
 
@@ -3691,16 +3755,17 @@ msgstr "Edit the form"
 msgid "Editing"
 msgstr "Editing"
 
-#: src/routes/dashboard.roles.tsx:437
+#: src/routes/dashboard.roles.tsx:425
 msgid "Editor-in-chief"
 msgstr "Editor-in-chief"
 
+#: src/components/dashboard/content-type-editor.tsx:58
 #: src/learn/app.tsx:159
-#: src/routes/dashboard.students.tsx:355
-#: src/routes/dashboard.users.tsx:317
-#: src/routes/forgotten.tsx:166
-#: src/routes/login.tsx:130
-#: src/routes/setup.tsx:118
+#: src/routes/dashboard.students.tsx:200
+#: src/routes/dashboard.users.tsx:310
+#: src/routes/forgotten.tsx:216
+#: src/routes/login.tsx:110
+#: src/routes/setup.tsx:136
 msgid "Email"
 msgstr "Email"
 
@@ -3763,8 +3828,8 @@ msgstr "Enter the six digits from your authenticator."
 #~ msgstr "Estimated, not counted"
 
 #: src/routes/dashboard.usage.tsx:177
-msgid "Estimated, on a table this large"
-msgstr "Estimated, on a table this large"
+#~ msgid "Estimated, on a table this large"
+#~ msgstr "Estimated, on a table this large"
 
 #: src/routes/dashboard.mail.tsx:822
 #~ msgid "Events arrive once the pipeline is wired up, under the mail plugin's settings. Until then a bounce is only discovered by the next campaign running into it."
@@ -3821,7 +3886,7 @@ msgstr "Every page, listed for Google and the other crawlers."
 #~ msgid "Every site has its own, on its own address. The same server answers all of them and the address is what decides whose content you get — so this one returns this site's, and nobody else's."
 #~ msgstr "Every site has its own, on its own address. The same server answers all of them and the address is what decides whose content you get — so this one returns this site's, and nobody else's."
 
-#: src/routes/dashboard.content-types.tsx:68
+#: src/routes/dashboard.content-types.tsx:63
 msgid "Every site has posts and pages. Add a kind of your own when what you publish has facts of its own — a course with a price and a level, a property with rooms — so a page can lay them out instead of hunting for them in a paragraph."
 msgstr "Every site has posts and pages. Add a kind of your own when what you publish has facts of its own — a course with a price and a level, a property with rooms — so a page can lay them out instead of hunting for them in a paragraph."
 
@@ -3838,8 +3903,8 @@ msgstr "Every site has posts and pages. Add a kind of your own when what you pub
 #~ msgstr "Every so many minutes, whether or not anything happened"
 
 #: src/routes/dashboard.flows.tsx:281
-msgid "Every step it took, in order, and what each one said."
-msgstr "Every step it took, in order, and what each one said."
+#~ msgid "Every step it took, in order, and what each one said."
+#~ msgstr "Every step it took, in order, and what each one said."
 
 #: src/routes/console.billing.tsx:267
 #~ msgid "Every theme repository you take is shared with this user, automatically, with push access."
@@ -3875,12 +3940,20 @@ msgstr "Every step it took, in order, and what each one said."
 #~ msgstr "Everything on it goes with it. Forms that were putting answers here stop doing so and keep taking answers."
 
 #: src/routes/dashboard.api.tsx:103
-msgid "Everything this panel does, something else can do. The address is the one you reached this site on — the same program serves every site, and the address is the whole of the difference."
-msgstr "Everything this panel does, something else can do. The address is the one you reached this site on — the same program serves every site, and the address is the whole of the difference."
+#~ msgid "Everything this panel does, something else can do. The address is the one you reached this site on — the same program serves every site, and the address is the whole of the difference."
+#~ msgstr "Everything this panel does, something else can do. The address is the one you reached this site on — the same program serves every site, and the address is the whole of the difference."
+
+#: src/routes/dashboard.api.tsx:82
+msgid "Everything this panel does, something else can do. The address is the one you reached this site on."
+msgstr "Everything this panel does, something else can do. The address is the one you reached this site on."
 
 #: src/routes/dashboard.index.tsx:91
-msgid "Everything this site adds up to, and how the last {days} days went."
-msgstr "Everything this site adds up to, and how the last {days} days went."
+#~ msgid "Everything this site adds up to, and how the last {days} days went."
+#~ msgstr "Everything this site adds up to, and how the last {days} days went."
+
+#: src/routes/dashboard.index.tsx:67
+msgid "Everything this site adds up to."
+msgstr "Everything this site adds up to."
 
 #. placeholder {0}: pendingImport?.name
 #: src/routes/dashboard.plugins_.backup.tsx:807
@@ -3895,7 +3968,7 @@ msgstr "Everything this site adds up to, and how the last {days} days went."
 #~ msgid "Everything written about them goes with it. What they originally sent stays under Forms."
 #~ msgstr "Everything written about them goes with it. What they originally sent stays under Forms."
 
-#: src/components/editor/post-settings.tsx:385
+#: src/components/editor/post-settings.tsx:341
 msgid "Excerpt"
 msgstr "Excerpt"
 
@@ -3909,8 +3982,8 @@ msgstr "Excerpt"
 
 #: src/routes/dashboard.usage.tsx:230
 #: src/routes/dashboard.usage.tsx:256
-msgid "Failed"
-msgstr "Failed"
+#~ msgid "Failed"
+#~ msgstr "Failed"
 
 #. placeholder {0}: when(last.created_at)
 #: src/routes/dashboard.flows.tsx:488
@@ -3944,7 +4017,7 @@ msgstr "Failed"
 #~ msgid "Fetched {0}. Every picture is on this server now."
 #~ msgstr "Fetched {0}. Every picture is on this server now."
 
-#: src/routes/dashboard.content-types.tsx:109
+#: src/routes/dashboard.content-types.tsx:101
 msgid "Fields"
 msgstr "Fields"
 
@@ -3975,7 +4048,6 @@ msgid "Find…"
 msgstr "Find…"
 
 #: src/learn/app.tsx:390
-#: src/routes/dashboard.usage.tsx:199
 msgid "Finished"
 msgstr "Finished"
 
@@ -3983,7 +4055,7 @@ msgstr "Finished"
 #~ msgid "Finished, and it did not"
 #~ msgstr "Finished, and it did not"
 
-#: src/routes/dashboard.performance.tsx:63
+#: src/routes/dashboard.performance.tsx:43
 msgid "First byte"
 msgstr "First byte"
 
@@ -4003,15 +4075,15 @@ msgstr "flow"
 #~ msgid "Flow written"
 #~ msgstr "Flow written"
 
-#: src/components/dashboard/dashboard-shell.tsx:141
-#: src/routes/dashboard.flows.tsx:164
-#: src/routes/dashboard.index.tsx:194
-#: src/routes/dashboard.roles.tsx:172
+#: src/components/dashboard/dashboard-shell.tsx:94
+#: src/routes/dashboard.flows.tsx:137
+#: src/routes/dashboard.index.tsx:112
+#: src/routes/dashboard.roles.tsx:160
 msgid "Flows"
 msgstr "Flows"
 
 #: src/components/editor/dialogs.tsx:549
-#: src/components/editor/mavi-editor.tsx:529
+#: src/components/editor/mavi-editor.tsx:477
 msgid "Focus mode"
 msgstr "Focus mode"
 
@@ -4029,8 +4101,8 @@ msgid "Font"
 msgstr "Font"
 
 #: src/routes/dashboard.students.tsx:394
-msgid "For how long"
-msgstr "For how long"
+#~ msgid "For how long"
+#~ msgstr "For how long"
 
 #: src/routes/dashboard.platform-services.tsx:123
 #~ msgid "For orientation: sending costs the server about $0.10 per 1000 through Amazon, storage about $0.015 per GB-month on R2. A dollar per thousand and ten cents per GB leaves a healthy margin."
@@ -4040,7 +4112,7 @@ msgstr "For how long"
 #~ msgid "for sale"
 #~ msgstr "for sale"
 
-#: src/routes/dashboard.products.tsx:185
+#: src/routes/dashboard.products.tsx:186
 msgid "For sale"
 msgstr "For sale"
 
@@ -4048,7 +4120,7 @@ msgstr "For sale"
 #~ msgid "For what"
 #~ msgstr "For what"
 
-#: src/routes/dashboard.users.tsx:453
+#: src/routes/dashboard.users.tsx:446
 msgid "For when somebody writes in and asks. Everything under one address, across everything this site keeps."
 msgstr "For when somebody writes in and asks. Everything under one address, across everything this site keeps."
 
@@ -4057,11 +4129,11 @@ msgstr "For when somebody writes in and asks. Everything under one address, acro
 #~ msgstr "For which site"
 
 #: src/components/editor/content-fields.tsx:141
-#: src/routes/dashboard.plugins.tsx:245
+#: src/routes/dashboard.plugins.tsx:188
 msgid "Forget it"
 msgstr "Forget it"
 
-#: src/routes/dashboard.users.tsx:476
+#: src/routes/dashboard.users.tsx:469
 msgid "Forget them"
 msgstr "Forget them"
 
@@ -4069,8 +4141,8 @@ msgstr "Forget them"
 #~ msgid "Forget this value"
 #~ msgstr "Forget this value"
 
-#: src/routes/dashboard.plugins.tsx:83
-#: src/routes/dashboard.users.tsx:441
+#: src/routes/dashboard.plugins.tsx:69
+#: src/routes/dashboard.users.tsx:434
 msgid "Forgotten."
 msgstr "Forgotten."
 
@@ -4080,8 +4152,8 @@ msgstr "form"
 
 #: src/routes/dashboard.index.tsx:151
 #: src/routes/dashboard.usage.tsx:94
-msgid "Form submissions"
-msgstr "Form submissions"
+#~ msgid "Form submissions"
+#~ msgstr "Form submissions"
 
 #: src/components/editor/extensions/slash-command.tsx:243
 #: src/components/editor/extensions/slash-command.tsx:252
@@ -4093,10 +4165,11 @@ msgstr "Format"
 msgid "Formatting"
 msgstr "Formatting"
 
-#: src/components/dashboard/dashboard-shell.tsx:139
-#: src/routes/dashboard.forms_.$formId.tsx:148
+#: src/components/dashboard/dashboard-shell.tsx:92
+#: src/routes/dashboard.forms_.$formId.tsx:135
 #: src/routes/dashboard.forms.tsx:150
-#: src/routes/dashboard.roles.tsx:170
+#: src/routes/dashboard.index.tsx:78
+#: src/routes/dashboard.roles.tsx:158
 msgid "Forms"
 msgstr "Forms"
 
@@ -4114,8 +4187,8 @@ msgstr "Forms"
 
 #. placeholder {0}: money(row.minimum_minor, row.currency)
 #: src/routes/dashboard.coupons.tsx:103
-msgid "from {0}"
-msgstr "from {0}"
+#~ msgid "from {0}"
+#~ msgstr "from {0}"
 
 #: src/components/plugin-forms.tsx:369
 #~ msgid "From address"
@@ -4144,7 +4217,7 @@ msgid "Full width"
 msgstr "Full width"
 
 #: src/components/editor/dialogs.tsx:550
-#: src/components/editor/mavi-editor.tsx:544
+#: src/components/editor/mavi-editor.tsx:492
 msgid "Fullscreen"
 msgstr "Fullscreen"
 
@@ -4152,11 +4225,11 @@ msgstr "Fullscreen"
 #~ msgid "GB stored, monthly"
 #~ msgstr "GB stored, monthly"
 
-#: src/components/editor/post-settings.tsx:406
+#: src/components/editor/post-settings.tsx:362
 msgid "Generate from post"
 msgstr "Generate from post"
 
-#: src/components/editor/post-settings.tsx:280
+#: src/components/editor/post-settings.tsx:236
 msgid "Generate from title"
 msgstr "Generate from title"
 
@@ -4172,9 +4245,9 @@ msgstr "Generate from title"
 #~ msgid "GitHub username"
 #~ msgstr "GitHub username"
 
-#: src/routes/dashboard.students.tsx:190
-#: src/routes/dashboard.students.tsx:347
-#: src/routes/dashboard.students.tsx:421
+#: src/routes/dashboard.students.tsx:117
+#: src/routes/dashboard.students.tsx:192
+#: src/routes/dashboard.students.tsx:247
 msgid "Give access"
 msgstr "Give access"
 
@@ -4182,7 +4255,7 @@ msgstr "Give access"
 #~ msgid "Give it a name and say what one is made of. The address it answers on is made from the name and never changes afterwards, because a front end will be asking for it."
 #~ msgstr "Give it a name and say what one is made of. The address it answers on is made from the name and never changes afterwards, because a front end will be asking for it."
 
-#: src/components/dashboard/content-type-editor.tsx:121
+#: src/components/dashboard/content-type-editor.tsx:93
 msgid "Give it a name and say what one is made of. The key it answers on is made from the name and never changes afterwards, because a front end will be asking for it."
 msgstr "Give it a name and say what one is made of. The key it answers on is made from the name and never changes afterwards, because a front end will be asking for it."
 
@@ -4195,14 +4268,14 @@ msgstr "Give it a name and say what one is made of. The key it answers on is mad
 #~ msgstr "Give it this policy."
 
 #: src/routes/dashboard.students.tsx:232
-msgid "Give longer"
-msgstr "Give longer"
+#~ msgid "Give longer"
+#~ msgstr "Give longer"
 
 #: src/routes/dashboard.plugins_.backup.tsx:708
 #~ msgid "Give the other installation both of these. The token is said here and never again — what is kept beside the package is a hash of it. It stops working in an hour, or after five fetches."
 #~ msgstr "Give the other installation both of these. The token is said here and never again — what is kept beside the package is a hash of it. It stops working in an hour, or after five fetches."
 
-#: src/components/editor/mavi-editor.tsx:301
+#: src/components/editor/mavi-editor.tsx:264
 msgid "Give your post a title first"
 msgstr "Give your post a title first"
 
@@ -4219,16 +4292,20 @@ msgstr "Give your post a title first"
 #~ msgid "Go"
 #~ msgstr "Go"
 
+#: src/routes/forgotten.tsx:130
+msgid "Go to sign in"
+msgstr "Go to sign in"
+
 #. placeholder {0}: new Date(entry.goes_at).toLocaleDateString()
 #: src/routes/dashboard.trash.tsx:167
-msgid "Goes for good on {0}"
-msgstr "Goes for good on {0}"
+#~ msgid "Goes for good on {0}"
+#~ msgstr "Goes for good on {0}"
 
 #: src/routes/dashboard.mail.tsx:168
 #~ msgid "Going out"
 #~ msgstr "Going out"
 
-#: src/routes/dashboard.roles.tsx:269
+#: src/routes/dashboard.roles.tsx:257
 msgid "Gone"
 msgstr "Gone"
 
@@ -4263,7 +4340,7 @@ msgstr "Green"
 #~ msgid "grey: sent · red: did not arrive"
 #~ msgstr "grey: sent · red: did not arrive"
 
-#: src/routes/dashboard.api.tsx:134
+#: src/routes/dashboard.api.tsx:112
 msgid "Hand one over"
 msgstr "Hand one over"
 
@@ -4280,8 +4357,8 @@ msgstr "Hand one over"
 #~ msgid "Handing this to an assistant"
 #~ msgstr "Handing this to an assistant"
 
-#: src/components/dashboard/content-type-editor.tsx:292
-#: src/routes/dashboard.forms.tsx:458
+#: src/components/dashboard/content-type-editor.tsx:203
+#: src/routes/dashboard.forms.tsx:453
 msgid "Has to be filled in"
 msgstr "Has to be filled in"
 
@@ -4334,6 +4411,14 @@ msgstr "Heading 6"
 msgid "Headings you add will show up here."
 msgstr "Headings you add will show up here."
 
+#: src/components/dashboard/address-health.tsx:40
+msgid "Health"
+msgstr "Health"
+
+#: src/components/dashboard/address-health.tsx:48
+msgid "Healthy"
+msgstr "Healthy"
+
 #: src/components/editor/content-fields.tsx:131
 msgid "Held from when this kind had fields it no longer has. They are kept as they were, and come back if the field does."
 msgstr "Held from when this kind had fields it no longer has. They are kept as they were, and come back if the field does."
@@ -4372,6 +4457,10 @@ msgstr "Highlight text with color"
 #~ msgid "History"
 #~ msgstr "History"
 
+#: src/components/dashboard/dashboard-shell.tsx:79
+msgid "Home"
+msgstr "Home"
+
 #: src/components/setup/setup-wizard.tsx:427
 #~ msgid "Host"
 #~ msgstr "Host"
@@ -4400,11 +4489,11 @@ msgstr "Highlight text with color"
 #~ msgid "How many left"
 #~ msgstr "How many left"
 
-#: src/routes/dashboard.coupons.tsx:223
+#: src/routes/dashboard.coupons.tsx:211
 msgid "How many percent"
 msgstr "How many percent"
 
-#: src/routes/dashboard.products.tsx:254
+#: src/routes/dashboard.products.tsx:255
 msgid "How many there are"
 msgstr "How many there are"
 
@@ -4413,7 +4502,7 @@ msgstr "How many there are"
 #~ msgid "How many to keep"
 #~ msgstr "How many to keep"
 
-#: src/routes/dashboard.coupons.tsx:223
+#: src/routes/dashboard.coupons.tsx:211
 msgid "How much"
 msgstr "How much"
 
@@ -4442,7 +4531,7 @@ msgstr "How much"
 #~ msgid "How to get these keys"
 #~ msgstr "How to get these keys"
 
-#: src/routes/dashboard.forms_.$formId.tsx:173
+#: src/routes/dashboard.forms_.$formId.tsx:153
 msgid "How to send to it"
 msgstr "How to send to it"
 
@@ -4475,11 +4564,11 @@ msgstr "How to send to it"
 #~ msgid "I have copied both"
 #~ msgstr "I have copied both"
 
-#: src/routes/login.tsx:194
+#: src/routes/login.tsx:174
 msgid "I have forgotten my password"
 msgstr "I have forgotten my password"
 
-#: src/components/report-a-problem.tsx:74
+#: src/components/report-a-problem.tsx:63
 msgid "I would like something"
 msgstr "I would like something"
 
@@ -4491,7 +4580,7 @@ msgstr "I would like something"
 #~ msgid "If it does not match, the steps after this one are skipped and the run is still counted as a success."
 #~ msgstr "If it does not match, the steps after this one are skipped and the run is still counted as a success."
 
-#: src/routes/forgotten.tsx:133
+#: src/routes/forgotten.tsx:183
 msgid "If that address has an account here, a link is on its way. It works once and stops working after a day."
 msgstr "If that address has an account here, a link is on its way. It works once and stops working after a day."
 
@@ -4520,7 +4609,7 @@ msgid "Import"
 msgstr "Import"
 
 #: src/components/editor/dialogs.tsx:440
-#: src/components/editor/mavi-editor.tsx:552
+#: src/components/editor/mavi-editor.tsx:500
 msgid "Import / export"
 msgstr "Import / export"
 
@@ -4536,17 +4625,17 @@ msgstr "Import / export"
 #~ msgid "Import this archive?"
 #~ msgstr "Import this archive?"
 
-#: src/routes/dashboard.products.tsx:232
+#: src/routes/dashboard.products.tsx:233
 msgid "In"
 msgstr "In"
 
-#: src/components/report-a-problem.tsx:222
+#: src/components/report-a-problem.tsx:172
 msgid "In a line"
 msgstr "In a line"
 
 #: src/components/dashboard/content-type-editor.tsx:151
-msgid "In each language"
-msgstr "In each language"
+#~ msgid "In each language"
+#~ msgstr "In each language"
 
 #: src/components/editor/types.ts:37
 #~ msgid "In review"
@@ -4620,6 +4709,10 @@ msgstr "Insert a 3×3 table"
 msgid "Insert the current date as text"
 msgstr "Insert the current date as text"
 
+#: src/components/dashboard/dashboard-shell.tsx:81
+msgid "Insights"
+msgstr "Insights"
+
 #: src/components/setup/setup-wizard.tsx:762
 #~ msgid "Install Mavi CMS"
 #~ msgstr "Install Mavi CMS"
@@ -4636,7 +4729,7 @@ msgstr "Insert the current date as text"
 #~ msgid "Invitations"
 #~ msgstr "Invitations"
 
-#: src/routes/dashboard.users.tsx:365
+#: src/routes/dashboard.users.tsx:358
 msgid "Invite"
 msgstr "Invite"
 
@@ -4644,15 +4737,15 @@ msgstr "Invite"
 #~ msgid "invited"
 #~ msgstr "invited"
 
-#: src/routes/dashboard.users.tsx:201
+#: src/routes/dashboard.users.tsx:199
 msgid "Invited"
 msgstr "Invited"
 
-#: src/routes/dashboard.users.tsx:106
+#: src/routes/dashboard.users.tsx:104
 msgid "Invited. They choose their own password from the link."
 msgstr "Invited. They choose their own password from the link."
 
-#: src/routes/dashboard.settings.tsx:546
+#: src/routes/dashboard.settings.tsx:388
 msgid "Is everything answering"
 msgstr "Is everything answering"
 
@@ -4661,7 +4754,16 @@ msgstr "Is everything answering"
 #~ msgid "is exactly"
 #~ msgstr "is exactly"
 
-#: src/routes/dashboard.plugins.tsx:101
+#: src/components/dashboard/address-health.tsx:48
+msgid "Issue"
+msgstr "Issue"
+
+#: src/routes/dashboard.index.tsx:120
+#: src/routes/dashboard.usage.tsx:93
+msgid "issues found"
+msgstr "issues found"
+
+#: src/routes/dashboard.plugins.tsx:75
 msgid "It answered."
 msgstr "It answered."
 
@@ -4683,7 +4785,7 @@ msgstr "It can name: {0}"
 #~ msgid "It can then do what you can"
 #~ msgstr "It can then do what you can"
 
-#: src/components/report-a-problem.tsx:73
+#: src/components/report-a-problem.tsx:62
 msgid "It cannot do something I need"
 msgstr "It cannot do something I need"
 
@@ -4692,8 +4794,8 @@ msgstr "It cannot do something I need"
 #~ msgstr "It could not be allowed"
 
 #: src/routes/dashboard.plugins.tsx:103
-msgid "It did not answer."
-msgstr "It did not answer."
+#~ msgid "It did not answer."
+#~ msgstr "It did not answer."
 
 #: src/components/dashboard/content-type-editor.tsx:175
 #~ msgid "It gets a curriculum — modules, lessons, videos, and when each one opens — and people are enrolled on it for as long as you say. Leave this off for anything you simply publish."
@@ -4711,7 +4813,7 @@ msgstr "It did not answer."
 #~ msgid "It had already finished"
 #~ msgstr "It had already finished"
 
-#: src/routes/dashboard.orders.tsx:207
+#: src/routes/dashboard.orders.tsx:216
 msgid "It has gone"
 msgstr "It has gone"
 
@@ -4720,14 +4822,14 @@ msgstr "It has gone"
 #~ msgstr "It has not got as far as a step yet."
 
 #: src/routes/dashboard.flows.tsx:231
-msgid "It has not run yet."
-msgstr "It has not run yet."
+#~ msgid "It has not run yet."
+#~ msgstr "It has not run yet."
 
 #: src/routes/dashboard.api.tsx:149
 #~ msgid "It is in the text you just copied and is not shown again. Whoever holds it can write on this site until it runs out — so paste it where you meant to, and take it back below if it went somewhere else."
 #~ msgstr "It is in the text you just copied and is not shown again. Whoever holds it can write on this site until it runs out — so paste it where you meant to, and take it back below if it went somewhere else."
 
-#: src/routes/dashboard.api.tsx:141
+#: src/routes/dashboard.api.tsx:119
 msgid "It is kept as a hash and cannot be read again. If it is lost, hand over another and take this one back."
 msgstr "It is kept as a hash and cannot be read again. If it is lost, hand over another and take this one back."
 
@@ -4760,8 +4862,8 @@ msgstr "It is kept as a hash and cannot be read again. If it is lost, hand over 
 #~ msgstr "It runs with CMS_API_URL and SITE_URL set to this site's address."
 
 #: src/routes/dashboard.flows.tsx:288
-msgid "It stopped before any step ran."
-msgstr "It stopped before any step ran."
+#~ msgid "It stopped before any step ran."
+#~ msgstr "It stopped before any step ran."
 
 #: src/lib/lead-words.ts:58
 #~ msgid "It went no further"
@@ -4814,14 +4916,14 @@ msgstr "Its cards go with it."
 #~ msgid "Its id"
 #~ msgstr "Its id"
 
-#: src/components/dashboard/content-type-editor.tsx:248
-#: src/routes/dashboard.forms.tsx:410
+#: src/components/dashboard/content-type-editor.tsx:159
+#: src/routes/dashboard.forms.tsx:405
 msgid "Its key"
 msgstr "Its key"
 
 #: src/routes/dashboard.settings.tsx:372
-msgid "Its key, e.g. google"
-msgstr "Its key, e.g. google"
+#~ msgid "Its key, e.g. google"
+#~ msgstr "Its key, e.g. google"
 
 #: src/routes/dashboard.sites.tsx:228
 #~ msgid "Its own database server"
@@ -4864,8 +4966,8 @@ msgid "Keep going, type “/” to add a block…"
 msgstr "Keep going, type “/” to add a block…"
 
 #: src/routes/dashboard.flows.tsx:557
-msgid "Keep it"
-msgstr "Keep it"
+#~ msgid "Keep it"
+#~ msgstr "Keep it"
 
 #: src/shop/app.tsx:290
 msgid "Keep this address: it is how you look this order up again."
@@ -4875,15 +4977,15 @@ msgstr "Keep this address: it is how you look this order up again."
 #~ msgid "Kept"
 #~ msgstr "Kept"
 
-#: src/routes/dashboard.forms.tsx:287
+#: src/routes/dashboard.forms.tsx:282
 msgid "Kept for, in days"
 msgstr "Kept for, in days"
 
 #: src/routes/dashboard.flows.tsx:509
-msgid "Kept sealed and never read back. A step names one; this is where the name points."
-msgstr "Kept sealed and never read back. A step names one; this is where the name points."
+#~ msgid "Kept sealed and never read back. A step names one; this is where the name points."
+#~ msgstr "Kept sealed and never read back. A step names one; this is where the name points."
 
-#: src/routes/dashboard.plugins.tsx:205
+#: src/routes/dashboard.plugins.tsx:148
 msgid "kept, and not read back"
 msgstr "kept, and not read back"
 
@@ -4907,14 +5009,14 @@ msgstr "Keyboard shortcuts"
 #~ msgid "Label"
 #~ msgstr "Label"
 
-#: src/components/dashboard/content-list.tsx:151
-#: src/components/editor/mavi-editor.tsx:941
+#: src/components/dashboard/content-list.tsx:140
+#: src/components/editor/mavi-editor.tsx:889
 #: src/components/locale-toggle.tsx:23
 msgid "Language"
 msgstr "Language"
 
-#: src/components/dashboard/dashboard-shell.tsx:209
-#: src/routes/dashboard.languages.tsx:96
+#: src/components/dashboard/dashboard-shell.tsx:110
+#: src/routes/dashboard.languages.tsx:95
 msgid "Languages"
 msgstr "Languages"
 
@@ -4926,18 +5028,18 @@ msgstr "Large section heading"
 #~ msgid "Larger comes first"
 #~ msgstr "Larger comes first"
 
-#: src/routes/dashboard.performance.tsx:60
+#: src/routes/dashboard.performance.tsx:40
 msgid "Largest paint"
 msgstr "Largest paint"
 
 #: src/routes/dashboard.usage.tsx:129
-msgid "Last build"
-msgstr "Last build"
+#~ msgid "Last build"
+#~ msgstr "Last build"
 
 #. placeholder {0}: when(student.last_seen_at)
 #: src/routes/dashboard.students.tsx:179
-msgid "last here {0}"
-msgstr "last here {0}"
+#~ msgid "last here {0}"
+#~ msgstr "last here {0}"
 
 #. placeholder {0}: new Date(row.last_at).toLocaleDateString()
 #: src/routes/console.accounts.tsx:77
@@ -4955,12 +5057,20 @@ msgstr "last here {0}"
 #~ msgstr "Last run {0}"
 
 #: src/routes/dashboard.flows.tsx:228
-msgid "Lately"
-msgstr "Lately"
+#~ msgid "Lately"
+#~ msgstr "Lately"
 
-#: src/routes/dashboard.performance.tsx:61
+#: src/routes/dashboard.performance.tsx:41
 msgid "Layout shift"
 msgstr "Layout shift"
+
+#: src/components/dashboard/dashboard-shell.tsx:100
+msgid "Learning"
+msgstr "Learning"
+
+#: src/routes/dashboard.index.tsx:102
+msgid "learning here"
+msgstr "learning here"
 
 #: src/components/plugin-forms.tsx:91
 #~ msgid "Leave empty for AWS S3"
@@ -4999,7 +5109,7 @@ msgstr "Layout shift"
 #~ msgid "Leaving the sandbox is the first increase. This is the one after it — Amazon treats it as a support request, and this opens one in the same words its console would."
 #~ msgstr "Leaving the sandbox is the first increase. This is the one after it — Amazon treats it as a support request, and this opens one in the same words its console would."
 
-#: src/routes/dashboard.products.tsx:167
+#: src/routes/dashboard.products.tsx:168
 msgid "Left"
 msgstr "Left"
 
@@ -5009,8 +5119,8 @@ msgstr "Left"
 #~ msgstr "Left exactly as they are: {0}"
 
 #: src/routes/dashboard.videos.tsx:164
-msgid "length not known yet"
-msgstr "length not known yet"
+#~ msgid "length not known yet"
+#~ msgstr "length not known yet"
 
 #: src/lib/use-content-types.ts:76
 #~ msgid "Lesson"
@@ -5027,8 +5137,7 @@ msgstr "length not known yet"
 #~ msgid "Lessons"
 #~ msgstr "Lessons"
 
-#: src/routes/dashboard.students.tsx:196
-#: src/routes/dashboard.users.tsx:244
+#: src/routes/dashboard.users.tsx:237
 msgid "Let back in"
 msgstr "Let back in"
 
@@ -5044,7 +5153,7 @@ msgstr "Let back in"
 #~ msgid "Letterhead"
 #~ msgstr "Letterhead"
 
-#: src/components/dashboard/dashboard-shell.tsx:197
+#: src/components/dashboard/dashboard-shell.tsx:99
 #: src/routes/dashboard.letters.tsx:109
 msgid "Letters"
 msgstr "Letters"
@@ -5053,7 +5162,7 @@ msgstr "Letters"
 #~ msgid "Library id"
 #~ msgstr "Library id"
 
-#: src/components/editor/mavi-editor.tsx:964
+#: src/components/editor/mavi-editor.tsx:912
 #: src/components/mode-toggle.tsx:37
 msgid "Light"
 msgstr "Light"
@@ -5097,12 +5206,11 @@ msgstr "Link text"
 #: src/components/editor/extensions/slash-command.tsx:102
 #: src/components/editor/extensions/slash-command.tsx:111
 #: src/components/editor/extensions/slash-command.tsx:120
-#: src/routes/dashboard.mail.tsx:189
 msgid "Lists"
 msgstr "Lists"
 
 #: src/components/dashboard/discoverability.tsx:87
-#: src/routes/dashboard.publish.tsx:71
+#: src/routes/dashboard.publish.tsx:39
 msgid "Live"
 msgstr "Live"
 
@@ -5118,15 +5226,15 @@ msgstr "Loading…"
 #~ msgid "Local"
 #~ msgstr "Local"
 
-#: src/components/form-fields-editor.tsx:91
-#~ msgid "Long text"
-#~ msgstr "Long text"
+#: src/components/dashboard/content-type-editor.tsx:55
+msgid "Long text"
+msgstr "Long text"
 
-#: src/routes/dashboard.users.tsx:469
+#: src/routes/dashboard.users.tsx:462
 msgid "Look"
 msgstr "Look"
 
-#: src/routes/dashboard.design.tsx:114
+#: src/routes/dashboard.design.tsx:81
 msgid "Look at it"
 msgstr "Look at it"
 
@@ -5134,13 +5242,13 @@ msgstr "Look at it"
 #~ msgid "Look at it first"
 #~ msgstr "Look at it first"
 
-#: src/routes/forgotten.tsx:130
+#: src/routes/forgotten.tsx:180
 msgid "Look in your email"
 msgstr "Look in your email"
 
 #: src/routes/dashboard.publish.tsx:72
-msgid "Looked at"
-msgstr "Looked at"
+#~ msgid "Looked at"
+#~ msgstr "Looked at"
 
 #: src/routes/dashboard.platform-reports.tsx:60
 #~ msgid "Looking at it"
@@ -5150,7 +5258,7 @@ msgstr "Looked at"
 #~ msgid "Lost"
 #~ msgstr "Lost"
 
-#: src/routes/dashboard.roles.tsx:455
+#: src/routes/dashboard.roles.tsx:443
 msgid "Lower-case, letters, digits and dashes. This is what a person's account is filed under."
 msgstr "Lower-case, letters, digits and dashes. This is what a person's account is filed under."
 
@@ -5163,12 +5271,11 @@ msgstr "Lower-case, letters, digits and dashes. This is what a person's account 
 #~ msgid "Made in the channel's own settings, under incoming webhooks. Anybody holding it can post to that channel, so it is treated as a password and kept out of the run record."
 #~ msgstr "Made in the channel's own settings, under incoming webhooks. Anybody holding it can post to that channel, so it is treated as a password and kept out of the run record."
 
-#: src/components/dashboard/dashboard-shell.tsx:140
-#: src/routes/dashboard.mail_.campaigns.$campaignId.tsx:94
-#: src/routes/dashboard.mail.tsx:180
-#: src/routes/dashboard.plugins.tsx:62
-#: src/routes/dashboard.roles.tsx:171
-#: src/routes/dashboard.usage.tsx:242
+#: src/components/dashboard/dashboard-shell.tsx:93
+#: src/routes/dashboard.mail_.campaigns.$campaignId.tsx:25
+#: src/routes/dashboard.mail.tsx:145
+#: src/routes/dashboard.plugins.tsx:55
+#: src/routes/dashboard.roles.tsx:159
 msgid "Mail"
 msgstr "Mail"
 
@@ -5177,17 +5284,21 @@ msgstr "Mail"
 #~ msgstr "Mail account changed"
 
 #: src/routes/dashboard.usage.tsx:116
-msgid "Mail attempted"
-msgstr "Mail attempted"
+#~ msgid "Mail attempted"
+#~ msgstr "Mail attempted"
 
 #: src/routes/dashboard.index.tsx:171
-msgid "Mail delivered"
-msgstr "Mail delivered"
+#~ msgid "Mail delivered"
+#~ msgstr "Mail delivered"
 
 #. placeholder {0}: allowance.sender
 #: src/routes/dashboard.mail_.campaigns.$campaignId.tsx:210
 #~ msgid "Mail from this site still leaves as {0}, which belongs to the mail service rather than to you. A newsletter has to come from the domain it is about — otherwise that shared domain answers for it, and every site using the service pays for anybody's complaints. Add your domain under Mail settings, publish the records it gives you, and set it as the sender. Notifications and form replies keep working meanwhile."
 #~ msgstr "Mail from this site still leaves as {0}, which belongs to the mail service rather than to you. A newsletter has to come from the domain it is about — otherwise that shared domain answers for it, and every site using the service pays for anybody's complaints. Add your domain under Mail settings, publish the records it gives you, and set it as the sender. Notifications and form replies keep working meanwhile."
+
+#: src/routes/dashboard.mail_.campaigns.$campaignId.tsx:33
+msgid "Mail sendings are processed in the background directly from your lists."
+msgstr "Mail sendings are processed in the background directly from your lists."
 
 #: src/routes/dashboard.billing.tsx:87
 #~ msgid "Mail sent"
@@ -5197,11 +5308,15 @@ msgstr "Mail delivered"
 msgid "mailing list"
 msgstr "mailing list"
 
+#: src/routes/dashboard.index.tsx:85
+msgid "Mailing list"
+msgstr "Mailing list"
+
 #: src/routes/dashboard.sites.tsx:559
 #~ msgid "Make a link"
 #~ msgstr "Make a link"
 
-#: src/routes/dashboard.roles.tsx:429
+#: src/routes/dashboard.roles.tsx:417
 msgid "Make a role, then tick what it may do below."
 msgstr "Make a role, then tick what it may do below."
 
@@ -5217,15 +5332,15 @@ msgstr "Make a role, then tick what it may do below."
 #~ msgid "Make an IAM user in the AWS account that owns the sending domain."
 #~ msgstr "Make an IAM user in the AWS account that owns the sending domain."
 
-#: src/routes/dashboard.languages.tsx:161
+#: src/routes/dashboard.languages.tsx:155
 msgid "Make default"
 msgstr "Make default"
 
 #: src/routes/dashboard.boards.tsx:214
-#: src/routes/dashboard.flows.tsx:442
-#: src/routes/dashboard.mail.tsx:375
-#: src/routes/dashboard.products.tsx:273
-#: src/routes/dashboard.roles.tsx:465
+#: src/routes/dashboard.flows.tsx:333
+#: src/routes/dashboard.mail.tsx:275
+#: src/routes/dashboard.products.tsx:274
+#: src/routes/dashboard.roles.tsx:453
 msgid "Make it"
 msgstr "Make it"
 
@@ -5258,8 +5373,8 @@ msgstr "Make the course"
 #~ msgstr "Mark a field below as the name, and one as the second line, so a card says who it is instead of a date and a form name. Nothing is guessed from what a field is called."
 
 #: src/routes/dashboard.forms_.$formId.tsx:167
-msgid "Mark all read"
-msgstr "Mark all read"
+#~ msgid "Mark all read"
+#~ msgstr "Mark all read"
 
 #: src/learn/app.tsx:390
 msgid "Mark as finished"
@@ -5277,17 +5392,27 @@ msgstr "Markdown imported"
 #~ msgid "Marked as a template on GitHub, under the account this server creates repositories in."
 #~ msgstr "Marked as a template on GitHub, under the account this server creates repositories in."
 
-#: src/routes/dashboard.orders.tsx:94
+#: src/routes/dashboard.orders.tsx:103
 msgid "Marked as sent"
 msgstr "Marked as sent"
+
+#: src/components/dashboard/dashboard-header.tsx:38
+#: src/components/dashboard/dashboard-navigation.tsx:47
+msgid "Mavi CMS"
+msgstr "Mavi CMS"
 
 #: src/components/setup/setup-wizard.tsx:364
 #~ msgid "Mavi CMS needs a database to store your site."
 #~ msgstr "Mavi CMS needs a database to store your site."
 
+#. placeholder {0}: row.at_most_uses
+#: src/routes/dashboard.coupons.tsx:107
+msgid "max {0} uses"
+msgstr "max {0} uses"
+
 #: src/routes/dashboard.performance.tsx:140
-msgid "Measured"
-msgstr "Measured"
+#~ msgid "Measured"
+#~ msgstr "Measured"
 
 #: src/routes/dashboard.billing.tsx:186
 #~ msgid "Measured monthly from what this site actually sends and stores, and billed here."
@@ -5301,20 +5426,23 @@ msgstr "Measured"
 #~ msgid "Measured months"
 #~ msgstr "Measured months"
 
-#: src/routes/dashboard.performance.tsx:98
+#: src/routes/dashboard.performance.tsx:63
 msgid "Measurements"
 msgstr "Measurements"
 
-#: src/components/dashboard/dashboard-shell.tsx:132
-#: src/routes/dashboard.roles.tsx:169
-#: src/routes/dashboard.usage.tsx:90
+#: src/components/dashboard/dashboard-shell.tsx:86
+#: src/routes/dashboard.roles.tsx:157
 msgid "Media"
 msgstr "Media"
 
 #: src/components/editor/dialogs.tsx:150
-#: src/routes/dashboard.media.tsx:125
+#: src/routes/dashboard.media.tsx:117
 msgid "Media library"
 msgstr "Media library"
+
+#: src/routes/dashboard.performance.tsx:81
+msgid "Median"
+msgstr "Median"
 
 #: src/components/setup/setup-wizard.tsx:593
 #~ msgid "Medium"
@@ -5354,6 +5482,10 @@ msgstr "Merge cells"
 #~ msgid "Method"
 #~ msgstr "Method"
 
+#: src/routes/dashboard.performance.tsx:80
+msgid "Metric"
+msgstr "Metric"
+
 #: src/routes/console.customers.tsx:520
 #~ msgid "Minutes"
 #~ msgstr "Minutes"
@@ -5374,11 +5506,11 @@ msgstr "Mono"
 #~ msgid "Monthly prices for what this server provides. While everything is zero, nothing is measured or billed."
 #~ msgstr "Monthly prices for what this server provides. While everything is zero, nothing is measured or billed."
 
-#: src/components/editor/mavi-editor.tsx:901
+#: src/components/editor/mavi-editor.tsx:849
 msgid "More"
 msgstr "More"
 
-#: src/routes/dashboard.forms.tsx:359
+#: src/routes/dashboard.forms.tsx:354
 msgid "More than a line"
 msgstr "More than a line"
 
@@ -5434,10 +5566,10 @@ msgstr "My courses"
 #~ msgstr "My orders"
 
 #: src/routes/dashboard.forms.tsx:161
-#: src/routes/dashboard.forms.tsx:245
-#: src/routes/dashboard.languages.tsx:118
-#: src/routes/dashboard.students.tsx:366
-#: src/routes/dashboard.users.tsx:327
+#: src/routes/dashboard.forms.tsx:240
+#: src/routes/dashboard.languages.tsx:117
+#: src/routes/dashboard.students.tsx:211
+#: src/routes/dashboard.users.tsx:320
 msgid "Name"
 msgstr "Name"
 
@@ -5445,7 +5577,7 @@ msgstr "Name"
 #~ msgid "Name (optional)"
 #~ msgstr "Name (optional)"
 
-#: src/routes/dashboard.roles.tsx:434
+#: src/routes/dashboard.roles.tsx:422
 msgid "Name people see"
 msgstr "Name people see"
 
@@ -5474,7 +5606,7 @@ msgstr "Navy"
 #~ msgid "Needed to publish"
 #~ msgstr "Needed to publish"
 
-#: src/components/editor/post-settings.tsx:253
+#: src/components/editor/post-settings.tsx:209
 msgid "Needed to schedule"
 msgstr "Needed to schedule"
 
@@ -5495,23 +5627,23 @@ msgstr "Needed to schedule"
 #~ msgstr "never run"
 
 #: src/routes/dashboard.students.tsx:180
-msgid "never signed in"
-msgstr "never signed in"
+#~ msgid "never signed in"
+#~ msgstr "never signed in"
 
-#: src/routes/dashboard.platform-reports.tsx:59
-#~ msgid "New"
-#~ msgstr "New"
+#: src/components/dashboard/dashboard-header.tsx:59
+msgid "New"
+msgstr "New"
 
 #: src/routes/dashboard.boards.tsx:191
 #~ msgid "New · Spoken to · Quoted · Signed · Went elsewhere"
 #~ msgstr "New · Spoken to · Quoted · Signed · Went elsewhere"
 
 #. placeholder {0}: writing.name
-#: src/components/dashboard/dashboard-shell.tsx:312
+#: src/components/dashboard/dashboard-header.tsx:58
 msgid "New {0}"
 msgstr "New {0}"
 
-#: src/components/dashboard/content-list.tsx:227
+#: src/components/dashboard/content-list.tsx:223
 msgid "New {one}"
 msgstr "New {one}"
 
@@ -5524,21 +5656,21 @@ msgstr "New board"
 #~ msgid "New campaign"
 #~ msgstr "New campaign"
 
-#: src/components/editor/post-settings.tsx:321
-#: src/routes/dashboard.categories.tsx:189
+#: src/components/editor/post-settings.tsx:277
+#: src/routes/dashboard.categories.tsx:185
 msgid "New category"
 msgstr "New category"
 
-#: src/routes/dashboard.coupons.tsx:78
+#: src/routes/dashboard.coupons.tsx:81
 msgid "New code"
 msgstr "New code"
 
-#: src/routes/dashboard.flows.tsx:170
+#: src/routes/dashboard.flows.tsx:143
 msgid "New flow"
 msgstr "New flow"
 
 #: src/routes/dashboard.forms.tsx:167
-#: src/routes/dashboard.forms.tsx:235
+#: src/routes/dashboard.forms.tsx:230
 msgid "New form"
 msgstr "New form"
 
@@ -5546,7 +5678,7 @@ msgstr "New form"
 #~ msgid "New lesson"
 #~ msgstr "New lesson"
 
-#: src/routes/dashboard.mail.tsx:261
+#: src/routes/dashboard.mail.tsx:162
 msgid "New list"
 msgstr "New list"
 
@@ -5554,12 +5686,12 @@ msgstr "New list"
 #~ msgid "New password"
 #~ msgstr "New password"
 
-#: src/routes/dashboard.products.tsx:131
+#: src/routes/dashboard.products.tsx:132
 msgid "New product"
 msgstr "New product"
 
-#: src/routes/dashboard.roles.tsx:294
-#: src/routes/dashboard.roles.tsx:427
+#: src/routes/dashboard.roles.tsx:282
+#: src/routes/dashboard.roles.tsx:415
 msgid "New role"
 msgstr "New role"
 
@@ -5628,7 +5760,7 @@ msgstr "Next"
 #~ msgid "No"
 #~ msgstr "No"
 
-#: src/components/dashboard/content-list.tsx:218
+#: src/components/dashboard/content-list.tsx:213
 msgid "No {many} yet"
 msgstr "No {many} yet"
 
@@ -5681,15 +5813,15 @@ msgstr "No boards yet."
 #~ msgid "No campaigns yet"
 #~ msgstr "No campaigns yet"
 
-#: src/routes/dashboard.categories.tsx:222
+#: src/routes/dashboard.categories.tsx:218
 msgid "No categories yet"
 msgstr "No categories yet"
 
-#: src/components/editor/post-settings.tsx:298
+#: src/components/editor/post-settings.tsx:254
 msgid "No categories yet."
 msgstr "No categories yet."
 
-#: src/routes/dashboard.coupons.tsx:89
+#: src/routes/dashboard.coupons.tsx:92
 msgid "No codes yet."
 msgstr "No codes yet."
 
@@ -5706,19 +5838,19 @@ msgid "No emoji found"
 msgstr "No emoji found"
 
 #: src/routes/dashboard.students.tsx:216
-msgid "no end date"
-msgstr "no end date"
+#~ msgid "no end date"
+#~ msgstr "no end date"
 
 #: src/routes/dashboard.students.tsx:240
 #: src/routes/dashboard.students.tsx:403
-msgid "No end date"
-msgstr "No end date"
+#~ msgid "No end date"
+#~ msgstr "No end date"
 
 #: src/components/flows/flow-settings.tsx:132
 #~ msgid "No field by that name"
 #~ msgstr "No field by that name"
 
-#: src/routes/dashboard.content-types.tsx:95
+#: src/routes/dashboard.content-types.tsx:90
 msgid "no fields of its own"
 msgstr "no fields of its own"
 
@@ -5726,7 +5858,7 @@ msgstr "no fields of its own"
 #~ msgid "No flows yet"
 #~ msgstr "No flows yet"
 
-#: src/routes/dashboard.flows.tsx:181
+#: src/routes/dashboard.flows.tsx:154
 msgid "No flows yet."
 msgstr "No flows yet."
 
@@ -5738,7 +5870,7 @@ msgstr "No flows yet."
 msgid "No forms yet"
 msgstr "No forms yet"
 
-#: src/routes/dashboard.courses.$courseId.tsx:202
+#: src/routes/dashboard.courses.$courseId.tsx:150
 msgid "No lessons in it yet."
 msgstr "No lessons in it yet."
 
@@ -5754,7 +5886,7 @@ msgstr "No lessons in it yet."
 #~ msgid "No lists yet — make one first."
 #~ msgstr "No lists yet — make one first."
 
-#: src/routes/dashboard.mail.tsx:271
+#: src/routes/dashboard.mail.tsx:174
 msgid "No lists yet."
 msgstr "No lists yet."
 
@@ -5770,13 +5902,13 @@ msgstr "No media uploaded yet"
 #~ msgid "No other sites yet"
 #~ msgstr "No other sites yet"
 
-#: src/routes/dashboard.visitors.tsx:114
+#: src/routes/dashboard.visitors.tsx:97
 msgid "No pages counted yet."
 msgstr "No pages counted yet."
 
-#: src/routes/dashboard.categories.tsx:144
-#: src/routes/dashboard.categories.tsx:202
-#: src/routes/dashboard.categories.tsx:260
+#: src/routes/dashboard.categories.tsx:140
+#: src/routes/dashboard.categories.tsx:198
+#: src/routes/dashboard.categories.tsx:256
 msgid "No parent (top level)"
 msgstr "No parent (top level)"
 
@@ -5821,7 +5953,7 @@ msgstr "No results found"
 #~ msgid "No tags yet"
 #~ msgstr "No tags yet"
 
-#: src/routes/dashboard.tags.tsx:158
+#: src/routes/dashboard.tags.tsx:163
 msgid "No tags yet."
 msgstr "No tags yet."
 
@@ -5842,8 +5974,8 @@ msgstr "No tags yet."
 #~ msgstr "no video"
 
 #: src/routes/dashboard.courses.$courseId.tsx:221
-msgid "No video"
-msgstr "No video"
+#~ msgid "No video"
+#~ msgstr "No video"
 
 #: src/learn/app.tsx:310
 #~ msgid "No video service is set up for this site yet."
@@ -5853,7 +5985,7 @@ msgstr "No video"
 #~ msgid "No videos yet"
 #~ msgstr "No videos yet"
 
-#: src/routes/dashboard.videos.tsx:151
+#: src/routes/dashboard.videos.tsx:115
 msgid "No videos yet."
 msgstr "No videos yet."
 
@@ -5885,7 +6017,7 @@ msgstr "No videos yet."
 #~ msgid "nobody invited yet"
 #~ msgstr "nobody invited yet"
 
-#: src/routes/dashboard.mail.tsx:326
+#: src/routes/dashboard.mail.tsx:229
 msgid "Nobody on it yet."
 msgstr "Nobody on it yet."
 
@@ -5893,7 +6025,7 @@ msgstr "Nobody on it yet."
 #~ msgid "Nobody owes anything."
 #~ msgstr "Nobody owes anything."
 
-#: src/routes/dashboard.students.tsx:157
+#: src/routes/dashboard.students.tsx:92
 msgid "Nobody yet"
 msgstr "Nobody yet"
 
@@ -5909,8 +6041,8 @@ msgstr "Nobody yet"
 #~ msgid "None yet. A site with no address is a site nobody can reach."
 #~ msgstr "None yet. A site with no address is a site nobody can reach."
 
-#: src/routes/dashboard.plugins.tsx:180
-#: src/routes/dashboard.settings.tsx:557
+#: src/routes/dashboard.plugins.tsx:123
+#: src/routes/dashboard.settings.tsx:399
 msgid "Not answering"
 msgstr "Not answering"
 
@@ -5930,11 +6062,11 @@ msgstr "Not chosen"
 #~ msgid "Not doing it"
 #~ msgstr "Not doing it"
 
-#: src/routes/dashboard.settings.tsx:548
+#: src/routes/dashboard.settings.tsx:390
 msgid "Not everything"
 msgstr "Not everything"
 
-#: src/routes/dashboard.products.tsx:185
+#: src/routes/dashboard.products.tsx:186
 msgid "Not for sale"
 msgstr "Not for sale"
 
@@ -5956,8 +6088,8 @@ msgstr "Not for sale"
 
 #: src/routes/dashboard.mail_.campaigns.$campaignId.tsx:81
 #: src/routes/dashboard.mail.tsx:172
-msgid "Not sent"
-msgstr "Not sent"
+#~ msgid "Not sent"
+#~ msgstr "Not sent"
 
 #: src/routes/dashboard.mail_.campaigns.$campaignId.tsx:165
 #~ msgid "Not sent yet"
@@ -5967,7 +6099,7 @@ msgstr "Not sent"
 #~ msgid "Not set"
 #~ msgstr "Not set"
 
-#: src/routes/dashboard.plugins.tsx:176
+#: src/routes/dashboard.plugins.tsx:119
 msgid "Not set up"
 msgstr "Not set up"
 
@@ -5976,8 +6108,8 @@ msgstr "Not set up"
 #~ msgstr "Not set yet"
 
 #: src/routes/dashboard.students.tsx:132
-msgid "Not started yet"
-msgstr "Not started yet"
+#~ msgid "Not started yet"
+#~ msgstr "Not started yet"
 
 #: src/routes/dashboard.platform-mail.tsx:207
 #~ msgid "Not using the service"
@@ -5988,12 +6120,12 @@ msgstr "Not started yet"
 #~ msgstr "Note"
 
 #: src/routes/dashboard.boards_.$boardId.tsx:235
-msgid "Notes"
-msgstr "Notes"
+#~ msgid "Notes"
+#~ msgstr "Notes"
 
 #: src/routes/dashboard.coupons.tsx:240
-msgid "nothing"
-msgstr "nothing"
+#~ msgid "nothing"
+#~ msgstr "nothing"
 
 #: src/routes/dashboard.boards.tsx:195
 #~ msgid "Nothing about those is built in. The software knows one thing about a stage: whether landing on it means the matter is finished. Everything else is yours."
@@ -6011,7 +6143,7 @@ msgstr "nothing"
 #~ msgid "Nothing by that name."
 #~ msgstr "Nothing by that name."
 
-#: src/routes/dashboard.visitors.tsx:90
+#: src/routes/dashboard.visitors.tsx:82
 msgid "Nothing counted yet. Numbers appear as soon as the published site has a visitor."
 msgstr "Nothing counted yet. Numbers appear as soon as the published site has a visitor."
 
@@ -6019,11 +6151,15 @@ msgstr "Nothing counted yet. Numbers appear as soon as the published site has a 
 msgid "Nothing deleted here goes straight away. It waits thirty days, whether a person deleted it or an assistant did, and until then it can be put back exactly as it was."
 msgstr "Nothing deleted here goes straight away. It waits thirty days, whether a person deleted it or an assistant did, and until then it can be put back exactly as it was."
 
+#: src/routes/forgotten.tsx:124
+msgid "Nothing else about your account changed. You can sign in the way you always have."
+msgstr "Nothing else about your account changed. You can sign in the way you always have."
+
 #: src/components/assistant-connection.tsx:170
 #~ msgid "Nothing else. Accounts, credentials, backups, how the site is built and sending a mailing are deliberately not here — nor is deleting a post or a file. Those stay things a person does in this panel."
 #~ msgstr "Nothing else. Accounts, credentials, backups, how the site is built and sending a mailing are deliberately not here — nor is deleting a post or a file. Those stay things a person does in this panel."
 
-#: src/routes/dashboard.products.tsx:142
+#: src/routes/dashboard.products.tsx:143
 msgid "Nothing for sale yet."
 msgstr "Nothing for sale yet."
 
@@ -6045,7 +6181,7 @@ msgstr "Nothing has been deleted"
 #~ msgid "Nothing has been given to anybody. You can close this page."
 #~ msgstr "Nothing has been given to anybody. You can close this page."
 
-#: src/routes/dashboard.api.tsx:156
+#: src/routes/dashboard.api.tsx:134
 msgid "Nothing has been handed over."
 msgstr "Nothing has been handed over."
 
@@ -6053,9 +6189,7 @@ msgstr "Nothing has been handed over."
 #~ msgid "Nothing has been moved yet."
 #~ msgstr "Nothing has been moved yet."
 
-#: src/routes/dashboard.design.tsx:171
-#: src/routes/dashboard.publish.tsx:94
-#: src/routes/dashboard.usage.tsx:190
+#: src/routes/dashboard.publish.tsx:59
 msgid "Nothing has been published yet."
 msgstr "Nothing has been published yet."
 
@@ -6063,7 +6197,7 @@ msgstr "Nothing has been published yet."
 #~ msgid "Nothing has been written here yet."
 #~ msgstr "Nothing has been written here yet."
 
-#: src/routes/dashboard.forms_.$formId.tsx:184
+#: src/routes/dashboard.forms_.$formId.tsx:164
 msgid "Nothing has come in yet"
 msgstr "Nothing has come in yet"
 
@@ -6112,8 +6246,8 @@ msgstr "Nothing in it yet."
 #~ msgstr "Nothing is waiting."
 
 #: src/routes/dashboard.design.tsx:101
-msgid "Nothing is waiting. What is published and what is being worked on are the same."
-msgstr "Nothing is waiting. What is published and what is being worked on are the same."
+#~ msgid "Nothing is waiting. What is published and what is being worked on are the same."
+#~ msgstr "Nothing is waiting. What is published and what is being worked on are the same."
 
 #: src/routes/dashboard.boards_.$boardId.tsx:194
 #~ msgid "Nothing matches that."
@@ -6123,7 +6257,7 @@ msgstr "Nothing is waiting. What is published and what is being worked on are th
 #~ msgid "Nothing measured yet. Months are measured and billed automatically; your margin from Payments goes on top."
 #~ msgstr "Nothing measured yet. Months are measured and billed automatically; your margin from Payments goes on top."
 
-#: src/routes/dashboard.performance.tsx:92
+#: src/routes/dashboard.performance.tsx:57
 msgid "Nothing measured yet. Numbers appear once real visitors reach the published site."
 msgstr "Nothing measured yet. Numbers appear once real visitors reach the published site."
 
@@ -6164,8 +6298,8 @@ msgstr "Nothing measured yet. Numbers appear once real visitors reach the publis
 #~ msgstr "Nothing says what one of these holds yet."
 
 #: src/routes/dashboard.index.tsx:176
-msgid "nothing sent in {days} days"
-msgstr "nothing sent in {days} days"
+#~ msgid "nothing sent in {days} days"
+#~ msgstr "nothing sent in {days} days"
 
 #: src/components/ses-analytics.tsx:150
 #~ msgid "Nothing sent in the last thirty days"
@@ -6179,7 +6313,7 @@ msgstr "nothing sent in {days} days"
 #~ msgid "Nothing sent yet"
 #~ msgstr "Nothing sent yet"
 
-#: src/routes/dashboard.orders.tsx:141
+#: src/routes/dashboard.orders.tsx:150
 msgid "Nothing sold yet."
 msgstr "Nothing sold yet."
 
@@ -6187,8 +6321,7 @@ msgstr "Nothing sold yet."
 #~ msgid "Nothing to show"
 #~ msgstr "Nothing to show"
 
-#: src/routes/dashboard.media.tsx:160
-#: src/routes/dashboard.usage.tsx:143
+#: src/routes/dashboard.media.tsx:145
 msgid "Nothing uploaded yet."
 msgstr "Nothing uploaded yet."
 
@@ -6219,10 +6352,10 @@ msgstr "Nothing was declared called {0}, so nothing can be asked about it."
 #~ msgstr "Nothing written yet"
 
 #: src/routes/dashboard.mail.tsx:212
-msgid "Nothing written yet."
-msgstr "Nothing written yet."
+#~ msgid "Nothing written yet."
+#~ msgstr "Nothing written yet."
 
-#: src/routes/dashboard.design.tsx:292
+#: src/routes/dashboard.design.tsx:223
 msgid "Nothing written yet. A site with no files of its own is served whatever its build makes from nothing."
 msgstr "Nothing written yet. A site with no files of its own is served whatever its build makes from nothing."
 
@@ -6265,20 +6398,20 @@ msgstr "Numbered list"
 
 #. placeholder {0}: mail.sent
 #: src/routes/dashboard.index.tsx:185
-msgid "of {0} sent"
-msgstr "of {0} sent"
+#~ msgid "of {0} sent"
+#~ msgstr "of {0} sent"
 
 #. placeholder {0}: mail.sent + mail.failed
 #: src/routes/dashboard.index.tsx:175
-msgid "of {0} tried"
-msgstr "of {0} tried"
+#~ msgid "of {0} tried"
+#~ msgstr "of {0} tried"
 
 #: src/components/dashboard/server-home.tsx:147
 #~ msgid "off"
 #~ msgstr "off"
 
-#: src/routes/dashboard.plugins.tsx:173
-#: src/routes/dashboard.settings.tsx:195
+#: src/routes/dashboard.plugins.tsx:116
+#: src/routes/dashboard.settings.tsx:181
 msgid "Off"
 msgstr "Off"
 
@@ -6314,24 +6447,24 @@ msgstr "Older"
 
 #. placeholder {0}: Math.round(waitSeconds / 86_400)
 #: src/routes/dashboard.usage.tsx:84
-msgid "oldest: {0}d"
-msgstr "oldest: {0}d"
+#~ msgid "oldest: {0}d"
+#~ msgstr "oldest: {0}d"
 
 #. placeholder {0}: Math.round(waitSeconds / 3600)
 #: src/routes/dashboard.usage.tsx:82
-msgid "oldest: {0}h"
-msgstr "oldest: {0}h"
+#~ msgid "oldest: {0}h"
+#~ msgstr "oldest: {0}h"
 
 #. placeholder {0}: Math.round(waitSeconds / 60)
 #: src/routes/dashboard.usage.tsx:80
-msgid "oldest: {0}m"
-msgstr "oldest: {0}m"
+#~ msgid "oldest: {0}m"
+#~ msgstr "oldest: {0}m"
 
 #: src/routes/dashboard.usage.tsx:78
-msgid "oldest: just now"
-msgstr "oldest: just now"
+#~ msgid "oldest: just now"
+#~ msgstr "oldest: just now"
 
-#: src/routes/dashboard.settings.tsx:195
+#: src/routes/dashboard.settings.tsx:181
 msgid "On"
 msgstr "On"
 
@@ -6367,20 +6500,20 @@ msgstr "On"
 
 #: src/routes/dashboard.mail_.campaigns.$campaignId.tsx:63
 #: src/routes/dashboard.mail.tsx:164
-msgid "On its way. Sending happens in the background."
-msgstr "On its way. Sending happens in the background."
+#~ msgid "On its way. Sending happens in the background."
+#~ msgstr "On its way. Sending happens in the background."
 
 #: src/routes/dashboard.themes.tsx:930
 #~ msgid "On offer"
 #~ msgstr "On offer"
 
 #: src/routes/dashboard.index.tsx:132
-msgid "on the list now"
-msgstr "on the list now"
+#~ msgid "on the list now"
+#~ msgstr "on the list now"
 
 #: src/routes/dashboard.index.tsx:130
-msgid "On the mailing list"
-msgstr "On the mailing list"
+#~ msgid "On the mailing list"
+#~ msgstr "On the mailing list"
 
 #: src/components/plugin-forms.tsx:196
 #: src/components/plugin-forms.tsx:201
@@ -6397,7 +6530,7 @@ msgstr "On the mailing list"
 msgid "on your own address"
 msgstr "on your own address"
 
-#: src/routes/dashboard.settings.tsx:166
+#: src/routes/dashboard.settings.tsx:152
 msgid "On. You will be asked for the digits when you sign in."
 msgstr "On. You will be asked for the digits when you sign in."
 
@@ -6435,8 +6568,8 @@ msgstr "One fewer"
 msgid "One more"
 msgstr "One more"
 
-#: src/components/dashboard/content-type-editor.tsx:77
-#: src/routes/dashboard.forms.tsx:362
+#: src/components/dashboard/content-type-editor.tsx:59
+#: src/routes/dashboard.forms.tsx:357
 msgid "One of a few"
 msgstr "One of a few"
 
@@ -6444,18 +6577,18 @@ msgstr "One of a few"
 #~ msgid "One of a list"
 #~ msgstr "One of a list"
 
-#: src/routes/dashboard.flows.tsx:152
+#: src/routes/dashboard.flows.tsx:125
 msgid "One of the steps is not written as JSON."
 msgstr "One of the steps is not written as JSON."
 
 #: src/components/dashboard/content-type-editor.tsx:127
-msgid "One of them is called"
-msgstr "One of them is called"
+#~ msgid "One of them is called"
+#~ msgstr "One of them is called"
 
 #. placeholder {0}: language.code
 #: src/components/dashboard/content-type-editor.tsx:166
-msgid "One of them, in {0}"
-msgstr "One of them, in {0}"
+#~ msgid "One of them, in {0}"
+#~ msgstr "One of them, in {0}"
 
 #: src/components/dashboard/content-type-editor.tsx:173
 #: src/components/dashboard/content-type-editor.tsx:181
@@ -6496,8 +6629,8 @@ msgstr "One of them, in {0}"
 #~ msgstr "one step"
 
 #: src/routes/dashboard.languages.tsx:149
-msgid "One thing is written in it"
-msgstr "One thing is written in it"
+#~ msgid "One thing is written in it"
+#~ msgstr "One thing is written in it"
 
 #. placeholder {0}: line.stock
 #: src/shop/app.tsx:228
@@ -6546,7 +6679,7 @@ msgstr "One thing is written in it"
 #~ msgstr "Only you will know it. Ten characters or more — a few words you will remember beats something short and clever."
 
 #: src/components/editor/bubble-menus.tsx:290
-#: src/routes/dashboard.courses.$courseId.tsx:152
+#: src/routes/dashboard.courses.$courseId.tsx:116
 msgid "Open"
 msgstr "Open"
 
@@ -6566,7 +6699,7 @@ msgstr "Open"
 msgid "Open in new tab"
 msgstr "Open in new tab"
 
-#: src/routes/dashboard.courses.$courseId.tsx:162
+#: src/routes/dashboard.courses.$courseId.tsx:126
 msgid "Open it"
 msgstr "Open it"
 
@@ -6603,6 +6736,10 @@ msgstr "Open it"
 #: src/components/status-link.tsx:34
 #~ msgid "Opens the status page in a new tab"
 #~ msgstr "Opens the status page in a new tab"
+
+#: src/components/dashboard/dashboard-shell.tsx:104
+msgid "Operations"
+msgstr "Operations"
 
 #: src/components/plugin-forms.tsx:458
 #: src/components/plugin-forms.tsx:469
@@ -6643,11 +6780,19 @@ msgstr "Order #{0}"
 #~ msgid "Order received"
 #~ msgstr "Order received"
 
-#: src/components/dashboard/dashboard-shell.tsx:195
-#: src/routes/dashboard.orders.tsx:128
-#: src/routes/dashboard.usage.tsx:92
+#: src/components/dashboard/dashboard-shell.tsx:97
+#: src/routes/dashboard.index.tsx:106
+#: src/routes/dashboard.orders.tsx:137
 msgid "Orders"
 msgstr "Orders"
+
+#: src/routes/dashboard.index.tsx:108
+msgid "orders placed"
+msgstr "orders placed"
+
+#: src/components/dashboard/dashboard-shell.tsx:88
+msgid "Organize"
+msgstr "Organize"
 
 #: src/components/plugin-forms.tsx:394
 #~ msgid "Other addresses you send as"
@@ -6658,8 +6803,8 @@ msgstr "Orders"
 #~ msgstr "Other sites this server hosts. Each gets its own database schema, accounts and uploads."
 
 #: src/routes/dashboard.settings.tsx:342
-msgid "Other ways in"
-msgstr "Other ways in"
+#~ msgid "Other ways in"
+#~ msgstr "Other ways in"
 
 #: src/components/publish-panel.tsx:218
 #~ msgid "Output folder"
@@ -6667,17 +6812,21 @@ msgstr "Other ways in"
 
 #. placeholder {0}: answer.days
 #: src/routes/dashboard.performance.tsx:100
-msgid "over {0} days"
-msgstr "over {0} days"
+#~ msgid "over {0} days"
+#~ msgstr "over {0} days"
 
-#: src/components/dashboard/dashboard-shell.tsx:124
-#: src/routes/dashboard.index.tsx:89
+#: src/components/dashboard/dashboard-shell.tsx:80
+#: src/routes/dashboard.index.tsx:66
 msgid "Overview"
 msgstr "Overview"
 
 #: src/routes/dashboard.billing.tsx:138
 #~ msgid "Owed now"
 #~ msgstr "Owed now"
+
+#: src/routes/dashboard.roles.tsx:300
+msgid "Owner"
+msgstr "Owner"
 
 #: src/components/ses-account.tsx:632
 #~ msgid "Ownership and signing"
@@ -6691,27 +6840,31 @@ msgstr "Overview"
 #~ msgid "page"
 #~ msgstr "page"
 
-#: src/lib/use-content-types.ts:74
-#: src/routes/dashboard.performance.tsx:135
+#: src/lib/use-content-types.ts:72
+#: src/routes/dashboard.performance.tsx:79
 msgid "Page"
 msgstr "Page"
 
-#: src/routes/dashboard.visitors.tsx:85
+#: src/routes/dashboard.visitors.tsx:76
 msgid "Page views"
 msgstr "Page views"
 
-#: src/lib/use-content-types.ts:74
-#: src/routes/dashboard.visitors.tsx:108
+#: src/lib/use-content-types.ts:72
+#: src/routes/dashboard.visitors.tsx:96
 msgid "Pages"
 msgstr "Pages"
 
-#: src/routes/dashboard.performance.tsx:104
+#: src/routes/dashboard.performance.tsx:68
 msgid "Pages measured"
 msgstr "Pages measured"
 
+#: src/routes/dashboard.visitors.tsx:77
+msgid "Pages read"
+msgstr "Pages read"
+
 #: src/routes/dashboard.performance.tsx:130
-msgid "Pages, worst first"
-msgstr "Pages, worst first"
+#~ msgid "Pages, worst first"
+#~ msgstr "Pages, worst first"
 
 #: src/routes/dashboard.orders.tsx:47
 #: src/shop/app.tsx:272
@@ -6725,9 +6878,9 @@ msgid "Paragraph"
 msgstr "Paragraph"
 
 #: src/learn/app.tsx:170
-#: src/routes/forgotten.tsx:111
-#: src/routes/login.tsx:144
-#: src/routes/setup.tsx:131
+#: src/routes/forgotten.tsx:161
+#: src/routes/login.tsx:124
+#: src/routes/setup.tsx:149
 msgid "Password"
 msgstr "Password"
 
@@ -6735,7 +6888,7 @@ msgstr "Password"
 #~ msgid "Password changed"
 #~ msgstr "Password changed"
 
-#: src/routes/dashboard.users.tsx:160
+#: src/routes/dashboard.users.tsx:158
 msgid "Password changed — sign in again"
 msgstr "Password changed — sign in again"
 
@@ -6803,17 +6956,17 @@ msgstr "Paste the video link."
 #~ msgid "Payment did not work"
 #~ msgstr "Payment did not work"
 
-#: src/routes/dashboard.plugins.tsx:67
+#: src/routes/dashboard.plugins.tsx:60
 msgid "Payments"
 msgstr "Payments"
 
-#: src/components/dashboard/dashboard-shell.tsx:211
-#: src/routes/dashboard.roles.tsx:178
-#: src/routes/dashboard.users.tsx:172
+#: src/components/dashboard/dashboard-shell.tsx:112
+#: src/routes/dashboard.roles.tsx:166
+#: src/routes/dashboard.users.tsx:170
 msgid "People"
 msgstr "People"
 
-#: src/routes/dashboard.mail.tsx:353
+#: src/routes/dashboard.mail.tsx:253
 msgid "People join it from your own pages, and leave it from any letter this site sends."
 msgstr "People join it from your own pages, and leave it from any letter this site sends."
 
@@ -6829,12 +6982,12 @@ msgstr "People join it from your own pages, and leave it from any letter this si
 #~ msgid "Per GB stored, monthly"
 #~ msgstr "Per GB stored, monthly"
 
-#: src/components/dashboard/dashboard-shell.tsx:128
-#: src/routes/dashboard.performance.tsx:71
+#: src/components/dashboard/dashboard-shell.tsx:83
+#: src/routes/dashboard.performance.tsx:52
 msgid "Performance"
 msgstr "Performance"
 
-#: src/components/editor/post-settings.tsx:266
+#: src/components/editor/post-settings.tsx:222
 msgid "Permalink"
 msgstr "Permalink"
 
@@ -6904,8 +7057,8 @@ msgstr "Plain text block"
 #~ msgid "Play"
 #~ msgstr "Play"
 
-#: src/components/dashboard/dashboard-shell.tsx:210
-#: src/routes/dashboard.plugins.tsx:145
+#: src/components/dashboard/dashboard-shell.tsx:111
+#: src/routes/dashboard.plugins.tsx:88
 msgid "Plugins"
 msgstr "Plugins"
 
@@ -6919,39 +7072,39 @@ msgstr "Plugins"
 #~ msgstr "Point the address at this server first — the site answers on whichever address you give it here."
 
 #: src/components/dashboard/address-health.tsx:75
-msgid "Points here, not answering"
-msgstr "Points here, not answering"
+#~ msgid "Points here, not answering"
+#~ msgstr "Points here, not answering"
 
 #: src/components/setup/setup-wizard.tsx:439
 #~ msgid "Port"
 #~ msgstr "Port"
 
-#: src/components/dashboard/dashboard-shell.tsx:106
-#: src/components/editor/post-settings.tsx:521
+#: src/components/dashboard/dashboard-shell.tsx:75
+#: src/components/editor/post-settings.tsx:477
 #: src/routes/dashboard.trash.tsx:68
 msgid "post"
 msgstr "post"
 
-#: src/lib/use-content-types.ts:73
+#: src/lib/use-content-types.ts:71
 msgid "Post"
 msgstr "Post"
 
-#: src/routes/dashboard.forms_.$formId.tsx:175
+#: src/routes/dashboard.forms_.$formId.tsx:155
 msgid "Post JSON to this address from your own pages or software. No account is needed, and only the fields above are accepted."
 msgstr "Post JSON to this address from your own pages or software. No account is needed, and only the fields above are accepted."
 
-#: src/components/editor/mavi-editor.tsx:424
+#: src/components/editor/mavi-editor.tsx:372
 msgid "Post published"
 msgstr "Post published"
 
-#: src/components/editor/mavi-editor.tsx:717
-#: src/components/editor/mavi-editor.tsx:799
-#: src/components/editor/mavi-editor.tsx:833
+#: src/components/editor/mavi-editor.tsx:665
+#: src/components/editor/mavi-editor.tsx:747
+#: src/components/editor/mavi-editor.tsx:781
 msgid "Post settings"
 msgstr "Post settings"
 
-#: src/components/editor/mavi-editor.tsx:784
-#: src/components/editor/post-settings.tsx:524
+#: src/components/editor/mavi-editor.tsx:732
+#: src/components/editor/post-settings.tsx:480
 msgid "Post title"
 msgstr "Post title"
 
@@ -6967,8 +7120,8 @@ msgstr "Post title"
 #~ msgid "Post to Slack"
 #~ msgstr "Post to Slack"
 
-#: src/components/editor/post-settings.tsx:268
-#: src/components/editor/post-settings.tsx:275
+#: src/components/editor/post-settings.tsx:224
+#: src/components/editor/post-settings.tsx:231
 msgid "post-url"
 msgstr "post-url"
 
@@ -6980,9 +7133,8 @@ msgstr "post-url"
 #~ msgid "Postcode"
 #~ msgstr "Postcode"
 
-#: src/components/dashboard/dashboard-shell.tsx:131
-#: src/lib/use-content-types.ts:73
-#: src/routes/dashboard.usage.tsx:89
+#: src/components/dashboard/dashboard-shell.tsx:85
+#: src/lib/use-content-types.ts:71
 msgid "Posts"
 msgstr "Posts"
 
@@ -6990,7 +7142,7 @@ msgstr "Posts"
 #~ msgid "Posts, newest first, in pages."
 #~ msgstr "Posts, newest first, in pages."
 
-#: src/components/editor/mavi-editor.tsx:537
+#: src/components/editor/mavi-editor.tsx:485
 msgid "Preview"
 msgstr "Preview"
 
@@ -7019,9 +7171,8 @@ msgstr "Previous"
 msgid "product"
 msgstr "product"
 
-#: src/components/dashboard/dashboard-shell.tsx:194
-#: src/routes/dashboard.products.tsx:125
-#: src/routes/dashboard.usage.tsx:91
+#: src/components/dashboard/dashboard-shell.tsx:96
+#: src/routes/dashboard.products.tsx:126
 msgid "Products"
 msgstr "Products"
 
@@ -7029,11 +7180,11 @@ msgstr "Products"
 #~ msgid "Public base URL"
 #~ msgstr "Public base URL"
 
-#: src/components/dashboard/dashboard-shell.tsx:218
-#: src/components/editor/mavi-editor.tsx:736
-#: src/routes/dashboard.design.tsx:130
-#: src/routes/dashboard.publish.tsx:80
-#: src/routes/dashboard.roles.tsx:177
+#: src/components/dashboard/dashboard-shell.tsx:118
+#: src/components/editor/mavi-editor.tsx:684
+#: src/routes/dashboard.design.tsx:97
+#: src/routes/dashboard.publish.tsx:45
+#: src/routes/dashboard.roles.tsx:165
 msgid "Publish"
 msgstr "Publish"
 
@@ -7042,7 +7193,7 @@ msgstr "Publish"
 #~ msgid "Publish a demo of {0}"
 #~ msgstr "Publish a demo of {0}"
 
-#: src/components/editor/post-settings.tsx:249
+#: src/components/editor/post-settings.tsx:205
 msgid "Publish date"
 msgstr "Publish date"
 
@@ -7050,7 +7201,7 @@ msgstr "Publish date"
 #~ msgid "Publish demo"
 #~ msgstr "Publish demo"
 
-#: src/components/dashboard/content-list.tsx:189
+#: src/components/dashboard/content-list.tsx:182
 msgid "Publish them"
 msgstr "Publish them"
 
@@ -7070,8 +7221,8 @@ msgstr "Published"
 #. placeholder {1}: design.live.branch
 #. placeholder {2}: design.live.seconds ?? 0
 #: src/routes/dashboard.design.tsx:167
-msgid "Published {0}, from {1}, in {2} seconds."
-msgstr "Published {0}, from {1}, in {2} seconds."
+#~ msgid "Published {0}, from {1}, in {2} seconds."
+#~ msgstr "Published {0}, from {1}, in {2} seconds."
 
 #: src/routes/dashboard.publish.tsx:94
 #~ msgid "Publishing — this takes a minute or two"
@@ -7081,7 +7232,7 @@ msgstr "Published {0}, from {1}, in {2} seconds."
 #~ msgid "Publishing these is what proves the domain is yours, and what lets Amazon sign as you. Nothing sends until they are up."
 #~ msgstr "Publishing these is what proves the domain is yours, and what lets Amazon sign as you. Nothing sends until they are up."
 
-#: src/routes/dashboard.design.tsx:72
+#: src/routes/dashboard.design.tsx:53
 msgid "Publishing."
 msgstr "Publishing."
 
@@ -7107,7 +7258,7 @@ msgstr "Put a token where the … is. It is shown once, when you make it."
 #~ msgstr "Put answers on a board"
 
 #: src/routes/dashboard.letters.tsx:165
-#: src/routes/dashboard.trash.tsx:177
+#: src/routes/dashboard.trash.tsx:174
 msgid "Put it back"
 msgstr "Put it back"
 
@@ -7116,12 +7267,16 @@ msgstr "Put it back"
 #~ msgstr "Put this in a .env beside the project. It points at the live site, so what a designer sees on their machine is what is actually written here."
 
 #: src/routes/dashboard.usage.tsx:225
-msgid "Queue"
-msgstr "Queue"
+#~ msgid "Queue"
+#~ msgstr "Queue"
+
+#: src/routes/dashboard.usage.tsx:91
+msgid "Queue issues"
+msgstr "Queue issues"
 
 #: src/routes/dashboard.usage.tsx:122
-msgid "Queue waiting"
-msgstr "Queue waiting"
+#~ msgid "Queue waiting"
+#~ msgstr "Queue waiting"
 
 #: src/components/editor/dialogs.tsx:530
 #: src/components/editor/extensions/slash-command.tsx:127
@@ -7139,11 +7294,11 @@ msgstr "Raise text above the line"
 #~ msgid "Ran out {0}"
 #~ msgstr "Ran out {0}"
 
-#: src/routes/dashboard.roles.tsx:317
+#: src/routes/dashboard.roles.tsx:305
 msgid "Reaches nothing"
 msgstr "Reaches nothing"
 
-#: src/routes/dashboard.roles.tsx:184
+#: src/routes/dashboard.roles.tsx:172
 msgid "Read"
 msgstr "Read"
 
@@ -7153,7 +7308,7 @@ msgstr "Read"
 #~ msgid "Read in: {0} things written, {1} filed under."
 #~ msgstr "Read in: {0} things written, {1} filed under."
 
-#: src/routes/dashboard.settings.tsx:470
+#: src/routes/dashboard.settings.tsx:312
 msgid "Read in."
 msgstr "Read in."
 
@@ -7161,7 +7316,7 @@ msgstr "Read in."
 #~ msgid "Read it"
 #~ msgstr "Read it"
 
-#: src/routes/dashboard.settings.tsx:502
+#: src/routes/dashboard.settings.tsx:344
 msgid "Read one in"
 msgstr "Read one in"
 
@@ -7169,7 +7324,7 @@ msgstr "Read one in"
 #~ msgid "Read this before offering the theme. A package that quietly left half a site behind looks exactly like one that did not."
 #~ msgstr "Read this before offering the theme. A package that quietly left half a site behind looks exactly like one that did not."
 
-#: src/routes/dashboard.api.tsx:114
+#: src/routes/dashboard.api.tsx:92
 msgid "Read without an account: what is published, and nothing else."
 msgstr "Read without an account: what is published, and nothing else."
 
@@ -7177,9 +7332,17 @@ msgstr "Read without an account: what is published, and nothing else."
 #~ msgid "Read-only access to the contents of the repositories you build, and nothing else. It is stored encrypted and never shown again."
 #~ msgstr "Read-only access to the contents of the repositories you build, and nothing else. It is stored encrypted and never shown again."
 
+#: src/routes/dashboard.usage.tsx:86
+msgid "Readers"
+msgstr "Readers"
+
 #: src/components/editor/post-settings.tsx:454
 #~ msgid "Readers can leave comments"
 #~ msgstr "Readers can leave comments"
+
+#: src/routes/dashboard.index.tsx:87
+msgid "readers reached"
+msgstr "readers reached"
 
 #: src/routes/dashboard.api.tsx:354
 #~ msgid "Reading"
@@ -7194,28 +7357,32 @@ msgstr "Read without an account: what is published, and nothing else."
 #~ msgstr "Reading the file…"
 
 #: src/routes/dashboard.videos.tsx:113
-msgid "Ready"
-msgstr "Ready"
+#~ msgid "Ready"
+#~ msgstr "Ready"
 
 #: src/routes/dashboard.plugins_.backup.tsx:706
 #~ msgid "Ready to be fetched"
 #~ msgstr "Ready to be fetched"
+
+#: src/routes/dashboard.publish.tsx:37
+msgid "Ready to preview"
+msgstr "Ready to preview"
 
 #: src/routes/dashboard.plugins_.payment.tsx:181
 #~ msgid "Real money"
 #~ msgstr "Real money"
 
 #: src/routes/dashboard.usage.tsx:187
-msgid "Recent builds"
-msgstr "Recent builds"
+#~ msgid "Recent builds"
+#~ msgstr "Recent builds"
 
 #: src/components/pricing-plans.tsx:79
 #~ msgid "Recommended"
 #~ msgstr "Recommended"
 
-#: src/components/dashboard/dashboard-shell.tsx:213
+#: src/components/dashboard/dashboard-shell.tsx:106
 #: src/routes/dashboard.audit.tsx:72
-#: src/routes/dashboard.roles.tsx:180
+#: src/routes/dashboard.roles.tsx:168
 msgid "Record"
 msgstr "Record"
 
@@ -7229,7 +7396,7 @@ msgstr "Red"
 msgid "Redo"
 msgstr "Redo"
 
-#: src/routes/dashboard.forms_.$formId.tsx:160
+#: src/routes/dashboard.forms_.$formId.tsx:147
 msgid "Refresh"
 msgstr "Refresh"
 
@@ -7237,7 +7404,7 @@ msgstr "Refresh"
 #~ msgid "Refund"
 #~ msgstr "Refund"
 
-#: src/routes/dashboard.orders.tsx:191
+#: src/routes/dashboard.orders.tsx:200
 msgid "Refund it"
 msgstr "Refund it"
 
@@ -7246,7 +7413,7 @@ msgstr "Refund it"
 msgid "Refunded"
 msgstr "Refunded"
 
-#: src/routes/dashboard.orders.tsx:80
+#: src/routes/dashboard.orders.tsx:86
 msgid "Refunded. What the provider does with it is theirs."
 msgstr "Refunded. What the provider does with it is theirs."
 
@@ -7280,29 +7447,28 @@ msgstr "Regular expression"
 #~ msgid "Rehearsed — nothing was sent"
 #~ msgstr "Rehearsed — nothing was sent"
 
-#: src/components/dashboard/content-type-editor.tsx:298
+#: src/components/dashboard/content-type-editor.tsx:209
 #: src/components/editor/bubble-menus.tsx:201
 #: src/components/editor/bubble-menus.tsx:282
-#: src/routes/dashboard.boards_.$boardId.tsx:213
+#: src/routes/dashboard.boards_.$boardId.tsx:156
 #: src/routes/dashboard.boards.tsx:141
 #: src/routes/dashboard.boards.tsx:188
 #: src/routes/dashboard.boards.tsx:234
-#: src/routes/dashboard.content-types.tsx:115
-#: src/routes/dashboard.coupons.tsx:129
-#: src/routes/dashboard.courses.$courseId.tsx:192
-#: src/routes/dashboard.courses.$courseId.tsx:239
-#: src/routes/dashboard.flows.tsx:207
-#: src/routes/dashboard.flows.tsx:408
-#: src/routes/dashboard.flows.tsx:525
-#: src/routes/dashboard.forms_.$formId.tsx:232
-#: src/routes/dashboard.forms.tsx:218
-#: src/routes/dashboard.forms.tsx:332
-#: src/routes/dashboard.forms.tsx:464
-#: src/routes/dashboard.languages.tsx:191
-#: src/routes/dashboard.tags.tsx:240
-#: src/routes/dashboard.users.tsx:254
-#: src/routes/dashboard.users.tsx:385
-#: src/routes/dashboard.videos.tsx:176
+#: src/routes/dashboard.content-types.tsx:106
+#: src/routes/dashboard.coupons.tsx:121
+#: src/routes/dashboard.courses.$courseId.tsx:140
+#: src/routes/dashboard.courses.$courseId.tsx:165
+#: src/routes/dashboard.flows.tsx:180
+#: src/routes/dashboard.flows.tsx:299
+#: src/routes/dashboard.forms_.$formId.tsx:212
+#: src/routes/dashboard.forms.tsx:213
+#: src/routes/dashboard.forms.tsx:327
+#: src/routes/dashboard.forms.tsx:459
+#: src/routes/dashboard.languages.tsx:185
+#: src/routes/dashboard.tags.tsx:245
+#: src/routes/dashboard.users.tsx:247
+#: src/routes/dashboard.users.tsx:378
+#: src/routes/dashboard.videos.tsx:133
 msgid "Remove"
 msgstr "Remove"
 
@@ -7313,7 +7479,7 @@ msgstr "Remove"
 #~ msgid "Remove {0}?"
 #~ msgstr "Remove {0}?"
 
-#: src/components/editor/post-settings.tsx:370
+#: src/components/editor/post-settings.tsx:326
 msgid "Remove {tag} tag"
 msgstr "Remove {tag} tag"
 
@@ -7329,11 +7495,11 @@ msgstr "Remove link"
 #~ msgid "Remove stage"
 #~ msgstr "Remove stage"
 
-#: src/components/report-a-problem.tsx:255
+#: src/components/report-a-problem.tsx:205
 msgid "Remove the picture"
 msgstr "Remove the picture"
 
-#: src/routes/dashboard.users.tsx:377
+#: src/routes/dashboard.users.tsx:370
 msgid "Remove this account?"
 msgstr "Remove this account?"
 
@@ -7341,11 +7507,11 @@ msgstr "Remove this account?"
 msgid "Remove this board?"
 msgstr "Remove this board?"
 
-#: src/routes/dashboard.forms.tsx:324
+#: src/routes/dashboard.forms.tsx:319
 msgid "Remove this form?"
 msgstr "Remove this form?"
 
-#: src/routes/dashboard.languages.tsx:183
+#: src/routes/dashboard.languages.tsx:177
 msgid "Remove this language?"
 msgstr "Remove this language?"
 
@@ -7357,7 +7523,7 @@ msgstr "Remove this language?"
 #~ msgid "Remove this site?"
 #~ msgstr "Remove this site?"
 
-#: src/routes/dashboard.tags.tsx:232
+#: src/routes/dashboard.tags.tsx:237
 msgid "Remove this tag?"
 msgstr "Remove this tag?"
 
@@ -7365,7 +7531,7 @@ msgstr "Remove this tag?"
 #~ msgid "removed"
 #~ msgstr "removed"
 
-#: src/routes/dashboard.coupons.tsx:48
+#: src/routes/dashboard.coupons.tsx:47
 msgid "Removed"
 msgstr "Removed"
 
@@ -7373,7 +7539,7 @@ msgstr "Removed"
 #~ msgid "Removing your keys keeps the address you send from and where replies go. It does not move your verified domains: those were verified in your own Amazon account, so you add the domain again here and publish the new records you are given."
 #~ msgstr "Removing your keys keeps the address you send from and where replies go. It does not move your verified domains: those were verified in your own Amazon account, so you add the domain again here and publish the new records you are given."
 
-#: src/routes/dashboard.tags.tsx:203
+#: src/routes/dashboard.tags.tsx:208
 msgid "Rename"
 msgstr "Rename"
 
@@ -7405,9 +7571,9 @@ msgstr "Replace…"
 #~ msgid "Reply-to"
 #~ msgstr "Reply-to"
 
-#: src/components/dashboard/dashboard-shell.tsx:319
-#: src/components/dashboard/dashboard-shell.tsx:320
-#: src/components/report-a-problem.tsx:169
+#: src/components/dashboard/dashboard-header.tsx:67
+#: src/components/dashboard/dashboard-header.tsx:68
+#: src/components/report-a-problem.tsx:119
 msgid "Report a problem"
 msgstr "Report a problem"
 
@@ -7452,7 +7618,7 @@ msgstr "Report a problem"
 #~ msgid "Reset a password"
 #~ msgstr "Reset a password"
 
-#: src/routes/dashboard.performance.tsx:62
+#: src/routes/dashboard.performance.tsx:42
 msgid "Responds to input"
 msgstr "Responds to input"
 
@@ -7490,16 +7656,16 @@ msgstr "Responds to input"
 #~ msgid "Role"
 #~ msgstr "Role"
 
-#: src/routes/dashboard.users.tsx:120
+#: src/routes/dashboard.users.tsx:118
 msgid "Role changed"
 msgstr "Role changed"
 
-#: src/routes/dashboard.roles.tsx:246
+#: src/routes/dashboard.roles.tsx:234
 msgid "Role made"
 msgstr "Role made"
 
-#: src/components/dashboard/dashboard-shell.tsx:212
-#: src/routes/dashboard.roles.tsx:288
+#: src/components/dashboard/dashboard-shell.tsx:113
+#: src/routes/dashboard.roles.tsx:276
 msgid "Roles"
 msgstr "Roles"
 
@@ -7508,8 +7674,8 @@ msgid "Row"
 msgstr "Row"
 
 #: src/routes/dashboard.usage.tsx:164
-msgid "Rows by kind"
-msgstr "Rows by kind"
+#~ msgid "Rows by kind"
+#~ msgstr "Rows by kind"
 
 #: src/components/assistant-clients.tsx:77
 msgid "Run this, then /mcp to sign in."
@@ -7524,8 +7690,8 @@ msgstr "Run this. It notices that the address asks for a sign-in and opens one."
 #~ msgstr "running"
 
 #: src/routes/dashboard.usage.tsx:228
-msgid "Running"
-msgstr "Running"
+#~ msgid "Running"
+#~ msgstr "Running"
 
 #. placeholder {0}: when(running.started_at)
 #: src/routes/console.customers.tsx:331
@@ -7556,7 +7722,7 @@ msgstr "Running"
 #~ msgid "Said"
 #~ msgstr "Said"
 
-#: src/components/report-a-problem.tsx:155
+#: src/components/report-a-problem.tsx:105
 msgid "Said. Whoever runs this machine can see it."
 msgstr "Said. Whoever runs this machine can see it."
 
@@ -7564,23 +7730,26 @@ msgstr "Said. Whoever runs this machine can see it."
 #~ msgid "Said. Whoever runs this server can see it."
 #~ msgstr "Said. Whoever runs this server can see it."
 
+#: src/routes/dashboard.performance.tsx:83
+msgid "Samples"
+msgstr "Samples"
+
 #: src/components/ses-account.tsx:290
 #~ msgid "Sandbox"
 #~ msgstr "Sandbox"
 
-#: src/components/dashboard/content-type-editor.tsx:313
-#: src/components/editor/mavi-editor.tsx:729
-#: src/components/editor/mavi-editor.tsx:733
-#: src/routes/dashboard.categories.tsx:290
-#: src/routes/dashboard.coupons.tsx:280
-#: src/routes/dashboard.design.tsx:279
-#: src/routes/dashboard.design.tsx:321
-#: src/routes/dashboard.forms.tsx:312
+#: src/components/dashboard/content-type-editor.tsx:224
+#: src/components/editor/mavi-editor.tsx:677
+#: src/components/editor/mavi-editor.tsx:681
+#: src/routes/dashboard.categories.tsx:286
+#: src/routes/dashboard.coupons.tsx:248
+#: src/routes/dashboard.design.tsx:210
+#: src/routes/dashboard.design.tsx:252
+#: src/routes/dashboard.forms.tsx:307
 #: src/routes/dashboard.letters.tsx:208
-#: src/routes/dashboard.plugins.tsx:228
-#: src/routes/dashboard.settings.tsx:94
-#: src/routes/dashboard.settings.tsx:415
-#: src/routes/dashboard.tags.tsx:178
+#: src/routes/dashboard.plugins.tsx:171
+#: src/routes/dashboard.settings.tsx:91
+#: src/routes/dashboard.tags.tsx:183
 msgid "Save"
 msgstr "Save"
 
@@ -7588,8 +7757,7 @@ msgstr "Save"
 #~ msgid "Save changes"
 #~ msgstr "Save changes"
 
-#: src/routes/dashboard.mail.tsx:439
-#: src/routes/forgotten.tsx:124
+#: src/routes/forgotten.tsx:174
 msgid "Save it"
 msgstr "Save it"
 
@@ -7622,10 +7790,11 @@ msgstr "Save it"
 #~ msgstr "Save your changes first — a test runs what is stored."
 
 #: src/components/editor/status-bar.tsx:116
-#: src/routes/dashboard.coupons.tsx:176
+#: src/routes/dashboard.coupons.tsx:164
 #: src/routes/dashboard.forms.tsx:110
 #: src/routes/dashboard.letters.tsx:80
-#: src/routes/dashboard.settings.tsx:53
+#: src/routes/dashboard.plugins.tsx:81
+#: src/routes/dashboard.settings.tsx:52
 msgid "Saved"
 msgstr "Saved"
 
@@ -7635,8 +7804,12 @@ msgid "Saved at {0}"
 msgstr "Saved at {0}"
 
 #: src/routes/dashboard.design.tsx:233
-msgid "Saved to the draft."
-msgstr "Saved to the draft."
+#~ msgid "Saved to the draft."
+#~ msgstr "Saved to the draft."
+
+#: src/routes/dashboard.design.tsx:164
+msgid "Saved."
+msgstr "Saved."
 
 #. placeholder {0}: saved.bot_name
 #: src/routes/dashboard.plugins_.telegram.tsx:55
@@ -7663,7 +7836,7 @@ msgstr "Say the money for this order has arrived? The record will say you said s
 msgid "Say what a form accepts here, then have your own pages post to it. What it does not accept is refused rather than kept."
 msgstr "Say what a form accepts here, then have your own pages post to it. What it does not accept is refused rather than kept."
 
-#: src/components/report-a-problem.tsx:177
+#: src/components/report-a-problem.tsx:127
 msgid "Say what happened"
 msgstr "Say what happened"
 
@@ -7705,7 +7878,7 @@ msgstr "Search & AI"
 #~ msgid "Search an address or a name"
 #~ msgstr "Search an address or a name"
 
-#: src/components/editor/post-settings.tsx:480
+#: src/components/editor/post-settings.tsx:436
 msgid "Search engine"
 msgstr "Search engine"
 
@@ -7753,7 +7926,7 @@ msgstr "Section title"
 #~ msgstr "Sections, and the lessons in them. A lesson's own notes are written in the editor like any other page; what is set here is its video, its order, and who may see it when."
 
 #. placeholder {0}: CAPABILITY_LABELS[capability]
-#: src/routes/dashboard.roles.tsx:402
+#: src/routes/dashboard.roles.tsx:390
 msgid "See {0}"
 msgstr "See {0}"
 
@@ -7769,7 +7942,7 @@ msgstr "See {0}"
 #~ msgid "Seen"
 #~ msgstr "Seen"
 
-#: src/components/editor/post-settings.tsx:234
+#: src/components/editor/post-settings.tsx:190
 msgid "Select"
 msgstr "Select"
 
@@ -7781,7 +7954,8 @@ msgstr "Select all"
 #~ msgid "Select your language"
 #~ msgstr "Select your language"
 
-#: src/components/report-a-problem.tsx:293
+#: src/components/report-a-problem.tsx:243
+#: src/routes/dashboard.mail.tsx:339
 msgid "Send"
 msgstr "Send"
 
@@ -7807,8 +7981,8 @@ msgstr "Send"
 
 #: src/routes/dashboard.mail_.campaigns.$campaignId.tsx:106
 #: src/routes/dashboard.mail.tsx:250
-msgid "Send it"
-msgstr "Send it"
+#~ msgid "Send it"
+#~ msgstr "Send it"
 
 #: src/routes/dashboard.plugins.tsx:31
 #~ msgid "Send mail through Amazon SES — a notification when somebody fills in one of this site's forms."
@@ -7819,11 +7993,16 @@ msgstr "Send it"
 #~ msgid "Send mail through SES"
 #~ msgstr "Send mail through SES"
 
+#: src/routes/dashboard.mail.tsx:159
+#: src/routes/dashboard.mail.tsx:284
+msgid "Send message"
+msgstr "Send message"
+
 #: src/components/flows/pieces.tsx:88
 #~ msgid "Send on Telegram"
 #~ msgstr "Send on Telegram"
 
-#: src/routes/forgotten.tsx:182
+#: src/routes/forgotten.tsx:232
 msgid "Send the link"
 msgstr "Send the link"
 
@@ -7846,8 +8025,8 @@ msgstr "Send the link"
 
 #: src/routes/dashboard.mail_.campaigns.$campaignId.tsx:82
 #: src/routes/dashboard.mail.tsx:173
-msgid "Sending"
-msgstr "Sending"
+#~ msgid "Sending"
+#~ msgstr "Sending"
 
 #. placeholder {0}: sending.name
 #. placeholder {1}: Math.round(sending.fraction * 100)
@@ -7888,9 +8067,6 @@ msgstr "Sending"
 #~ msgid "sent"
 #~ msgstr "sent"
 
-#: src/routes/dashboard.mail_.campaigns.$campaignId.tsx:83
-#: src/routes/dashboard.mail_.campaigns.$campaignId.tsx:112
-#: src/routes/dashboard.mail.tsx:174
 #: src/routes/dashboard.orders.tsx:48
 #: src/shop/app.tsx:273
 msgid "Sent"
@@ -7927,19 +8103,23 @@ msgstr "Sent"
 #~ msgstr "Sent in the last day: {0}"
 
 #: src/routes/dashboard.index.tsx:121
-msgid "Sent through forms"
-msgstr "Sent through forms"
+#~ msgid "Sent through forms"
+#~ msgstr "Sent through forms"
 
 #. placeholder {0}: testTo.trim()
 #: src/routes/dashboard.mail_.campaigns.$campaignId.tsx:127
 #~ msgid "Sent to {0}"
 #~ msgstr "Sent to {0}"
 
-#: src/components/editor/post-settings.tsx:495
+#: src/routes/dashboard.mail.tsx:132
+msgid "Sent to the list."
+msgstr "Sent to the list."
+
+#: src/components/editor/post-settings.tsx:451
 msgid "SEO description"
 msgstr "SEO description"
 
-#: src/components/editor/post-settings.tsx:483
+#: src/components/editor/post-settings.tsx:439
 msgid "SEO title"
 msgstr "SEO title"
 
@@ -8005,11 +8185,11 @@ msgstr "Serif"
 #~ msgid "Set it up"
 #~ msgstr "Set it up"
 
-#: src/routes/dashboard.settings.tsx:258
+#: src/routes/dashboard.settings.tsx:244
 msgid "Set one up"
 msgstr "Set one up"
 
-#: src/routes/setup.tsx:146
+#: src/routes/setup.tsx:164
 msgid "Set up"
 msgstr "Set up"
 
@@ -8026,7 +8206,8 @@ msgstr "Set up"
 #~ msgid "Setting it up, field by field:"
 #~ msgstr "Setting it up, field by field:"
 
-#: src/routes/dashboard.roles.tsx:179
+#: src/components/dashboard/dashboard-shell.tsx:116
+#: src/routes/dashboard.roles.tsx:167
 msgid "Settings"
 msgstr "Settings"
 
@@ -8052,13 +8233,13 @@ msgstr "Settings, then Tools & MCP, then New MCP Server — which opens the file
 #~ msgstr "Setup failed"
 
 #: src/components/dashboard/content-type-editor.tsx:136
-msgid "Several are called"
-msgstr "Several are called"
+#~ msgid "Several are called"
+#~ msgstr "Several are called"
 
 #. placeholder {0}: language.code
 #: src/components/dashboard/content-type-editor.tsx:180
-msgid "Several, in {0}"
-msgstr "Several, in {0}"
+#~ msgid "Several, in {0}"
+#~ msgstr "Several, in {0}"
 
 #: src/routes/dashboard.performance.tsx:94
 #~ msgid "share of visits Google rates good"
@@ -8068,8 +8249,7 @@ msgstr "Several, in {0}"
 #~ msgid "Shared mail"
 #~ msgstr "Shared mail"
 
-#: src/components/dashboard/dashboard-shell.tsx:192
-#: src/routes/dashboard.roles.tsx:174
+#: src/routes/dashboard.roles.tsx:162
 msgid "Shop"
 msgstr "Shop"
 
@@ -8077,16 +8257,16 @@ msgstr "Shop"
 msgid "Short description of the image"
 msgstr "Short description of the image"
 
-#: src/components/editor/post-settings.tsx:394
+#: src/components/editor/post-settings.tsx:350
 msgid "Short description shown on listing pages"
 msgstr "Short description shown on listing pages"
 
-#: src/routes/dashboard.roles.tsx:447
+#: src/routes/dashboard.roles.tsx:435
 msgid "Short name"
 msgstr "Short name"
 
 #: src/components/editor/dialogs.tsx:551
-#: src/components/editor/mavi-editor.tsx:558
+#: src/components/editor/mavi-editor.tsx:506
 msgid "Shortcuts"
 msgstr "Shortcuts"
 
@@ -8099,17 +8279,17 @@ msgstr "Shortcuts"
 #~ msgstr "Shown beside any video in the Stream dashboard. It is the same for every video on the account and never changes."
 
 #: src/routes/dashboard.students.tsx:283
-msgid "Shown once and kept nowhere it can be read again. Send it however you normally reach them; if it is lost, give them access again and a new one appears."
-msgstr "Shown once and kept nowhere it can be read again. Send it however you normally reach them; if it is lost, give them access again and a new one appears."
+#~ msgid "Shown once and kept nowhere it can be read again. Send it however you normally reach them; if it is lost, give them access again and a new one appears."
+#~ msgstr "Shown once and kept nowhere it can be read again. Send it however you normally reach them; if it is lost, give them access again and a new one appears."
 
 #: src/learn/app.tsx:152
 #: src/learn/app.tsx:188
-#: src/routes/login.tsx:115
-#: src/routes/login.tsx:172
+#: src/routes/login.tsx:95
+#: src/routes/login.tsx:152
 msgid "Sign in"
 msgstr "Sign in"
 
-#: src/routes/login.tsx:118
+#: src/routes/login.tsx:98
 msgid "Sign in to manage your site."
 msgstr "Sign in to manage your site."
 
@@ -8125,9 +8305,10 @@ msgstr "Sign in to manage your site."
 #~ msgid "Sign in; sets the session cookie."
 #~ msgstr "Sign in; sets the session cookie."
 
-#: src/components/dashboard/dashboard-shell.tsx:331
-#: src/components/editor/mavi-editor.tsx:696
-#: src/components/editor/mavi-editor.tsx:983
+#: src/components/dashboard/dashboard-header.tsx:79
+#: src/components/dashboard/dashboard-header.tsx:80
+#: src/components/editor/mavi-editor.tsx:644
+#: src/components/editor/mavi-editor.tsx:931
 #: src/learn/app.tsx:104
 msgid "Sign out"
 msgstr "Sign out"
@@ -8140,9 +8321,9 @@ msgstr "Sign out"
 #~ msgid "Sign-ups"
 #~ msgstr "Sign-ups"
 
-#: src/lib/audit-looks.ts:45
-#~ msgid "Signed in"
-#~ msgstr "Signed in"
+#: src/components/dashboard/dashboard-header.tsx:41
+msgid "Signed in"
+msgstr "Signed in"
 
 #: src/lib/audit-looks.ts:48
 #~ msgid "Signed out"
@@ -8156,7 +8337,7 @@ msgstr "Sign out"
 #~ msgid "Signing secret"
 #~ msgstr "Signing secret"
 
-#: src/routes/oauth.$provider.tsx:55
+#: src/routes/oauth.$provider.tsx:35
 msgid "Signing you in…"
 msgstr "Signing you in…"
 
@@ -8181,6 +8362,10 @@ msgstr "Signing you in…"
 #~ msgid "Site limit"
 #~ msgstr "Site limit"
 
+#: src/routes/setup.tsx:112
+msgid "Site name"
+msgstr "Site name"
+
 #: src/routes/dashboard.sites.tsx:164
 #~ msgid "Site removed"
 #~ msgstr "Site removed"
@@ -8196,6 +8381,10 @@ msgstr "Signing you in…"
 #: src/components/setup/setup-wizard.tsx:536
 #~ msgid "Site title"
 #~ msgstr "Site title"
+
+#: src/components/dashboard/dashboard-navigation.tsx:50
+msgid "Site workspace"
+msgstr "Site workspace"
 
 #: src/components/dashboard/discoverability.tsx:54
 msgid "Sitemap"
@@ -8220,7 +8409,7 @@ msgstr "Sitemap"
 #~ msgid "Sites being given a theme's demo, and packages being written in. A transfer that was killed starts again after the last part it finished."
 #~ msgstr "Sites being given a theme's demo, and packages being written in. A transfer that was killed starts again after the last part it finished."
 
-#: src/routes/dashboard.settings.tsx:201
+#: src/routes/dashboard.settings.tsx:187
 msgid "Six digits from an app on your phone, as well as your password. It is asked for when you sign in and nowhere else."
 msgstr "Six digits from an app on your phone, as well as your password. It is asked for when you sign in and nowhere else."
 
@@ -8258,11 +8447,11 @@ msgstr "Small section heading"
 #~ msgstr "Somebody sends one of this site's forms"
 
 #: src/routes/dashboard.settings.tsx:344
-msgid "Somebody signing in with an account somewhere else. The address that comes back has to be one this site already knows: this adds a way in for an account, never an account."
-msgstr "Somebody signing in with an account somewhere else. The address that comes back has to be one this site already knows: this adds a way in for an account, never an account."
+#~ msgid "Somebody signing in with an account somewhere else. The address that comes back has to be one this site already knows: this adds a way in for an account, never an account."
+#~ msgstr "Somebody signing in with an account somewhere else. The address that comes back has to be one this site already knows: this adds a way in for an account, never an account."
 
-#: src/routes/dashboard.mail.tsx:306
-#: src/routes/dashboard.users.tsx:460
+#: src/routes/dashboard.mail.tsx:209
+#: src/routes/dashboard.users.tsx:453
 msgid "somebody@example.test"
 msgstr "somebody@example.test"
 
@@ -8292,7 +8481,7 @@ msgstr "Something failed"
 #~ msgid "Something is affected right now. Work you do here is saved as usual."
 #~ msgstr "Something is affected right now. Work you do here is saved as usual."
 
-#: src/components/report-a-problem.tsx:72
+#: src/components/report-a-problem.tsx:61
 msgid "Something is broken"
 msgstr "Something is broken"
 
@@ -8309,8 +8498,8 @@ msgid "Something went wrong. It has been written down."
 msgstr "Something went wrong. It has been written down."
 
 #: src/routes/dashboard.boards_.$boardId.tsx:255
-msgid "Something worth remembering"
-msgstr "Something worth remembering"
+#~ msgid "Something worth remembering"
+#~ msgstr "Something worth remembering"
 
 #: src/components/editor/bubble-menus.tsx:521
 msgid "Split cell"
@@ -8329,7 +8518,7 @@ msgstr "Stages"
 #~ msgid "Start"
 #~ msgstr "Start"
 
-#: src/components/dashboard/dashboard-shell.tsx:180
+#: src/components/dashboard/dashboard-shell.tsx:101
 msgid "Start a course"
 msgstr "Start a course"
 
@@ -8350,14 +8539,14 @@ msgstr "Start writing, or type “/” for commands…"
 #~ msgstr "Started and not finished — finish paying or it simply lapses."
 
 #: src/routes/dashboard.usage.tsx:197
-msgid "State"
-msgstr "State"
+#~ msgid "State"
+#~ msgstr "State"
 
-#: src/components/editor/post-settings.tsx:226
+#: src/components/editor/post-settings.tsx:182
 msgid "Status"
 msgstr "Status"
 
-#: src/routes/dashboard.flows.tsx:359
+#: src/routes/dashboard.flows.tsx:246
 msgid "Steps"
 msgstr "Steps"
 
@@ -8366,8 +8555,7 @@ msgstr "Steps"
 #~ msgid "Still open"
 #~ msgstr "Still open"
 
-#: src/routes/dashboard.students.tsx:196
-#: src/routes/dashboard.users.tsx:244
+#: src/routes/dashboard.users.tsx:237
 msgid "Stop"
 msgstr "Stop"
 
@@ -8381,8 +8569,8 @@ msgstr "Stop"
 
 #: src/routes/dashboard.coupons.tsx:129
 #: src/routes/dashboard.publish.tsx:125
-msgid "Stop it"
-msgstr "Stop it"
+#~ msgid "Stop it"
+#~ msgstr "Stop it"
 
 #: src/routes/console.customers.tsx:592
 #~ msgid "Stop the clock"
@@ -8397,10 +8585,7 @@ msgstr "Stop it"
 #~ msgid "stopped"
 #~ msgstr "stopped"
 
-#: src/routes/dashboard.coupons.tsx:48
-#: src/routes/dashboard.publish.tsx:74
-#: src/routes/dashboard.students.tsx:172
-#: src/routes/dashboard.users.tsx:206
+#: src/routes/dashboard.users.tsx:204
 msgid "Stopped"
 msgstr "Stopped"
 
@@ -8418,16 +8603,20 @@ msgstr "Stopped"
 #~ msgstr "Storage"
 
 #: src/routes/dashboard.usage.tsx:140
-msgid "Storage by kind"
-msgstr "Storage by kind"
+#~ msgid "Storage by kind"
+#~ msgstr "Storage by kind"
 
-#: src/routes/dashboard.usage.tsx:111
+#: src/routes/dashboard.usage.tsx:74
 msgid "Storage used"
 msgstr "Storage used"
 
 #: src/routes/dashboard.usage.tsx:105
-msgid "Storage, mail, builds and the queue — no price anywhere on it."
-msgstr "Storage, mail, builds and the queue — no price anywhere on it."
+#~ msgid "Storage, mail, builds and the queue — no price anywhere on it."
+#~ msgstr "Storage, mail, builds and the queue — no price anywhere on it."
+
+#: src/routes/dashboard.usage.tsx:68
+msgid "Storage, writings, readers and the queue — no price anywhere on it."
+msgstr "Storage, writings, readers and the queue — no price anywhere on it."
 
 #: src/routes/dashboard.plugins.tsx:27
 #~ msgid "Store uploaded media in an S3 bucket (AWS S3, Cloudflare R2, MinIO, DigitalOcean Spaces) instead of the local disk."
@@ -8464,10 +8653,10 @@ msgstr "Strikethrough"
 #~ msgid "Strong"
 #~ msgstr "Strong"
 
-#: src/components/dashboard/dashboard-shell.tsx:186
-#: src/routes/dashboard.index.tsx:200
-#: src/routes/dashboard.students.tsx:141
-#: src/routes/dashboard.usage.tsx:93
+#: src/components/dashboard/dashboard-shell.tsx:103
+#: src/routes/dashboard.courses.$courseId.tsx:242
+#: src/routes/dashboard.index.tsx:100
+#: src/routes/dashboard.students.tsx:76
 msgid "Students"
 msgstr "Students"
 
@@ -8480,17 +8669,21 @@ msgstr "Sub-heading"
 #~ msgstr "Subdomain for bounces"
 
 #: src/routes/dashboard.letters.tsx:171
-#: src/routes/dashboard.mail.tsx:411
+#: src/routes/dashboard.mail.tsx:311
 msgid "Subject"
 msgstr "Subject"
+
+#: src/routes/dashboard.forms.tsx:204
+msgid "Submissions"
+msgstr "Submissions"
 
 #: src/routes/dashboard.trash.tsx:76
 #~ msgid "subscriber"
 #~ msgstr "subscriber"
 
 #: src/routes/dashboard.usage.tsx:95
-msgid "Subscribers"
-msgstr "Subscribers"
+#~ msgid "Subscribers"
+#~ msgstr "Subscribers"
 
 #: src/components/editor/toolbar.tsx:455
 msgid "Subscript"
@@ -8542,15 +8735,15 @@ msgstr "switched off"
 #~ msgid "Switched off"
 #~ msgstr "Switched off"
 
-#: src/routes/dashboard.forms.tsx:275
+#: src/routes/dashboard.forms.tsx:270
 msgid "Switched off, the form refuses what is sent to it."
 msgstr "Switched off, the form refuses what is sent to it."
 
-#: src/routes/dashboard.index.tsx:196
+#: src/routes/dashboard.index.tsx:114
 msgid "switched on"
 msgstr "switched on"
 
-#: src/routes/dashboard.plugins.tsx:173
+#: src/routes/dashboard.plugins.tsx:116
 msgid "Switched on"
 msgstr "Switched on"
 
@@ -8570,7 +8763,7 @@ msgstr "Switched on"
 msgid "Syntax-highlighted code"
 msgstr "Syntax-highlighted code"
 
-#: src/components/editor/mavi-editor.tsx:976
+#: src/components/editor/mavi-editor.tsx:924
 #: src/components/editor/palette.ts:56
 #: src/components/mode-toggle.tsx:49
 msgid "System"
@@ -8585,9 +8778,9 @@ msgstr "System"
 msgid "Table"
 msgstr "Table"
 
-#: src/components/editor/mavi-editor.tsx:522
-#: src/components/editor/mavi-editor.tsx:752
-#: src/components/editor/mavi-editor.tsx:816
+#: src/components/editor/mavi-editor.tsx:470
+#: src/components/editor/mavi-editor.tsx:700
+#: src/components/editor/mavi-editor.tsx:764
 msgid "Table of contents"
 msgstr "Table of contents"
 
@@ -8603,9 +8796,9 @@ msgstr "Table of contents"
 #~ msgid "Tagline"
 #~ msgstr "Tagline"
 
-#: src/components/dashboard/dashboard-shell.tsx:138
-#: src/components/editor/post-settings.tsx:342
-#: src/routes/dashboard.tags.tsx:115
+#: src/components/dashboard/dashboard-shell.tsx:90
+#: src/components/editor/post-settings.tsx:298
+#: src/routes/dashboard.tags.tsx:120
 msgid "Tags"
 msgstr "Tags"
 
@@ -8622,11 +8815,11 @@ msgstr "Tags"
 #~ msgid "Take \"{0}\" out of the catalogue? What was already sold stays sold."
 #~ msgstr "Take \"{0}\" out of the catalogue? What was already sold stays sold."
 
-#: src/routes/dashboard.settings.tsx:494
+#: src/routes/dashboard.settings.tsx:336
 msgid "Take a copy"
 msgstr "Take a copy"
 
-#: src/routes/dashboard.users.tsx:430
+#: src/routes/dashboard.users.tsx:423
 msgid "Take everything this site holds about {email}? What was paid stays, with their address out of it. This cannot be undone."
 msgstr "Take everything this site holds about {email}? What was paid stays, with their address out of it. This cannot be undone."
 
@@ -8635,11 +8828,10 @@ msgstr "Take everything this site holds about {email}? What was paid stays, with
 #~ msgstr "Take it"
 
 #: src/routes/dashboard.settings.tsx:362
-msgid "Take it away"
-msgstr "Take it away"
+#~ msgid "Take it away"
+#~ msgstr "Take it away"
 
-#: src/routes/dashboard.api.tsx:174
-#: src/routes/dashboard.students.tsx:246
+#: src/routes/dashboard.api.tsx:152
 msgid "Take it back"
 msgstr "Take it back"
 
@@ -8659,7 +8851,7 @@ msgstr "Take it out"
 #~ msgid "Take the database, and the uploaded files if you want them, into a single archive — on a schedule, to the disk or to your S3 bucket."
 #~ msgstr "Take the database, and the uploaded files if you want them, into a single archive — on a schedule, to the disk or to your S3 bucket."
 
-#: src/components/dashboard/content-list.tsx:196
+#: src/components/dashboard/content-list.tsx:189
 msgid "Take them down"
 msgstr "Take them down"
 
@@ -8667,11 +8859,11 @@ msgstr "Take them down"
 #~ msgid "Take this site away"
 #~ msgstr "Take this site away"
 
-#: src/routes/dashboard.api.tsx:169
+#: src/routes/dashboard.api.tsx:147
 msgid "Taken back"
 msgstr "Taken back"
 
-#: src/routes/dashboard.forms.tsx:273
+#: src/routes/dashboard.forms.tsx:268
 msgid "Taking answers"
 msgstr "Taking answers"
 
@@ -8690,8 +8882,7 @@ msgstr "Taking answers"
 msgid "Task list"
 msgstr "Task list"
 
-#: src/components/dashboard/dashboard-shell.tsx:176
-#: src/routes/dashboard.roles.tsx:173
+#: src/routes/dashboard.roles.tsx:161
 msgid "Teaching"
 msgstr "Teaching"
 
@@ -8750,7 +8941,7 @@ msgstr "Tells search engines they are welcome, and where the map is."
 #~ msgid "Testing connection…"
 #~ msgstr "Testing connection…"
 
-#: src/components/dashboard/content-type-editor.tsx:73
+#: src/components/dashboard/content-type-editor.tsx:54
 #: src/components/editor/dialogs.tsx:316
 #: src/components/editor/dialogs.tsx:425
 msgid "Text"
@@ -8761,7 +8952,7 @@ msgstr "Text"
 msgid "Text color"
 msgstr "Text color"
 
-#: src/components/editor/post-settings.tsx:503
+#: src/components/editor/post-settings.tsx:459
 msgid "Text shown in search results"
 msgstr "Text shown in search results"
 
@@ -8781,11 +8972,11 @@ msgstr "Text shown in search results"
 #~ msgid "That did not work."
 #~ msgstr "That did not work."
 
-#: src/routes/dashboard.settings.tsx:473
+#: src/routes/dashboard.settings.tsx:315
 msgid "That is not a copy of a site."
 msgstr "That is not a copy of a site."
 
-#: src/components/report-a-problem.tsx:80
+#: src/components/report-a-problem.tsx:69
 msgid "That is not a picture"
 msgstr "That is not a picture"
 
@@ -8806,7 +8997,7 @@ msgstr "That is not what {0} holds."
 #~ msgid "That key stopped working"
 #~ msgstr "That key stopped working"
 
-#: src/components/report-a-problem.tsx:84
+#: src/components/report-a-problem.tsx:73
 msgid "That picture is larger than four megabytes"
 msgstr "That picture is larger than four megabytes"
 
@@ -8854,7 +9045,7 @@ msgstr "That request did not come from this site. Reload the page and try again.
 #~ msgid "The address it answers on"
 #~ msgstr "The address it answers on"
 
-#: src/routes/dashboard.products.tsx:202
+#: src/routes/dashboard.products.tsx:203
 msgid "The address it answers on is made from the name and never changes, because a front end will be asking for it."
 msgstr "The address it answers on is made from the name and never changes, because a front end will be asking for it."
 
@@ -8903,8 +9094,8 @@ msgstr "The address it answers on is made from the name and never changes, becau
 #~ msgid "The channel's address"
 #~ msgstr "The channel's address"
 
-#: src/components/dashboard/content-type-editor.tsx:274
-#: src/routes/dashboard.forms.tsx:438
+#: src/components/dashboard/content-type-editor.tsx:185
+#: src/routes/dashboard.forms.tsx:433
 msgid "The choices, separated by commas"
 msgstr "The choices, separated by commas"
 
@@ -8912,7 +9103,7 @@ msgstr "The choices, separated by commas"
 #~ msgid "The clock"
 #~ msgstr "The clock"
 
-#: src/routes/dashboard.coupons.tsx:195
+#: src/routes/dashboard.coupons.tsx:183
 msgid "The code"
 msgstr "The code"
 
@@ -8920,7 +9111,7 @@ msgstr "The code"
 #~ msgid "the content is on its way — within the minute"
 #~ msgstr "the content is on its way — within the minute"
 
-#: src/routes/dashboard.visitors.tsx:103
+#: src/routes/dashboard.visitors.tsx:91
 msgid "The curve draws itself from the first visit on."
 msgstr "The curve draws itself from the first visit on."
 
@@ -8949,11 +9140,11 @@ msgstr "The curve draws itself from the first visit on."
 #~ msgid "The faded ones need something set up first, and say what underneath."
 #~ msgstr "The faded ones need something set up first, and say what underneath."
 
-#: src/routes/dashboard.design.tsx:244
+#: src/routes/dashboard.design.tsx:175
 msgid "The files"
 msgstr "The files"
 
-#: src/routes/setup.tsx:88
+#: src/routes/setup.tsx:94
 msgid "The first account"
 msgstr "The first account"
 
@@ -8965,7 +9156,7 @@ msgstr "The first account"
 #~ msgid "The first one most sites want: a contact form that emails whoever answers it."
 #~ msgstr "The first one most sites want: a contact form that emails whoever answers it."
 
-#: src/components/report-a-problem.tsx:228
+#: src/components/report-a-problem.tsx:178
 msgid "The forms screen is empty"
 msgstr "The forms screen is empty"
 
@@ -8989,11 +9180,11 @@ msgstr "The forms screen is empty"
 #~ msgid "The languages this site writes in."
 #~ msgstr "The languages this site writes in."
 
-#: src/routes/dashboard.languages.tsx:98
+#: src/routes/dashboard.languages.tsx:97
 msgid "The languages your content can be written in. This is separate from the language of this admin panel."
 msgstr "The languages your content can be written in. This is separate from the language of this admin panel."
 
-#: src/routes/dashboard.settings.tsx:488
+#: src/routes/dashboard.settings.tsx:330
 msgid "The languages, what things are filed under, and what has been written. Not the uploads, the accounts, or anything the site keeps sealed."
 msgstr "The languages, what things are filed under, and what has been written. Not the uploads, the accounts, or anything the site keeps sealed."
 
@@ -9002,9 +9193,13 @@ msgstr "The languages, what things are filed under, and what has been written. N
 #~ msgid "The last backup failed: {0}"
 #~ msgstr "The last backup failed: {0}"
 
+#: src/routes/dashboard.design.tsx:106
+msgid "The last build did not work"
+msgstr "The last build did not work"
+
 #: src/routes/dashboard.design.tsx:137
-msgid "The last preview did not build"
-msgstr "The last preview did not build"
+#~ msgid "The last preview did not build"
+#~ msgstr "The last preview did not build"
 
 #: src/components/ses-analytics.tsx:116
 #~ msgid "The last thirty days, from SES itself. Delivered, bounced and reported are things only Amazon knows — a pixel in the letter cannot tell you any of them."
@@ -9027,15 +9222,19 @@ msgstr "The letterhead"
 #~ msgid "The line under it"
 #~ msgstr "The line under it"
 
+#: src/routes/dashboard.mail.tsx:147
+msgid "The lists this site writes to, and messages sent to them."
+msgstr "The lists this site writes to, and messages sent to them."
+
 #: src/routes/dashboard.mail.tsx:182
-msgid "The lists this site writes to, and what it has written to them."
-msgstr "The lists this site writes to, and what it has written to them."
+#~ msgid "The lists this site writes to, and what it has written to them."
+#~ msgstr "The lists this site writes to, and what it has written to them."
 
 #: src/components/dashboard/address-health.tsx:68
-msgid "The main one"
-msgstr "The main one"
+#~ msgid "The main one"
+#~ msgstr "The main one"
 
-#: src/routes/dashboard.orders.tsx:180
+#: src/routes/dashboard.orders.tsx:189
 msgid "The money arrived"
 msgstr "The money arrived"
 
@@ -9051,18 +9250,16 @@ msgstr "The most common shortcuts in the editor."
 #~ msgid "The name on the card"
 #~ msgstr "The name on the card"
 
-#: src/routes/dashboard.users.tsx:284
+#: src/routes/dashboard.users.tsx:277
 msgid "The new one"
 msgstr "The new one"
 
-#: src/routes/dashboard.index.tsx:69
-#: src/routes/dashboard.performance.tsx:46
-#: src/routes/dashboard.usage.tsx:59
-#: src/routes/dashboard.visitors.tsx:45
+#: src/routes/dashboard.index.tsx:55
+#: src/routes/dashboard.usage.tsx:50
 msgid "The numbers could not be read just now."
 msgstr "The numbers could not be read just now."
 
-#: src/routes/dashboard.users.tsx:274
+#: src/routes/dashboard.users.tsx:267
 msgid "The one you have"
 msgstr "The one you have"
 
@@ -9107,13 +9304,13 @@ msgstr "The same connector then works in Claude on the web, on the desktop and o
 #~ msgid "The same, with each body included."
 #~ msgstr "The same, with each body included."
 
-#: src/components/report-a-problem.tsx:249
+#: src/components/report-a-problem.tsx:199
 msgid "The screenshot you attached"
 msgstr "The screenshot you attached"
 
 #: src/routes/dashboard.flows.tsx:551
-msgid "The secret"
-msgstr "The secret"
+#~ msgid "The secret"
+#~ msgstr "The secret"
 
 #: src/components/setup/setup-wizard.tsx:305
 #~ msgid "The server is taking longer than expected to restart. Reload this page in a moment."
@@ -9144,11 +9341,15 @@ msgstr "The site introduced to AI assistants, page by page."
 #~ msgid "The sites could not be read just now."
 #~ msgstr "The sites could not be read just now."
 
-#: src/routes/dashboard.settings.tsx:234
+#: src/routes/dashboard.settings.tsx:220
 msgid "The six digits"
 msgstr "The six digits"
 
-#: src/routes/login.tsx:158
+#: src/routes/dashboard.settings.tsx:193
+msgid "The six digits from your app to turn it off"
+msgstr "The six digits from your app to turn it off"
+
+#: src/routes/login.tsx:138
 msgid "The six digits from your authenticator"
 msgstr "The six digits from your authenticator"
 
@@ -9168,7 +9369,7 @@ msgstr "The six digits from your authenticator"
 #~ msgid "The whole of it"
 #~ msgstr "The whole of it"
 
-#: src/components/editor/mavi-editor.tsx:957
+#: src/components/editor/mavi-editor.tsx:905
 #: src/components/mode-toggle.tsx:24
 msgid "Theme"
 msgstr "Theme"
@@ -9243,7 +9444,7 @@ msgstr "Theme"
 #~ msgid "They can write, publish and manage this site."
 #~ msgstr "They can write, publish and manage this site."
 
-#: src/routes/dashboard.users.tsx:311
+#: src/routes/dashboard.users.tsx:304
 msgid "They get a link and choose their own password. Nobody here types it for them."
 msgstr "They get a link and choose their own password. Nobody here types it for them."
 
@@ -9263,7 +9464,7 @@ msgstr "They get a link and choose their own password. Nobody here types it for 
 #~ msgid "They said yes"
 #~ msgstr "They said yes"
 
-#: src/routes/dashboard.users.tsx:379
+#: src/routes/dashboard.users.tsx:372
 msgid "They stop being able to sign in. What they wrote stays, and so does what the record says they did."
 msgstr "They stop being able to sign in. What they wrote stays, and so does what the record says they did."
 
@@ -9328,7 +9529,7 @@ msgstr "This database holds more than one site and this version serves one. It h
 msgid "This is not yours to open"
 msgstr "This is not yours to open"
 
-#: src/routes/setup.tsx:91
+#: src/routes/setup.tsx:97
 msgid "This is the account that runs the machine. Everybody else is invited from inside, and this screen never appears again."
 msgstr "This is the account that runs the machine. Everybody else is invited from inside, and this screen never appears again."
 
@@ -9384,7 +9585,7 @@ msgstr "This machine has nobody running it yet. Set it up first."
 #~ msgid "This month, so far"
 #~ msgstr "This month, so far"
 
-#: src/components/editor/mavi-editor.tsx:272
+#: src/components/editor/mavi-editor.tsx:240
 msgid "This post could not be opened, so it has been left untouched."
 msgstr "This post could not be opened, so it has been left untouched."
 
@@ -9392,7 +9593,7 @@ msgstr "This post could not be opened, so it has been left untouched."
 #~ msgid "This really sends: mail goes to real addresses and any address step is really called. Go ahead?"
 #~ msgstr "This really sends: mail goes to real addresses and any address step is really called. Go ahead?"
 
-#: src/routes/dashboard.roles.tsx:342
+#: src/routes/dashboard.roles.tsx:330
 msgid "This role came with the build and is not a site's to change."
 msgstr "This role came with the build and is not a site's to change."
 
@@ -9417,9 +9618,7 @@ msgstr "This role came with the build and is not a site's to change."
 #~ msgid "This signs you in to the server itself. Everyone else signs in somewhere else:"
 #~ msgstr "This signs you in to the server itself. Everyone else signs in somewhere else:"
 
-#: src/components/dashboard/dashboard-shell.tsx:201
-#: src/components/dashboard/dashboard-shell.tsx:216
-#: src/routes/dashboard.settings.tsx:64
+#: src/routes/dashboard.settings.tsx:63
 msgid "This site"
 msgstr "This site"
 
@@ -9470,8 +9669,8 @@ msgstr "This site has no room left: it is using {0} of {1}."
 #~ msgstr "This site's address"
 
 #: src/components/dashboard/dashboard-shell.tsx:166
-msgid "This site's own"
-msgstr "This site's own"
+#~ msgid "This site's own"
+#~ msgstr "This site's own"
 
 #: src/components/assistant-connection.tsx:155
 #~ msgid "This site's tools could not be listed just now."
@@ -9485,25 +9684,25 @@ msgstr "This site's own"
 msgid "Those are not the digits the app is showing."
 msgstr "Those are not the digits the app is showing."
 
-#: src/routes/dashboard.trash.tsx:182
+#: src/routes/dashboard.trash.tsx:179
 msgid "Throw it away now"
 msgstr "Throw it away now"
 
-#: src/components/dashboard/content-list.tsx:199
+#: src/components/dashboard/content-list.tsx:196
 msgid "Throw them away"
 msgstr "Throw them away"
 
-#: src/components/dashboard/content-list.tsx:242
+#: src/components/dashboard/content-list.tsx:239
 msgid "Tick it"
 msgstr "Tick it"
 
-#: src/routes/dashboard.coupons.tsx:244
+#: src/routes/dashboard.coupons.tsx:222
 msgid "Times in total"
 msgstr "Times in total"
 
 #: src/routes/dashboard.coupons.tsx:254
-msgid "Times per person"
-msgstr "Times per person"
+#~ msgid "Times per person"
+#~ msgstr "Times per person"
 
 #: src/components/flows/flow-settings.tsx:305
 #~ msgid "To"
@@ -9523,7 +9722,7 @@ msgstr "Times per person"
 msgid "To watch the courses you have been given."
 msgstr "To watch the courses you have been given."
 
-#: src/routes/dashboard.mail.tsx:392
+#: src/routes/dashboard.mail.tsx:292
 msgid "To which list"
 msgstr "To which list"
 
@@ -9545,8 +9744,8 @@ msgstr "Today's date"
 #~ msgstr "Tokens"
 
 #: src/routes/dashboard.usage.tsx:198
-msgid "Took"
-msgstr "Took"
+#~ msgid "Took"
+#~ msgstr "Took"
 
 #. placeholder {0}: Math.max( 1, Math.round( (new Date(build.finished_at).getTime() - new Date(build.started_at).getTime()) / 1000 ) )
 #: src/components/publish-panel.tsx:53
@@ -9575,8 +9774,8 @@ msgstr "Took"
 #~ msgid "Total"
 #~ msgstr "Total"
 
-#: src/components/editor/mavi-editor.tsx:654
-#: src/components/editor/mavi-editor.tsx:922
+#: src/components/editor/mavi-editor.tsx:602
+#: src/components/editor/mavi-editor.tsx:870
 msgid "Translations"
 msgstr "Translations"
 
@@ -9589,7 +9788,7 @@ msgstr "Translations"
 #~ msgid "Try again"
 #~ msgstr "Try again"
 
-#: src/routes/dashboard.plugins.tsx:236
+#: src/routes/dashboard.plugins.tsx:179
 msgid "Try it"
 msgstr "Try it"
 
@@ -9597,11 +9796,11 @@ msgstr "Try it"
 msgid "Turn into"
 msgstr "Turn into"
 
-#: src/routes/dashboard.settings.tsx:222
+#: src/routes/dashboard.settings.tsx:208
 msgid "Turn it off"
 msgstr "Turn it off"
 
-#: src/routes/dashboard.settings.tsx:248
+#: src/routes/dashboard.settings.tsx:234
 msgid "Turn it on"
 msgstr "Turn it on"
 
@@ -9617,7 +9816,7 @@ msgstr "Turn it on"
 #~ msgid "Type"
 #~ msgstr "Type"
 
-#: src/routes/dashboard.coupons.tsx:189
+#: src/routes/dashboard.coupons.tsx:177
 msgid "Typed without case: launch2026 and LAUNCH2026 are one code."
 msgstr "Typed without case: launch2026 and LAUNCH2026 are one code."
 
@@ -9661,16 +9860,14 @@ msgstr "Undo"
 msgid "Unsaved changes"
 msgstr "Unsaved changes"
 
-#: src/components/dashboard/content-list.tsx:207
+#: src/components/dashboard/content-list.tsx:204
 msgid "Untick"
 msgstr "Untick"
 
 #. placeholder {0}: new Date(key.expires_at).toLocaleString()
 #. placeholder {0}: new Date(row.expires_at).toLocaleDateString()
-#. placeholder {0}: when(one.ends_at)
-#: src/routes/dashboard.api.tsx:164
-#: src/routes/dashboard.coupons.tsx:118
-#: src/routes/dashboard.students.tsx:215
+#: src/routes/dashboard.api.tsx:142
+#: src/routes/dashboard.coupons.tsx:112
 msgid "until {0}"
 msgstr "until {0}"
 
@@ -9683,7 +9880,7 @@ msgstr "until {0}"
 #~ msgid "Until this is on, a checkout says so rather than failing."
 #~ msgstr "Until this is on, a checkout says so rather than failing."
 
-#: src/components/dashboard/content-list.tsx:264
+#: src/components/dashboard/content-list.tsx:261
 #: src/components/editor/toc-panel.tsx:62
 msgid "Untitled"
 msgstr "Untitled"
@@ -9692,13 +9889,13 @@ msgstr "Untitled"
 #~ msgid "Untitled {thing}"
 #~ msgstr "Untitled {thing}"
 
-#: src/components/editor/mavi-editor.tsx:627
-#: src/components/editor/mavi-editor.tsx:782
+#: src/components/editor/mavi-editor.tsx:575
+#: src/components/editor/mavi-editor.tsx:730
 msgid "Untitled post"
 msgstr "Untitled post"
 
-#: src/routes/dashboard.media.tsx:140
-#: src/routes/dashboard.videos.tsx:132
+#: src/routes/dashboard.media.tsx:125
+#: src/routes/dashboard.videos.tsx:96
 msgid "Upload"
 msgstr "Upload"
 
@@ -9710,7 +9907,7 @@ msgstr "Upload"
 #~ msgid "Upload a video"
 #~ msgstr "Upload a video"
 
-#: src/components/editor/post-settings.tsx:422
+#: src/components/editor/post-settings.tsx:378
 msgid "Upload cover image"
 msgstr "Upload cover image"
 
@@ -9730,7 +9927,7 @@ msgstr "Upload image"
 #~ msgid "Uploading"
 #~ msgstr "Uploading"
 
-#: src/routes/dashboard.index.tsx:136
+#: src/routes/dashboard.index.tsx:91
 msgid "Uploads"
 msgstr "Uploads"
 
@@ -9738,7 +9935,7 @@ msgstr "Uploads"
 msgid "URL"
 msgstr "URL"
 
-#: src/components/dashboard/dashboard-shell.tsx:217
+#: src/components/dashboard/dashboard-shell.tsx:117
 msgid "Usage"
 msgstr "Usage"
 
@@ -9824,8 +10021,8 @@ msgstr "video"
 #~ msgid "Video settings"
 #~ msgstr "Video settings"
 
-#: src/components/dashboard/dashboard-shell.tsx:183
-#: src/routes/dashboard.videos.tsx:121
+#: src/components/dashboard/dashboard-shell.tsx:102
+#: src/routes/dashboard.videos.tsx:85
 msgid "Videos"
 msgstr "Videos"
 
@@ -9833,7 +10030,7 @@ msgstr "Videos"
 msgid "View"
 msgstr "View"
 
-#: src/routes/dashboard.visitors.tsx:94
+#: src/routes/dashboard.visitors.tsx:86
 msgid "Views by day"
 msgstr "Views by day"
 
@@ -9845,10 +10042,8 @@ msgstr "Views by day"
 #~ msgid "Violet"
 #~ msgstr "Violet"
 
-#: src/components/dashboard/dashboard-shell.tsx:125
-#: src/routes/dashboard.index.tsx:157
-#: src/routes/dashboard.visitors.tsx:64
-#: src/routes/dashboard.visitors.tsx:84
+#: src/components/dashboard/dashboard-shell.tsx:82
+#: src/routes/dashboard.visitors.tsx:72
 msgid "Visitors"
 msgstr "Visitors"
 
@@ -9867,8 +10062,8 @@ msgstr "Visitors"
 #: src/routes/dashboard.publish.tsx:69
 #: src/routes/dashboard.usage.tsx:227
 #: src/routes/dashboard.videos.tsx:111
-msgid "Waiting"
-msgstr "Waiting"
+#~ msgid "Waiting"
+#~ msgstr "Waiting"
 
 #. placeholder {0}: one.downloads
 #: src/routes/dashboard.plugins_.backup.tsx:574
@@ -9926,7 +10121,7 @@ msgstr "Waiting to be thrown away"
 #~ msgid "Watching how sending is going"
 #~ msgstr "Watching how sending is going"
 
-#: src/routes/forgotten.tsx:152
+#: src/routes/forgotten.tsx:202
 msgid "We will send a link to the address on the account."
 msgstr "We will send a link to the address on the account."
 
@@ -9957,14 +10152,14 @@ msgstr "We will send a link to the address on the account."
 #~ msgstr "What a build or somebody's own machine reads this site with. It can read and change nothing, lasts 30 days, and can be taken back here."
 
 #: src/routes/dashboard.settings.tsx:378
-msgid "What a button says"
-msgstr "What a button says"
+#~ msgid "What a button says"
+#~ msgstr "What a button says"
 
 #: src/routes/dashboard.flows.tsx:507
-msgid "What a flow signs in with"
-msgstr "What a flow signs in with"
+#~ msgid "What a flow signs in with"
+#~ msgstr "What a flow signs in with"
 
-#: src/routes/dashboard.videos.tsx:123
+#: src/routes/dashboard.videos.tsx:87
 msgid "What a lesson plays. Nothing here is public: a video is watched by somebody the course lets in."
 msgstr "What a lesson plays. Nothing here is public: a video is watched by somebody the course lets in."
 
@@ -9997,18 +10192,18 @@ msgstr "What a lesson plays. Nothing here is public: a video is watched by someb
 #~ msgstr "What arrived"
 
 #: src/routes/dashboard.design.tsx:146
-msgid "What changed"
-msgstr "What changed"
+#~ msgid "What changed"
+#~ msgstr "What changed"
 
 #: src/routes/console.payments.tsx:275
 #~ msgid "What clocked work is billed at, under Customers."
 #~ msgstr "What clocked work is billed at, under Customers."
 
-#: src/routes/dashboard.forms.tsx:238
+#: src/routes/dashboard.forms.tsx:233
 msgid "What comes in is kept as it was sent, so changing the fields later never rewrites it."
 msgstr "What comes in is kept as it was sent, so changing the fields later never rewrites it."
 
-#: src/routes/dashboard.roles.tsx:290
+#: src/routes/dashboard.roles.tsx:278
 msgid "What each role on this site may read, write and delete. Menus follow this — a screen a role cannot open is not shown to it."
 msgstr "What each role on this site may read, write and delete. Menus follow this — a screen a role cannot open is not shown to it."
 
@@ -10028,11 +10223,11 @@ msgstr "What each role on this site may read, write and delete. Menus follow thi
 #~ msgid "What happened"
 #~ msgstr "What happened"
 
-#: src/routes/dashboard.flows.tsx:166
+#: src/routes/dashboard.flows.tsx:139
 msgid "What happens by itself when something happens: a form comes in, an order is paid. One trigger, then steps in order."
 msgstr "What happens by itself when something happens: a form comes in, an order is paid. One trigger, then steps in order."
 
-#: src/routes/dashboard.forms.tsx:326
+#: src/routes/dashboard.forms.tsx:321
 msgid "What has already come in goes with it."
 msgstr "What has already come in goes with it."
 
@@ -10045,8 +10240,12 @@ msgstr "What has already come in goes with it."
 #~ msgstr "What has been happening"
 
 #: src/routes/dashboard.publish.tsx:82
-msgid "What has been published, and what it cost in seconds. A build that fails leaves what is live alone."
-msgstr "What has been published, and what it cost in seconds. A build that fails leaves what is live alone."
+#~ msgid "What has been published, and what it cost in seconds. A build that fails leaves what is live alone."
+#~ msgstr "What has been published, and what it cost in seconds. A build that fails leaves what is live alone."
+
+#: src/routes/dashboard.publish.tsx:47
+msgid "What has been published. A set of changes leaves what is live alone until published."
+msgstr "What has been published. A set of changes leaves what is live alone until published."
 
 #: src/routes/dashboard.api.tsx:243
 #~ msgid "What has come in, newest first."
@@ -10056,7 +10255,7 @@ msgstr "What has been published, and what it cost in seconds. A build that fails
 #~ msgid "What hosting costs"
 #~ msgstr "What hosting costs"
 
-#: src/routes/dashboard.tags.tsx:234
+#: src/routes/dashboard.tags.tsx:239
 msgid "What is filed under it stays; it stops being filed under this."
 msgstr "What is filed under it stays; it stops being filed under this."
 
@@ -10069,10 +10268,10 @@ msgstr "What is filed under it stays; it stops being filed under this."
 #~ msgstr "What is in this course"
 
 #: src/routes/dashboard.design.tsx:164
-msgid "What is live"
-msgstr "What is live"
+#~ msgid "What is live"
+#~ msgstr "What is live"
 
-#: src/routes/dashboard.api.tsx:112
+#: src/routes/dashboard.api.tsx:90
 msgid "What is published"
 msgstr "What is published"
 
@@ -10080,15 +10279,15 @@ msgstr "What is published"
 #~ msgid "What is this section called?"
 #~ msgstr "What is this section called?"
 
-#: src/routes/dashboard.forms.tsx:374
+#: src/routes/dashboard.forms.tsx:369
 msgid "What it asks for"
 msgstr "What it asks for"
 
-#: src/routes/dashboard.products.tsx:221
+#: src/routes/dashboard.products.tsx:222
 msgid "What it costs"
 msgstr "What it costs"
 
-#: src/routes/dashboard.boards_.$boardId.tsx:307
+#: src/routes/dashboard.boards_.$boardId.tsx:209
 msgid "What it is"
 msgstr "What it is"
 
@@ -10096,25 +10295,29 @@ msgstr "What it is"
 msgid "What it is about"
 msgstr "What it is about"
 
-#: src/components/dashboard/content-type-editor.tsx:235
+#: src/components/dashboard/content-type-editor.tsx:99
+#: src/components/dashboard/content-type-editor.tsx:146
 #: src/routes/dashboard.boards.tsx:162
-#: src/routes/dashboard.flows.tsx:330
-#: src/routes/dashboard.flows.tsx:544
-#: src/routes/dashboard.forms.tsx:397
-#: src/routes/dashboard.mail.tsx:358
-#: src/routes/dashboard.products.tsx:208
-#: src/routes/dashboard.settings.tsx:72
+#: src/routes/dashboard.flows.tsx:215
+#: src/routes/dashboard.forms.tsx:392
+#: src/routes/dashboard.mail.tsx:258
+#: src/routes/dashboard.products.tsx:209
+#: src/routes/dashboard.settings.tsx:71
 #: src/routes/dashboard.teaching.start.tsx:76
 msgid "What it is called"
 msgstr "What it is called"
+
+#: src/routes/dashboard.settings.tsx:65
+msgid "What it is called and where it answers."
+msgstr "What it is called and where it answers."
 
 #: src/routes/dashboard.boards.tsx:156
 msgid "What it is called, and the stages a card moves through. Both can be changed afterwards."
 msgstr "What it is called, and the stages a card moves through. Both can be changed afterwards."
 
 #: src/routes/dashboard.settings.tsx:66
-msgid "What it is called, how much room it has left, and where it answers."
-msgstr "What it is called, how much room it has left, and where it answers."
+#~ msgid "What it is called, how much room it has left, and where it answers."
+#~ msgstr "What it is called, how much room it has left, and where it answers."
 
 #: src/routes/dashboard.sites.tsx:534
 #~ msgid "What it is for"
@@ -10129,11 +10332,11 @@ msgstr "What it is called, how much room it has left, and where it answers."
 #~ msgstr "What it owes"
 
 #: src/routes/dashboard.publish.tsx:140
-msgid "What it said"
-msgstr "What it said"
+#~ msgid "What it said"
+#~ msgstr "What it said"
 
 #: src/routes/dashboard.letters.tsx:185
-#: src/routes/dashboard.mail.tsx:420
+#: src/routes/dashboard.mail.tsx:320
 msgid "What it says"
 msgstr "What it says"
 
@@ -10141,7 +10344,7 @@ msgstr "What it says"
 #~ msgid "What it says nothing about"
 #~ msgstr "What it says nothing about"
 
-#: src/routes/dashboard.coupons.tsx:205
+#: src/routes/dashboard.coupons.tsx:193
 msgid "What it takes off"
 msgstr "What it takes off"
 
@@ -10157,7 +10360,7 @@ msgstr "What it will look like"
 #~ msgid "What it will write"
 #~ msgstr "What it will write"
 
-#: src/components/report-a-problem.tsx:199
+#: src/components/report-a-problem.tsx:149
 msgid "What kind of thing"
 msgstr "What kind of thing"
 
@@ -10174,11 +10377,11 @@ msgstr "What kind of thing"
 #~ msgid "What one of them holds"
 #~ msgstr "What one of them holds"
 
-#: src/components/dashboard/content-type-editor.tsx:206
+#: src/components/dashboard/content-type-editor.tsx:117
 msgid "What one of these holds"
 msgstr "What one of these holds"
 
-#: src/components/dashboard/content-type-editor.tsx:120
+#: src/components/dashboard/content-type-editor.tsx:92
 msgid "What one of these is made of, beyond its title and its text."
 msgstr "What one of these is made of, beyond its title and its text."
 
@@ -10198,11 +10401,11 @@ msgstr "What one of these is made of, beyond its title and its text."
 msgid "what somebody sent"
 msgstr "what somebody sent"
 
-#: src/routes/dashboard.flows.tsx:339
+#: src/routes/dashboard.flows.tsx:224
 msgid "What starts it"
 msgstr "What starts it"
 
-#: src/routes/dashboard.flows.tsx:324
+#: src/routes/dashboard.flows.tsx:209
 msgid "What starts it, and what it does. Each step's settings are written as JSON, which is what the API keeps."
 msgstr "What starts it, and what it does. Each step's settings are written as JSON, which is what the API keeps."
 
@@ -10223,14 +10426,14 @@ msgstr "What starts it, and what it does. Each step's settings are written as JS
 #~ msgstr "What the mail is"
 
 #: src/components/dashboard/content-type-editor.tsx:153
-msgid "What the panel calls this for somebody reading it in that language. Left empty, it is called what it is called above."
-msgstr "What the panel calls this for somebody reading it in that language. Left empty, it is called what it is called above."
+#~ msgid "What the panel calls this for somebody reading it in that language. Left empty, it is called what it is called above."
+#~ msgstr "What the panel calls this for somebody reading it in that language. Left empty, it is called what it is called above."
 
 #: src/routes/dashboard.index.tsx:162
 #~ msgid "What there is"
 #~ msgstr "What there is"
 
-#: src/routes/dashboard.users.tsx:336
+#: src/routes/dashboard.users.tsx:329
 msgid "What they may reach"
 msgstr "What they may reach"
 
@@ -10251,8 +10454,8 @@ msgstr "What they may reach"
 #~ msgstr "What this account may do. Arrange roles under Roles."
 
 #: src/routes/dashboard.boards_.$boardId.tsx:173
-msgid "What this board is called"
-msgstr "What this board is called"
+#~ msgid "What this board is called"
+#~ msgstr "What this board is called"
 
 #: src/routes/dashboard.boards.tsx:327
 #~ msgid "What this board is for — only you see this"
@@ -10262,31 +10465,31 @@ msgstr "What this board is called"
 #~ msgid "What this form is for — only you see this"
 #~ msgstr "What this form is for — only you see this"
 
-#: src/routes/dashboard.usage.tsx:103
+#: src/routes/dashboard.usage.tsx:66
 msgid "What this is holding"
 msgstr "What this is holding"
 
 #: src/routes/dashboard.courses.$courseId.tsx:175
-msgid "What this part is called"
-msgstr "What this part is called"
+#~ msgid "What this part is called"
+#~ msgstr "What this part is called"
 
 #: src/routes/dashboard.flows.tsx:279
-msgid "What this run did"
-msgstr "What this run did"
+#~ msgid "What this run did"
+#~ msgstr "What this run did"
 
 #: src/routes/dashboard.billing.tsx:76
 #~ msgid "What this site is using this month, and what it owes for it."
 #~ msgstr "What this site is using this month, and what it owes for it."
 
-#: src/routes/dashboard.plugins.tsx:147
+#: src/routes/dashboard.plugins.tsx:90
 msgid "What this site plugs into. Anything not here is not something it can be made to talk to."
 msgstr "What this site plugs into. Anything not here is not something it can be made to talk to."
 
-#: src/routes/dashboard.content-types.tsx:66
+#: src/routes/dashboard.content-types.tsx:61
 msgid "What this site publishes"
 msgstr "What this site publishes"
 
-#: src/routes/dashboard.products.tsx:127
+#: src/routes/dashboard.products.tsx:128
 msgid "What this site sells. Stock is held while somebody pays and let go if they do not, so two people cannot buy the last one."
 msgstr "What this site sells. Stock is held while somebody pays and let go if they do not, so two people cannot buy the last one."
 
@@ -10330,13 +10533,17 @@ msgstr "What this site writes to one person: an invitation, a password link, a r
 #~ msgid "What was typed into {field}"
 #~ msgstr "What was typed into {field}"
 
-#: src/routes/dashboard.users.tsx:451
+#: src/routes/dashboard.users.tsx:444
 msgid "What we hold about somebody"
 msgstr "What we hold about somebody"
 
 #: src/routes/dashboard.themes.tsx:692
 #~ msgid "What went in"
 #~ msgstr "What went in"
+
+#: src/routes/dashboard.publish.tsx:90
+msgid "What went wrong"
+msgstr "What went wrong"
 
 #: src/routes/dashboard.billing.tsx:109
 #~ msgid "What whoever runs this site for you has billed, and what has been paid."
@@ -10362,11 +10569,11 @@ msgstr "What we hold about somebody"
 #~ msgid "What you have asked for"
 #~ msgstr "What you have asked for"
 
-#: src/components/report-a-problem.tsx:183
+#: src/components/report-a-problem.tsx:133
 msgid "What you have said before"
 msgstr "What you have said before"
 
-#: src/components/report-a-problem.tsx:239
+#: src/components/report-a-problem.tsx:189
 msgid "What you were doing, and what you expected instead. Not required."
 msgstr "What you were doing, and what you expected instead. Not required."
 
@@ -10374,7 +10581,7 @@ msgstr "What you were doing, and what you expected instead. Not required."
 #~ msgid "Whatever was sent, as text"
 #~ msgstr "Whatever was sent, as text"
 
-#: src/routes/dashboard.forms_.$formId.tsx:192
+#: src/routes/dashboard.forms_.$formId.tsx:172
 msgid "When"
 msgstr "When"
 
@@ -10443,8 +10650,8 @@ msgstr "When something is, it appears here first."
 #~ msgstr "Where this site's pages come from, and how the last builds went."
 
 #: src/routes/dashboard.settings.tsx:404
-msgid "Where to ask who they are"
-msgstr "Where to ask who they are"
+#~ msgid "Where to ask who they are"
+#~ msgstr "Where to ask who they are"
 
 #: src/components/plugin-forms.tsx:180
 #: src/routes/dashboard.plugins_.backup.tsx:350
@@ -10460,24 +10667,28 @@ msgid "Where to send the receipt"
 msgstr "Where to send the receipt"
 
 #: src/routes/dashboard.settings.tsx:394
-msgid "Where to send them"
-msgstr "Where to send them"
+#~ msgid "Where to send them"
+#~ msgstr "Where to send them"
 
 #: src/routes/dashboard.settings.tsx:399
-msgid "Where to trade the code"
-msgstr "Where to trade the code"
+#~ msgid "Where to trade the code"
+#~ msgstr "Where to trade the code"
 
-#: src/components/report-a-problem.tsx:280
+#: src/components/report-a-problem.tsx:230
 msgid "Which browser you are using, which screen you were on and anything the panel has already recorded going wrong are sent with this. It goes to whoever runs this server, and nowhere else."
 msgstr "Which browser you are using, which screen you were on and anything the panel has already recorded going wrong are sent with this. It goes to whoever runs this server, and nowhere else."
 
-#: src/routes/dashboard.students.tsx:381
+#: src/routes/dashboard.students.tsx:227
 msgid "Which course"
 msgstr "Which course"
 
+#: src/routes/dashboard.students.tsx:194
+msgid "Which course to enroll the student in."
+msgstr "Which course to enroll the student in."
+
 #: src/routes/dashboard.students.tsx:349
-msgid "Which course, and for how long. Access with no end date runs until somebody takes it back."
-msgstr "Which course, and for how long. Access with no end date runs until somebody takes it back."
+#~ msgid "Which course, and for how long. Access with no end date runs until somebody takes it back."
+#~ msgstr "Which course, and for how long. Access with no end date runs until somebody takes it back."
 
 #: src/routes/dashboard.api.tsx:277
 #~ msgid "Which fields a form takes, and which are required."
@@ -10499,7 +10710,7 @@ msgstr "Which course, and for how long. Access with no end date runs until someb
 #~ msgid "Which language"
 #~ msgstr "Which language"
 
-#: src/routes/dashboard.users.tsx:342
+#: src/routes/dashboard.users.tsx:335
 msgid "Which role"
 msgstr "Which role"
 
@@ -10507,7 +10718,7 @@ msgstr "Which role"
 #~ msgid "Which service"
 #~ msgstr "Which service"
 
-#: src/routes/dashboard.users.tsx:174
+#: src/routes/dashboard.users.tsx:172
 msgid "Who can sign in to this site and write on it."
 msgstr "Who can sign in to this site and write on it."
 
@@ -10528,16 +10739,20 @@ msgstr "Who did what to this site, and when."
 #~ msgstr "Who has it"
 
 #: src/routes/dashboard.courses.$courseId.tsx:316
-msgid "Who is on it"
-msgstr "Who is on it"
+#~ msgid "Who is on it"
+#~ msgstr "Who is on it"
+
+#: src/routes/dashboard.students.tsx:78
+msgid "Who may watch what, and until when."
+msgstr "Who may watch what, and until when."
 
 #: src/routes/dashboard.students.tsx:196
 #~ msgid "Who may watch what, and until when. Nobody types anybody's password: add somebody, send them the link, and they choose one."
 #~ msgstr "Who may watch what, and until when. Nobody types anybody's password: add somebody, send them the link, and they choose one."
 
 #: src/routes/dashboard.students.tsx:143
-msgid "Who may watch what, and until when. Putting somebody on a course makes their account and shows their password once."
-msgstr "Who may watch what, and until when. Putting somebody on a course makes their account and shows their password once."
+#~ msgid "Who may watch what, and until when. Putting somebody on a course makes their account and shows their password once."
+#~ msgstr "Who may watch what, and until when. Putting somebody on a course makes their account and shows their password once."
 
 #: src/components/ses-account.tsx:369
 #~ msgid "Who receives it, how they came to be on the list, and how they stop it. A person at Amazon reads this."
@@ -10620,6 +10835,10 @@ msgstr "Whole word"
 #~ msgid "Won"
 #~ msgstr "Won"
 
+#: src/routes/dashboard.index.tsx:118
+msgid "Work backlog"
+msgstr "Work backlog"
+
 #: src/routes/dashboard.billing.tsx:300
 #~ msgid "Work done on this site"
 #~ msgstr "Work done on this site"
@@ -10659,10 +10878,10 @@ msgstr "Working on it"
 #~ msgstr "Working on this site locally"
 
 #: src/components/dashboard/dashboard-shell.tsx:151
-msgid "Working through"
-msgstr "Working through"
+#~ msgid "Working through"
+#~ msgstr "Working through"
 
-#: src/routes/dashboard.coupons.tsx:264
+#: src/routes/dashboard.coupons.tsx:232
 msgid "Works until"
 msgstr "Works until"
 
@@ -10676,14 +10895,14 @@ msgstr "Works until"
 
 #: src/components/editor/post-settings.tsx:110
 #: src/routes/dashboard.index.tsx:246
-msgid "Worth looking at"
-msgstr "Worth looking at"
+#~ msgid "Worth looking at"
+#~ msgstr "Worth looking at"
 
 #: src/lib/lead-words.ts:39
 #~ msgid "Worth pursuing"
 #~ msgstr "Worth pursuing"
 
-#: src/routes/dashboard.roles.tsx:185
+#: src/routes/dashboard.roles.tsx:173
 msgid "Write"
 msgstr "Write"
 
@@ -10704,8 +10923,8 @@ msgstr "Write"
 #~ msgstr "Write it in"
 
 #: src/routes/dashboard.mail.tsx:201
-msgid "Write one"
-msgstr "Write one"
+#~ msgid "Write one"
+#~ msgstr "Write one"
 
 #: src/routes/console.sites.$siteId.tsx:304
 #~ msgid "Write something on the account"
@@ -10716,9 +10935,9 @@ msgstr "Write one"
 #~ msgid "Write time in"
 #~ msgstr "Write time in"
 
-#: src/routes/dashboard.api.tsx:362
-#~ msgid "Writing"
-#~ msgstr "Writing"
+#: src/routes/dashboard.publish.tsx:36
+msgid "Writing"
+msgstr "Writing"
 
 #: src/routes/console.themes.tsx:311
 #~ msgid "writing the content"
@@ -10729,11 +10948,16 @@ msgstr "Write one"
 #~ msgid "writing the content — {0} parts done"
 #~ msgstr "writing the content — {0} parts done"
 
+#: src/routes/dashboard.index.tsx:72
+#: src/routes/dashboard.usage.tsx:80
+msgid "Writings"
+msgstr "Writings"
+
 #: src/routes/dashboard.index.tsx:115
 #: src/routes/dashboard.index.tsx:145
 #: src/routes/dashboard.mail_.campaigns.$campaignId.tsx:114
-msgid "Written"
-msgstr "Written"
+#~ msgid "Written"
+#~ msgstr "Written"
 
 #: src/components/dashboard/server-home.tsx:97
 #~ msgid "Written across them all"
@@ -10747,9 +10971,13 @@ msgstr "Written"
 #~ msgid "Written down beside the demo's number and never confused with it: the pages and the code that renders them move separately."
 #~ msgstr "Written down beside the demo's number and never confused with it: the pages and the code that renders them move separately."
 
+#: src/routes/dashboard.mail.tsx:286
+msgid "Written now, sent to everyone on the list."
+msgstr "Written now, sent to everyone on the list."
+
 #: src/routes/dashboard.mail.tsx:386
-msgid "Written now, sent when you press send. Everybody on the list gets it once."
-msgstr "Written now, sent when you press send. Everybody on the list gets it once."
+#~ msgid "Written now, sent when you press send. Everybody on the list gets it once."
+#~ msgstr "Written now, sent when you press send. Everybody on the list gets it once."
 
 #: src/lib/audit-looks.ts:46
 #~ msgid "Wrong password"
@@ -10760,12 +10988,12 @@ msgstr "Written now, sent when you press send. Everybody on the list gets it onc
 msgid "Yellow"
 msgstr "Yellow"
 
-#: src/routes/dashboard.settings.tsx:548
+#: src/routes/dashboard.settings.tsx:390
 msgid "Yes"
 msgstr "Yes"
 
-#: src/components/dashboard/content-type-editor.tsx:75
-#: src/routes/dashboard.forms.tsx:363
+#: src/components/dashboard/content-type-editor.tsx:57
+#: src/routes/dashboard.forms.tsx:358
 msgid "Yes or no"
 msgstr "Yes or no"
 
@@ -10825,6 +11053,10 @@ msgstr "Yes or no"
 #~ msgid "Your account"
 #~ msgstr "Your account"
 
+#: src/routes/forgotten.tsx:121
+msgid "Your address is confirmed"
+msgstr "Your address is confirmed"
+
 #: src/components/console/console-shell.tsx:82
 #~ msgid "Your agency"
 #~ msgstr "Your agency"
@@ -10872,7 +11104,7 @@ msgstr "Yes or no"
 #~ msgid "Your monthly hosting"
 #~ msgstr "Your monthly hosting"
 
-#: src/routes/setup.tsx:106
+#: src/routes/setup.tsx:124
 msgid "Your name"
 msgstr "Your name"
 
@@ -10892,7 +11124,7 @@ msgstr "Your name"
 #~ msgid "Your own code"
 #~ msgstr "Your own code"
 
-#: src/routes/dashboard.users.tsx:267
+#: src/routes/dashboard.users.tsx:260
 msgid "Your own password"
 msgstr "Your own password"
 
@@ -10909,8 +11141,8 @@ msgstr "Your own password"
 #~ msgstr "Your pages are built from your own project. Publishing builds them again with what is in the CMS now."
 
 #: src/routes/dashboard.settings.tsx:207
-msgid "Your password, to turn it off"
-msgstr "Your password, to turn it off"
+#~ msgid "Your password, to turn it off"
+#~ msgstr "Your password, to turn it off"
 
 #: src/components/dashboard/allowed.tsx:37
 msgid "Your role does not reach this screen. Whoever runs the site can change that under People."

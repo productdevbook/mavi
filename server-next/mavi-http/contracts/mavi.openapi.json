@@ -568,6 +568,75 @@
             "internal"
           ]
         }
+      },
+      "get": {
+        "operationId": "auth.session.current",
+        "summary": "Read the current account session",
+        "tags": [
+          "auth"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentSession"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-mavi": {
+          "scope": "site",
+          "authentication": "account",
+          "mutation": {
+            "self_only": {
+              "idempotent": false
+            }
+          },
+          "permission": null,
+          "errors": [
+            "unauthenticated",
+            "not_found",
+            "internal"
+          ]
+        }
       }
     },
     "/api/v1/auth/api-keys": {
@@ -20812,6 +20881,25 @@
               "null"
             ],
             "maxLength": 512
+          }
+        }
+      },
+      "CurrentSession": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "person",
+          "grants"
+        ],
+        "properties": {
+          "person": {
+            "$ref": "#/components/schemas/PersonRecord"
+          },
+          "grants": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Grant"
+            }
           }
         }
       },

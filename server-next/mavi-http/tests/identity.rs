@@ -13,6 +13,41 @@ use support::{login, protected_mail_body, response_json, send, send_with_peer};
 
 #[tokio::test]
 #[ignore = "requires TEST_DATABASE_URL and a non-superuser PostgreSQL role"]
+async fn current_session_returns_only_the_authenticated_person_grants() {
+    let (app, _database, _site_id) = support::build_app_with_database().await;
+    let owner_token = bootstrap(&app).await;
+
+    let anonymous = send(
+        &app,
+        Method::GET,
+        "/api/v1/auth/sessions/current",
+        None,
+        None,
+    )
+    .await;
+    assert_eq!(anonymous.status(), StatusCode::UNAUTHORIZED);
+
+    let current = send(
+        &app,
+        Method::GET,
+        "/api/v1/auth/sessions/current",
+        Some(&owner_token),
+        None,
+    )
+    .await;
+    assert_eq!(current.status(), StatusCode::OK);
+    let current = response_json(current).await;
+    assert_eq!(current["person"]["email"], "owner@example.com");
+    assert_eq!(current["person"]["name"], "Owner");
+    assert!(current["grants"].as_array().is_some_and(|grants| {
+        grants
+            .iter()
+            .any(|grant| grant["capability"] == "content" && grant["action"] == "view")
+    }));
+}
+
+#[tokio::test]
+#[ignore = "requires TEST_DATABASE_URL and a non-superuser PostgreSQL role"]
 async fn identity_routes_enforce_authz_and_cursor_contracts() {
     let (app, database, site_id) = support::build_app_with_database().await;
     let owner_token = bootstrap(&app).await;

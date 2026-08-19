@@ -73,10 +73,11 @@ use mavi_forms::{
 };
 use mavi_identity::{
     ApiKeyCreated, ApiKeyListFilter, ApiKeyRecord, CreateApiKey, CreatePerson, CreateRole,
-    EmailVerificationRedeemInput, EmailVerificationRequestInput, EmailVerificationRequested,
-    IdentityService, LoginInput, PasswordResetRedeemInput, PasswordResetRequestInput,
-    PasswordResetRequested, PeopleListFilter, Person, PersonRecord, ReplaceRoleGrants, Role,
-    RoleListFilter, SessionCreated, SetupInput, SetupStatus, UpdatePersonStatus, audit_action,
+    CurrentSession, EmailVerificationRedeemInput, EmailVerificationRequestInput,
+    EmailVerificationRequested, IdentityService, LoginInput, PasswordResetRedeemInput,
+    PasswordResetRequestInput, PasswordResetRequested, PeopleListFilter, Person, PersonRecord,
+    ReplaceRoleGrants, Role, RoleListFilter, SessionCreated, SetupInput, SetupStatus,
+    UpdatePersonStatus, audit_action,
 };
 use mavi_jobs::{Job, JobListFilter, JobsService};
 use mavi_mail::{
@@ -1167,7 +1168,10 @@ where
             "/api/v1/auth/email-verifications/redeem",
             post(redeem_email_verification::<R>),
         )
-        .route("/api/v1/auth/sessions/current", delete(revoke_session::<R>))
+        .route(
+            "/api/v1/auth/sessions/current",
+            get(current_session::<R>).delete(revoke_session::<R>),
+        )
         .route(
             "/api/v1/auth/api-keys",
             get(list_api_keys::<R>).post(create_api_key::<R>),
@@ -2782,6 +2786,26 @@ where
         .map_err(HttpError)?;
     transaction.commit().await.map_err(HttpError)?;
     Ok(StatusCode::NO_CONTENT)
+}
+
+async fn current_session<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+) -> Result<Json<CurrentSession>, HttpError>
+where
+    R: SiteResolver,
+{
+    if !matches!(context.caller, Caller::Account { .. }) {
+        return Err(HttpError(MaviError::Unauthenticated));
+    }
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let session = state
+        .identity
+        .current_session(&mut transaction, &context)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(session))
 }
 
 async fn list_api_keys<R>(

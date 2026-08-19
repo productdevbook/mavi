@@ -8,7 +8,7 @@ import { ModeToggle } from "@/components/mode-toggle"
 import { ReportAProblem } from "@/components/report-a-problem"
 import { Button } from "@/components/ui/button"
 import { SidebarTrigger } from "@/components/ui/sidebar"
-import { api } from "@/lib/v1"
+import { signOut as authSignOut } from "@/lib/server-next-auth"
 
 interface DashboardHeaderProps {
   siteName?: string
@@ -26,7 +26,7 @@ export function DashboardHeader({
   const navigate = useNavigate()
 
   const signOut = React.useCallback(() => {
-    void api("sessions.end").finally(() => navigate({ to: "/login" }))
+    void authSignOut().finally(() => navigate({ to: "/login" }))
   }, [navigate])
 
   return (

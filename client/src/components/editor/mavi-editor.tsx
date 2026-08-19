@@ -59,7 +59,7 @@ import {
 } from "@/components/ui/sheet"
 import { api } from "@/lib/v1"
 import { said } from "@/lib/v1-said"
-import { signOut as authSignOut } from "@/lib/v1-auth"
+import { signOut as authSignOut } from "@/lib/server-next-auth"
 import type { Writing as Post } from "@api"
 import { slugify } from "@/lib/editor-utils"
 import { useLanguages } from "@/lib/use-languages"

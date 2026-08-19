@@ -1,22 +1,19 @@
 import * as React from "react"
-import { Link, useNavigate } from "@tanstack/react-router"
+import { useNavigate } from "@tanstack/react-router"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { Loader2 } from "lucide-react"
 
-import { api } from "@/lib/v1"
-import { said } from "@/lib/v1-said"
+import { nextApi } from "@/lib/server-next"
+import { serverNextMessage } from "@/lib/server-next-auth"
 import { AuthPageFrame } from "@/features/auth/auth-page-frame"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
 /**
- * One screen for three links: asking for a reset, choosing a password with
- * one that arrived, and proving an address changed elsewhere. An invitation
- * carries the same kind of link as a reset, so somebody just given an
- * account lands here too — but a link that only proves an address is not
- * asked to choose a password at all, so which of the two a token is for is
- * asked of the server before this shows either form.
+ * One screen for two steps: asking for a reset and choosing a password with
+ * the one-time token that arrived. Email verification is a separate API
+ * operation and is not guessed from a token on this screen.
  *
  * Asking for a reset says the same thing whether or not the address is one
  * this site knows: which addresses have accounts is not a question this
@@ -32,44 +29,17 @@ export function ForgottenPage({ token }: { token?: string }) {
   const [refused, setRefused] = React.useState("")
   const [busy, setBusy] = React.useState(false)
 
-  // What a token with no meaning of its own turns out to be for: a proof
-  // that only proves, or something this screen still has to ask a password
-  // for. Known only once the proof has been tried, because the ticket does
-  // not say what it was minted for until it is redeemed.
-  const [proof, setProof] = React.useState<"checking" | "proved" | "elsewhere">(
-    token ? "checking" : "elsewhere"
-  )
-
-  React.useEffect(() => {
-    if (!token) {
-      return
-    }
-
-    const link = token
-    let live = true
-
-    void (async () => {
-      try {
-        await api("addresses.prove", { body: { token: link } })
-        if (live) setProof("proved")
-      } catch {
-        if (live) setProof("elsewhere")
-      }
-    })()
-
-    return () => {
-      live = false
-    }
-  }, [token])
-
   const ask = async () => {
     setBusy(true)
     setRefused("")
 
     try {
+      await nextApi("auth.password_reset.request", {
+        body: { email: email.trim() },
+      })
       setAsked(true)
     } catch (why) {
-      setRefused(said(why))
+      setRefused(serverNextMessage(why))
     } finally {
       setBusy(false)
     }
@@ -80,38 +50,19 @@ export function ForgottenPage({ token }: { token?: string }) {
     setRefused("")
 
     try {
-      await api("passwords.choose", {
+      await nextApi("auth.password_reset.redeem", {
         body: { token: token ?? "", password },
       })
       await navigate({ to: "/login" })
     } catch (why) {
-      setRefused(said(why))
+      setRefused(serverNextMessage(why))
       setBusy(false)
     }
   }
 
   return (
     <AuthPageFrame>
-      {token && proof === "checking" ? (
-        <div className="flex justify-center py-4">
-          <Loader2 className="size-5 animate-spin text-muted-foreground" />
-        </div>
-      ) : token && proof === "proved" ? (
-        <div className="flex flex-col gap-2">
-          <h2 className="text-base font-semibold">
-            <Trans>Your address is confirmed</Trans>
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            <Trans>
-              Nothing else about your account changed. You can sign in the way
-              you always have.
-            </Trans>
-          </p>
-          <Button className="mt-2" render={<Link to="/login" />}>
-            <Trans>Go to sign in</Trans>
-          </Button>
-        </div>
-      ) : token ? (
+      {token ? (
         <form
           className="flex flex-col gap-4"
           onSubmit={(event) => {

@@ -925,7 +925,7 @@ msgstr "Yeni bir kod"
 msgid "A new file"
 msgstr "Yeni bir dosya"
 
-#: src/routes/dashboard.flows.tsx:207
+#: src/features/automation/flows-page.tsx:208
 msgid "A new flow"
 msgstr "Yeni bir akış"
 
@@ -1614,7 +1614,7 @@ msgstr "Bir tane daha"
 msgid "Another stage"
 msgstr "Bir aşama daha"
 
-#: src/routes/dashboard.flows.tsx:257
+#: src/features/automation/flows-page.tsx:258
 msgid "Another step"
 msgstr "Bir adım daha"
 
@@ -2330,6 +2330,7 @@ msgstr "{0} alanın {summary} tanesini açabilir."
 #: src/components/editor/dialogs.tsx:244
 #: src/components/editor/dialogs.tsx:330
 #: src/components/report-a-problem.tsx:236
+#: src/features/automation/flows-page.tsx:329
 #: src/features/content/content-list.tsx:316
 #: src/features/forms/forms-page.tsx:306
 #: src/features/forms/forms-page.tsx:328
@@ -2348,7 +2349,6 @@ msgstr "{0} alanın {summary} tanesini açabilir."
 #: src/routes/dashboard.boards.tsx:210
 #: src/routes/dashboard.boards.tsx:232
 #: src/routes/dashboard.design.tsx:213
-#: src/routes/dashboard.flows.tsx:329
 #: src/routes/dashboard.languages.tsx:183
 #: src/routes/dashboard.mail.tsx:268
 #: src/routes/dashboard.mail.tsx:332
@@ -3333,6 +3333,10 @@ msgstr ""
 msgid "Create a tag once and reuse it across content in this language."
 msgstr ""
 
+#: src/features/automation/flows-page.tsx:150
+msgid "Create a trigger and steps to automate work on this site."
+msgstr ""
+
 #: src/components/editor/extensions/slash-command.tsx:110
 msgid "Create an ordered list"
 msgstr "Sıralı liste oluştur"
@@ -4105,8 +4109,8 @@ msgstr "akış"
 #~ msgstr "Akış yazıldı"
 
 #: src/components/dashboard/dashboard-shell.tsx:94
+#: src/features/automation/flows-page.tsx:135
 #: src/features/people/roles-page.tsx:158
-#: src/routes/dashboard.flows.tsx:137
 #: src/routes/dashboard.index.tsx:112
 msgid "Flows"
 msgstr "Akışlar"
@@ -5365,10 +5369,10 @@ msgstr "Bir rol oluşturun, sonra aşağıda neler yapabileceğini işaretleyin.
 msgid "Make default"
 msgstr "Varsayılan yap"
 
+#: src/features/automation/flows-page.tsx:333
 #: src/features/people/roles-page.tsx:461
 #: src/features/shop/products-page.tsx:277
 #: src/routes/dashboard.boards.tsx:214
-#: src/routes/dashboard.flows.tsx:333
 #: src/routes/dashboard.mail.tsx:275
 msgid "Make it"
 msgstr "Oluştur"
@@ -5695,7 +5699,8 @@ msgstr "Yeni kategori"
 msgid "New code"
 msgstr "Yeni kod"
 
-#: src/routes/dashboard.flows.tsx:143
+#: src/features/automation/flows-page.tsx:139
+#: src/features/automation/flows-page.tsx:153
 msgid "New flow"
 msgstr "Yeni akış"
 
@@ -5889,7 +5894,7 @@ msgstr "kendine ait alanı yok"
 #~ msgid "No flows yet"
 #~ msgstr "Henüz akış yok"
 
-#: src/routes/dashboard.flows.tsx:154
+#: src/features/automation/flows-page.tsx:149
 msgid "No flows yet."
 msgstr "Henüz akış yok."
 
@@ -6608,7 +6613,7 @@ msgstr "Birkaç seçenekten biri"
 #~ msgid "One of a list"
 #~ msgstr "Listeden biri"
 
-#: src/routes/dashboard.flows.tsx:125
+#: src/features/automation/flows-page.tsx:124
 msgid "One of the steps is not written as JSON."
 msgstr "Adımlardan biri JSON olarak yazılmamış."
 
@@ -7489,6 +7494,8 @@ msgstr "Düzenli ifade"
 #: src/components/dashboard/content-type-editor.tsx:209
 #: src/components/editor/bubble-menus.tsx:201
 #: src/components/editor/bubble-menus.tsx:282
+#: src/features/automation/flows-page.tsx:181
+#: src/features/automation/flows-page.tsx:299
 #: src/features/forms/forms-page.tsx:216
 #: src/features/forms/forms-page.tsx:330
 #: src/features/forms/forms-page.tsx:466
@@ -7503,8 +7510,6 @@ msgstr "Düzenli ifade"
 #: src/routes/dashboard.boards.tsx:188
 #: src/routes/dashboard.boards.tsx:234
 #: src/routes/dashboard.content-types.tsx:106
-#: src/routes/dashboard.flows.tsx:180
-#: src/routes/dashboard.flows.tsx:299
 #: src/routes/dashboard.forms_.$formId.tsx:212
 #: src/routes/dashboard.languages.tsx:185
 #: src/routes/dashboard.videos.tsx:133
@@ -8585,7 +8590,7 @@ msgstr "Yazmaya başla veya komutlar için “/” yaz…"
 msgid "Status"
 msgstr "Durum"
 
-#: src/routes/dashboard.flows.tsx:246
+#: src/features/automation/flows-page.tsx:247
 msgid "Steps"
 msgstr "Adımlar"
 
@@ -10271,7 +10276,7 @@ msgstr "Bu sitedeki her rolün neyi okuyabileceği, yazabileceği ve silebilece�
 #~ msgid "What happened"
 #~ msgstr "Ne oldu"
 
-#: src/routes/dashboard.flows.tsx:139
+#: src/features/automation/flows-page.tsx:136
 msgid "What happens by itself when something happens: a form comes in, an order is paid. One trigger, then steps in order."
 msgstr "Bir şey olduğunda kendiliğinden olanlar: form gelir, sipariş ödenir. Tek tetikleyici, sonra sırayla adımlar."
 
@@ -10345,12 +10350,12 @@ msgstr "Neyle ilgili"
 
 #: src/components/dashboard/content-type-editor.tsx:99
 #: src/components/dashboard/content-type-editor.tsx:146
+#: src/features/automation/flows-page.tsx:216
 #: src/features/forms/forms-page.tsx:401
 #: src/features/learning/start-teaching-page.tsx:70
 #: src/features/settings/settings-page.tsx:64
 #: src/features/shop/products-page.tsx:212
 #: src/routes/dashboard.boards.tsx:162
-#: src/routes/dashboard.flows.tsx:215
 #: src/routes/dashboard.mail.tsx:258
 msgid "What it is called"
 msgstr "Görünen adı"
@@ -10449,11 +10454,11 @@ msgstr "Bunlardan birinin, başlığı ve metninin ötesinde nelerden oluştuğu
 msgid "what somebody sent"
 msgstr "birinin gönderdiği"
 
-#: src/routes/dashboard.flows.tsx:224
+#: src/features/automation/flows-page.tsx:225
 msgid "What starts it"
 msgstr "Onu ne başlatır"
 
-#: src/routes/dashboard.flows.tsx:209
+#: src/features/automation/flows-page.tsx:210
 msgid "What starts it, and what it does. Each step's settings are written as JSON, which is what the API keeps."
 msgstr "Onu ne başlatır ve ne yapar. Her adımın ayarları JSON olarak yazılır; API de böyle saklar."
 

@@ -6,15 +6,16 @@
 //! both. The two systems cannot share one transaction, so cleanup remains an
 //! explicit retryable adapter operation.
 
-use std::collections::BTreeSet;
+use std::{collections::BTreeSet, io::Cursor as IoCursor};
 
 use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
 use chrono::{DateTime, Duration, Utc};
+use image::{ImageReader, Limits, codecs::jpeg::JpegEncoder, imageops::FilterType};
 use mavi_audit::{AuditEntry, AuditService};
 use mavi_contract::{Endpoint, Method, Permission, Shape};
 use mavi_core::{
-    Action, Capability, Cursor, ErrorCode, FileId, JobId, MaviError, Page, PageRequest, Result,
-    SiteContext, ports::FileStore,
+    Action, Capability, Cursor, ErrorCode, FileId, JobId, MaviError, MediaVariantId, Page,
+    PageRequest, Result, SiteContext, ports::FileStore,
 };
 use mavi_jobs::{JobKind, JobState, JobsService};
 use mavi_storage::SiteTx;
@@ -32,8 +33,12 @@ pub const FILE_NAME_INVALID: &str = "media_file_name_invalid";
 pub const FILE_NAME_TOO_LONG: &str = "media_file_name_too_long";
 pub const FILE_VISIBILITY_INVALID: &str = "media_file_visibility_invalid";
 pub const MEDIA_CLEANUP_JOB: JobKind = JobKind::new("media.cleanup", 8);
+pub const MEDIA_VARIANT_JOB: JobKind = JobKind::new("media.variant_generate", 5);
 pub const MEDIA_ORPHAN_CLEANUP_JOB: JobKind = JobKind::new("media.orphan_cleanup", 5);
 pub const MEDIA_ORPHAN_BUCKET_SECONDS: i64 = 60 * 60;
+pub const MAX_VARIANT_SOURCE_DIMENSION: u32 = 10_000;
+pub const MAX_VARIANT_SOURCE_ALLOC: u64 = 256 * 1024 * 1024;
+const VARIANT_JPEG_QUALITY: u8 = 82;
 
 pub const MAX_FILE_BYTES: usize = 100 * 1024 * 1024;
 /// Maximum raw binary payload carried by one private shard relocation.
@@ -108,6 +113,84 @@ pub struct FileListFilter {
     pub kind: Option<FileKind>,
 }
 
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq)]
+pub struct FileVariantListFilter {
+    #[serde(flatten)]
+    pub page: PageRequest,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum VariantPreset {
+    Thumbnail,
+    Medium,
+    Large,
+}
+
+impl VariantPreset {
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Thumbnail => "thumbnail",
+            Self::Medium => "medium",
+            Self::Large => "large",
+        }
+    }
+
+    #[must_use]
+    pub const fn max_dimension(self) -> u32 {
+        match self {
+            Self::Thumbnail => 320,
+            Self::Medium => 1024,
+            Self::Large => 2048,
+        }
+    }
+
+    fn parse(value: &str) -> Result<Self> {
+        match value {
+            "thumbnail" => Ok(Self::Thumbnail),
+            "medium" => Ok(Self::Medium),
+            "large" => Ok(Self::Large),
+            _ => Err(MaviError::validation("media_variant_preset_invalid")),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct FileVariant {
+    pub id: MediaVariantId,
+    pub source_file_id: FileId,
+    pub preset: VariantPreset,
+    pub mime: String,
+    pub width: u32,
+    pub height: u32,
+    pub bytes: u64,
+    pub sha256: String,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct MediaVariantJob {
+    pub source_file_id: FileId,
+    pub variant_id: MediaVariantId,
+    pub preset: VariantPreset,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RenderedVariant {
+    pub content: Vec<u8>,
+    pub width: u32,
+    pub height: u32,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct MediaVariantSource {
+    pub storage_key: String,
+    pub bytes: u64,
+    pub sha256: String,
+}
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct UploadFileQuery {
@@ -139,6 +222,8 @@ pub struct FileRecord {
 pub struct MediaCleanupJob {
     pub file_id: FileId,
     pub storage_key: String,
+    #[serde(default)]
+    pub additional_storage_keys: Vec<String>,
 }
 
 /// Payload for the periodic, site-scoped storage reconciliation job.
@@ -316,6 +401,43 @@ pub fn endpoints() -> Vec<Endpoint> {
         ]),
         Endpoint::new(
             Method::Get,
+            "/api/v1/files/{id}/variants",
+            "media.files.variants.list",
+            "List generated image variants for a file",
+        )
+        .account_or_assistant()
+        .requires(Permission {
+            capability: Capability::Media,
+            action: Action::View,
+        })
+        .takes_query("FileVariantListFilter")
+        .returns(200, "FileVariantPage")
+        .refuses([
+            ErrorCode::Forbidden,
+            ErrorCode::NotFound,
+            ErrorCode::Validation,
+            ErrorCode::Internal,
+        ]),
+        Endpoint::new(
+            Method::Get,
+            "/api/v1/files/{id}/variants/{preset}/content",
+            "media.files.variants.download",
+            "Download a generated image variant for an authorized site caller",
+        )
+        .account_or_assistant()
+        .requires(Permission {
+            capability: Capability::Media,
+            action: Action::View,
+        })
+        .returns_raw(200, "FileBytes")
+        .refuses([
+            ErrorCode::Forbidden,
+            ErrorCode::NotFound,
+            ErrorCode::Validation,
+            ErrorCode::Internal,
+        ]),
+        Endpoint::new(
+            Method::Get,
             "/public/v1/files/{id}",
             "media.files.public_download",
             "Download a file explicitly marked public",
@@ -323,6 +445,19 @@ pub fn endpoints() -> Vec<Endpoint> {
         .public()
         .returns_raw(200, "FileBytes")
         .refuses([ErrorCode::NotFound, ErrorCode::Internal]),
+        Endpoint::new(
+            Method::Get,
+            "/public/v1/files/{id}/variants/{preset}",
+            "media.files.variants.public_download",
+            "Download a generated variant of an explicitly public file",
+        )
+        .public()
+        .returns_raw(200, "FileBytes")
+        .refuses([
+            ErrorCode::NotFound,
+            ErrorCode::Validation,
+            ErrorCode::Internal,
+        ]),
         Endpoint::new(
             Method::Delete,
             "/api/v1/files/{id}",
@@ -345,6 +480,7 @@ pub fn endpoints() -> Vec<Endpoint> {
 }
 
 #[must_use]
+#[allow(clippy::too_many_lines)]
 pub fn shapes() -> Vec<Shape> {
     vec![
         Shape::new(
@@ -365,6 +501,20 @@ pub fn shapes() -> Vec<Shape> {
                     "kind": {"$ref": "#/components/schemas/FileKind"},
                 },
             }),
+        ),
+        Shape::new(
+            "FileVariantListFilter",
+            json!({
+                "type": "object",
+                "properties": {
+                    "after": {"type": ["string", "null"], "maxLength": 512},
+                    "limit": {"type": "integer", "minimum": 1, "maximum": 100},
+                },
+            }),
+        ),
+        Shape::new(
+            "VariantPreset",
+            json!({"type": "string", "enum": ["thumbnail", "medium", "large"]}),
         ),
         Shape::new(
             "UploadFileQuery",
@@ -406,11 +556,46 @@ pub fn shapes() -> Vec<Shape> {
                 },
             }),
         ),
+        Shape::new(
+            "FileVariant",
+            json!({
+                "type": "object",
+                "required": ["id", "source_file_id", "preset", "mime", "width", "height", "bytes", "sha256", "created_at"],
+                "properties": {
+                    "id": {"type": "string", "format": "uuid"},
+                    "source_file_id": {"type": "string", "format": "uuid"},
+                    "preset": {"$ref": "#/components/schemas/VariantPreset"},
+                    "mime": {"type": "string", "const": "image/jpeg"},
+                    "width": {"type": "integer", "minimum": 1},
+                    "height": {"type": "integer", "minimum": 1},
+                    "bytes": {"type": "integer", "format": "int64", "minimum": 1},
+                    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+                    "created_at": {"type": "string", "format": "date-time"},
+                },
+            }),
+        ),
+        Shape::new(
+            "FileVariantPage",
+            json!({
+                "type": "object",
+                "required": ["items", "next_cursor"],
+                "properties": {
+                    "items": {"type": "array", "items": {"$ref": "#/components/schemas/FileVariant"}},
+                    "next_cursor": {"type": ["string", "null"], "maxLength": 512},
+                },
+            }),
+        ),
     ]
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 struct FileCursor {
+    created_at: DateTime<Utc>,
+    id: Uuid,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+struct VariantCursor {
     created_at: DateTime<Utc>,
     id: Uuid,
 }
@@ -681,6 +866,227 @@ impl MediaService {
         Ok(from_row(&row)?.record)
     }
 
+    pub async fn list_variants(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        source_file_id: FileId,
+        filter: &FileVariantListFilter,
+    ) -> Result<Page<FileVariant>> {
+        self.get(tx, context, source_file_id).await?;
+        let after = filter
+            .page
+            .after
+            .as_ref()
+            .map(decode_variant_cursor)
+            .transpose()?;
+        let limit = i64::from(filter.page.effective_limit());
+        let rows = match after {
+            Some(after) => sqlx::query(
+                "select id, source_file_id, preset, mime, width, height, bytes, sha256, created_at
+                       from media_variants
+                      where site_id = $1 and source_file_id = $2
+                        and (created_at, id) > ($3, $4)
+                      order by created_at asc, id asc
+                      limit $5",
+            )
+            .bind(context.site_id.into_uuid())
+            .bind(source_file_id.into_uuid())
+            .bind(after.created_at)
+            .bind(after.id)
+            .bind(limit + 1)
+            .fetch_all(tx.conn())
+            .await,
+            None => sqlx::query(
+                "select id, source_file_id, preset, mime, width, height, bytes, sha256, created_at
+                       from media_variants
+                      where site_id = $1 and source_file_id = $2
+                      order by created_at asc, id asc
+                      limit $3",
+            )
+            .bind(context.site_id.into_uuid())
+            .bind(source_file_id.into_uuid())
+            .bind(limit + 1)
+            .fetch_all(tx.conn())
+            .await,
+        }
+        .map_err(|_| MaviError::Internal)?;
+
+        let mut variants = rows
+            .iter()
+            .map(variant_from_row)
+            .collect::<Result<Vec<_>>>()?;
+        let limit_usize = usize::try_from(limit).map_err(|_| MaviError::Internal)?;
+        let next_cursor = if variants.len() > limit_usize {
+            let last = variants
+                .get(limit_usize.saturating_sub(1))
+                .ok_or(MaviError::Internal)?;
+            Some(encode_variant_cursor(last.created_at, last.id.into_uuid())?)
+        } else {
+            None
+        };
+        variants.truncate(limit_usize);
+        Ok(Page::new(variants, next_cursor))
+    }
+
+    pub async fn read_variant_bytes(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        store: &dyn FileStore,
+        source_file_id: FileId,
+        preset: VariantPreset,
+        public: bool,
+    ) -> Result<(FileVariant, Vec<u8>)> {
+        let row = if public {
+            sqlx::query(
+                "select v.id, v.source_file_id, v.preset, v.mime, v.storage_key,
+                        v.width, v.height, v.bytes, v.sha256, v.created_at
+                   from media_variants v
+                   join media_files f on f.site_id = v.site_id and f.id = v.source_file_id
+                  where v.site_id = $1 and v.source_file_id = $2 and v.preset = $3
+                    and f.visibility = 'public' and f.deleted_at is null",
+            )
+            .bind(context.site_id.into_uuid())
+            .bind(source_file_id.into_uuid())
+            .bind(preset.as_str())
+            .fetch_optional(tx.conn())
+            .await
+        } else {
+            sqlx::query(
+                "select v.id, v.source_file_id, v.preset, v.mime, v.storage_key,
+                        v.width, v.height, v.bytes, v.sha256, v.created_at
+                   from media_variants v
+                   join media_files f on f.site_id = v.site_id and f.id = v.source_file_id
+                  where v.site_id = $1 and v.source_file_id = $2 and v.preset = $3
+                    and f.deleted_at is null",
+            )
+            .bind(context.site_id.into_uuid())
+            .bind(source_file_id.into_uuid())
+            .bind(preset.as_str())
+            .fetch_optional(tx.conn())
+            .await
+        }
+        .map_err(|_| MaviError::Internal)?
+        .ok_or(MaviError::NotFound {
+            resource: "media_variant_not_found",
+        })?;
+        let stored = stored_variant_from_row(&row)?;
+        let bytes = store.get(context, &stored.storage_key).await?;
+        let expected_bytes = usize::try_from(stored.variant.bytes)
+            .map_err(|_| MaviError::validation("media_variant_integrity_failed"))?;
+        if bytes.len() != expected_bytes
+            || hex_digest(&Sha256::digest(&bytes)) != stored.variant.sha256
+        {
+            return Err(MaviError::validation("media_variant_integrity_failed"));
+        }
+        Ok((stored.variant, bytes))
+    }
+
+    /// Returns the live source receipt without exposing storage metadata to HTTP.
+    pub async fn variant_source(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        source_file_id: FileId,
+    ) -> Result<Option<MediaVariantSource>> {
+        let row = sqlx::query(
+            "select storage_key, bytes, sha256 from media_files
+              where site_id = $1 and id = $2 and kind = 'image' and deleted_at is null",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(source_file_id.into_uuid())
+        .fetch_optional(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?;
+        let Some(row) = row else {
+            return Ok(None);
+        };
+        let bytes: i64 = row.try_get("bytes").map_err(|_| MaviError::Internal)?;
+        Ok(Some(MediaVariantSource {
+            storage_key: row
+                .try_get("storage_key")
+                .map_err(|_| MaviError::Internal)?,
+            bytes: u64::try_from(bytes).map_err(|_| MaviError::Internal)?,
+            sha256: row.try_get("sha256").map_err(|_| MaviError::Internal)?,
+        }))
+    }
+
+    /// Finalizes a rendered variant only while its source is still live.
+    /// Returning the owned key makes a racing or repeated job safe to clean up
+    /// its candidate object without ever deleting an existing variant.
+    pub async fn finalize_variant(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        job: &MediaVariantJob,
+        storage_key: &str,
+        rendered: &RenderedVariant,
+    ) -> Result<Option<String>> {
+        let source_exists = self
+            .variant_source(tx, context, job.source_file_id)
+            .await?
+            .is_some();
+        if !source_exists {
+            return Ok(None);
+        }
+        let bytes = i64::try_from(rendered.content.len())
+            .map_err(|_| MaviError::validation("media_variant_too_large"))?;
+        let sha256 = hex_digest(&Sha256::digest(&rendered.content));
+        let inserted: Option<Uuid> = sqlx::query_scalar(
+            "insert into media_variants
+                (site_id, id, source_file_id, preset, mime, storage_key, width, height, bytes, sha256)
+             values ($1, $2, $3, $4, 'image/jpeg', $5, $6, $7, $8, $9)
+             on conflict (site_id, source_file_id, preset) do nothing
+             returning id",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(job.variant_id.into_uuid())
+        .bind(job.source_file_id.into_uuid())
+        .bind(job.preset.as_str())
+        .bind(storage_key)
+        .bind(i32::try_from(rendered.width).map_err(|_| MaviError::Internal)?)
+        .bind(i32::try_from(rendered.height).map_err(|_| MaviError::Internal)?)
+        .bind(bytes)
+        .bind(&sha256)
+        .fetch_optional(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?;
+
+        if inserted.is_some() {
+            AuditService
+                .record(
+                    tx,
+                    context,
+                    &AuditEntry {
+                        action: "media.variant.generated".to_owned(),
+                        resource_type: "MediaVariant".to_owned(),
+                        resource_id: Some(job.variant_id.into_uuid()),
+                        payload: json!({
+                            "source_file_id": job.source_file_id,
+                            "preset": job.preset,
+                            "width": rendered.width,
+                            "height": rendered.height,
+                            "bytes": bytes,
+                        }),
+                    },
+                )
+                .await?;
+            return Ok(Some(storage_key.to_owned()));
+        }
+
+        sqlx::query_scalar(
+            "select storage_key from media_variants
+              where site_id = $1 and source_file_id = $2 and preset = $3",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(job.source_file_id.into_uuid())
+        .bind(job.preset.as_str())
+        .fetch_optional(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)
+    }
+
     /// Reads a live file's metadata and bytes for an already-authorized caller.
     ///
     /// The storage key never leaves this adapter. Callers must perform their
@@ -811,7 +1217,7 @@ impl MediaService {
         jobs: &JobsService,
     ) -> Result<Option<JobId>> {
         let row = sqlx::query(
-            "select file_id, storage_key
+            "select file_id, storage_key, storage_keys
                from media_cleanup_tasks
               where site_id = $1 and completed_at is null
               order by created_at asc, file_id asc
@@ -829,8 +1235,18 @@ impl MediaService {
         let storage_key: String = row
             .try_get("storage_key")
             .map_err(|_| MaviError::Internal)?;
+        let additional_storage_keys: Vec<String> = row
+            .try_get("storage_keys")
+            .map_err(|_| MaviError::Internal)?;
         let job_id = self
-            .enqueue_cleanup_job(tx, context, jobs, file_id, &storage_key)
+            .enqueue_cleanup_job_with_variants(
+                tx,
+                context,
+                jobs,
+                file_id,
+                &storage_key,
+                additional_storage_keys,
+            )
             .await?;
         if jobs.get(tx, job_id).await?.state == JobState::Dead {
             jobs.retry_at(tx, context, job_id, Utc::now() + Duration::minutes(1))
@@ -848,9 +1264,23 @@ impl MediaService {
         file_id: FileId,
         storage_key: &str,
     ) -> Result<JobId> {
+        self.enqueue_cleanup_job_with_variants(tx, context, jobs, file_id, storage_key, Vec::new())
+            .await
+    }
+
+    async fn enqueue_cleanup_job_with_variants(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        jobs: &JobsService,
+        file_id: FileId,
+        storage_key: &str,
+        additional_storage_keys: Vec<String>,
+    ) -> Result<JobId> {
         let payload = serde_json::to_value(MediaCleanupJob {
             file_id,
             storage_key: storage_key.to_owned(),
+            additional_storage_keys,
         })
         .map_err(|_| MaviError::Internal)?;
         jobs.enqueue(
@@ -862,6 +1292,73 @@ impl MediaService {
             Some(&format!("media-cleanup:{file_id}")),
         )
         .await
+    }
+
+    /// Enqueues one missing preset for the oldest live image. Variants are
+    /// derived data: relocation and older uploads do not need to carry them,
+    /// because this discovery converges every image to the same preset set.
+    pub async fn enqueue_next_variant_job(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        jobs: &JobsService,
+    ) -> Result<Option<JobId>> {
+        let row = sqlx::query(
+            "with presets(preset) as (
+                 values ('thumbnail'::text), ('medium'::text), ('large'::text)
+             )
+             select f.id as source_file_id, p.preset
+               from media_files f
+               cross join presets p
+               left join media_variants v
+                 on v.site_id = f.site_id
+                and v.source_file_id = f.id
+                and v.preset = p.preset
+              where f.site_id = $1 and f.kind = 'image' and f.deleted_at is null
+                and v.id is null
+              order by f.created_at asc, f.id asc, p.preset asc
+              limit 1",
+        )
+        .bind(context.site_id.into_uuid())
+        .fetch_optional(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?;
+        let Some(row) = row else {
+            return Ok(None);
+        };
+        let source_file_id = FileId::from_uuid(
+            row.try_get("source_file_id")
+                .map_err(|_| MaviError::Internal)?,
+        );
+        let preset = VariantPreset::parse(
+            row.try_get::<String, _>("preset")
+                .map_err(|_| MaviError::Internal)?
+                .as_str(),
+        )?;
+        let job = MediaVariantJob {
+            source_file_id,
+            variant_id: deterministic_variant_id(source_file_id, preset),
+            preset,
+        };
+        let payload = serde_json::to_value(&job).map_err(|_| MaviError::Internal)?;
+        let job_id = jobs
+            .enqueue(
+                tx,
+                context,
+                MEDIA_VARIANT_JOB.name,
+                &payload,
+                None,
+                Some(&format!(
+                    "media-variant:{source_file_id}:{}",
+                    preset.as_str()
+                )),
+            )
+            .await?;
+        if jobs.get(tx, job_id).await?.state == JobState::Dead {
+            jobs.retry_at(tx, context, job_id, Utc::now() + Duration::minutes(1))
+                .await?;
+        }
+        Ok(Some(job_id))
     }
 
     /// Enqueues one immediate storage reconciliation job for the current
@@ -898,6 +1395,8 @@ impl MediaService {
         let rows = sqlx::query(
             "select storage_key from media_files where site_id = $1
              union
+             select storage_key from media_variants where site_id = $1
+             union
              select storage_key from media_cleanup_tasks
               where site_id = $1 and completed_at is null",
         )
@@ -906,9 +1405,46 @@ impl MediaService {
         .await
         .map_err(|_| MaviError::Internal)?;
 
-        rows.into_iter()
+        let mut keys = rows
+            .into_iter()
             .map(|row| row.try_get("storage_key").map_err(|_| MaviError::Internal))
-            .collect()
+            .collect::<Result<BTreeSet<_>>>()?;
+        let additional = sqlx::query(
+            "select unnest(storage_keys) as storage_key
+               from media_cleanup_tasks
+              where site_id = $1 and completed_at is null",
+        )
+        .bind(context.site_id.into_uuid())
+        .fetch_all(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?;
+        for row in additional {
+            keys.insert(
+                row.try_get("storage_key")
+                    .map_err(|_| MaviError::Internal)?,
+            );
+        }
+        let pending_variants = sqlx::query(
+            "select payload->>'variant_id' as variant_id
+               from jobs
+              where site_id = $1 and kind = $2 and state in ('ready', 'running')",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(MEDIA_VARIANT_JOB.name)
+        .fetch_all(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?;
+        for row in pending_variants {
+            let variant_id = row
+                .try_get::<Option<String>, _>("variant_id")
+                .map_err(|_| MaviError::Internal)?
+                .and_then(|value| Uuid::parse_str(&value).ok())
+                .map(MediaVariantId::from_uuid);
+            if let Some(variant_id) = variant_id {
+                keys.insert(variant_storage_key(variant_id));
+            }
+        }
+        Ok(keys)
     }
 
     /// Records one immutable receipt when orphan bytes were actually removed.
@@ -997,9 +1533,67 @@ impl MediaService {
     }
 }
 
+/// Decodes one uploaded image under bounded resource limits and produces a
+/// deterministic JPEG variant. The worker calls this in a blocking task so a
+/// malformed or unusually large image cannot block the async runtime.
+pub fn render_variant(source: &[u8], preset: VariantPreset) -> Result<RenderedVariant> {
+    let mut reader = ImageReader::new(IoCursor::new(source))
+        .with_guessed_format()
+        .map_err(|_| MaviError::validation("media_variant_image_invalid"))?;
+    let mut limits = Limits::default();
+    limits.max_image_width = Some(MAX_VARIANT_SOURCE_DIMENSION);
+    limits.max_image_height = Some(MAX_VARIANT_SOURCE_DIMENSION);
+    limits.max_alloc = Some(MAX_VARIANT_SOURCE_ALLOC);
+    reader.limits(limits);
+    let image = reader
+        .decode()
+        .map_err(|_| MaviError::validation("media_variant_image_invalid"))?;
+    let (source_width, source_height) = (image.width(), image.height());
+    let max_dimension = preset.max_dimension();
+    let (width, height) = if source_width >= source_height && source_width > max_dimension {
+        (
+            max_dimension,
+            u32::try_from(
+                u64::from(source_height) * u64::from(max_dimension) / u64::from(source_width),
+            )
+            .map_err(|_| MaviError::validation("media_variant_dimensions_invalid"))?
+            .max(1),
+        )
+    } else if source_height > max_dimension {
+        (
+            u32::try_from(
+                u64::from(source_width) * u64::from(max_dimension) / u64::from(source_height),
+            )
+            .map_err(|_| MaviError::validation("media_variant_dimensions_invalid"))?
+            .max(1),
+            max_dimension,
+        )
+    } else {
+        (source_width, source_height)
+    };
+    let resized = image
+        .resize_exact(width, height, FilterType::Lanczos3)
+        .to_rgb8();
+    let mut content = Vec::new();
+    JpegEncoder::new_with_quality(&mut content, VARIANT_JPEG_QUALITY)
+        .encode_image(&resized)
+        .map_err(|_| MaviError::validation("media_variant_encode_failed"))?;
+    Ok(RenderedVariant {
+        content,
+        width,
+        height,
+    })
+}
+
 #[derive(Clone, Debug)]
 struct StoredFile {
     record: FileRecord,
+    storage_key: String,
+}
+
+#[derive(Clone, Debug)]
+struct StoredVariant {
+    variant: FileVariant,
     storage_key: String,
 }
 
@@ -1026,6 +1620,39 @@ fn from_row(row: &sqlx::postgres::PgRow) -> Result<StoredFile> {
     })
 }
 
+fn variant_from_row(row: &sqlx::postgres::PgRow) -> Result<FileVariant> {
+    let width: i32 = row.try_get("width").map_err(|_| MaviError::Internal)?;
+    let height: i32 = row.try_get("height").map_err(|_| MaviError::Internal)?;
+    let bytes: i64 = row.try_get("bytes").map_err(|_| MaviError::Internal)?;
+    Ok(FileVariant {
+        id: MediaVariantId::from_uuid(row.try_get("id").map_err(|_| MaviError::Internal)?),
+        source_file_id: FileId::from_uuid(
+            row.try_get("source_file_id")
+                .map_err(|_| MaviError::Internal)?,
+        ),
+        preset: VariantPreset::parse(
+            row.try_get::<String, _>("preset")
+                .map_err(|_| MaviError::Internal)?
+                .as_str(),
+        )?,
+        mime: row.try_get("mime").map_err(|_| MaviError::Internal)?,
+        width: u32::try_from(width).map_err(|_| MaviError::Internal)?,
+        height: u32::try_from(height).map_err(|_| MaviError::Internal)?,
+        bytes: u64::try_from(bytes).map_err(|_| MaviError::Internal)?,
+        sha256: row.try_get("sha256").map_err(|_| MaviError::Internal)?,
+        created_at: row.try_get("created_at").map_err(|_| MaviError::Internal)?,
+    })
+}
+
+fn stored_variant_from_row(row: &sqlx::postgres::PgRow) -> Result<StoredVariant> {
+    Ok(StoredVariant {
+        variant: variant_from_row(row)?,
+        storage_key: row
+            .try_get("storage_key")
+            .map_err(|_| MaviError::Internal)?,
+    })
+}
+
 fn encode_cursor(created_at: DateTime<Utc>, id: Uuid) -> Result<Cursor> {
     let bytes =
         serde_json::to_vec(&FileCursor { created_at, id }).map_err(|_| MaviError::Internal)?;
@@ -1039,10 +1666,44 @@ fn decode_cursor(cursor: &Cursor) -> Result<FileCursor> {
     serde_json::from_slice(&bytes).map_err(|_| MaviError::validation("invalid_cursor"))
 }
 
+fn encode_variant_cursor(created_at: DateTime<Utc>, id: Uuid) -> Result<Cursor> {
+    let bytes =
+        serde_json::to_vec(&VariantCursor { created_at, id }).map_err(|_| MaviError::Internal)?;
+    Cursor::parse(URL_SAFE_NO_PAD.encode(bytes))
+}
+
+fn decode_variant_cursor(cursor: &Cursor) -> Result<VariantCursor> {
+    let bytes = URL_SAFE_NO_PAD
+        .decode(cursor.as_str())
+        .map_err(|_| MaviError::validation("invalid_cursor"))?;
+    serde_json::from_slice(&bytes).map_err(|_| MaviError::validation("invalid_cursor"))
+}
+
 fn storage_key(id: FileId, extension: &str) -> String {
+    storage_key_uuid(id.into_uuid(), extension)
+}
+
+fn deterministic_variant_id(source_file_id: FileId, preset: VariantPreset) -> MediaVariantId {
+    let digest = Sha256::digest(format!(
+        "mavi-media-variant:{source_file_id}:{}",
+        preset.as_str()
+    ));
+    let mut bytes = [0_u8; 16];
+    bytes.copy_from_slice(&digest[..16]);
+    bytes[6] = (bytes[6] & 0x0f) | 0x50;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    MediaVariantId::from_uuid(Uuid::from_bytes(bytes))
+}
+
+fn storage_key_uuid(id: Uuid, extension: &str) -> String {
     let flat = id.to_string().replace('-', "");
     let (front, back) = flat.split_at(2);
     format!("{front}/{back}.{extension}")
+}
+
+#[must_use]
+pub fn variant_storage_key(id: MediaVariantId) -> String {
+    storage_key_uuid(id.into_uuid(), "jpg")
 }
 
 /// Returns whether a storage key has Mavi's generated media shape.
@@ -1093,6 +1754,11 @@ fn hex_digest(digest: &[u8]) -> String {
         write!(output, "{byte:02x}").expect("writing to a String cannot fail");
     }
     output
+}
+
+#[must_use]
+pub fn sha256_digest(bytes: &[u8]) -> String {
+    hex_digest(&Sha256::digest(bytes))
 }
 
 fn validate_name(name: &str) -> Result<String> {
@@ -1225,6 +1891,30 @@ mod tests {
         assert!(!is_generated_media_storage_key(
             "ab/8f1f277f2d7c2e8c3d0123456789ab.png/extra"
         ));
+        assert!(is_generated_media_storage_key(&variant_storage_key(
+            MediaVariantId::from_uuid(
+                Uuid::parse_str("018f1f27-7f2d-7c2e-8c3d-0123456789ac").expect("uuid"),
+            ),
+        )));
+    }
+
+    #[test]
+    fn image_variants_are_bounded_and_keep_aspect_ratio() {
+        let source = image::DynamicImage::ImageRgb8(image::RgbImage::from_pixel(
+            640,
+            320,
+            image::Rgb([12, 34, 56]),
+        ));
+        let mut encoded = IoCursor::new(Vec::new());
+        source
+            .write_to(&mut encoded, image::ImageFormat::Png)
+            .expect("encode source");
+
+        let rendered = render_variant(&encoded.into_inner(), VariantPreset::Thumbnail)
+            .expect("render variant");
+        assert_eq!((rendered.width, rendered.height), (320, 160));
+        assert!(rendered.content.starts_with(&[0xff, 0xd8, 0xff]));
+        assert!(render_variant(b"not-an-image", VariantPreset::Thumbnail).is_err());
     }
 
     #[test]

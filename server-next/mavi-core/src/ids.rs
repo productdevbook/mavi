@@ -93,6 +93,7 @@ typed_id!(AnalyticsEventId);
 typed_id!(JobId);
 typed_id!(ContentId);
 typed_id!(FileId);
+typed_id!(MediaVariantId);
 typed_id!(ApiKeyId);
 typed_id!(CredentialId);
 typed_id!(PersonId);

@@ -737,6 +737,28 @@ export interface FilePage {
   next_cursor: string | null;
 }
 
+export interface FileVariant {
+  id: string;
+  source_file_id: string;
+  preset: VariantPreset;
+  mime: string;
+  width: number;
+  height: number;
+  bytes: number;
+  sha256: string;
+  created_at: string;
+}
+
+export interface FileVariantListFilter {
+  after?: string | null;
+  limit?: number;
+}
+
+export interface FileVariantPage {
+  items: FileVariant[];
+  next_cursor: string | null;
+}
+
 export type FileVisibility = "private" | "public";
 
 export interface Flow {
@@ -1752,6 +1774,8 @@ export interface UploadFileQuery {
   visibility?: FileVisibility;
 }
 
+export type VariantPreset = "thumbnail" | "medium" | "large";
+
 export interface MaviOperation {
   method: "get" | "post" | "put" | "patch" | "delete";
   path: string;
@@ -1818,7 +1842,10 @@ export const operations = {
   "media.files.upload": { method: "post", path: "/api/v1/files", input: { location: "raw", shape: "FileBytes" }, query: "UploadFileQuery", output: "File", status: 201, authentication: "account_or_assistant", permission: { capability: "media", action: "write" } },
   "media.files.read": { method: "get", path: "/api/v1/files/{id}", input: null, query: null, output: "File", status: 200, authentication: "account_or_assistant", permission: { capability: "media", action: "view" } },
   "media.files.download": { method: "get", path: "/api/v1/files/{id}/content", input: null, query: null, output: "FileBytes", outputLocation: "raw", status: 200, authentication: "account_or_assistant", permission: { capability: "media", action: "view" } },
+  "media.files.variants.list": { method: "get", path: "/api/v1/files/{id}/variants", input: { location: "query", shape: "FileVariantListFilter" }, query: null, output: "FileVariantPage", status: 200, authentication: "account_or_assistant", permission: { capability: "media", action: "view" } },
+  "media.files.variants.download": { method: "get", path: "/api/v1/files/{id}/variants/{preset}/content", input: null, query: null, output: "FileBytes", outputLocation: "raw", status: 200, authentication: "account_or_assistant", permission: { capability: "media", action: "view" } },
   "media.files.public_download": { method: "get", path: "/public/v1/files/{id}", input: null, query: null, output: "FileBytes", outputLocation: "raw", status: 200, authentication: "public", permission: null },
+  "media.files.variants.public_download": { method: "get", path: "/public/v1/files/{id}/variants/{preset}", input: null, query: null, output: "FileBytes", outputLocation: "raw", status: 200, authentication: "public", permission: null },
   "media.files.trash": { method: "delete", path: "/api/v1/files/{id}", input: null, query: null, output: "Empty", status: 204, authentication: "account_or_assistant", permission: { capability: "media", action: "delete" } },
   "audit.events.list": { method: "get", path: "/api/v1/audit", input: { location: "query", shape: "AuditListFilter" }, query: null, output: "AuditEventPage", status: 200, authentication: "account_or_assistant", permission: { capability: "audit", action: "view" } },
   "audit.events.read": { method: "get", path: "/api/v1/audit/{id}", input: null, query: null, output: "AuditEvent", status: 200, authentication: "account_or_assistant", permission: { capability: "audit", action: "view" } },
@@ -2009,7 +2036,10 @@ export interface OperationArguments {
   "media.files.upload": { path?: never; query: UploadFileQuery; body: Blob | ArrayBuffer | Uint8Array; }
   "media.files.read": { path: { id: string }; query?: never; body?: never; }
   "media.files.download": { path: { id: string }; query?: never; body?: never; }
+  "media.files.variants.list": { path: { id: string }; query: FileVariantListFilter; body?: never; }
+  "media.files.variants.download": { path: { id: string; preset: string }; query?: never; body?: never; }
   "media.files.public_download": { path: { id: string }; query?: never; body?: never; }
+  "media.files.variants.public_download": { path: { id: string; preset: string }; query?: never; body?: never; }
   "media.files.trash": { path: { id: string }; query?: never; body?: never; }
   "audit.events.list": { path?: never; query: AuditListFilter; body?: never; }
   "audit.events.read": { path: { id: string }; query?: never; body?: never; }
@@ -2198,7 +2228,10 @@ export interface OperationResponses {
   "media.files.upload": File;
   "media.files.read": File;
   "media.files.download": FileBytes;
+  "media.files.variants.list": FileVariantPage;
+  "media.files.variants.download": FileBytes;
   "media.files.public_download": FileBytes;
+  "media.files.variants.public_download": FileBytes;
   "media.files.trash": void;
   "audit.events.list": AuditEventPage;
   "audit.events.read": AuditEvent;

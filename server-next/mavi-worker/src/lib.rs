@@ -15,8 +15,9 @@ use mavi_content::{
 use mavi_core::{MaviError, RequestId, Result, SiteContext, SiteId, ports::FileStore};
 use mavi_jobs::{DEFAULT_LEASE_SECONDS, JobClaim, JobsService, LeaseOutcome};
 use mavi_media::{
-    MEDIA_CLEANUP_JOB, MEDIA_ORPHAN_CLEANUP_JOB, MediaCleanupJob, MediaOrphanCleanupJob,
-    MediaService, is_generated_media_storage_key,
+    MEDIA_CLEANUP_JOB, MEDIA_ORPHAN_CLEANUP_JOB, MEDIA_VARIANT_JOB, MediaCleanupJob,
+    MediaOrphanCleanupJob, MediaService, MediaVariantJob, is_generated_media_storage_key,
+    render_variant, variant_storage_key,
 };
 pub use mavi_observability::{WorkerMetrics, WorkerMetricsSnapshot};
 use mavi_storage::{Database, SiteTx};
@@ -108,6 +109,7 @@ impl WorkerSupervisor {
             jobs: JobsService::new([
                 SCHEDULED_PUBLISH_JOB,
                 MEDIA_CLEANUP_JOB,
+                MEDIA_VARIANT_JOB,
                 MEDIA_ORPHAN_CLEANUP_JOB,
             ]),
             content: ContentService,
@@ -179,12 +181,16 @@ impl WorkerSupervisor {
             .enqueue_next_cleanup(&mut transaction, &claim_context, &self.jobs)
             .await?;
         self.media
+            .enqueue_next_variant_job(&mut transaction, &claim_context, &self.jobs)
+            .await?;
+        self.media
             .enqueue_orphan_cleanup_job(&mut transaction, &claim_context, &self.jobs, Utc::now())
             .await?;
         let mut claim = None;
         for kind in [
             SCHEDULED_PUBLISH_JOB.name,
             MEDIA_CLEANUP_JOB.name,
+            MEDIA_VARIANT_JOB.name,
             MEDIA_ORPHAN_CLEANUP_JOB.name,
         ] {
             claim = self
@@ -221,6 +227,9 @@ impl WorkerSupervisor {
         }
         if claim.kind == MEDIA_ORPHAN_CLEANUP_JOB.name {
             return self.execute_media_orphan_cleanup(&context, &claim).await;
+        }
+        if claim.kind == MEDIA_VARIANT_JOB.name {
+            return self.execute_media_variant(&context, &claim).await;
         }
         let payload = match serde_json::from_value::<ScheduledPublishJob>(claim.payload.clone()) {
             Ok(payload) => payload,
@@ -300,10 +309,14 @@ impl WorkerSupervisor {
             }
         };
 
-        if let Err(error) = self.file_store.remove(context, &payload.storage_key).await {
-            return self
-                .fail_claim(context, claim, format!("media cleanup failed: {error:?}"))
-                .await;
+        for storage_key in
+            std::iter::once(&payload.storage_key).chain(payload.additional_storage_keys.iter())
+        {
+            if let Err(error) = self.file_store.remove(context, storage_key).await {
+                return self
+                    .fail_claim(context, claim, format!("media cleanup failed: {error:?}"))
+                    .await;
+            }
         }
 
         let mut transaction = self.database.begin(context).await?;
@@ -405,6 +418,147 @@ impl WorkerSupervisor {
                 .await;
         }
 
+        self.complete_claim(transaction, context, claim).await
+    }
+
+    #[allow(clippy::too_many_lines)]
+    async fn execute_media_variant(&self, context: &SiteContext, claim: &JobClaim) -> Result<()> {
+        let payload = match serde_json::from_value::<MediaVariantJob>(claim.payload.clone()) {
+            Ok(payload) => payload,
+            Err(error) => {
+                return self
+                    .fail_claim(
+                        context,
+                        claim,
+                        format!("invalid media variant payload: {error}"),
+                    )
+                    .await;
+            }
+        };
+
+        let mut transaction = self.database.begin(context).await?;
+        let source = self
+            .media
+            .variant_source(&mut transaction, context, payload.source_file_id)
+            .await?;
+        let Some(source) = source else {
+            return self.complete_claim(transaction, context, claim).await;
+        };
+        transaction.commit().await?;
+
+        let source_bytes = match self.file_store.get(context, &source.storage_key).await {
+            Ok(source_bytes) => source_bytes,
+            Err(error) => {
+                return self
+                    .fail_claim(
+                        context,
+                        claim,
+                        format!("media variant source read failed: {error:?}"),
+                    )
+                    .await;
+            }
+        };
+        let expected_bytes = match usize::try_from(source.bytes) {
+            Ok(expected_bytes) => expected_bytes,
+            Err(error) => {
+                return self
+                    .fail_claim(
+                        context,
+                        claim,
+                        format!("media variant source size invalid: {error}"),
+                    )
+                    .await;
+            }
+        };
+        if source_bytes.len() != expected_bytes
+            || mavi_media::sha256_digest(&source_bytes) != source.sha256
+        {
+            return self
+                .fail_claim(
+                    context,
+                    claim,
+                    "media variant source integrity failed".to_owned(),
+                )
+                .await;
+        }
+        let preset = payload.preset;
+        let rendered = match tokio::task::spawn_blocking(move || {
+            render_variant(&source_bytes, preset)
+        })
+        .await
+        {
+            Ok(Ok(rendered)) => rendered,
+            Ok(Err(error)) => {
+                return self
+                    .fail_claim(
+                        context,
+                        claim,
+                        format!("media variant render failed: {error:?}"),
+                    )
+                    .await;
+            }
+            Err(error) => {
+                return self
+                    .fail_claim(
+                        context,
+                        claim,
+                        format!("media variant worker panicked: {error}"),
+                    )
+                    .await;
+            }
+        };
+        let candidate_key = variant_storage_key(payload.variant_id);
+        if let Err(error) = self
+            .file_store
+            .put(context, &candidate_key, rendered.content.clone())
+            .await
+        {
+            return self
+                .fail_claim(
+                    context,
+                    claim,
+                    format!("media variant write failed: {error:?}"),
+                )
+                .await;
+        }
+
+        let mut transaction = self.database.begin(context).await?;
+        let owned_key = match self
+            .media
+            .finalize_variant(
+                &mut transaction,
+                context,
+                &payload,
+                &candidate_key,
+                &rendered,
+            )
+            .await
+        {
+            Ok(owned_key) => owned_key,
+            Err(error) => {
+                drop(transaction);
+                let _ = self.file_store.remove(context, &candidate_key).await;
+                return self
+                    .fail_claim(
+                        context,
+                        claim,
+                        format!("media variant metadata failed: {error:?}"),
+                    )
+                    .await;
+            }
+        };
+        if owned_key.as_deref() != Some(candidate_key.as_str())
+            && let Err(error) = self.file_store.remove(context, &candidate_key).await
+        {
+            drop(transaction);
+            return self
+                .fail_claim(
+                    context,
+                    claim,
+                    format!("media variant candidate cleanup failed: {error:?}"),
+                )
+                .await;
+        }
         self.complete_claim(transaction, context, claim).await
     }
 

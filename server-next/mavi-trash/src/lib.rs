@@ -1072,6 +1072,7 @@ impl TrashService {
             .await
     }
 
+    #[allow(clippy::too_many_lines)]
     pub async fn permanently_delete(
         &self,
         tx: &mut SiteTx,
@@ -1096,22 +1097,48 @@ impl TrashService {
                 .ok_or(MaviError::NotFound {
                     resource: TRASH_ITEM_NOT_FOUND,
                 })?;
+                let variant_storage_keys: Vec<String> = sqlx::query_scalar(
+                    "select storage_key from media_variants
+                      where site_id = $1 and source_file_id = $2
+                      order by id asc",
+                )
+                .bind(context.site_id.into_uuid())
+                .bind(id)
+                .fetch_all(tx.conn())
+                .await
+                .map_err(|_| MaviError::Internal)?;
                 sqlx::query(
-                    "insert into media_cleanup_tasks (site_id, file_id, storage_key)
-                     values ($1, $2, $3)
+                    "insert into media_cleanup_tasks
+                        (site_id, file_id, storage_key, storage_keys)
+                     values ($1, $2, $3, $4)
                      on conflict (site_id, file_id) do update
                        set storage_key = excluded.storage_key,
+                           storage_keys = excluded.storage_keys,
                            completed_at = null",
                 )
                 .bind(context.site_id.into_uuid())
                 .bind(id)
                 .bind(&storage_key)
+                .bind(&variant_storage_keys)
+                .execute(tx.conn())
+                .await
+                .map_err(|_| MaviError::Internal)?;
+                sqlx::query(
+                    "delete from media_variants
+                      where site_id = $1 and source_file_id = $2",
+                )
+                .bind(context.site_id.into_uuid())
+                .bind(id)
                 .execute(tx.conn())
                 .await
                 .map_err(|_| MaviError::Internal)?;
                 deletion.file_id = Some(id);
                 deletion.file_storage_key = Some(storage_key.clone());
-                json!({"kind": kind, "storage_key": storage_key})
+                json!({
+                    "kind": kind,
+                    "storage_key": storage_key,
+                    "variant_count": variant_storage_keys.len(),
+                })
             }
         };
 

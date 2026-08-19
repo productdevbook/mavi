@@ -23,9 +23,9 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 
-import { nextApi, nextEvery } from "@/lib/server-next"
-import { serverNextMessage } from "@/lib/server-next-auth"
-import type { Grant, Role } from "@api-next"
+import { api, every } from "@/lib/api"
+import { apiMessage } from "@/lib/auth"
+import type { Grant, Role } from "@api"
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -147,10 +147,10 @@ export function RolesPage() {
   const [pending, setPending] = React.useState<string | null>(null)
 
   const load = React.useCallback(() => {
-    nextEvery("roles.list", { query: {} })
+    every("roles.list", { query: {} })
       .then(setRoles)
       .catch((why: unknown) => {
-        toast.error(serverNextMessage(why))
+        toast.error(apiMessage(why))
         setRoles((held) => held ?? [])
       })
   }, [])
@@ -217,13 +217,13 @@ export function RolesPage() {
     )
 
     try {
-      await nextApi("roles.grants.replace", {
+      await api("roles.grants.replace", {
         path: { id: role.id },
         body: { grants },
       })
       load()
     } catch (why) {
-      toast.error(serverNextMessage(why))
+      toast.error(apiMessage(why))
       load()
     } finally {
       setPending(null)
@@ -234,7 +234,7 @@ export function RolesPage() {
     setBusy(true)
 
     try {
-      await nextApi("roles.create", {
+      await api("roles.create", {
         body: { name: slug(name), grants: [] },
       })
       toast.success(t`Role made`)
@@ -242,7 +242,7 @@ export function RolesPage() {
       setName("")
       load()
     } catch (why) {
-      toast.error(serverNextMessage(why))
+      toast.error(apiMessage(why))
     } finally {
       setBusy(false)
     }
@@ -258,11 +258,11 @@ export function RolesPage() {
     }
 
     try {
-      await nextApi("roles.delete", { path: { id: role.id } })
+      await api("roles.delete", { path: { id: role.id } })
       toast.success(t`Gone`)
       load()
     } catch (why) {
-      toast.error(serverNextMessage(why))
+      toast.error(apiMessage(why))
     }
   }
 

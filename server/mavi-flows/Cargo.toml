@@ -1,22 +1,26 @@
 [package]
 name = "mavi-flows"
-version = "0.0.0"
-edition = "2024"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
 publish = false
-description = "What a site does by itself, and where it is allowed to reach."
+description = "Site-scoped trigger-driven automation definitions and runs."
 
 [dependencies]
-mavi-api = { path = "../mavi-api" }
+base64.workspace = true
+chrono.workspace = true
+mavi-audit = { path = "../mavi-audit" }
+mavi-contract = { path = "../mavi-contract" }
 mavi-core = { path = "../mavi-core" }
-mavi-db = { path = "../mavi-db" }
-mavi-people = { path = "../mavi-people" }
-mavi-work = { path = "../mavi-work" }
-
-chrono = { workspace = true }
-serde = { workspace = true }
-sqlx = { workspace = true }
-serde_json = { workspace = true }
-uuid = { workspace = true }
+mavi-jobs = { path = "../mavi-jobs" }
+mavi-storage = { path = "../mavi-storage" }
+serde.workspace = true
+serde_json.workspace = true
+sqlx.workspace = true
+uuid.workspace = true
 
 [lints]
 workspace = true
+
+[dev-dependencies]
+tokio.workspace = true

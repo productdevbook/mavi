@@ -3,7 +3,7 @@ import { useLingui } from "@lingui/react/macro"
 import { Activity, Gauge } from "lucide-react"
 
 import { api } from "@/lib/v1"
-import type { Felt } from "@api"
+import type { Felt } from "@legacy-api"
 import { Figure, Panel } from "@/components/charts"
 import {
   DashboardLoading,

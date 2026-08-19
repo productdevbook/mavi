@@ -3,9 +3,9 @@ import { useLingui } from "@lingui/react/macro"
 import { Check, CornerDownRight, Pencil, Plus, Trash2, X } from "lucide-react"
 import { toast } from "sonner"
 
-import { nextApi, nextEvery } from "@/lib/server-next"
-import { serverNextMessage } from "@/lib/server-next-auth"
-import type { Term as Category } from "@api-next"
+import { api, every } from "@/lib/api"
+import { apiMessage } from "@/lib/auth"
+import type { Term as Category } from "@api"
 import { useLanguages } from "@/lib/use-languages"
 import { descendantsOf, toCategoryTree } from "@/lib/category-tree"
 import { Button } from "@/components/ui/button"
@@ -53,12 +53,12 @@ export function CategoriesPage() {
 
   const load = React.useCallback(() => {
     if (!locale) return
-    nextEvery("taxonomy.terms.list", {
+    every("taxonomy.terms.list", {
       query: { kind: "category", language: locale },
     })
       .then(setCategories)
       .catch((why: unknown) => {
-        toast.error(serverNextMessage(why))
+        toast.error(apiMessage(why))
         setCategories((held) => held ?? [])
       })
   }, [locale])
@@ -74,7 +74,7 @@ export function CategoriesPage() {
     const value = name.trim()
     if (!value) return
     try {
-      await nextApi("taxonomy.terms.create", {
+      await api("taxonomy.terms.create", {
         body: {
           kind: "category",
           language: locale,
@@ -86,7 +86,7 @@ export function CategoriesPage() {
       setName("")
       load()
     } catch (why) {
-      toast.error(serverNextMessage(why))
+      toast.error(apiMessage(why))
     }
   }
 
@@ -101,7 +101,7 @@ export function CategoriesPage() {
     const value = editName.trim()
     if (!value) return
     try {
-      await nextApi("taxonomy.terms.update", {
+      await api("taxonomy.terms.update", {
         path: { id: editing.id },
         body: {
           name: value,
@@ -111,17 +111,17 @@ export function CategoriesPage() {
       setEditing(null)
       load()
     } catch (why) {
-      toast.error(serverNextMessage(why))
+      toast.error(apiMessage(why))
     }
   }
 
   const confirmDelete = async () => {
     if (!pendingDelete) return
     try {
-      await nextApi("taxonomy.terms.trash", { path: { id: pendingDelete.id } })
+      await api("taxonomy.terms.trash", { path: { id: pendingDelete.id } })
       load()
     } catch (why) {
-      toast.error(serverNextMessage(why))
+      toast.error(apiMessage(why))
     } finally {
       setPendingDelete(null)
     }

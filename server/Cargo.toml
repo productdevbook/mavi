@@ -1,38 +1,68 @@
 [workspace]
 resolver = "3"
-members = ["mavi-core", "mavi-db", "mavi-analytics", "mavi-api", "mavi-assistant", "mavi-content", "mavi-people", "mavi-portable", "mavi-http", "mavi-taxonomy", "mavi-trash", "mavi-media", "mavi-forms", "mavi-health", "mavi-mail", "mavi-work", "mavi-audit", "mavi-settings", "mavi-shop", "mavi-courses", "mavi-flows", "mavi-design", "mavi-edge", "mavi-boards", "mavi-everything", "mavi-serve", "mavi-files", "mavi-sealed", "mavi-second", "mavi"]
+members = [
+  "mavi-core",
+  "mavi-storage",
+  "mavi-contract",
+  "mavi-runtime",
+  "mavi-sealing",
+  "mavi-secrets",
+  "mavi-http",
+  "mavi-content",
+  "mavi-settings",
+  "mavi-identity",
+  "mavi-taxonomy",
+  "mavi-authz",
+  "mavi-audit",
+  "mavi-files",
+  "mavi-media",
+  "mavi-observability",
+  "mavi-trash",
+  "mavi-design",
+  "mavi-forms",
+  "mavi-mail",
+  "mavi-shop",
+  "mavi-courses",
+  "mavi-jobs",
+  "mavi-worker",
+  "mavi-flows",
+  "mavi-boards",
+  "mavi-analytics",
+  "mavi-portable",
+  "mavi",
+]
 
-# One place, so a member cannot quietly hold a different version of the thing
-# beside it. A member names the dependency and says `workspace = true`.
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+publish = false
+
 [workspace.dependencies]
-chrono = { version = "0.4", default-features = false, features = ["serde", "clock"] }
-rust_decimal = { version = "1", features = ["serde-with-str"] }
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-axum = { version = "0.8", default-features = false, features = ["json", "http1", "tokio"] }
-tower = { version = "0.5", features = ["util"] }
-sqlx = { version = "0.8", default-features = false, features = [
-  "runtime-tokio-rustls",
+axum = { version = "0.8.9", default-features = false, features = ["json", "http1", "query", "tokio"] }
+argon2 = { version = "0.6.0-rc.8", default-features = true }
+base64 = "0.23.1"
+chrono = { version = "0.4.45", default-features = false, features = ["clock", "serde"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+rand = "0.10.2"
+reqwest = { version = "0.13.4", default-features = false, features = ["json", "rustls"] }
+sha2 = "0.11.0"
+sqlx = { version = "0.9.0", default-features = false, features = [
+  "runtime-tokio",
+  "tls-rustls",
   "postgres",
   "uuid",
   "chrono",
-  "json",
   "migrate",
   "macros",
 ] }
-argon2 = "0.5"
-rand = "0.9"
-sha2 = "0.10"
-sha1 = "0.10"
-hmac = "0.12"
-subtle = "2"
-chacha20poly1305 = "0.10"
-thiserror = "2"
-tokio = { version = "1", features = ["rt-multi-thread"] }
-uuid = { version = "1", features = ["v7", "serde"] }
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
-tempfile = "3"
+thiserror = "2.0.20"
+tokio = { version = "1.53.1", features = ["fs", "macros", "rt-multi-thread", "signal", "time"] }
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter", "fmt", "json"] }
+tower = { version = "0.5.3", features = ["util"] }
+uuid = { version = "1.24.1", features = ["serde", "v7"] }
 
 [workspace.lints.rust]
 unsafe_code = "deny"
@@ -41,5 +71,6 @@ missing_debug_implementations = "warn"
 [workspace.lints.clippy]
 all = { level = "warn", priority = -1 }
 pedantic = { level = "warn", priority = -1 }
+module_name_repetitions = "allow"
 missing_errors_doc = "allow"
 missing_panics_doc = "allow"

@@ -5,7 +5,7 @@ import { toast } from "sonner"
 
 import { every } from "@/lib/v1"
 import { said } from "@/lib/v1-said"
-import type { Change } from "@api"
+import type { Change } from "@legacy-api"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {

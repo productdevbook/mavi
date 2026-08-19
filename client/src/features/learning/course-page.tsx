@@ -5,7 +5,7 @@ import { toast } from "sonner"
 
 import { api, every } from "@/lib/v1"
 import { said } from "@/lib/v1-said"
-import type { Course, Student } from "@api"
+import type { Course, Student } from "@legacy-api"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"

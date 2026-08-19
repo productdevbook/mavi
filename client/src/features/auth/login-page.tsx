@@ -3,7 +3,7 @@ import { Link, useNavigate } from "@tanstack/react-router"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { Loader2 } from "lucide-react"
 
-import { serverNextMessage, signIn } from "@/lib/server-next-auth"
+import { apiMessage, signIn } from "@/lib/auth"
 import { AuthPageFrame } from "@/features/auth/auth-page-frame"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -35,7 +35,7 @@ export function LoginPage({ redirectTo }: { redirectTo?: string }) {
 
       await navigate({ to: redirectTo ?? "/dashboard" })
     } catch (why) {
-      setRefused(serverNextMessage(why))
+      setRefused(apiMessage(why))
       setBusy(false)
     }
   }

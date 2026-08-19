@@ -1,21 +1,26 @@
 [package]
 name = "mavi-taxonomy"
-version = "0.0.0"
-edition = "2024"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
 publish = false
-description = "What a writing is filed under: categories and tags, which are one thing with a rule."
+description = "Site-scoped terms, trees and content assignments."
 
 [dependencies]
-mavi-api = { path = "../mavi-api" }
+base64.workspace = true
+chrono.workspace = true
+mavi-audit = { path = "../mavi-audit" }
+mavi-contract = { path = "../mavi-contract" }
 mavi-core = { path = "../mavi-core" }
-mavi-db = { path = "../mavi-db" }
-mavi-people = { path = "../mavi-people" }
-
-chrono = { workspace = true }
-serde = { workspace = true }
-serde_json = { workspace = true }
-sqlx = { workspace = true }
-uuid = { workspace = true }
+mavi-storage = { path = "../mavi-storage" }
+serde.workspace = true
+serde_json.workspace = true
+sqlx.workspace = true
+uuid.workspace = true
 
 [lints]
 workspace = true
+
+[dev-dependencies]
+mavi-content = { path = "../mavi-content" }
+tokio.workspace = true

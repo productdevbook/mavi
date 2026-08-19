@@ -3,9 +3,9 @@ import { useLingui } from "@lingui/react/macro"
 import { Clock3, Globe2, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 
-import { nextApi } from "@/lib/server-next"
-import { serverNextMessage } from "@/lib/server-next-auth"
-import type { SiteSettings } from "@api-next"
+import { api } from "@/lib/api"
+import { apiMessage } from "@/lib/auth"
+import type { SiteSettings } from "@api"
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -21,7 +21,7 @@ export function SettingsPage() {
   const [busy, setBusy] = React.useState(false)
 
   const load = React.useCallback(() => {
-    nextApi("settings.read")
+    api("settings.read")
       .then((found) => {
         setSite(found)
         setName(found.name)
@@ -29,7 +29,7 @@ export function SettingsPage() {
         setCanonicalUrl(found.canonical_url ?? "")
       })
       .catch((why: unknown) => {
-        toast.error(serverNextMessage(why))
+        toast.error(apiMessage(why))
         setSite(null)
       })
   }, [])
@@ -40,7 +40,7 @@ export function SettingsPage() {
     setBusy(true)
 
     try {
-      const updated = await nextApi("settings.update", {
+      const updated = await api("settings.update", {
         body: {
           name: name.trim(),
           timezone: timezone.trim(),
@@ -53,7 +53,7 @@ export function SettingsPage() {
       setCanonicalUrl(updated.canonical_url ?? "")
       toast.success(t`Saved`)
     } catch (why) {
-      toast.error(serverNextMessage(why))
+      toast.error(apiMessage(why))
     } finally {
       setBusy(false)
     }

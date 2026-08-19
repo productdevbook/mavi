@@ -3,9 +3,9 @@ import { useLingui } from "@lingui/react/macro"
 import { Ban, Loader2, Plus, Trash2, UserRound } from "lucide-react"
 import { toast } from "sonner"
 
-import { nextApi, nextEvery } from "@/lib/server-next"
-import { serverNextMessage } from "@/lib/server-next-auth"
-import type { PersonRecord, Role } from "@api-next"
+import { api, every } from "@/lib/api"
+import { apiMessage } from "@/lib/auth"
+import type { PersonRecord, Role } from "@api"
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -53,19 +53,19 @@ export function PeoplePage() {
   const [removing, setRemoving] = React.useState<PersonRecord | null>(null)
 
   const loadPeople = React.useCallback(() => {
-    nextEvery("people.list", { query: {} })
+    every("people.list", { query: {} })
       .then(setPeople)
       .catch((why: unknown) => {
-        toast.error(serverNextMessage(why))
+        toast.error(apiMessage(why))
         setPeople((held) => held ?? [])
       })
   }, [])
 
   const loadRoles = React.useCallback(() => {
-    nextEvery("roles.list", { query: {} })
+    every("roles.list", { query: {} })
       .then(setRoles)
       .catch((why: unknown) => {
-        toast.error(serverNextMessage(why))
+        toast.error(apiMessage(why))
       })
   }, [])
 
@@ -87,7 +87,7 @@ export function PeoplePage() {
     setBusy(true)
 
     try {
-      await nextApi("people.create", {
+      await api("people.create", {
         body: {
           email: email.trim(),
           name: name.trim() || email.trim(),
@@ -100,7 +100,7 @@ export function PeoplePage() {
       load()
       toast.success(t`Account created`)
     } catch (why) {
-      toast.error(serverNextMessage(why))
+      toast.error(apiMessage(why))
     } finally {
       setBusy(false)
     }
@@ -115,14 +115,14 @@ export function PeoplePage() {
     }
 
     try {
-      await nextApi("people.roles.replace", {
+      await api("people.roles.replace", {
         path: { id: person.id },
         body: { role_ids: [nextRoleId] },
       })
       loadPeople()
       toast.success(t`Role changed`)
     } catch (why) {
-      toast.error(serverNextMessage(why))
+      toast.error(apiMessage(why))
     }
   }
 
@@ -130,7 +130,7 @@ export function PeoplePage() {
     if (person.status === "removed") return
 
     try {
-      await nextApi("people.status.update", {
+      await api("people.status.update", {
         path: { id: person.id },
         body: {
           status: person.status === "suspended" ? "active" : "suspended",
@@ -138,7 +138,7 @@ export function PeoplePage() {
       })
       loadPeople()
     } catch (why) {
-      toast.error(serverNextMessage(why))
+      toast.error(apiMessage(why))
     }
   }
 
@@ -146,14 +146,14 @@ export function PeoplePage() {
     if (!removing) return
 
     try {
-      await nextApi("people.status.update", {
+      await api("people.status.update", {
         path: { id: removing.id },
         body: { status: "removed" },
       })
       loadPeople()
       toast.success(t`Account removed`)
     } catch (why) {
-      toast.error(serverNextMessage(why))
+      toast.error(apiMessage(why))
     } finally {
       setRemoving(null)
     }

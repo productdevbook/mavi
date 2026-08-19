@@ -3,10 +3,10 @@ import { useLingui } from "@lingui/react/macro"
 import { Check, Pencil, Plus, Trash2, X } from "lucide-react"
 import { toast } from "sonner"
 
-import { nextApi, nextEvery } from "@/lib/server-next"
-import { serverNextMessage } from "@/lib/server-next-auth"
+import { api, every } from "@/lib/api"
+import { apiMessage } from "@/lib/auth"
 import { useLanguages } from "@/lib/use-languages"
-import type { Term } from "@api-next"
+import type { Term } from "@api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -54,10 +54,10 @@ export function TagsPage() {
   const load = React.useCallback(() => {
     if (!language) return
 
-    nextEvery("taxonomy.terms.list", { query: { kind: "tag", language } })
+    every("taxonomy.terms.list", { query: { kind: "tag", language } })
       .then(setTags)
       .catch((why: unknown) => {
-        toast.error(serverNextMessage(why))
+        toast.error(apiMessage(why))
         setTags((held) => held ?? [])
       })
   }, [language])
@@ -70,7 +70,7 @@ export function TagsPage() {
     if (!wanted) return
 
     try {
-      await nextApi("taxonomy.terms.create", {
+      await api("taxonomy.terms.create", {
         body: {
           kind: "tag",
           language,
@@ -81,7 +81,7 @@ export function TagsPage() {
       setName("")
       load()
     } catch (why) {
-      toast.error(serverNextMessage(why))
+      toast.error(apiMessage(why))
     }
   }
 
@@ -89,14 +89,14 @@ export function TagsPage() {
     if (!editing || !editName.trim()) return
 
     try {
-      await nextApi("taxonomy.terms.update", {
+      await api("taxonomy.terms.update", {
         path: { id: editing.id },
         body: { name: editName.trim() },
       })
       setEditing(null)
       load()
     } catch (why) {
-      toast.error(serverNextMessage(why))
+      toast.error(apiMessage(why))
     }
   }
 
@@ -104,10 +104,10 @@ export function TagsPage() {
     if (!going) return
 
     try {
-      await nextApi("taxonomy.terms.trash", { path: { id: going.id } })
+      await api("taxonomy.terms.trash", { path: { id: going.id } })
       load()
     } catch (why) {
-      toast.error(serverNextMessage(why))
+      toast.error(apiMessage(why))
     } finally {
       setGoing(null)
     }

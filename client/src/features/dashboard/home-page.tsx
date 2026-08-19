@@ -13,7 +13,7 @@ import {
 } from "lucide-react"
 
 import { api } from "@/lib/v1"
-import type { Overview } from "@api"
+import type { Overview } from "@legacy-api"
 import { Figure } from "@/components/charts"
 import { inBytes } from "@/lib/bytes"
 import { AddressHealth } from "@/components/dashboard/address-health"

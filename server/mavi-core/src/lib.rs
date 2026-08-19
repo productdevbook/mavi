@@ -1,26 +1,36 @@
-//! What every other crate is built out of.
+//! Shared primitives for the clean Mavi implementation.
 //!
-//! Nothing here knows what a post is, what a shop sells, or that a database
-//! exists. It is the vocabulary: what a refusal is, what an id is, what money
-//! is, how a list is walked, what somebody is allowed to do, and what a host
-//! is asked to provide.
-//!
-//! The rule that keeps it that way: **a name that belongs to one thing a site
-//! does does not appear in this crate.** A type here is one every domain
-//! needs, or it is in the domain that needs it.
+//! This crate deliberately knows nothing about HTTP, `PostgreSQL` or a domain.
+//! A type belongs here only when every domain needs the same meaning.
 
-pub mod asked;
-pub mod email;
-pub mod grant;
-pub mod id;
-pub mod money;
-pub mod page;
+mod analytics_retention;
+mod context;
+mod email;
+mod error;
+mod grants;
+mod ids;
+mod mail_policy;
+mod money;
+mod pagination;
 pub mod ports;
-pub mod say;
-pub mod slug;
 
-pub mod error;
-
-pub use error::{Code, Error, Result};
-pub use grant::{Access, Grants, Needs};
-pub use say::Say;
+pub use analytics_retention::{
+    AnalyticsRetentionPolicy, DEFAULT_ANALYTICS_AGGREGATE_RETENTION_DAYS,
+    DEFAULT_ANALYTICS_RAW_RETENTION_DAYS, MAX_ANALYTICS_RETENTION_DAYS,
+};
+pub use context::{Caller, SiteContext};
+pub use email::Email;
+pub use error::{ErrorCode, MaviError, Result};
+pub use grants::{Action, Capability, Grant, Grants};
+pub use ids::{
+    AnalyticsEventId, ApiKeyId, AuditEventId, BoardCardId, BoardCommentId, BoardId, BoardListId,
+    ContentId, CouponId, CouponUseId, CourseId, CredentialId, DesignBuildId, DesignChangeId,
+    EmailVerificationTokenId, EnrollmentId, FileId, FlowId, FlowRunId, FlowRunStepId, FlowStepId,
+    FormId, FormSubmissionId, JobId, LessonId, MailAttemptId, MailDeliveryId, MailListId,
+    MailReaderId, MailTemplateId, MediaVariantId, ModuleId, OrderId, OrderLineId,
+    PasswordResetTokenId, PersonId, ProductId, RequestId, RoleId, SessionId, SiteId, StockHoldId,
+    StudentId, StudentSessionId, TermId,
+};
+pub use mail_policy::{MailSender, MailSenderPolicy};
+pub use money::{Currency, Money};
+pub use pagination::{Cursor, Page, PageRequest};

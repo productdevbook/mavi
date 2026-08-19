@@ -3,14 +3,14 @@
  *
  * The old client kept its own copy of every shape, and two copies of a shape
  * disagree the first time one changes — the wrong one always being the one
- * nobody is looking at. `@api` — generated from the API's own
+ * nobody is looking at. `@legacy-api` — generated from the old API's own
  * description and a test refuses to pass while it is stale, so this file is
  * only the plumbing: one place that knows how a call is made, what an error
  * looks like, and what a page is.
  */
 
-import type { Calls } from "@api"
-import { operations } from "@api"
+import type { Calls } from "@legacy-api"
+import { operations } from "@legacy-api"
 
 export interface Page<T> {
   items: T[]

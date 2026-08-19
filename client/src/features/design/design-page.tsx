@@ -5,7 +5,7 @@ import { toast } from "sonner"
 
 import { api, every } from "@/lib/v1"
 import { said } from "@/lib/v1-said"
-import type { Change, ProjectFile } from "@api"
+import type { Change, ProjectFile } from "@legacy-api"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import {

@@ -6,7 +6,7 @@
  */
 
 import { api } from "./v1"
-import type { Thrown } from "@api"
+import type { Thrown } from "@legacy-api"
 
 export type { Thrown }
 

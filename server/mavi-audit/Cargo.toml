@@ -1,29 +1,24 @@
 [package]
 name = "mavi-audit"
-version = "0.0.0"
-edition = "2024"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
 publish = false
-description = "What was done, and by whom: one row per change, in the change's own transaction."
-
-[features]
-# A receipt for a change nothing made. For tests with no database, and nothing
-# that ships turns it on — a receipt that can be conjured is not proof.
-pretend = []
+description = "Site-scoped audit receipts written atomically with domain transactions."
 
 [dependencies]
-mavi-api = { path = "../mavi-api" }
+base64.workspace = true
+chrono.workspace = true
 mavi-core = { path = "../mavi-core" }
-mavi-db = { path = "../mavi-db" }
-mavi-people = { path = "../mavi-people" }
-
-chrono = { workspace = true }
-serde = { workspace = true }
-serde_json = { workspace = true }
-sqlx = { workspace = true }
-uuid = { workspace = true }
-
-[dev-dependencies]
-tokio = { workspace = true, features = ["macros", "rt", "rt-multi-thread"] }
+mavi-contract = { path = "../mavi-contract" }
+mavi-storage = { path = "../mavi-storage" }
+serde.workspace = true
+serde_json.workspace = true
+sqlx.workspace = true
+uuid.workspace = true
 
 [lints]
 workspace = true
+
+[dev-dependencies]
+tokio.workspace = true

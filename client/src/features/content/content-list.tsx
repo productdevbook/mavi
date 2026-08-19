@@ -6,13 +6,13 @@ import { calledIn } from "@/lib/kind-name"
 import { Pencil, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
-import { nextApi, nextEvery } from "@/lib/server-next"
-import { serverNextMessage } from "@/lib/server-next-auth"
-import type { Content as Post } from "@api-next"
+import { api, every } from "@/lib/api"
+import { apiMessage } from "@/lib/auth"
+import type { Content as Post } from "@api"
 import {
   contentPublicationDate,
   contentStatus,
-} from "@/lib/server-next-content"
+} from "@/lib/content"
 import { useContentTypes } from "@/lib/use-content-types"
 import { useLanguages } from "@/lib/use-languages"
 import {
@@ -69,10 +69,10 @@ export function ContentList({ kind }: { kind: string }) {
   const load = React.useCallback(() => {
     if (!locale) return
 
-    nextEvery("content.list", { query: { kind, language: locale } })
+    every("content.list", { query: { kind, language: locale } })
       .then(setPosts)
       .catch((why: unknown) => {
-        toast.error(serverNextMessage(why))
+        toast.error(apiMessage(why))
         setPosts((held) => held ?? [])
       })
   }, [locale, kind])
@@ -95,16 +95,16 @@ export function ContentList({ kind }: { kind: string }) {
     try {
       for (const id of chosen) {
         if (act === "publish") {
-          await nextApi("content.publish", {
+          await api("content.publish", {
             path: { id },
           })
         } else if (act === "unpublish") {
-          await nextApi("content.update", {
+          await api("content.update", {
             path: { id },
             body: { publication: "draft" },
           })
         } else if (act === "trash") {
-          await nextApi("content.trash", { path: { id } })
+          await api("content.trash", { path: { id } })
         }
       }
 
@@ -112,7 +112,7 @@ export function ContentList({ kind }: { kind: string }) {
       load()
       toast.success(t`Done.`)
     } catch (why) {
-      toast.error(serverNextMessage(why))
+      toast.error(apiMessage(why))
     }
   }
 
@@ -120,11 +120,11 @@ export function ContentList({ kind }: { kind: string }) {
     if (!going) return
 
     try {
-      await nextApi("content.trash", { path: { id: going.id } })
+      await api("content.trash", { path: { id: going.id } })
       load()
       toast.success(t`${one} deleted`)
     } catch (why) {
-      toast.error(serverNextMessage(why))
+      toast.error(apiMessage(why))
     } finally {
       setGoing(null)
     }

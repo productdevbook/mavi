@@ -5,7 +5,7 @@ import { toast } from "sonner"
 
 import { api, every } from "@/lib/v1"
 import { said } from "@/lib/v1-said"
-import type { Board, Card as OneCard } from "@api"
+import type { Board, Card as OneCard } from "@legacy-api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"

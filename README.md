@@ -4,9 +4,9 @@ A content management system you run yourself. The clean rewrite is one Rust
 binary and one PostgreSQL database: site-scoped content, identity, media,
 publishing, forms, mail, commerce, courses, automation and MCP.
 
-The public panel is being regenerated from the clean canonical API. Until that
-panel slice lands, the published image is the API runtime and the old `client/`
-and `server/` workspaces remain reference material, not a mixed deployment.
+The public panel is being regenerated from the clean canonical API. Until the
+remaining panel slices land, the published image is the API runtime and the
+legacy client screens remain compatibility material, not a mixed deployment.
 Mavi is a CMS, not a hosting business; organization, billing, metering and
 shard lifecycle belong in `mavi-operator`.
 
@@ -109,7 +109,7 @@ router with an allowlisted host-to-site snapshot.
 Both modes use the same site-scoped application services and PostgreSQL
 transactions. No request can select an arbitrary site ID, and no cloud mode
 constructs a router or process per site. See the clean workspace
-[`server-next/README.md`](server-next/README.md) for the runtime and contract
+[`server/README.md`](server/README.md) for the runtime and contract
 details.
 
 ## More than posts
@@ -185,12 +185,12 @@ settings, which is enough to carry a site somewhere else by hand.
 
 ## Development
 
-The clean runtime is the `server-next/` workspace. The old `server/` and
-`client/` workspaces are kept as behavior/reference material while the panel is
-regenerated from the v1 contract.
+The clean runtime is the `server/` workspace. The panel is being regenerated
+from its canonical v1 contract; domains that have not moved yet are isolated
+behind an explicit legacy client boundary.
 
 ```bash
-cd server-next
+cd server
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo test --workspace --doc
@@ -218,15 +218,15 @@ docker compose -f docker-compose.dev.yml up --build
 ### Layout
 
 ```
-server-next/         the clean API/runtime rewrite
+server/         the clean API/runtime rewrite
   mavi-core/         typed IDs, scope, errors, grants and ports
   mavi-storage/      scoped PostgreSQL transactions and migrations
   mavi-contract/     canonical endpoint declarations and generators
   mavi-http/         request admission and API composition
   mavi-runtime/      fixed-site and shared-shard runtime boundaries
   mavi-<domain>/     one application/service boundary per site feature
-server/              legacy workspace, reference only
-client/              legacy panel, reference until generated-client rewrite
+client/              panel; remaining legacy domain screens are temporary
+                     compatibility slices
 wordpress-plugin/    the WordPress migration plugin (GPLv2+)
 ```
 

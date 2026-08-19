@@ -1,14 +1,14 @@
 import { createFileRoute, redirect } from "@tanstack/react-router"
 import { Loader2 } from "lucide-react"
 
-import { nextApi } from "@/lib/server-next"
+import { api } from "@/lib/api"
 
 export const Route = createFileRoute("/")({
   loader: async () => {
     // A machine nobody has set up yet has no accounts to sign in with, so the
     // first thing it can offer is setting itself up. Anything else — including
     // not being able to ask — means somebody signs in.
-    const setup = await nextApi("setup.status").catch(() => null)
+    const setup = await api("setup.status").catch(() => null)
     throw redirect({ to: setup?.initialized ? "/dashboard" : "/setup" })
   },
   pendingComponent: () => (

@@ -5,7 +5,7 @@ import { toast } from "sonner"
 
 import { api } from "@/lib/v1"
 import { said } from "@/lib/v1-said"
-import type { Key } from "@api"
+import type { Key } from "@legacy-api"
 import { AssistantClients } from "@/components/assistant-clients"
 import { McpConnection } from "@/components/mcp-connection"
 import {

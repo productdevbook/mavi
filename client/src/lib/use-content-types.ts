@@ -1,8 +1,8 @@
 import * as React from "react"
 import { useLingui } from "@lingui/react/macro"
 
-import { nextEvery } from "@/lib/server-next"
-import type { ContentType as ServerContentType } from "@api-next"
+import { every } from "@/lib/api"
+import type { ContentType as ServerContentType } from "@api"
 
 export type ContentType = ServerContentType & { key: string; plural?: string }
 
@@ -50,7 +50,7 @@ export function useContentTypes() {
   React.useEffect(() => {
     let cancelled = false
 
-    nextEvery("content_types.list", { query: {} })
+    every("content_types.list", { query: {} })
       .then((all) => {
         if (!cancelled) setLoaded(all)
       })

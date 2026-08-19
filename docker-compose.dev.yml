@@ -20,7 +20,7 @@ services:
 
   api:
     build:
-      context: ./server-next
+      context: ./server
       dockerfile: Dockerfile
       secrets:
         - sccache-env

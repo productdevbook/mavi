@@ -8,9 +8,9 @@ import { toast } from "sonner"
 
 import { cn } from "@/lib/utils"
 import { slugify } from "@/lib/editor-utils"
-import { nextApi, nextEvery } from "@/lib/server-next"
-import { serverNextMessage } from "@/lib/server-next-auth"
-import type { Term } from "@api-next"
+import { api, every } from "@/lib/api"
+import { apiMessage } from "@/lib/auth"
+import type { Term } from "@api"
 import { toCategoryTree } from "@/lib/category-tree"
 import type { ContentType } from "@/lib/use-content-types"
 import { Badge } from "@/components/ui/badge"
@@ -80,13 +80,13 @@ export function PostSettings({
 
   React.useEffect(() => {
     if (!locale) return
-    nextEvery("taxonomy.terms.list", {
+    every("taxonomy.terms.list", {
       query: { kind: "category", language: locale },
     })
       .then(setCategories)
       .catch(() => setCategories([]))
 
-    nextEvery("taxonomy.terms.list", {
+    every("taxonomy.terms.list", {
       query: { kind: "tag", language: locale },
     })
       .then(setTags)
@@ -97,7 +97,7 @@ export function PostSettings({
     const name = newCategory.trim()
     if (!name) return
     try {
-      const created = await nextApi("taxonomy.terms.create", {
+      const created = await api("taxonomy.terms.create", {
         body: {
           kind: "category",
           language: locale,
@@ -114,7 +114,7 @@ export function PostSettings({
       onChange(withCategory(created.id, true))
       setNewCategory("")
     } catch (why) {
-      toast.error(serverNextMessage(why))
+      toast.error(apiMessage(why))
     }
   }
 
@@ -134,7 +134,7 @@ export function PostSettings({
     }
 
     try {
-      const created = await nextApi("taxonomy.terms.create", {
+      const created = await api("taxonomy.terms.create", {
         body: {
           kind: "tag",
           language: locale,
@@ -149,7 +149,7 @@ export function PostSettings({
       setTagDraft("")
       onChange({ tags: [...meta.tags, created.id] })
     } catch (why) {
-      toast.error(serverNextMessage(why))
+      toast.error(apiMessage(why))
     }
   }
 

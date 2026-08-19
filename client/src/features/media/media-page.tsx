@@ -3,11 +3,11 @@ import { useLingui } from "@lingui/react/macro"
 import { HardDrive, Loader2, Trash2, Upload } from "lucide-react"
 import { toast } from "sonner"
 
-import { nextApi, nextEvery } from "@/lib/server-next"
-import { serverNextMessage } from "@/lib/server-next-auth"
-import type { File as Media, FileVisibility } from "@api-next"
+import { api, every } from "@/lib/api"
+import { apiMessage } from "@/lib/auth"
+import type { File as Media, FileVisibility } from "@api"
 import { formatBytes } from "@/lib/editor-utils"
-import { usePrivateFileUrl } from "@/lib/server-next-media"
+import { usePrivateFileUrl } from "@/lib/media"
 import { Button } from "@/components/ui/button"
 import {
   DashboardEmpty,
@@ -42,10 +42,10 @@ export function MediaPage() {
   const chooser = React.useRef<HTMLInputElement>(null)
 
   const load = React.useCallback(() => {
-    nextEvery("media.files.list", { query: {} })
+    every("media.files.list", { query: {} })
       .then(setMedia)
       .catch((why: unknown) => {
-        toast.error(serverNextMessage(why))
+        toast.error(apiMessage(why))
         setMedia((held) => held ?? [])
       })
   }, [])
@@ -60,13 +60,13 @@ export function MediaPage() {
 
     for (const file of Array.from(files)) {
       try {
-        await nextApi("media.files.upload", {
+        await api("media.files.upload", {
           query: { name: file.name, visibility },
           body: file,
         })
         done += 1
       } catch (why) {
-        toast.error(serverNextMessage(why))
+        toast.error(apiMessage(why))
       }
     }
 
@@ -79,10 +79,10 @@ export function MediaPage() {
     if (!going) return
 
     try {
-      await nextApi("media.files.trash", { path: { id: going.id } })
+      await api("media.files.trash", { path: { id: going.id } })
       setMedia((held) => held?.filter((one) => one.id !== going.id) ?? null)
     } catch (why) {
-      toast.error(serverNextMessage(why))
+      toast.error(apiMessage(why))
     } finally {
       setGoing(null)
     }

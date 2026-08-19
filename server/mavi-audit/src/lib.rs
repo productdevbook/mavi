@@ -1,369 +1,667 @@
-//! What was done, and by whom.
+//! Immutable, site-scoped audit receipts for state-changing application services.
 //!
-//! Every change a site makes leaves one row here, written **in the same
-//! transaction as the change itself**. Not beside it, not after it: a receipt
-//! written afterwards is one that a crash between the two loses, and what it
-//! loses is the record of the thing that did happen.
-//!
-//! That is why [`Receipt`] lives here rather than beside the guard that
-//! demands one. [`record`] is the only thing that makes one, so a handler
-//! holding a receipt has written a row — the guard's rule stops being a rule
-//! everybody remembers and starts being one the compiler asks about.
-//!
-//! Nothing here answers a question about the future. A receipt says what was
-//! done; whether it should have been is what the grant decided, one moment
-//! earlier and somewhere else.
+//! Every mutation writes through [`AuditService::record`] in its existing
+//! transaction. The same crate owns the read model and canonical API so audit
+//! filters cannot drift away from the rows the application writes.
 
+use std::collections::BTreeSet;
+
+use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
 use chrono::{DateTime, Utc};
-pub mod described;
-
-use mavi_api::{Answers, Endpoint, Is, Method, Parameter, Who as Audience};
-use mavi_core::error::{Error, Result};
-use mavi_core::grant::{Access, Needs};
-use mavi_core::id;
-use mavi_core::page::{Key, Keyset, Kind};
-use mavi_db::Tx;
-use serde::Serialize;
+use mavi_contract::{Endpoint, Method, Permission, Shape};
+use mavi_core::{
+    Action, AuditEventId, Caller, Capability, Cursor, ErrorCode, MaviError, Page, PageRequest,
+    RequestId, Result, SiteContext, SiteId,
+};
+use mavi_storage::SiteTx;
+use serde::{Deserialize, Serialize};
+use serde_json::{Value, json};
 use sqlx::Row;
 use uuid::Uuid;
 
-id!(
-    /// One receipt.
-    ReceiptId
-);
+pub const AUDIT_EVENT_NOT_FOUND: &str = "audit_event_not_found";
+pub const AUDIT_FILTER_INVALID: &str = "audit_filter_invalid";
+pub const AUDIT_RELOCATION_FORMAT: &str = "mavi.audit.relocation";
+pub const AUDIT_RELOCATION_VERSION: u16 = 1;
+pub const AUDIT_RELOCATION_CONFLICT: &str = "audit_relocation_conflict";
+pub const MAX_RELOCATION_EVENTS: usize = 100_000;
+pub const MAX_RELOCATION_BYTES: usize = 32 * 1024 * 1024;
 
-pub const AUDIT: &str = "audit";
-
-#[must_use]
-pub const fn to_read() -> Needs {
-    Needs::new(AUDIT, Access::View)
-}
-
-/// Proof that a change was written down before it answered.
-///
-/// Held rather than checked: a handler that changes something returns one of
-/// these, and **one cannot be made without writing the row** — there is no
-/// public way to build one, in this crate or any other. The alternative, a
-/// rule everybody remembers, is the version that had a hole in it for as long
-/// as there were two ways in.
-#[derive(Debug)]
-pub struct Receipt {
-    /// The row this change wrote.
-    pub wrote: Uuid,
-}
-
-impl Receipt {
-    const fn of(wrote: Uuid) -> Self {
-        Self { wrote }
-    }
-
-    /// A receipt for a change nothing made, for tests that need one and have
-    /// no database.
-    ///
-    /// Behind a feature that nothing shipping turns on, because a receipt that
-    /// can be conjured is not proof of anything.
-    #[cfg(feature = "pretend")]
-    #[must_use]
-    pub fn pretend() -> Self {
-        Self::of(Uuid::now_v7())
-    }
-}
-
-/// Who did it.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
-pub enum Who {
-    AnAccount,
-    AStudent,
-    /// The site itself: a scheduled publish, a sweep, a letter going out.
-    /// Written down like anything else, because "nobody did this" is an answer
-    /// somebody will need one day.
-    TheMachine,
+pub enum AuditActorKind {
+    Public,
+    Account,
+    Student,
+    Assistant,
+    System,
 }
 
-impl Who {
+impl AuditActorKind {
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
-            Who::AnAccount => "an_account",
-            Who::AStudent => "a_student",
-            Who::TheMachine => "the_machine",
+            Self::Public => "public",
+            Self::Account => "account",
+            Self::Student => "student",
+            Self::Assistant => "assistant",
+            Self::System => "system",
+        }
+    }
+
+    fn parse(value: &str) -> Result<Self> {
+        match value {
+            "public" => Ok(Self::Public),
+            "account" => Ok(Self::Account),
+            "student" => Ok(Self::Student),
+            "assistant" => Ok(Self::Assistant),
+            "system" => Ok(Self::System),
+            _ => Err(MaviError::Internal),
         }
     }
 }
 
-/// Whoever the change is attributed to, and which request it arrived on.
 #[derive(Clone, Debug)]
-pub struct Actor {
-    pub who: Who,
-    /// Their id, where there is one. `None` for the machine.
-    pub id: Option<String>,
-    /// What ties one request's rows together, and ties them to whatever the
-    /// logs say about the same moment.
-    pub request: String,
+pub struct AuditEntry {
+    pub action: String,
+    pub resource_type: String,
+    pub resource_id: Option<Uuid>,
+    pub payload: Value,
 }
 
-impl Actor {
-    #[must_use]
-    pub fn the_machine(request: impl Into<String>) -> Self {
-        Self {
-            who: Who::TheMachine,
-            id: None,
-            request: request.into(),
-        }
-    }
+/// An immutable audit history carried by the trusted shard relocation port.
+///
+/// Public portable exports intentionally do not contain this history. The
+/// source site ID is retained even though relocation keeps the logical site ID
+/// unchanged, so a target cannot accept a bundle intended for another site.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct AuditRelocation {
+    pub format: String,
+    pub version: u16,
+    pub source_site_id: SiteId,
+    pub events: Vec<AuditRelocationEvent>,
 }
 
-/// One receipt, as a screen reads it.
-#[derive(Clone, Debug, Serialize)]
-pub struct Written {
-    pub id: ReceiptId,
-    pub who: Who,
-    pub who_id: Option<String>,
-    /// The endpoint's own name — `writings.publish` — rather than a verb
-    /// somebody chose at the call site. Two names for one action is two
-    /// answers to "what happened to this".
-    pub did: String,
-    pub about: String,
-    pub about_id: Option<String>,
-    pub what: serde_json::Value,
-    pub request: String,
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct AuditRelocationEvent {
+    pub id: Uuid,
+    pub request_id: Uuid,
+    pub actor_kind: AuditActorKind,
+    pub actor_id: Option<String>,
+    pub action: String,
+    pub resource_type: String,
+    pub resource_id: Option<Uuid>,
+    pub payload: Value,
     pub created_at: DateTime<Utc>,
 }
 
-/// Writes the receipt, in the transaction the change is being made in.
-///
-/// `what` is whatever somebody reading this in a year needs in order to
-/// understand it without the row it describes — which may since have been
-/// deleted, and often has been.
-pub async fn record(
-    tx: &mut Tx,
-    actor: &Actor,
-    did: &str,
-    about: &str,
-    about_id: Option<&str>,
-    what: &impl Serialize,
-) -> Result<Receipt> {
-    let what = serde_json::to_value(what).map_err(Error::internal)?;
+impl AuditRelocation {
+    #[must_use]
+    pub fn empty(source_site_id: SiteId) -> Self {
+        Self {
+            format: AUDIT_RELOCATION_FORMAT.to_owned(),
+            version: AUDIT_RELOCATION_VERSION,
+            source_site_id,
+            events: Vec::new(),
+        }
+    }
 
-    let row = sqlx::query(
-        "insert into receipts (id, who, who_id, did, about, about_id, what, request)
-         values ($1, $2, $3, $4, $5, $6, $7, $8)
-         returning id",
-    )
-    .bind(Uuid::now_v7())
-    .bind(actor.who.as_str())
-    .bind(actor.id.as_deref())
-    .bind(did)
-    .bind(about)
-    .bind(about_id)
-    .bind(what)
-    .bind(&actor.request)
-    .fetch_one(tx.conn())
-    .await
-    .map_err(Error::internal)?;
+    pub fn validate_for_relocation(&self, target_site: SiteId) -> Result<()> {
+        if self.format != AUDIT_RELOCATION_FORMAT {
+            return Err(MaviError::validation("audit_relocation_format_invalid"));
+        }
+        if self.version != AUDIT_RELOCATION_VERSION {
+            return Err(MaviError::validation(
+                "audit_relocation_version_unsupported",
+            ));
+        }
+        if self.source_site_id != target_site || self.source_site_id.into_uuid().is_nil() {
+            return Err(MaviError::conflict("audit_relocation_site_mismatch"));
+        }
+        if self.events.len() > MAX_RELOCATION_EVENTS {
+            return Err(MaviError::validation(
+                "audit_relocation_event_count_invalid",
+            ));
+        }
 
-    Ok(Receipt::of(row.get("id")))
+        let mut ids = BTreeSet::new();
+        for event in &self.events {
+            if event.id.is_nil()
+                || !ids.insert(event.id)
+                || event.request_id.is_nil()
+                || !valid_text(&event.action, 160)
+                || !valid_text(&event.resource_type, 80)
+                || event
+                    .actor_id
+                    .as_deref()
+                    .is_some_and(|actor_id| !valid_text(actor_id, 255))
+                || !event.payload.is_object()
+            {
+                return Err(MaviError::validation("audit_relocation_event_invalid"));
+            }
+        }
+
+        let bytes = serde_json::to_vec(self).map_err(|_| MaviError::Internal)?;
+        if bytes.len() > MAX_RELOCATION_BYTES {
+            return Err(MaviError::validation("audit_relocation_too_large"));
+        }
+        Ok(())
+    }
+
+    pub fn record_count(&self) -> Result<i64> {
+        i64::try_from(self.events.len())
+            .map_err(|_| MaviError::validation("audit_relocation_event_count_overflow"))
+    }
 }
 
-pub const BY_RECENT: Keyset = Keyset(&[
-    Key::newest("created_at", Kind::Moment),
-    Key::newest("id", Kind::Id),
-]);
+#[derive(Clone, Debug, Serialize)]
+pub struct AuditEvent {
+    pub id: AuditEventId,
+    pub request_id: RequestId,
+    pub actor_kind: AuditActorKind,
+    pub actor_id: Option<String>,
+    pub action: String,
+    pub resource_type: String,
+    pub resource_id: Option<Uuid>,
+    pub payload: Value,
+    pub created_at: DateTime<Utc>,
+}
 
-/// What this domain answers — and what it does not.
-///
-/// There is no endpoint here that writes a receipt and none that removes one.
-/// A record somebody can add to is a record somebody can write into; a record
-/// somebody can delete from is not a record. Both are refused by the database
-/// as well, so the absence is not merely an absence.
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+pub struct AuditListFilter {
+    #[serde(flatten)]
+    pub page: PageRequest,
+    pub action: Option<String>,
+    pub resource_type: Option<String>,
+    pub resource_id: Option<Uuid>,
+    pub actor_kind: Option<AuditActorKind>,
+    pub actor_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+struct AuditCursor {
+    created_at: DateTime<Utc>,
+    id: Uuid,
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct AuditService;
+
+#[must_use]
+pub fn api() -> mavi_contract::Api {
+    mavi_contract::Api::new(endpoints()).with_shapes(shapes())
+}
+
 #[must_use]
 pub fn endpoints() -> Vec<Endpoint> {
     vec![
-        Endpoint {
-            method: Method::Get,
-            path: "/api/audit",
-            named: "audit.list",
-            about: "What has been done here, newest first.",
-            who: Audience::AnAccount,
-            parameters: vec![
-                Parameter::query(
-                    "about",
-                    Is::Text,
-                    "Only what happened to this sort of thing.",
-                ),
-                Parameter::query("about_id", Is::Text, "Only what happened to this one."),
-                Parameter::query("who_id", Is::Text, "Only what this account did."),
-                Parameter::query("after", Is::Text, "The cursor the last page ended with."),
-                Parameter::query("limit", Is::Number, "How many, at most a hundred."),
-            ],
-            takes: None,
-            answers: Answers::With("ReceiptPage"),
-            refuses: &[],
-            changes: false,
-        },
-        Endpoint {
-            method: Method::Get,
-            path: "/api/audit/{id}",
-            named: "audit.read",
-            about: "One receipt, and everything it recorded.",
-            who: Audience::AnAccount,
-            parameters: vec![Parameter::path("id", Is::Id, "Which receipt.")],
-            takes: None,
-            answers: Answers::With("Receipt"),
-            refuses: &[mavi_core::error::Code::NotFound],
-            changes: false,
-        },
+        Endpoint::new(
+            Method::Get,
+            "/api/v1/audit",
+            "audit.events.list",
+            "List immutable site audit events with an opaque cursor",
+        )
+        .account_or_assistant()
+        .requires(Permission {
+            capability: Capability::Audit,
+            action: Action::View,
+        })
+        .takes_query("AuditListFilter")
+        .returns(200, "AuditEventPage")
+        .refuses([
+            ErrorCode::Forbidden,
+            ErrorCode::Validation,
+            ErrorCode::Internal,
+        ]),
+        Endpoint::new(
+            Method::Get,
+            "/api/v1/audit/{id}",
+            "audit.events.read",
+            "Read one immutable audit event",
+        )
+        .account_or_assistant()
+        .requires(Permission {
+            capability: Capability::Audit,
+            action: Action::View,
+        })
+        .returns(200, "AuditEvent")
+        .refuses([
+            ErrorCode::Forbidden,
+            ErrorCode::NotFound,
+            ErrorCode::Internal,
+        ]),
     ]
+}
+
+#[must_use]
+pub fn shapes() -> Vec<Shape> {
+    vec![
+        Shape::new(
+            "AuditActorKind",
+            json!({"type": "string", "enum": ["public", "account", "student", "assistant", "system"]}),
+        ),
+        Shape::new(
+            "AuditListFilter",
+            json!({
+                "type": "object",
+                "properties": {
+                    "after": {"type": ["string", "null"], "maxLength": 512},
+                    "limit": {"type": "integer", "minimum": 1, "maximum": 100},
+                    "action": {"type": ["string", "null"], "maxLength": 160},
+                    "resource_type": {"type": ["string", "null"], "maxLength": 80},
+                    "resource_id": {"type": ["string", "null"], "format": "uuid"},
+                    "actor_kind": {"$ref": "#/components/schemas/AuditActorKind"},
+                    "actor_id": {"type": ["string", "null"], "maxLength": 255},
+                },
+            }),
+        ),
+        Shape::new(
+            "AuditEvent",
+            json!({
+                "type": "object",
+                "required": ["id", "request_id", "actor_kind", "actor_id", "action", "resource_type", "resource_id", "payload", "created_at"],
+                "properties": {
+                    "id": {"type": "string", "format": "uuid"},
+                    "request_id": {"type": "string", "format": "uuid"},
+                    "actor_kind": {"$ref": "#/components/schemas/AuditActorKind"},
+                    "actor_id": {"type": ["string", "null"], "maxLength": 255},
+                    "action": {"type": "string", "maxLength": 160},
+                    "resource_type": {"type": "string", "maxLength": 80},
+                    "resource_id": {"type": ["string", "null"], "format": "uuid"},
+                    "payload": {"type": "object", "additionalProperties": true},
+                    "created_at": {"type": "string", "format": "date-time"},
+                },
+            }),
+        ),
+        Shape::new(
+            "AuditEventPage",
+            json!({
+                "type": "object",
+                "required": ["items", "next_cursor"],
+                "properties": {
+                    "items": {"type": "array", "items": {"$ref": "#/components/schemas/AuditEvent"}},
+                    "next_cursor": {"type": ["string", "null"], "maxLength": 512},
+                },
+            }),
+        ),
+    ]
+}
+
+impl AuditService {
+    /// Writes the receipt in the caller's existing transaction. This must be
+    /// called before the domain transaction commits.
+    pub async fn record(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        entry: &AuditEntry,
+    ) -> Result<()> {
+        let (actor_kind, actor_id) = actor(context);
+        sqlx::query(
+            "insert into audit_events
+                (site_id, id, request_id, actor_kind, actor_id, action, resource_type, resource_id, payload)
+             values ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(Uuid::now_v7())
+        .bind(context.request_id.into_uuid())
+        .bind(actor_kind)
+        .bind(actor_id)
+        .bind(&entry.action)
+        .bind(&entry.resource_type)
+        .bind(entry.resource_id)
+        .bind(&entry.payload)
+        .execute(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?;
+
+        Ok(())
+    }
+
+    pub async fn list(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        filter: &AuditListFilter,
+    ) -> Result<Page<AuditEvent>> {
+        let action = validate_filter(filter.action.as_deref(), 160)?;
+        let resource_type = validate_filter(filter.resource_type.as_deref(), 80)?;
+        let actor_id = validate_filter(filter.actor_id.as_deref(), 255)?;
+        let after = filter.page.after.as_ref().map(decode_cursor).transpose()?;
+        let limit = i64::from(filter.page.effective_limit());
+        let mut query = sqlx::QueryBuilder::<sqlx::Postgres>::new(
+            "select id, request_id, actor_kind, actor_id, action, resource_type,
+                    resource_id, payload, created_at
+               from audit_events where site_id = ",
+        );
+        query.push_bind(context.site_id.into_uuid());
+        if let Some(action) = action {
+            query.push(" and action = ").push_bind(action);
+        }
+        if let Some(resource_type) = resource_type {
+            query.push(" and resource_type = ").push_bind(resource_type);
+        }
+        if let Some(resource_id) = filter.resource_id {
+            query.push(" and resource_id = ").push_bind(resource_id);
+        }
+        if let Some(actor_kind) = filter.actor_kind {
+            query
+                .push(" and actor_kind = ")
+                .push_bind(actor_kind.as_str());
+        }
+        if let Some(actor_id) = actor_id {
+            query.push(" and actor_id = ").push_bind(actor_id);
+        }
+        if let Some(after) = after {
+            query
+                .push(" and (created_at, id) < (")
+                .push_bind(after.created_at)
+                .push(", ")
+                .push_bind(after.id)
+                .push(")");
+        }
+        let rows = query
+            .push(" order by created_at desc, id desc limit ")
+            .push_bind(limit + 1)
+            .build()
+            .fetch_all(tx.conn())
+            .await
+            .map_err(|_| MaviError::Internal)?;
+        let mut items = rows.iter().map(from_row).collect::<Result<Vec<_>>>()?;
+        let limit_usize = usize::try_from(limit).map_err(|_| MaviError::Internal)?;
+        let next_cursor = if items.len() > limit_usize {
+            let last = items
+                .get(limit_usize.saturating_sub(1))
+                .ok_or(MaviError::Internal)?;
+            Some(encode_cursor(last.created_at, last.id.into_uuid())?)
+        } else {
+            None
+        };
+        items.truncate(limit_usize);
+        Ok(Page::new(items, next_cursor))
+    }
+
+    pub async fn get(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        id: AuditEventId,
+    ) -> Result<AuditEvent> {
+        let row = sqlx::query(
+            "select id, request_id, actor_kind, actor_id, action, resource_type,
+                    resource_id, payload, created_at
+               from audit_events where site_id = $1 and id = $2",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(id.into_uuid())
+        .fetch_optional(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?
+        .ok_or(MaviError::NotFound {
+            resource: AUDIT_EVENT_NOT_FOUND,
+        })?;
+        from_row(&row)
+    }
+
+    /// Exports immutable audit history for the trusted internal relocation
+    /// port. The public audit API remains a read-only site-scoped view and does
+    /// not expose this envelope type.
+    pub async fn export_for_relocation(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+    ) -> Result<AuditRelocation> {
+        let rows = sqlx::query(
+            "select id, request_id, actor_kind, actor_id, action, resource_type,
+                    resource_id, payload, created_at
+               from audit_events
+              where site_id = $1
+              order by created_at asc, id asc",
+        )
+        .bind(context.site_id.into_uuid())
+        .fetch_all(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?;
+
+        let events = rows
+            .iter()
+            .map(|row| {
+                Ok(AuditRelocationEvent {
+                    id: row.try_get("id").map_err(|_| MaviError::Internal)?,
+                    request_id: row.try_get("request_id").map_err(|_| MaviError::Internal)?,
+                    actor_kind: AuditActorKind::parse(
+                        row.try_get::<String, _>("actor_kind")
+                            .map_err(|_| MaviError::Internal)?
+                            .as_str(),
+                    )?,
+                    actor_id: row.try_get("actor_id").map_err(|_| MaviError::Internal)?,
+                    action: row.try_get("action").map_err(|_| MaviError::Internal)?,
+                    resource_type: row
+                        .try_get("resource_type")
+                        .map_err(|_| MaviError::Internal)?,
+                    resource_id: row
+                        .try_get("resource_id")
+                        .map_err(|_| MaviError::Internal)?,
+                    payload: row.try_get("payload").map_err(|_| MaviError::Internal)?,
+                    created_at: row.try_get("created_at").map_err(|_| MaviError::Internal)?,
+                })
+            })
+            .collect::<Result<Vec<_>>>()?;
+        let relocation = AuditRelocation {
+            format: AUDIT_RELOCATION_FORMAT.to_owned(),
+            version: AUDIT_RELOCATION_VERSION,
+            source_site_id: context.site_id,
+            events,
+        };
+        relocation.validate_for_relocation(context.site_id)?;
+        Ok(relocation)
+    }
+
+    /// Imports immutable event IDs idempotently and rejects a same-ID event
+    /// whose contents differ. It deliberately emits no new audit event: the
+    /// caller can record relocation activity separately without contaminating
+    /// the source history being copied.
+    pub async fn import_for_relocation(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        relocation: &AuditRelocation,
+    ) -> Result<()> {
+        relocation.validate_for_relocation(context.site_id)?;
+        for event in &relocation.events {
+            let inserted = sqlx::query(
+                "insert into audit_events
+                    (site_id, id, request_id, actor_kind, actor_id, action,
+                     resource_type, resource_id, payload, created_at)
+                 values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                 on conflict (site_id, id) do nothing",
+            )
+            .bind(context.site_id.into_uuid())
+            .bind(event.id)
+            .bind(event.request_id)
+            .bind(event.actor_kind.as_str())
+            .bind(&event.actor_id)
+            .bind(&event.action)
+            .bind(&event.resource_type)
+            .bind(event.resource_id)
+            .bind(&event.payload)
+            .bind(event.created_at)
+            .execute(tx.conn())
+            .await
+            .map_err(|_| MaviError::Internal)?;
+            if inserted.rows_affected() == 0 {
+                let same = sqlx::query(
+                    "select request_id, actor_kind, actor_id, action, resource_type,
+                            resource_id, payload, created_at
+                       from audit_events
+                      where site_id = $1 and id = $2",
+                )
+                .bind(context.site_id.into_uuid())
+                .bind(event.id)
+                .fetch_optional(tx.conn())
+                .await
+                .map_err(|_| MaviError::Internal)?
+                .is_some_and(|row| {
+                    let actor_kind = row.try_get::<String, _>("actor_kind").ok();
+                    let actor_id = row.try_get::<Option<String>, _>("actor_id").ok();
+                    let request_id = row.try_get::<Uuid, _>("request_id").ok();
+                    let action = row.try_get::<String, _>("action").ok();
+                    let resource_type = row.try_get::<String, _>("resource_type").ok();
+                    let resource_id = row.try_get::<Option<Uuid>, _>("resource_id").ok();
+                    let payload = row.try_get::<Value, _>("payload").ok();
+                    let created_at = row.try_get::<DateTime<Utc>, _>("created_at").ok();
+                    request_id == Some(event.request_id)
+                        && actor_kind.as_deref() == Some(event.actor_kind.as_str())
+                        && actor_id.as_ref() == Some(&event.actor_id)
+                        && action.as_deref() == Some(event.action.as_str())
+                        && resource_type.as_deref() == Some(event.resource_type.as_str())
+                        && resource_id == Some(event.resource_id)
+                        && payload.as_ref() == Some(&event.payload)
+                        && created_at == Some(event.created_at)
+                });
+                if !same {
+                    return Err(MaviError::conflict(AUDIT_RELOCATION_CONFLICT));
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
+fn actor(context: &SiteContext) -> (&'static str, Option<String>) {
+    match &context.caller {
+        Caller::Public => (AuditActorKind::Public.as_str(), None),
+        Caller::Account { person_id, .. } => (
+            AuditActorKind::Account.as_str(),
+            Some(person_id.to_string()),
+        ),
+        Caller::Student { student_id, .. } => (
+            AuditActorKind::Student.as_str(),
+            Some(student_id.to_string()),
+        ),
+        Caller::Assistant { key_id, .. } => {
+            (AuditActorKind::Assistant.as_str(), Some(key_id.to_string()))
+        }
+        Caller::System { worker } => (AuditActorKind::System.as_str(), Some(worker.clone())),
+    }
+}
+
+fn from_row(row: &sqlx::postgres::PgRow) -> Result<AuditEvent> {
+    Ok(AuditEvent {
+        id: AuditEventId::from_uuid(row.try_get("id").map_err(|_| MaviError::Internal)?),
+        request_id: RequestId::from_uuid(
+            row.try_get("request_id").map_err(|_| MaviError::Internal)?,
+        ),
+        actor_kind: AuditActorKind::parse(
+            row.try_get::<String, _>("actor_kind")
+                .map_err(|_| MaviError::Internal)?
+                .as_str(),
+        )?,
+        actor_id: row.try_get("actor_id").map_err(|_| MaviError::Internal)?,
+        action: row.try_get("action").map_err(|_| MaviError::Internal)?,
+        resource_type: row
+            .try_get("resource_type")
+            .map_err(|_| MaviError::Internal)?,
+        resource_id: row
+            .try_get("resource_id")
+            .map_err(|_| MaviError::Internal)?,
+        payload: row.try_get("payload").map_err(|_| MaviError::Internal)?,
+        created_at: row.try_get("created_at").map_err(|_| MaviError::Internal)?,
+    })
+}
+
+fn validate_filter(value: Option<&str>, max_chars: usize) -> Result<Option<&str>> {
+    let Some(value) = value else {
+        return Ok(None);
+    };
+    if value.is_empty() || value.chars().count() > max_chars {
+        return Err(MaviError::validation(AUDIT_FILTER_INVALID));
+    }
+    Ok(Some(value))
+}
+
+fn valid_text(value: &str, max_chars: usize) -> bool {
+    !value.is_empty() && value.chars().count() <= max_chars && !value.chars().any(char::is_control)
+}
+
+fn encode_cursor(created_at: DateTime<Utc>, id: Uuid) -> Result<Cursor> {
+    let bytes =
+        serde_json::to_vec(&AuditCursor { created_at, id }).map_err(|_| MaviError::Internal)?;
+    Cursor::parse(URL_SAFE_NO_PAD.encode(bytes))
+}
+
+fn decode_cursor(cursor: &Cursor) -> Result<AuditCursor> {
+    let bytes = URL_SAFE_NO_PAD
+        .decode(cursor.as_str())
+        .map_err(|_| MaviError::validation("invalid_cursor"))?;
+    serde_json::from_slice(&bytes).map_err(|_| MaviError::validation("invalid_cursor"))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use mavi_api::Api;
+    use mavi_core::{ContentId, SiteId};
 
     #[test]
-    fn everything_this_domain_answers_is_described_completely() {
-        let holes = Api::of(endpoints()).holes();
-
-        assert!(holes.is_empty(), "{holes:#?}");
-    }
-
-    #[test]
-    fn nothing_here_changes_anything() {
-        // A record somebody can add to is a record somebody can write into,
-        // and one somebody can delete from is not a record. The database
-        // refuses both as well; this says the API never offers them.
-        for endpoint in endpoints() {
-            assert!(
-                !endpoint.changes,
-                "{} offers a way to write the record of what was done",
-                endpoint.named
-            );
-        }
+    fn public_audit_actor_is_not_fabricated_as_an_account() {
+        let context = SiteContext::public(SiteId::new());
+        assert_eq!(actor(&context), ("public", None));
     }
 
     #[test]
-    fn what_this_domain_asks_for_is_a_capability_the_site_has() {
-        assert!(mavi_people::is_a_capability(AUDIT));
-    }
-}
-
-/// Reading what was done.
-///
-/// A record nothing can read is a record in name only, so this is the other
-/// half of the crate: the listing the panel opens, and one receipt in full.
-pub mod reading {
-    use mavi_core::error::{Error, Result};
-    use mavi_core::page::{Page, Query};
-    use mavi_core::say::Say;
-    use mavi_db::{Tx, Walk};
-    use sqlx::Row;
-    use sqlx::postgres::PgRow;
-    use uuid::Uuid;
-
-    use super::{BY_RECENT, ReceiptId, Who, Written};
-
-    pub const NOTHING_WAS_DONE_UNDER_THAT: &str = "nothing_was_done_under_that";
-
-    const COLUMNS: &str = "id, who, who_id, did, about, about_id, what, request, created_at";
-
-    fn a_receipt(row: &PgRow) -> Result<Written> {
-        let who: String = row.try_get("who").map_err(Error::internal)?;
-
-        Ok(Written {
-            id: ReceiptId(row.try_get("id").map_err(Error::internal)?),
-            who: match who.as_str() {
-                "an_account" => Who::AnAccount,
-                "a_student" => Who::AStudent,
-                _ => Who::TheMachine,
-            },
-            who_id: row.try_get("who_id").map_err(Error::internal)?,
-            did: row.try_get("did").map_err(Error::internal)?,
-            about: row.try_get("about").map_err(Error::internal)?,
-            about_id: row.try_get("about_id").map_err(Error::internal)?,
-            what: row.try_get("what").map_err(Error::internal)?,
-            request: row.try_get("request").map_err(Error::internal)?,
-            created_at: row.try_get("created_at").map_err(Error::internal)?,
-        })
-    }
-
-    /// What has been done here, newest first.
-    ///
-    /// Narrowed by what it was about rather than by anything free-text: the
-    /// question somebody actually asks is "what happened to this", and there
-    /// is an index for exactly that.
-    pub async fn list(
-        tx: &mut Tx,
-        about: Option<&str>,
-        about_id: Option<&str>,
-        who_id: Option<&str>,
-        query: &Query,
-    ) -> Result<Page<Written>> {
-        let walk = Walk::new(BY_RECENT, query.after(BY_RECENT)?);
-        let mut wheres: Vec<String> = Vec::new();
-        let mut binds: Vec<String> = Vec::new();
-
-        for (column, value) in [("about", about), ("about_id", about_id), ("who_id", who_id)] {
-            if let Some(value) = value {
-                binds.push(value.to_owned());
-                wheres.push(format!("{column} = ${}", binds.len()));
-            }
-        }
-
-        let cursor = walk.after(binds.len() + 1);
-        if let Some((sql, _)) = &cursor {
-            wheres.push(sql.clone());
-        }
-
-        let narrowed = if wheres.is_empty() {
-            String::new()
-        } else {
-            format!("where {}", wheres.join(" and "))
+    fn content_id_can_be_recorded_as_a_uuid_resource() {
+        let id = ContentId::new();
+        let entry = AuditEntry {
+            action: "content.created".to_owned(),
+            resource_type: "Content".to_owned(),
+            resource_id: Some(id.into_uuid()),
+            payload: Value::Object(serde_json::Map::new()),
         };
-
-        let sql = format!(
-            "select {COLUMNS} from receipts {narrowed} order by {} limit {}",
-            walk.order(),
-            query.fetch(),
-        );
-
-        let mut asking = sqlx::query(&sql);
-
-        for bind in binds {
-            asking = asking.bind(bind);
-        }
-
-        if let Some((_, values)) = cursor {
-            for value in values {
-                asking = asking.bind(value);
-            }
-        }
-
-        let rows = asking
-            .fetch_all(tx.conn())
-            .await
-            .map_err(Error::internal)?
-            .iter()
-            .map(a_receipt)
-            .collect::<Result<Vec<_>>>()?;
-
-        Page::build(query, BY_RECENT, rows, |written| {
-            vec![written.created_at.to_rfc3339(), written.id.to_string()]
-        })
+        assert_eq!(entry.resource_id, Some(id.into_uuid()));
     }
 
-    /// One receipt, and everything it recorded.
-    pub async fn read(tx: &mut Tx, id: Uuid) -> Result<Written> {
-        let row = sqlx::query(&format!("select {COLUMNS} from receipts where id = $1"))
-            .bind(id)
-            .fetch_optional(tx.conn())
-            .await
-            .map_err(Error::internal)?;
+    #[test]
+    fn audit_cursor_and_contract_are_keyset_only() {
+        let cursor = encode_cursor(Utc::now(), Uuid::now_v7()).expect("cursor");
+        assert!(decode_cursor(&cursor).is_ok());
+        assert!(decode_cursor(&Cursor::parse("bad").expect("cursor")).is_err());
+        assert!(api().validate().is_ok());
+        let filter = shapes()
+            .into_iter()
+            .find(|shape| shape.name == "AuditListFilter")
+            .expect("audit filter");
+        let properties = filter.schema["properties"].as_object().expect("properties");
+        assert!(properties.contains_key("after"));
+        assert!(properties.contains_key("limit"));
+        assert!(!properties.contains_key("offset"));
+        assert!(!properties.contains_key("page"));
+    }
 
-        row.as_ref()
-            .map(a_receipt)
-            .transpose()?
-            .ok_or_else(|| Error::not_found(Say::of(NOTHING_WAS_DONE_UNDER_THAT)))
+    #[test]
+    fn relocation_is_site_bound_and_rejects_duplicate_event_ids() {
+        let site = SiteId::new();
+        let event = AuditRelocationEvent {
+            id: Uuid::now_v7(),
+            request_id: Uuid::now_v7(),
+            actor_kind: AuditActorKind::Public,
+            actor_id: None,
+            action: "content.created".to_owned(),
+            resource_type: "Content".to_owned(),
+            resource_id: Some(Uuid::now_v7()),
+            payload: json!({"ok": true}),
+            created_at: Utc::now(),
+        };
+        let mut relocation = AuditRelocation {
+            format: AUDIT_RELOCATION_FORMAT.to_owned(),
+            version: AUDIT_RELOCATION_VERSION,
+            source_site_id: site,
+            events: vec![event.clone(), event],
+        };
+        assert!(relocation.validate_for_relocation(site).is_err());
+        relocation.events.pop();
+        assert!(relocation.validate_for_relocation(SiteId::new()).is_err());
+        assert!(relocation.validate_for_relocation(site).is_ok());
     }
 }

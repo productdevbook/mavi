@@ -3,8 +3,8 @@ import { useNavigate } from "@tanstack/react-router"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { Loader2 } from "lucide-react"
 
-import { nextApi } from "@/lib/server-next"
-import { serverNextMessage } from "@/lib/server-next-auth"
+import { api } from "@/lib/api"
+import { apiMessage } from "@/lib/auth"
 import { AuthPageFrame } from "@/features/auth/auth-page-frame"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -41,7 +41,7 @@ export function SetupPage() {
     setRefused("")
 
     try {
-      await nextApi("setup.initialize", {
+      await api("setup.initialize", {
         body: {
           site_name: siteName.trim() || "Mavi CMS",
           email: email.trim(),
@@ -51,7 +51,7 @@ export function SetupPage() {
       })
       await navigate({ to: "/login" })
     } catch (why) {
-      setRefused(serverNextMessage(why))
+      setRefused(apiMessage(why))
       setBusy(false)
     }
   }

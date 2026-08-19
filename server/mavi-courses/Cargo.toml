@@ -1,27 +1,28 @@
 [package]
 name = "mavi-courses"
-version = "0.0.0"
-edition = "2024"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
 publish = false
-description = "What somebody is learning: courses, the order they are in, and who is on them."
+description = "Site-scoped courses, student identity, enrollment and learning progress."
 
 [dependencies]
-mavi-api = { path = "../mavi-api" }
+argon2.workspace = true
+base64.workspace = true
+chrono.workspace = true
+mavi-audit = { path = "../mavi-audit" }
+mavi-contract = { path = "../mavi-contract" }
 mavi-core = { path = "../mavi-core" }
-mavi-db = { path = "../mavi-db" }
-mavi-people = { path = "../mavi-people" }
-
-chrono = { workspace = true }
-serde = { workspace = true }
-serde_json = { workspace = true }
-sqlx = { workspace = true }
-uuid = { workspace = true }
-
-[dev-dependencies]
-mavi-db = { path = "../mavi-db" }
-
-sqlx = { workspace = true }
-tokio = { workspace = true, features = ["macros", "rt", "rt-multi-thread"] }
+mavi-storage = { path = "../mavi-storage" }
+rand.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+sqlx.workspace = true
+uuid.workspace = true
 
 [lints]
 workspace = true
+
+[dev-dependencies]
+tokio.workspace = true

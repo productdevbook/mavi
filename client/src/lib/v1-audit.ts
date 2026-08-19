@@ -23,7 +23,7 @@ import {
 import type * as React from "react"
 
 import { api } from "./v1"
-import type { Receipt, ReceiptPage } from "@api"
+import type { Receipt, ReceiptPage } from "@legacy-api"
 
 export type Entry = Receipt
 export type { Receipt, ReceiptPage }

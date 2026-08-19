@@ -11,7 +11,7 @@ already has an opinion about:
 | `Mailer` | where a letter goes |
 | `Told` | what happened, said outward |
 
-A port is a decision, not a convenience. `server-next/mavi-core/src/ports.rs` says
+A port is a decision, not a convenience. `server/mavi-core/src/ports.rs` says
 so at the top: adding one is work for everybody embedding this, and one nobody
 implements differently is a parameter wearing a costume.
 

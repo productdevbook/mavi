@@ -5,8 +5,8 @@ import { calledIn } from "@/lib/kind-name"
 import { Plus, Shapes, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
-import { nextApi } from "@/lib/server-next"
-import { serverNextMessage } from "@/lib/server-next-auth"
+import { api } from "@/lib/api"
+import { apiMessage } from "@/lib/auth"
 import type { ContentType } from "@/lib/use-content-types"
 import { useContentTypes } from "@/lib/use-content-types"
 import { Button } from "@/components/ui/button"
@@ -33,10 +33,10 @@ export function ContentTypesPage() {
 
   const remove = async (kind: ContentType) => {
     try {
-      await nextApi("content_types.delete", { path: { kind: kind.kind } })
+      await api("content_types.delete", { path: { kind: kind.kind } })
       reload()
     } catch (why) {
-      toast.error(serverNextMessage(why))
+      toast.error(apiMessage(why))
     }
   }
 

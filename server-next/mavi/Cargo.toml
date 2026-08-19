@@ -16,6 +16,7 @@ mavi-core = { path = "../mavi-core" }
 mavi-design = { path = "../mavi-design" }
 mavi-files = { path = "../mavi-files" }
 mavi-http = { path = "../mavi-http" }
+mavi-observability = { path = "../mavi-observability" }
 mavi-runtime = { path = "../mavi-runtime" }
 mavi-sealing = { path = "../mavi-sealing" }
 mavi-storage = { path = "../mavi-storage" }

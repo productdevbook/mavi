@@ -25,6 +25,7 @@ mavi-forms = { path = "../mavi-forms" }
  mavi-jobs = { path = "../mavi-jobs" }
 mavi-mail = { path = "../mavi-mail" }
 mavi-media = { path = "../mavi-media" }
+mavi-observability = { path = "../mavi-observability" }
 mavi-portable = { path = "../mavi-portable" }
 mavi-shop = { path = "../mavi-shop" }
 mavi-identity = { path = "../mavi-identity" }

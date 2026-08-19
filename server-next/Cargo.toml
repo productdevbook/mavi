@@ -16,6 +16,7 @@ members = [
   "mavi-audit",
   "mavi-files",
   "mavi-media",
+  "mavi-observability",
   "mavi-trash",
   "mavi-design",
   "mavi-forms",

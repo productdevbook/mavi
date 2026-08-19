@@ -51,6 +51,10 @@ User-Agent values never enter the limiter buckets or security audit payloads;
 the in-process adapter is bounded and records only the first edge-limit event
 per source/action window.
 
+Operational probes are global and do not require a site `Host`: `/healthz`
+reports process liveness, `/readyz` checks the shared database, and `/metrics`
+exposes process-local HTTP and worker counters in Prometheus text format.
+
 ## Workspace crates
 
 | Crate | Responsibility |
@@ -66,6 +70,7 @@ per source/action window.
 | `mavi-authz` | embedded Cedar policy evaluation with site-scope enforcement |
 | `mavi-files` | atomic local and in-memory site-scoped binary storage adapters |
 | `mavi-media` | file metadata, byte detection, upload/trash orchestration and media API |
+| `mavi-observability` | process-local HTTP/worker counters and Prometheus exposition primitives |
 | `mavi-audit` | immutable site-scoped mutation receipts and cursor-filtered audit reads |
 | `mavi-trash` | shared trash listing, restore, permanent deletion and media cleanup policy |
 | `mavi-design` | site-owned source files, immutable preview builds, publish/rollback and public asset metadata |

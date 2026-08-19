@@ -1437,6 +1437,7 @@ dependencies = [
  "mavi-design",
  "mavi-files",
  "mavi-http",
+ "mavi-observability",
  "mavi-runtime",
  "mavi-sealing",
  "mavi-storage",
@@ -1652,6 +1653,7 @@ dependencies = [
  "mavi-jobs",
  "mavi-mail",
  "mavi-media",
+ "mavi-observability",
  "mavi-portable",
  "mavi-runtime",
  "mavi-sealing",
@@ -1748,6 +1750,10 @@ dependencies = [
  "tokio",
  "uuid",
 ]
+
+[[package]]
+name = "mavi-observability"
+version = "0.1.0"
 
 [[package]]
 name = "mavi-portable"
@@ -1914,6 +1920,7 @@ dependencies = [
  "mavi-content",
  "mavi-core",
  "mavi-jobs",
+ "mavi-observability",
  "mavi-storage",
  "serde_json",
  "sqlx",

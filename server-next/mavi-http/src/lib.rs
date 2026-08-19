@@ -85,6 +85,7 @@ use mavi_mail::{
     RetryDelivery, SendCampaign, SendCount, UnsubscribeReceipt, UpdateMailList, UpdateMailTemplate,
 };
 use mavi_media::{FileListFilter, FileRecord, MAX_FILE_BYTES, MediaService, UploadFileQuery};
+use mavi_observability::RuntimeMetrics;
 use mavi_portable::{ImportReceipt, PortableBundle, PortableImportRequest, PortableService};
 use mavi_runtime::{Runtime, RuntimeManifest, SiteResolver};
 use mavi_secrets::{
@@ -440,6 +441,30 @@ pub fn router_with_config<R>(
 where
     R: SiteResolver,
 {
+    router_with_config_and_metrics(
+        runtime,
+        file_store,
+        builder,
+        sealer,
+        edge,
+        RuntimeMetrics::default(),
+    )
+}
+
+/// Builds the shared router with an explicit edge policy and process metrics
+/// registry. Composition roots should pass the same registry to the worker
+/// supervisor so `/metrics` exposes HTTP and background-job counters together.
+pub fn router_with_config_and_metrics<R>(
+    runtime: Runtime<R>,
+    file_store: Arc<dyn FileStore>,
+    builder: Arc<dyn BuildEngine>,
+    sealer: Arc<dyn Seals>,
+    edge: EdgeSecurityConfig,
+    metrics: RuntimeMetrics,
+) -> Result<Router, MaviError>
+where
+    R: SiteResolver,
+{
     let mcp_dispatcher = Arc::new(OnceLock::new());
     let state = HttpState {
         runtime: runtime.clone(),
@@ -471,6 +496,7 @@ where
         edge,
         authorizer: CedarAuthorizer::new()?,
         mcp_dispatcher: Arc::clone(&mcp_dispatcher),
+        metrics: metrics.clone(),
     };
     let routes = runtime.router::<HttpState<R>>().merge(api_routes::<R>());
     let api_only = routes
@@ -512,12 +538,13 @@ where
     let operational_routes = Router::<HttpState<R>>::new()
         .route("/healthz", get(liveness))
         .route("/readyz", get(readiness::<R>))
+        .route("/metrics", get(metrics_endpoint::<R>))
         .layer(Extension(runtime));
 
     Ok(operational_routes
         .merge(scoped_routes)
         .with_state(state)
-        .layer(middleware::from_fn(request_telemetry)))
+        .layer(middleware::from_fn_with_state(metrics, request_telemetry)))
 }
 
 async fn liveness() -> StatusCode {
@@ -535,12 +562,28 @@ where
     }
 }
 
+async fn metrics_endpoint<R>(State(state): State<HttpState<R>>) -> Response
+where
+    R: SiteResolver,
+{
+    let mut response = Response::new(Body::from(state.metrics.prometheus()));
+    response.headers_mut().insert(
+        CONTENT_TYPE,
+        HeaderValue::from_static("text/plain; version=0.0.4; charset=utf-8"),
+    );
+    response
+}
+
 /// Emits one structured completion event for every request at the outer HTTP
 /// boundary. The middleware deliberately does not know about a domain or a
 /// site resolver; admission remains responsible for enriching the request
 /// with its [`SiteContext`]. Keeping this concern here also covers global
 /// liveness/readiness probes, which never enter site admission.
-async fn request_telemetry(mut request: Request<Body>, next: Next) -> Response {
+async fn request_telemetry(
+    State(metrics): State<RuntimeMetrics>,
+    mut request: Request<Body>,
+    next: Next,
+) -> Response {
     let request_id = request
         .extensions()
         .get::<RequestId>()
@@ -558,6 +601,7 @@ async fn request_telemetry(mut request: Request<Body>, next: Next) -> Response {
         .headers_mut()
         .entry(REQUEST_ID_HEADER)
         .or_insert(request_id_header);
+    metrics.record_http_response(response.status().as_u16());
 
     tracing::info!(
         %request_id,
@@ -2174,6 +2218,7 @@ struct HttpState<R> {
     analytics: AnalyticsService,
     portable: PortableService,
     credentials: CredentialService,
+    metrics: RuntimeMetrics,
     file_store: Arc<dyn FileStore>,
     builder: Arc<dyn BuildEngine>,
     sealer: Arc<dyn Seals>,
@@ -2204,6 +2249,7 @@ impl<R> Clone for HttpState<R> {
             analytics: self.analytics,
             portable: self.portable,
             credentials: self.credentials,
+            metrics: self.metrics.clone(),
             file_store: Arc::clone(&self.file_store),
             builder: Arc::clone(&self.builder),
             sealer: Arc::clone(&self.sealer),

@@ -140,6 +140,10 @@ returns `400` with `error.code = "unknown_field"` and the offending field path.
 Domain-owned maps such as content fields and flow configuration remain open
 only where their schema explicitly says so.
 Forms use the same rule for both form declarations and submission inboxes.
+Each form's `kept_days` is enforced by the shared site-scoped worker through
+an idempotent daily `forms.retention` job; expired answers are redacted behind
+a submission tombstone and the retention count is recorded as a system audit
+receipt in the same transaction.
 Site settings store an optional normalized canonical HTTP(S) URL; query strings,
 fragments and userinfo are refused, and PATCH can explicitly set or clear the
 value. Public content resolution first tries the requested language, then its

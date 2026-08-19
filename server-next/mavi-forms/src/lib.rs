@@ -12,9 +12,10 @@ use chrono::{DateTime, Utc};
 use mavi_audit::{AuditEntry, AuditService};
 use mavi_contract::{Endpoint, Method, Permission, Shape};
 use mavi_core::{
-    Action, Capability, Cursor, ErrorCode, FormId, FormSubmissionId, MaviError, Page, PageRequest,
-    Result, SiteContext,
+    Action, Capability, Cursor, ErrorCode, FormId, FormSubmissionId, JobId, MaviError, Page,
+    PageRequest, Result, SiteContext,
 };
+use mavi_jobs::{JobKind, JobsService};
 use mavi_storage::SiteTx;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
@@ -45,6 +46,8 @@ pub const FORM_ANSWER_TYPE_INVALID: &str = "form_answer_type_invalid";
 pub const FORM_ANSWER_UNKNOWN: &str = "form_answer_unknown";
 pub const FORM_ANSWERS_TOO_LARGE: &str = "form_answers_too_large";
 pub const FORM_SUBMISSION_CLOSED: &str = "form_submission_closed";
+pub const FORM_RETENTION_JOB: JobKind = JobKind::new("forms.retention", 5);
+pub const FORM_RETENTION_BUCKET_SECONDS: i64 = 24 * 60 * 60;
 
 pub const DEFAULT_KEPT_DAYS: i32 = 365;
 pub const MAX_FORM_FIELDS: usize = 50;
@@ -169,6 +172,17 @@ pub struct FormSubmission {
 #[derive(Clone, Debug, Serialize)]
 pub struct SubmissionReceipt {
     pub id: FormSubmissionId,
+}
+
+/// The payload for the idempotent daily form-submission retention job.
+///
+/// The bucket is deliberately part of the payload and idempotency key. A
+/// worker may poll many times per day, while a restarted worker can safely
+/// claim the same day's cleanup without creating another job.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct FormRetentionJob {
+    pub bucket: i64,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -518,6 +532,78 @@ pub fn shapes() -> Vec<Shape> {
 }
 
 impl FormService {
+    /// Enqueues one retention pass for the current UTC day in the same
+    /// site-scoped transaction as any other worker discovery work.
+    pub async fn enqueue_retention_job(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        jobs: &JobsService,
+        now: DateTime<Utc>,
+    ) -> Result<JobId> {
+        let bucket = now.timestamp().div_euclid(FORM_RETENTION_BUCKET_SECONDS);
+        let payload =
+            serde_json::to_value(FormRetentionJob { bucket }).map_err(|_| MaviError::Internal)?;
+        let idempotency_key = format!("forms:retention:{}:{}", context.site_id, bucket);
+        jobs.enqueue(
+            tx,
+            context,
+            FORM_RETENTION_JOB.name,
+            &payload,
+            None,
+            Some(&idempotency_key),
+        )
+        .await
+    }
+
+    /// Marks submissions older than their form's retention period as deleted.
+    ///
+    /// Retention keeps only a tombstone: answers are redacted and normal inbox
+    /// reads stop exposing the submission immediately. The audit receipt is
+    /// written in the same transaction as the update, so a failed worker claim
+    /// cannot report a cleanup that did not commit.
+    pub async fn prune_expired_submissions(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        now: DateTime<Utc>,
+        bucket: i64,
+    ) -> Result<u64> {
+        if bucket < 0 {
+            return Err(MaviError::validation("form_retention_bucket_invalid"));
+        }
+        let result = sqlx::query(
+            "update form_submissions as submission
+                set answers = '{}'::jsonb,
+                    deleted_at = $1
+               from forms as form
+              where submission.site_id = $2
+                and form.site_id = $2
+                and submission.form_id = form.id
+                and submission.deleted_at is null
+                and submission.created_at < $1 - (form.kept_days * interval '1 day')",
+        )
+        .bind(now)
+        .bind(context.site_id.into_uuid())
+        .execute(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?;
+        let deleted = result.rows_affected();
+        AuditService
+            .record(
+                tx,
+                context,
+                &AuditEntry {
+                    action: "forms.submissions.retention_pruned".to_owned(),
+                    resource_type: "FormSubmissionRetention".to_owned(),
+                    resource_id: None,
+                    payload: json!({"bucket": bucket, "deleted": deleted}),
+                },
+            )
+            .await?;
+        Ok(deleted)
+    }
+
     pub async fn list(
         &self,
         tx: &mut SiteTx,
@@ -886,7 +972,8 @@ impl FormService {
     ) -> Result<()> {
         let row = sqlx::query(
             "update form_submissions
-                set deleted_at = clock_timestamp()
+                set answers = '{}'::jsonb,
+                    deleted_at = clock_timestamp()
               where site_id = $1 and id = $2 and deleted_at is null
              returning form_id",
         )

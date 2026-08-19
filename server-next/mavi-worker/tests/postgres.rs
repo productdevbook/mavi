@@ -5,8 +5,9 @@ use mavi_content::{
     ContentService, CreateContent, Publication, PublicationInput, SCHEDULED_PUBLISH_JOB,
     ScheduledPublishJob,
 };
-use mavi_core::{SiteContext, SiteId, ports::FileStore};
+use mavi_core::{FormSubmissionId, SiteContext, SiteId, ports::FileStore};
 use mavi_files::InMemoryFileStore;
+use mavi_forms::{CreateForm, FORM_RETENTION_JOB, FormService};
 use mavi_jobs::JobsService;
 use mavi_media::{
     FileVariantListFilter, FileVisibility, MEDIA_CLEANUP_JOB, MEDIA_ORPHAN_CLEANUP_JOB,
@@ -272,6 +273,104 @@ async fn scheduled_worker_publishes_skips_stale_and_defers_early_jobs() {
         early_content.1.timestamp_micros()
     );
     transaction.commit().await.expect("commit");
+}
+
+#[tokio::test]
+#[ignore = "requires TEST_DATABASE_URL and a non-superuser PostgreSQL role"]
+async fn form_retention_worker_prunes_expired_submissions_and_records_system_audit() {
+    let database_url = env::var("TEST_DATABASE_URL").expect("TEST_DATABASE_URL");
+    let database = Database::connect(&database_url, 4)
+        .await
+        .expect("database connection");
+    database.migrate().await.expect("migrations");
+    let site_id = SiteId::new();
+    database.ensure_site(site_id).await.expect("site");
+
+    let context = SiteContext::public(site_id);
+    let forms = FormService;
+    let form = {
+        let mut transaction = database.begin(&context).await.expect("form scope");
+        let form = forms
+            .create(
+                &mut transaction,
+                &context,
+                &CreateForm {
+                    slug: "retention".to_owned(),
+                    name: "Retention".to_owned(),
+                    fields: Vec::new(),
+                    kept_days: Some(1),
+                },
+            )
+            .await
+            .expect("form");
+        transaction.commit().await.expect("form commit");
+        form
+    };
+    let submission_id = FormSubmissionId::new();
+    let mut transaction = database.begin(&context).await.expect("submission scope");
+    sqlx::query(
+        "insert into form_submissions (site_id, id, form_id, answers, created_at)
+         values ($1, $2, $3, '{}'::jsonb, $4)",
+    )
+    .bind(site_id.into_uuid())
+    .bind(submission_id.into_uuid())
+    .bind(form.id.into_uuid())
+    .bind(Utc::now() - Duration::days(2))
+    .execute(transaction.conn())
+    .await
+    .expect("expired submission");
+    transaction.commit().await.expect("submission commit");
+
+    let store = Arc::new(InMemoryFileStore::default());
+    let supervisor = WorkerSupervisor::new(
+        database.clone(),
+        [site_id],
+        WorkerConfig::new(
+            "test-form-retention-worker",
+            30,
+            std::time::Duration::from_millis(10),
+        )
+        .expect("worker config"),
+        store,
+    );
+    assert!(supervisor.run_once(site_id).await.expect("orphan run"));
+    assert!(supervisor.run_once(site_id).await.expect("retention run"));
+
+    let jobs = JobsService::new([FORM_RETENTION_JOB]);
+    let mut transaction = database.begin(&context).await.expect("check scope");
+    let deleted: bool = sqlx::query_scalar(
+        "select deleted_at is not null from form_submissions where site_id = $1 and id = $2",
+    )
+    .bind(site_id.into_uuid())
+    .bind(submission_id.into_uuid())
+    .fetch_one(transaction.conn())
+    .await
+    .expect("deleted state");
+    assert!(deleted);
+    let retention_jobs = jobs
+        .list(
+            &mut transaction,
+            &mavi_jobs::JobListFilter {
+                kind: Some(FORM_RETENTION_JOB.name.to_owned()),
+                ..Default::default()
+            },
+        )
+        .await
+        .expect("retention jobs");
+    assert_eq!(retention_jobs.items.len(), 1);
+    assert_eq!(retention_jobs.items[0].state.as_str(), "done");
+    let (actor_kind, actor_id): (String, Option<String>) = sqlx::query_as(
+        "select actor_kind, actor_id from audit_events
+          where site_id = $1 and action = 'forms.submissions.retention_pruned'
+          order by created_at desc limit 1",
+    )
+    .bind(site_id.into_uuid())
+    .fetch_one(transaction.conn())
+    .await
+    .expect("retention audit");
+    assert_eq!(actor_kind, "system");
+    assert_eq!(actor_id.as_deref(), Some("test-form-retention-worker"));
+    transaction.commit().await.expect("check commit");
 }
 
 #[tokio::test]

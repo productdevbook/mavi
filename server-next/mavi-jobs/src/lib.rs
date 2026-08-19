@@ -473,9 +473,21 @@ impl JobsService {
     }
 
     pub async fn retry(&self, tx: &mut SiteTx, context: &SiteContext, id: JobId) -> Result<Job> {
+        self.retry_at(tx, context, id, Utc::now()).await
+    }
+
+    /// Reopens a dead job at an explicit time. Durable adapters use this to
+    /// preserve a cooldown after exhausting the per-claim retry budget.
+    pub async fn retry_at(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        id: JobId,
+        run_at: DateTime<Utc>,
+    ) -> Result<Job> {
         let row = sqlx::query(
             "update jobs
-                set state = 'ready', attempts = 0, run_at = now(),
+                set state = 'ready', attempts = 0, run_at = $2,
                     claimed_until = null, claimed_by = null, claim_token = null,
                     last_error = null,
                     finished_at = null
@@ -484,6 +496,7 @@ impl JobsService {
                        attempts, last_error, idempotency_key, created_at, finished_at",
         )
         .bind(id.into_uuid())
+        .bind(run_at)
         .fetch_optional(tx.conn())
         .await
         .map_err(|_| MaviError::Internal)?
@@ -495,7 +508,7 @@ impl JobsService {
             "jobs.retried",
             "Job",
             id.into_uuid(),
-            json!({}),
+            json!({"run_at": run_at}),
         )
         .await?;
         Ok(job)

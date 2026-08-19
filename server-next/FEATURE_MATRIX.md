@@ -99,7 +99,9 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Explicit private/public visibility, authenticated downloads and public downloads with integrity verification.
   - [x] RLS/composite keys, Cedar media grants, upload/trash audit receipts and durable cleanup tasks.
   - [x] Private shard relocation exports live metadata plus verified bytes and retries through the site-scoped `FileStore`.
-  - [ ] Image variants and orphan cleanup worker.
+- [-] Image variants and orphan cleanup worker.
+  - [x] Permanent media deletion creates an idempotent site-scoped cleanup job; the shared worker removes bytes through `FileStore`, records an immutable completion audit and reopens dead jobs for later retry.
+  - [ ] Image variants and storage-orphan discovery remain open.
 
 ## Operations and publishing
 

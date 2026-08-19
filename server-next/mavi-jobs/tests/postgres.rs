@@ -1,5 +1,6 @@
 use std::env;
 
+use chrono::{Duration, Utc};
 use mavi_core::{MaviError, PageRequest, SiteContext, SiteId};
 use mavi_jobs::{JobKind, JobState, JobsService, LeaseOutcome};
 use mavi_storage::Database;
@@ -113,6 +114,18 @@ async fn jobs_are_scoped_idempotent_leased_and_dead_lettered() {
         assert_eq!(page.items.len(), 1);
         assert!(page.next_cursor.is_none());
         tx.commit().await.expect("read commit");
+    }
+
+    {
+        let run_at = Utc::now() + Duration::minutes(1);
+        let mut tx = database.begin(&first_context).await.expect("retry scope");
+        let retried = jobs
+            .retry_at(&mut tx, &first_context, job_id, run_at)
+            .await
+            .expect("retry with cooldown");
+        assert_eq!(retried.state, JobState::Ready);
+        assert!(retried.run_at > Utc::now() + Duration::seconds(59));
+        tx.commit().await.expect("retry commit");
     }
 
     let (old_claim, new_claim) = {

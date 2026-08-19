@@ -84,7 +84,9 @@ use mavi_mail::{
     MailTemplate, MailTemplateListFilter, MailTemplatePreview, ReaderListFilter, RenderedMail,
     RetryDelivery, SendCampaign, SendCount, UnsubscribeReceipt, UpdateMailList, UpdateMailTemplate,
 };
-use mavi_media::{FileListFilter, FileRecord, MAX_FILE_BYTES, MediaService, UploadFileQuery};
+use mavi_media::{
+    FileListFilter, FileRecord, MAX_FILE_BYTES, MEDIA_CLEANUP_JOB, MediaService, UploadFileQuery,
+};
 use mavi_observability::RuntimeMetrics;
 use mavi_portable::{ImportReceipt, PortableBundle, PortableImportRequest, PortableService};
 use mavi_runtime::{Runtime, RuntimeManifest, SiteResolver};
@@ -483,7 +485,7 @@ where
         jobs: JobsService::new(
             mavi_flows::job_kinds()
                 .into_iter()
-                .chain([SCHEDULED_PUBLISH_JOB]),
+                .chain([SCHEDULED_PUBLISH_JOB, MEDIA_CLEANUP_JOB]),
         ),
         flows: FlowService,
         boards: BoardService,
@@ -3746,26 +3748,20 @@ where
         .permanently_delete(&mut transaction, &context, kind, id)
         .await
         .map_err(HttpError)?;
-    transaction.commit().await.map_err(HttpError)?;
-
     if let (Some(file_id), Some(storage_key)) = (deletion.file_id, deletion.file_storage_key) {
         state
-            .file_store
-            .remove(&context, &storage_key)
-            .await
-            .map_err(HttpError)?;
-        let mut cleanup_transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
-        state
             .media
-            .complete_cleanup(
-                &mut cleanup_transaction,
+            .enqueue_cleanup_job(
+                &mut transaction,
                 &context,
+                &state.jobs,
                 FileId::from_uuid(file_id),
+                &storage_key,
             )
             .await
             .map_err(HttpError)?;
-        cleanup_transaction.commit().await.map_err(HttpError)?;
     }
+    transaction.commit().await.map_err(HttpError)?;
 
     Ok(StatusCode::NO_CONTENT)
 }

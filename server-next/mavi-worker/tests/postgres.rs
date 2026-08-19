@@ -1,13 +1,16 @@
-use std::env;
+use std::{env, sync::Arc};
 
 use chrono::{Duration, Utc};
 use mavi_content::{
     ContentService, CreateContent, Publication, PublicationInput, SCHEDULED_PUBLISH_JOB,
     ScheduledPublishJob,
 };
-use mavi_core::{SiteContext, SiteId};
+use mavi_core::{SiteContext, SiteId, ports::FileStore};
+use mavi_files::InMemoryFileStore;
 use mavi_jobs::JobsService;
+use mavi_media::{FileVisibility, MEDIA_CLEANUP_JOB, MediaService};
 use mavi_storage::Database;
+use mavi_trash::{TrashKind, TrashService};
 use mavi_worker::{WorkerConfig, WorkerSupervisor};
 use serde_json::to_value;
 
@@ -89,6 +92,7 @@ async fn scheduled_worker_publishes_skips_stale_and_defers_early_jobs() {
             std::time::Duration::from_millis(10),
         )
         .expect("worker config"),
+        Arc::new(InMemoryFileStore::default()),
     );
     assert!(supervisor.run_once(site_id).await.expect("publish run"));
     let metrics = supervisor.metrics().snapshot();
@@ -265,4 +269,95 @@ async fn scheduled_worker_publishes_skips_stale_and_defers_early_jobs() {
         early_content.1.timestamp_micros()
     );
     transaction.commit().await.expect("commit");
+}
+
+#[tokio::test]
+#[ignore = "requires TEST_DATABASE_URL and a non-superuser PostgreSQL role"]
+async fn media_cleanup_worker_removes_bytes_and_completes_the_receipt() {
+    let database_url = env::var("TEST_DATABASE_URL").expect("TEST_DATABASE_URL");
+    let database = Database::connect(&database_url, 4)
+        .await
+        .expect("database connection");
+    database.migrate().await.expect("migrations");
+    let site_id = SiteId::new();
+    database.ensure_site(site_id).await.expect("site");
+
+    let context = SiteContext::public(site_id);
+    let store = Arc::new(InMemoryFileStore::default());
+    let media = MediaService;
+    let trash = TrashService;
+    let jobs = JobsService::new([MEDIA_CLEANUP_JOB]);
+    let mut transaction = database.begin(&context).await.expect("scope");
+    let file = media
+        .upload(
+            &mut transaction,
+            &context,
+            store.as_ref(),
+            "cleanup.png",
+            FileVisibility::Private,
+            b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR".to_vec(),
+        )
+        .await
+        .expect("upload");
+    transaction.commit().await.expect("upload commit");
+
+    let mut transaction = database.begin(&context).await.expect("scope");
+    media
+        .trash(&mut transaction, &context, file.id)
+        .await
+        .expect("trash");
+    let deletion = trash
+        .permanently_delete(
+            &mut transaction,
+            &context,
+            TrashKind::File,
+            file.id.into_uuid(),
+        )
+        .await
+        .expect("permanent delete");
+    let storage_key = deletion.file_storage_key.expect("storage key");
+    let job_id = media
+        .enqueue_cleanup_job(&mut transaction, &context, &jobs, file.id, &storage_key)
+        .await
+        .expect("cleanup job");
+    transaction.commit().await.expect("delete commit");
+    assert!(store.get(&context, &storage_key).await.is_ok());
+
+    let supervisor = WorkerSupervisor::new(
+        database.clone(),
+        [site_id],
+        WorkerConfig::new(
+            "test-media-worker",
+            30,
+            std::time::Duration::from_millis(10),
+        )
+        .expect("worker config"),
+        Arc::clone(&store) as Arc<dyn mavi_core::ports::FileStore>,
+    );
+    assert!(supervisor.run_once(site_id).await.expect("cleanup run"));
+    assert!(store.get(&context, &storage_key).await.is_err());
+
+    let mut transaction = database.begin(&context).await.expect("scope");
+    let completed: bool = sqlx::query_scalar(
+        "select completed_at is not null from media_cleanup_tasks
+          where site_id = $1 and file_id = $2",
+    )
+    .bind(site_id.into_uuid())
+    .bind(file.id.into_uuid())
+    .fetch_one(transaction.conn())
+    .await
+    .expect("cleanup receipt");
+    assert!(completed);
+    let job = jobs.get(&mut transaction, job_id).await.expect("job");
+    assert_eq!(job.state.as_str(), "done");
+    let cleanup_audits: i64 = sqlx::query_scalar(
+        "select count(*) from audit_events
+          where site_id = $1 and action = 'media.file.cleanup_completed'",
+    )
+    .bind(site_id.into_uuid())
+    .fetch_one(transaction.conn())
+    .await
+    .expect("cleanup audit");
+    assert_eq!(cleanup_audits, 1);
+    transaction.commit().await.expect("scope commit");
 }

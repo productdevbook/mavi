@@ -140,6 +140,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Workers claim leases, record attempts, mark sent/retry/dead and support idempotency keys.
   - [x] Security-sensitive transactional bodies are sealed at rest, fail closed without a sealer, and relocate as cancelled redacted records without ciphertext.
   - [x] Domain code uses the shared `Mailer` port and returns provider receipts without coupling to SMTP/cloud SDKs.
+  - [x] The worker receives a host-owned `Mailer`, claims one delivery before the provider call, passes the durable delivery/attempt/idempotency contract, and records success or retry in a separate site-scoped transaction; mail and maintenance jobs are scheduled fairly so either queue cannot starve.
   - [ ] Concrete self-host/cloud providers, templated unsubscribe URL injection and rate-limit/deliverability policy.
 
 ## Commerce and learning

@@ -30,7 +30,7 @@ const MAX_DELIVERY_ERROR_CHARS: usize = 2_000;
 const DELIVERY_COLUMNS: &str =
     "id, template_id, list_id, recipient, subject, body, body_protected, content_type, purpose, status,
      attempts, available_at, lease_owner, lease_until, provider, provider_reference,
-     last_error, created_at, updated_at, sent_at";
+     last_error, idempotency_key, created_at, updated_at, sent_at";
 const MAX_MAIL_SUBJECT_CHARS: usize = 300;
 const MAX_MAIL_BODY_CHARS: usize = 100_000;
 
@@ -158,6 +158,7 @@ pub struct ClaimedDelivery {
     pub delivery: MailDelivery,
     pub message: MailMessage,
     pub attempt_number: i16,
+    pub idempotency_key: Option<String>,
 }
 
 pub type MailServiceError = MaviError;
@@ -830,6 +831,7 @@ impl MailService {
             let delivery = from_row(&row)?;
             let attempt_number =
                 i16::try_from(delivery.attempts).map_err(|_| MaviError::Internal)?;
+            let idempotency_key = delivery_idempotency_key(&row)?;
             sqlx::query(
                 "insert into mail_delivery_attempts
                     (site_id, id, delivery_id, attempt_number, status)
@@ -852,6 +854,7 @@ impl MailService {
                 delivery,
                 message,
                 attempt_number,
+                idempotency_key,
             }));
         }
     }
@@ -1072,6 +1075,11 @@ fn validate_idempotency_key(value: Option<&str>) -> Result<Option<String>> {
         return Err(MaviError::validation(MAIL_IDEMPOTENCY_KEY_INVALID));
     }
     Ok(Some(value.to_owned()))
+}
+
+fn delivery_idempotency_key(row: &sqlx::postgres::PgRow) -> Result<Option<String>> {
+    row.try_get("idempotency_key")
+        .map_err(|_| MaviError::Internal)
 }
 
 async fn find_delivery_by_idempotency_key(

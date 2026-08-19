@@ -17,14 +17,15 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 pub use deliveries::{
-    ClaimedDelivery, DeliveryListFilter, EnqueueDelivery, MailDelivery, MailDeliveryStatus,
-    MailPurpose, MailServiceError, PROTECTED_BODY_REDACTION, RetryDelivery, SendCampaign,
-    SendCount,
+    ClaimedDelivery, DeliveryListFilter, EnqueueDelivery, MAX_DELIVERY_ATTEMPTS, MailDelivery,
+    MailDeliveryStatus, MailPurpose, MailServiceError, PROTECTED_BODY_REDACTION, RetryDelivery,
+    SendCampaign, SendCount,
 };
 pub use lists::{
     AddReader, CreateMailList, MailList, MailListListFilter, MailReader, MailReaderCreated,
     MailStanding, ReaderListFilter, UnsubscribeReceipt, UpdateMailList,
 };
+pub use mavi_core::ports::MailDeliveryRequest;
 pub use relocation::{
     MAIL_RELOCATION_FORMAT, MAIL_RELOCATION_VERSION, MAX_MAIL_RELOCATION_BYTES,
     MAX_MAIL_RELOCATION_RECORDS, MailDeliveryAttemptRelocation, MailDeliveryRelocation,
@@ -75,7 +76,7 @@ pub fn api() -> mavi_contract::Api {
 pub async fn send_via<M: mavi_core::ports::Mailer + ?Sized>(
     context: &mavi_core::SiteContext,
     mailer: &M,
-    message: mavi_core::ports::MailMessage,
+    request: MailDeliveryRequest,
 ) -> Result<mavi_core::ports::MailDeliveryReceipt> {
-    mailer.send(context, message).await
+    mailer.send(context, request).await
 }

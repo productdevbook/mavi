@@ -14,6 +14,7 @@ mavi-core = { path = "../mavi-core" }
 mavi-forms = { path = "../mavi-forms" }
 mavi-jobs = { path = "../mavi-jobs" }
 mavi-media = { path = "../mavi-media" }
+mavi-mail = { path = "../mavi-mail" }
 mavi-observability = { path = "../mavi-observability" }
 mavi-storage = { path = "../mavi-storage" }
 serde_json.workspace = true
@@ -26,5 +27,6 @@ workspace = true
 
 [dev-dependencies]
 mavi-files = { path = "../mavi-files" }
+mavi-sealing = { path = "../mavi-sealing" }
 mavi-trash = { path = "../mavi-trash" }
 sqlx.workspace = true

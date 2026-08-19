@@ -430,7 +430,7 @@ msgstr "{1} içinde {0}"
 #. placeholder {0}: answer.published
 #. placeholder {0}: stats.published
 #: src/features/analytics/usage-page.tsx:67
-#: src/routes/dashboard.index.tsx:74
+#: src/features/dashboard/home-page.tsx:64
 msgid "{0} published"
 msgstr ""
 
@@ -548,7 +548,7 @@ msgstr "{0} seçildi"
 #~ msgstr "{0} faturalanmamış. Faturalamak için Ödemeler'de saat ücreti belirleyin."
 
 #. placeholder {0}: stats.unread
-#: src/routes/dashboard.index.tsx:80
+#: src/features/dashboard/home-page.tsx:70
 msgid "{0} unread"
 msgstr ""
 
@@ -942,7 +942,7 @@ msgstr "Yeni bir tür"
 msgid "A new list"
 msgstr "Yeni bir liste"
 
-#: src/routes/forgotten.tsx:199
+#: src/features/auth/forgotten-page.tsx:180
 msgid "A new password"
 msgstr "Yeni bir parola"
 
@@ -1470,7 +1470,7 @@ msgstr "Hizalama"
 #~ msgid "All {0} pictures ({1}) have a copy in storage this server controls."
 #~ msgstr "{0} resmin hepsinin ({1}) bu sunucunun denetlediği bir depoda kopyası var."
 
-#: src/routes/dashboard.index.tsx:80
+#: src/features/dashboard/home-page.tsx:70
 msgid "all read"
 msgstr "hepsi okundu"
 
@@ -1921,11 +1921,11 @@ msgstr "Asistanlar"
 #~ msgid "At least {MINIMUM_PASSWORD} characters. Changing it signs you out everywhere, this browser included."
 #~ msgstr "En az {MINIMUM_PASSWORD} karakter. Değiştirmek sizi bu tarayıcı dahil her yerde oturumdan çıkarır."
 
-#: src/routes/setup.tsx:159
+#: src/features/auth/setup-page.tsx:135
 msgid "At least twelve characters."
 msgstr "En az on iki karakter."
 
-#: src/routes/forgotten.tsx:146
+#: src/features/auth/forgotten-page.tsx:127
 msgid "At least twelve characters. Everything else that was open closes when you do this."
 msgstr "En az on iki karakter. Bunu yaptığınızda açık olan diğer her şey kapanır."
 
@@ -2548,7 +2548,7 @@ msgstr ""
 #~ msgid "Choose a list first"
 #~ msgstr "Önce bir liste seçin"
 
-#: src/routes/forgotten.tsx:143
+#: src/features/auth/forgotten-page.tsx:124
 msgid "Choose a password"
 msgstr "Bir parola seçin"
 
@@ -2582,7 +2582,7 @@ msgstr "Bir dosya seçin ya da yapıştırın"
 #~ msgstr "Şehir"
 
 #: src/features/analytics/usage-page.tsx:74
-#: src/routes/dashboard.index.tsx:120
+#: src/features/dashboard/home-page.tsx:110
 msgid "clean"
 msgstr ""
 
@@ -2790,8 +2790,8 @@ msgstr "İçerik türleri"
 
 #. placeholder {0}: provider.label
 #: src/routes/login.tsx:164
-msgid "Continue with {0}"
-msgstr "{0} ile devam et"
+#~ msgid "Continue with {0}"
+#~ msgstr "{0} ile devam et"
 
 #: src/components/flows/flow-settings.tsx:121
 #: src/routes/dashboard.flows.tsx:866
@@ -3891,12 +3891,12 @@ msgid "Editor-in-chief"
 msgstr "Genel yayın yönetmeni"
 
 #: src/components/dashboard/content-type-editor.tsx:58
+#: src/features/auth/forgotten-page.tsx:195
+#: src/features/auth/login-page.tsx:85
+#: src/features/auth/setup-page.tsx:112
 #: src/features/learning/students-page.tsx:205
 #: src/features/people/people-page.tsx:311
 #: src/learn/app.tsx:159
-#: src/routes/forgotten.tsx:216
-#: src/routes/login.tsx:110
-#: src/routes/setup.tsx:136
 msgid "Email"
 msgstr "E-posta"
 
@@ -4082,7 +4082,7 @@ msgstr ""
 #~ msgid "Everything this site adds up to, and how the last {days} days went."
 #~ msgstr "Bu sitenin toplamı, ve son {days} günün nasıl geçtiği."
 
-#: src/routes/dashboard.index.tsx:67
+#: src/features/dashboard/home-page.tsx:57
 msgid "Everything this site adds up to."
 msgstr ""
 
@@ -4220,8 +4220,8 @@ msgstr "akış"
 
 #: src/components/dashboard/dashboard-shell.tsx:93
 #: src/features/automation/flows-page.tsx:135
+#: src/features/dashboard/home-page.tsx:102
 #: src/features/people/roles-page.tsx:158
-#: src/routes/dashboard.index.tsx:112
 msgid "Flows"
 msgstr "Akışlar"
 
@@ -4311,10 +4311,10 @@ msgid "Formatting"
 msgstr "Biçimlendirme"
 
 #: src/components/dashboard/dashboard-shell.tsx:91
+#: src/features/dashboard/home-page.tsx:68
 #: src/features/forms/form-detail-page.tsx:126
 #: src/features/forms/forms-page.tsx:146
 #: src/features/people/roles-page.tsx:156
-#: src/routes/dashboard.index.tsx:78
 msgid "Forms"
 msgstr "Formlar"
 
@@ -4437,7 +4437,7 @@ msgstr "Önce yazıya bir başlık verin"
 #~ msgid "Go"
 #~ msgstr "Git"
 
-#: src/routes/forgotten.tsx:130
+#: src/features/auth/forgotten-page.tsx:111
 msgid "Go to sign in"
 msgstr ""
 
@@ -4709,7 +4709,7 @@ msgstr "Buraya nasıl gönderilir"
 #~ msgid "I have copied both"
 #~ msgstr "İkisini de kopyaladım"
 
-#: src/routes/login.tsx:174
+#: src/features/auth/login-page.tsx:134
 msgid "I have forgotten my password"
 msgstr "Parolamı unuttum"
 
@@ -4725,7 +4725,7 @@ msgstr "Bir şey istiyorum"
 #~ msgid "If it does not match, the steps after this one are skipped and the run is still counted as a success."
 #~ msgstr "Eşleşmezse bundan sonraki adımlar atlanır ve çalıştırma yine başarılı sayılır."
 
-#: src/routes/forgotten.tsx:183
+#: src/features/auth/forgotten-page.tsx:164
 msgid "If that address has an account here, a link is on its way. It works once and stops working after a day."
 msgstr "Bu adrese ait bir hesap varsa bağlantı yola çıktı. Bir kez çalışır ve bir gün sonra geçersiz olur."
 
@@ -4914,7 +4914,7 @@ msgid "Issue"
 msgstr ""
 
 #: src/features/analytics/usage-page.tsx:74
-#: src/routes/dashboard.index.tsx:120
+#: src/features/dashboard/home-page.tsx:110
 msgid "issues found"
 msgstr ""
 
@@ -5229,7 +5229,7 @@ msgstr "Yerleşim kayması"
 msgid "Learning"
 msgstr "Eğitim"
 
-#: src/routes/dashboard.index.tsx:102
+#: src/features/dashboard/home-page.tsx:92
 msgid "learning here"
 msgstr ""
 
@@ -5403,7 +5403,7 @@ msgstr "Görüntüle"
 #~ msgid "Look at it first"
 #~ msgstr "Önce bir bakın"
 
-#: src/routes/forgotten.tsx:180
+#: src/features/auth/forgotten-page.tsx:161
 msgid "Look in your email"
 msgstr "E-postanıza bakın"
 
@@ -5468,7 +5468,7 @@ msgstr ""
 #~ msgid "mailing list"
 #~ msgstr "posta listesi"
 
-#: src/routes/dashboard.index.tsx:85
+#: src/features/dashboard/home-page.tsx:75
 msgid "Mailing list"
 msgstr ""
 
@@ -6351,7 +6351,7 @@ msgstr "Henüz bir şey sayılmadı. Yayınlanan siteye ilk ziyaretçi gelince s
 #~ msgid "Nothing deleted here goes straight away. It waits thirty days, whether a person deleted it or an assistant did, and until then it can be put back exactly as it was."
 #~ msgstr "Burada silinen hiçbir şey hemen gitmez. Otuz gün bekler — ister bir kişi silmiş olsun ister bir asistan — ve o zamana kadar olduğu gibi geri alınabilir."
 
-#: src/routes/forgotten.tsx:124
+#: src/features/auth/forgotten-page.tsx:105
 msgid "Nothing else about your account changed. You can sign in the way you always have."
 msgstr ""
 
@@ -6984,12 +6984,12 @@ msgstr "Sipariş #{0}"
 #~ msgstr "Sipariş alındı"
 
 #: src/components/dashboard/dashboard-shell.tsx:96
+#: src/features/dashboard/home-page.tsx:96
 #: src/features/shop/orders-page.tsx:136
-#: src/routes/dashboard.index.tsx:106
 msgid "Orders"
 msgstr "Siparişler"
 
-#: src/routes/dashboard.index.tsx:108
+#: src/features/dashboard/home-page.tsx:98
 msgid "orders placed"
 msgstr ""
 
@@ -7027,7 +7027,7 @@ msgstr ""
 #~ msgstr "{0} gün içinde"
 
 #: src/components/dashboard/dashboard-shell.tsx:79
-#: src/routes/dashboard.index.tsx:66
+#: src/features/dashboard/home-page.tsx:56
 msgid "Overview"
 msgstr "Özet"
 
@@ -7088,10 +7088,10 @@ msgstr "Ödendi"
 msgid "Paragraph"
 msgstr "Paragraf"
 
+#: src/features/auth/forgotten-page.tsx:142
+#: src/features/auth/login-page.tsx:99
+#: src/features/auth/setup-page.tsx:125
 #: src/learn/app.tsx:170
-#: src/routes/forgotten.tsx:161
-#: src/routes/login.tsx:124
-#: src/routes/setup.tsx:149
 msgid "Password"
 msgstr "Parola"
 
@@ -7555,7 +7555,7 @@ msgstr ""
 #~ msgid "Readers can leave comments"
 #~ msgstr "Okurlar yorum yazabilir"
 
-#: src/routes/dashboard.index.tsx:87
+#: src/features/dashboard/home-page.tsx:77
 msgid "readers reached"
 msgstr ""
 
@@ -7971,7 +7971,7 @@ msgstr "Kaydet"
 #~ msgid "Save changes"
 #~ msgstr "Değişiklikleri kaydet"
 
-#: src/routes/forgotten.tsx:174
+#: src/features/auth/forgotten-page.tsx:155
 msgid "Save it"
 msgstr "Kaydet"
 
@@ -8219,7 +8219,7 @@ msgstr ""
 #~ msgid "Send on Telegram"
 #~ msgstr "Telegram'dan gönder"
 
-#: src/routes/forgotten.tsx:232
+#: src/features/auth/forgotten-page.tsx:211
 msgid "Send the link"
 msgstr "Bağlantıyı gönder"
 
@@ -8406,7 +8406,7 @@ msgstr "Tırnaklı"
 msgid "Set one up"
 msgstr "Kur"
 
-#: src/routes/setup.tsx:164
+#: src/features/auth/setup-page.tsx:140
 msgid "Set up"
 msgstr "Kur"
 
@@ -8499,14 +8499,14 @@ msgstr "Kısayollar"
 #~ msgid "Shown once and kept nowhere it can be read again. Send it however you normally reach them; if it is lost, give them access again and a new one appears."
 #~ msgstr "Bir kez gösterilir ve tekrar okunabileceği hiçbir yerde tutulmaz. Kişiye her zamanki yolunuzla iletin; kaybolursa yeniden erişim verin, yeni bir parola görünür."
 
+#: src/features/auth/login-page.tsx:70
+#: src/features/auth/login-page.tsx:127
 #: src/learn/app.tsx:152
 #: src/learn/app.tsx:188
-#: src/routes/login.tsx:95
-#: src/routes/login.tsx:152
 msgid "Sign in"
 msgstr "Giriş yap"
 
-#: src/routes/login.tsx:98
+#: src/features/auth/login-page.tsx:73
 msgid "Sign in to manage your site."
 msgstr "Sitenizi yönetmek için giriş yapın."
 
@@ -8579,7 +8579,7 @@ msgstr "Girişiniz yapılıyor…"
 #~ msgid "Site limit"
 #~ msgstr "Site sınırı"
 
-#: src/routes/setup.tsx:112
+#: src/features/auth/setup-page.tsx:88
 msgid "Site name"
 msgstr ""
 
@@ -8871,9 +8871,9 @@ msgstr "Üstü çizili"
 #~ msgstr "Güçlü"
 
 #: src/components/dashboard/dashboard-shell.tsx:102
+#: src/features/dashboard/home-page.tsx:90
 #: src/features/learning/course-page.tsx:241
 #: src/features/learning/students-page.tsx:74
-#: src/routes/dashboard.index.tsx:100
 msgid "Students"
 msgstr "Öğrenciler"
 
@@ -8956,7 +8956,7 @@ msgstr "kapalı"
 msgid "Switched off, the form refuses what is sent to it."
 msgstr "Kapalıyken form kendisine gönderileni reddeder."
 
-#: src/routes/dashboard.index.tsx:114
+#: src/features/dashboard/home-page.tsx:104
 msgid "switched on"
 msgstr "açık"
 
@@ -9374,7 +9374,7 @@ msgstr "Eğri, ilk ziyaretten itibaren kendini çizer."
 msgid "The files"
 msgstr "Dosyalar"
 
-#: src/routes/setup.tsx:94
+#: src/features/auth/setup-page.tsx:70
 msgid "The first account"
 msgstr "İlk hesap"
 
@@ -9505,7 +9505,7 @@ msgid "The new one"
 msgstr "Yeni parola"
 
 #: src/features/analytics/usage-page.tsx:42
-#: src/routes/dashboard.index.tsx:55
+#: src/features/dashboard/home-page.tsx:45
 msgid "The numbers could not be read just now."
 msgstr "Sayılar şu anda okunamadı."
 
@@ -9607,7 +9607,7 @@ msgstr "Altı hane"
 msgid "The six digits from your app to turn it off"
 msgstr ""
 
-#: src/routes/login.tsx:138
+#: src/features/auth/login-page.tsx:113
 msgid "The six digits from your authenticator"
 msgstr "Doğrulayıcı uygulamanızdaki altı hane"
 
@@ -9787,7 +9787,7 @@ msgstr "Bu veritabanı birden fazla site barındırıyor, bu sürüm ise tek bir
 msgid "This is not yours to open"
 msgstr "Bunu açmak sizin yetkinizde değil"
 
-#: src/routes/setup.tsx:97
+#: src/features/auth/setup-page.tsx:73
 msgid "This is the account that runs the machine. Everybody else is invited from inside, and this screen never appears again."
 msgstr "Bu, makineyi yöneten hesaptır. Diğer herkes içeriden davet edilir ve bu ekran bir daha görünmez."
 
@@ -10205,7 +10205,7 @@ msgstr "Görsel yükle"
 #~ msgid "Uploading"
 #~ msgstr "Yükleniyor"
 
-#: src/routes/dashboard.index.tsx:91
+#: src/features/dashboard/home-page.tsx:81
 msgid "Uploads"
 msgstr "Yüklenenler"
 
@@ -10399,7 +10399,7 @@ msgstr "Silinmeyi bekleyenler"
 #~ msgid "Watching how sending is going"
 #~ msgstr "Gönderimin nasıl gittiğini izlemek"
 
-#: src/routes/forgotten.tsx:202
+#: src/features/auth/forgotten-page.tsx:183
 msgid "We will send a link to the address on the account."
 msgstr "Hesaptaki adrese bir bağlantı göndereceğiz."
 
@@ -11118,7 +11118,7 @@ msgstr "Tam kelime"
 #~ msgid "Won"
 #~ msgstr "Kazanıldı"
 
-#: src/routes/dashboard.index.tsx:118
+#: src/features/dashboard/home-page.tsx:108
 msgid "Work backlog"
 msgstr ""
 
@@ -11232,8 +11232,8 @@ msgstr "Yazma"
 #~ msgstr "içerik yazılıyor — {0} parça bitti"
 
 #: src/features/analytics/usage-page.tsx:65
+#: src/features/dashboard/home-page.tsx:62
 #: src/features/portability/portable-page.tsx:135
-#: src/routes/dashboard.index.tsx:72
 msgid "Writings"
 msgstr ""
 
@@ -11337,7 +11337,7 @@ msgstr "Evet ya da hayır"
 #~ msgid "Your account"
 #~ msgstr "Hesabınız"
 
-#: src/routes/forgotten.tsx:121
+#: src/features/auth/forgotten-page.tsx:102
 msgid "Your address is confirmed"
 msgstr ""
 
@@ -11388,7 +11388,7 @@ msgstr ""
 #~ msgid "Your monthly hosting"
 #~ msgstr "Aylık hostinginiz"
 
-#: src/routes/setup.tsx:124
+#: src/features/auth/setup-page.tsx:100
 msgid "Your name"
 msgstr "Adınız"
 

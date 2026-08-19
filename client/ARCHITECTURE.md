@@ -20,9 +20,10 @@ scope, authorization, validation, and audit.
   only for operations whose generated answer is a page.
 - `src/components/editor/` and `src/components/mail/` contain shared editor
   primitives, while `src/features/<domain>/` contains complete domain
-  screens. The current feature boundaries are `people`, `forms`, `settings`,
-  `content`, `media`, `taxonomy`, `shop`, `learning`, `automation`, `boards`,
-  `design`, `analytics`, `governance`, `mail`, `integrations`, and `portability`.
+  screens. The current feature boundaries are `auth`, `dashboard`, `people`,
+  `forms`, `settings`, `content`, `media`, `taxonomy`, `shop`, `learning`,
+  `automation`, `boards`, `design`, `analytics`, `governance`, `mail`,
+  `integrations`, and `portability`.
 
 ## Page contract
 
@@ -39,9 +40,10 @@ move between groups without invalidating bookmarks or API clients.
 
 1. Keep route guards and generated API calls intact.
 2. Move route-level layout and navigation into shell components.
-3. Move one domain at a time into `src/features/<domain>`; content, media,
-   taxonomy, shop, learning, automation, boards, design, analytics, governance,
-   mail, integrations, and portability are the reference shape for new screens.
+3. Move one domain at a time into `src/features/<domain>`; auth, dashboard,
+   content, media, taxonomy, shop, learning, automation, boards, design,
+   analytics, governance, mail, integrations, and portability are the reference
+   shape for new screens.
 4. Replace local async states with the shared page contract.
 5. Add permission, API, and interaction acceptance tests before deleting the
    old route implementation.

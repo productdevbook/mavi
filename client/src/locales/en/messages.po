@@ -430,7 +430,7 @@ msgstr "{0} of {1}"
 #. placeholder {0}: answer.published
 #. placeholder {0}: stats.published
 #: src/features/analytics/usage-page.tsx:67
-#: src/routes/dashboard.index.tsx:74
+#: src/features/dashboard/home-page.tsx:64
 msgid "{0} published"
 msgstr "{0} published"
 
@@ -548,7 +548,7 @@ msgstr "{0} ticked"
 #~ msgstr "{0} unbilled. Set an hourly rate under Payments to bill it."
 
 #. placeholder {0}: stats.unread
-#: src/routes/dashboard.index.tsx:80
+#: src/features/dashboard/home-page.tsx:70
 msgid "{0} unread"
 msgstr "{0} unread"
 
@@ -942,7 +942,7 @@ msgstr "A new kind"
 msgid "A new list"
 msgstr "A new list"
 
-#: src/routes/forgotten.tsx:199
+#: src/features/auth/forgotten-page.tsx:180
 msgid "A new password"
 msgstr "A new password"
 
@@ -1470,7 +1470,7 @@ msgstr "Alignment"
 #~ msgid "All {0} pictures ({1}) have a copy in storage this server controls."
 #~ msgstr "All {0} pictures ({1}) have a copy in storage this server controls."
 
-#: src/routes/dashboard.index.tsx:80
+#: src/features/dashboard/home-page.tsx:70
 msgid "all read"
 msgstr "all read"
 
@@ -1921,11 +1921,11 @@ msgstr "Assistants"
 #~ msgid "At least {MINIMUM_PASSWORD} characters. Changing it signs you out everywhere, this browser included."
 #~ msgstr "At least {MINIMUM_PASSWORD} characters. Changing it signs you out everywhere, this browser included."
 
-#: src/routes/setup.tsx:159
+#: src/features/auth/setup-page.tsx:135
 msgid "At least twelve characters."
 msgstr "At least twelve characters."
 
-#: src/routes/forgotten.tsx:146
+#: src/features/auth/forgotten-page.tsx:127
 msgid "At least twelve characters. Everything else that was open closes when you do this."
 msgstr "At least twelve characters. Everything else that was open closes when you do this."
 
@@ -2548,7 +2548,7 @@ msgstr "Choose a JSON copy"
 #~ msgid "Choose a list first"
 #~ msgstr "Choose a list first"
 
-#: src/routes/forgotten.tsx:143
+#: src/features/auth/forgotten-page.tsx:124
 msgid "Choose a password"
 msgstr "Choose a password"
 
@@ -2582,7 +2582,7 @@ msgstr "Choose one, or paste it"
 #~ msgstr "City"
 
 #: src/features/analytics/usage-page.tsx:74
-#: src/routes/dashboard.index.tsx:120
+#: src/features/dashboard/home-page.tsx:110
 msgid "clean"
 msgstr "clean"
 
@@ -2790,8 +2790,8 @@ msgstr "Content types"
 
 #. placeholder {0}: provider.label
 #: src/routes/login.tsx:164
-msgid "Continue with {0}"
-msgstr "Continue with {0}"
+#~ msgid "Continue with {0}"
+#~ msgstr "Continue with {0}"
 
 #: src/components/flows/flow-settings.tsx:121
 #: src/routes/dashboard.flows.tsx:866
@@ -3891,12 +3891,12 @@ msgid "Editor-in-chief"
 msgstr "Editor-in-chief"
 
 #: src/components/dashboard/content-type-editor.tsx:58
+#: src/features/auth/forgotten-page.tsx:195
+#: src/features/auth/login-page.tsx:85
+#: src/features/auth/setup-page.tsx:112
 #: src/features/learning/students-page.tsx:205
 #: src/features/people/people-page.tsx:311
 #: src/learn/app.tsx:159
-#: src/routes/forgotten.tsx:216
-#: src/routes/login.tsx:110
-#: src/routes/setup.tsx:136
 msgid "Email"
 msgstr "Email"
 
@@ -4082,7 +4082,7 @@ msgstr "Everything this panel does, something else can do. The address is the on
 #~ msgid "Everything this site adds up to, and how the last {days} days went."
 #~ msgstr "Everything this site adds up to, and how the last {days} days went."
 
-#: src/routes/dashboard.index.tsx:67
+#: src/features/dashboard/home-page.tsx:57
 msgid "Everything this site adds up to."
 msgstr "Everything this site adds up to."
 
@@ -4220,8 +4220,8 @@ msgstr "flow"
 
 #: src/components/dashboard/dashboard-shell.tsx:93
 #: src/features/automation/flows-page.tsx:135
+#: src/features/dashboard/home-page.tsx:102
 #: src/features/people/roles-page.tsx:158
-#: src/routes/dashboard.index.tsx:112
 msgid "Flows"
 msgstr "Flows"
 
@@ -4311,10 +4311,10 @@ msgid "Formatting"
 msgstr "Formatting"
 
 #: src/components/dashboard/dashboard-shell.tsx:91
+#: src/features/dashboard/home-page.tsx:68
 #: src/features/forms/form-detail-page.tsx:126
 #: src/features/forms/forms-page.tsx:146
 #: src/features/people/roles-page.tsx:156
-#: src/routes/dashboard.index.tsx:78
 msgid "Forms"
 msgstr "Forms"
 
@@ -4437,7 +4437,7 @@ msgstr "Give your post a title first"
 #~ msgid "Go"
 #~ msgstr "Go"
 
-#: src/routes/forgotten.tsx:130
+#: src/features/auth/forgotten-page.tsx:111
 msgid "Go to sign in"
 msgstr "Go to sign in"
 
@@ -4709,7 +4709,7 @@ msgstr "How to send to it"
 #~ msgid "I have copied both"
 #~ msgstr "I have copied both"
 
-#: src/routes/login.tsx:174
+#: src/features/auth/login-page.tsx:134
 msgid "I have forgotten my password"
 msgstr "I have forgotten my password"
 
@@ -4725,7 +4725,7 @@ msgstr "I would like something"
 #~ msgid "If it does not match, the steps after this one are skipped and the run is still counted as a success."
 #~ msgstr "If it does not match, the steps after this one are skipped and the run is still counted as a success."
 
-#: src/routes/forgotten.tsx:183
+#: src/features/auth/forgotten-page.tsx:164
 msgid "If that address has an account here, a link is on its way. It works once and stops working after a day."
 msgstr "If that address has an account here, a link is on its way. It works once and stops working after a day."
 
@@ -4914,7 +4914,7 @@ msgid "Issue"
 msgstr "Issue"
 
 #: src/features/analytics/usage-page.tsx:74
-#: src/routes/dashboard.index.tsx:120
+#: src/features/dashboard/home-page.tsx:110
 msgid "issues found"
 msgstr "issues found"
 
@@ -5229,7 +5229,7 @@ msgstr "Layout shift"
 msgid "Learning"
 msgstr "Learning"
 
-#: src/routes/dashboard.index.tsx:102
+#: src/features/dashboard/home-page.tsx:92
 msgid "learning here"
 msgstr "learning here"
 
@@ -5403,7 +5403,7 @@ msgstr "Look at it"
 #~ msgid "Look at it first"
 #~ msgstr "Look at it first"
 
-#: src/routes/forgotten.tsx:180
+#: src/features/auth/forgotten-page.tsx:161
 msgid "Look in your email"
 msgstr "Look in your email"
 
@@ -5468,7 +5468,7 @@ msgstr "Mail sendings are processed in the background directly from your lists."
 #~ msgid "mailing list"
 #~ msgstr "mailing list"
 
-#: src/routes/dashboard.index.tsx:85
+#: src/features/dashboard/home-page.tsx:75
 msgid "Mailing list"
 msgstr "Mailing list"
 
@@ -6351,7 +6351,7 @@ msgstr "Nothing counted yet. Numbers appear as soon as the published site has a 
 #~ msgid "Nothing deleted here goes straight away. It waits thirty days, whether a person deleted it or an assistant did, and until then it can be put back exactly as it was."
 #~ msgstr "Nothing deleted here goes straight away. It waits thirty days, whether a person deleted it or an assistant did, and until then it can be put back exactly as it was."
 
-#: src/routes/forgotten.tsx:124
+#: src/features/auth/forgotten-page.tsx:105
 msgid "Nothing else about your account changed. You can sign in the way you always have."
 msgstr "Nothing else about your account changed. You can sign in the way you always have."
 
@@ -6984,12 +6984,12 @@ msgstr "Order #{0}"
 #~ msgstr "Order received"
 
 #: src/components/dashboard/dashboard-shell.tsx:96
+#: src/features/dashboard/home-page.tsx:96
 #: src/features/shop/orders-page.tsx:136
-#: src/routes/dashboard.index.tsx:106
 msgid "Orders"
 msgstr "Orders"
 
-#: src/routes/dashboard.index.tsx:108
+#: src/features/dashboard/home-page.tsx:98
 msgid "orders placed"
 msgstr "orders placed"
 
@@ -7027,7 +7027,7 @@ msgstr "Organize content into a hierarchy that is easy to browse."
 #~ msgstr "over {0} days"
 
 #: src/components/dashboard/dashboard-shell.tsx:79
-#: src/routes/dashboard.index.tsx:66
+#: src/features/dashboard/home-page.tsx:56
 msgid "Overview"
 msgstr "Overview"
 
@@ -7088,10 +7088,10 @@ msgstr "Paid"
 msgid "Paragraph"
 msgstr "Paragraph"
 
+#: src/features/auth/forgotten-page.tsx:142
+#: src/features/auth/login-page.tsx:99
+#: src/features/auth/setup-page.tsx:125
 #: src/learn/app.tsx:170
-#: src/routes/forgotten.tsx:161
-#: src/routes/login.tsx:124
-#: src/routes/setup.tsx:149
 msgid "Password"
 msgstr "Password"
 
@@ -7555,7 +7555,7 @@ msgstr "Readers"
 #~ msgid "Readers can leave comments"
 #~ msgstr "Readers can leave comments"
 
-#: src/routes/dashboard.index.tsx:87
+#: src/features/dashboard/home-page.tsx:77
 msgid "readers reached"
 msgstr "readers reached"
 
@@ -7971,7 +7971,7 @@ msgstr "Save"
 #~ msgid "Save changes"
 #~ msgstr "Save changes"
 
-#: src/routes/forgotten.tsx:174
+#: src/features/auth/forgotten-page.tsx:155
 msgid "Save it"
 msgstr "Save it"
 
@@ -8219,7 +8219,7 @@ msgstr "Send message"
 #~ msgid "Send on Telegram"
 #~ msgstr "Send on Telegram"
 
-#: src/routes/forgotten.tsx:232
+#: src/features/auth/forgotten-page.tsx:211
 msgid "Send the link"
 msgstr "Send the link"
 
@@ -8406,7 +8406,7 @@ msgstr "Serif"
 msgid "Set one up"
 msgstr "Set one up"
 
-#: src/routes/setup.tsx:164
+#: src/features/auth/setup-page.tsx:140
 msgid "Set up"
 msgstr "Set up"
 
@@ -8499,14 +8499,14 @@ msgstr "Shortcuts"
 #~ msgid "Shown once and kept nowhere it can be read again. Send it however you normally reach them; if it is lost, give them access again and a new one appears."
 #~ msgstr "Shown once and kept nowhere it can be read again. Send it however you normally reach them; if it is lost, give them access again and a new one appears."
 
+#: src/features/auth/login-page.tsx:70
+#: src/features/auth/login-page.tsx:127
 #: src/learn/app.tsx:152
 #: src/learn/app.tsx:188
-#: src/routes/login.tsx:95
-#: src/routes/login.tsx:152
 msgid "Sign in"
 msgstr "Sign in"
 
-#: src/routes/login.tsx:98
+#: src/features/auth/login-page.tsx:73
 msgid "Sign in to manage your site."
 msgstr "Sign in to manage your site."
 
@@ -8579,7 +8579,7 @@ msgstr "Signing you in…"
 #~ msgid "Site limit"
 #~ msgstr "Site limit"
 
-#: src/routes/setup.tsx:112
+#: src/features/auth/setup-page.tsx:88
 msgid "Site name"
 msgstr "Site name"
 
@@ -8871,9 +8871,9 @@ msgstr "Strikethrough"
 #~ msgstr "Strong"
 
 #: src/components/dashboard/dashboard-shell.tsx:102
+#: src/features/dashboard/home-page.tsx:90
 #: src/features/learning/course-page.tsx:241
 #: src/features/learning/students-page.tsx:74
-#: src/routes/dashboard.index.tsx:100
 msgid "Students"
 msgstr "Students"
 
@@ -8956,7 +8956,7 @@ msgstr "switched off"
 msgid "Switched off, the form refuses what is sent to it."
 msgstr "Switched off, the form refuses what is sent to it."
 
-#: src/routes/dashboard.index.tsx:114
+#: src/features/dashboard/home-page.tsx:104
 msgid "switched on"
 msgstr "switched on"
 
@@ -9374,7 +9374,7 @@ msgstr "The curve draws itself from the first visit on."
 msgid "The files"
 msgstr "The files"
 
-#: src/routes/setup.tsx:94
+#: src/features/auth/setup-page.tsx:70
 msgid "The first account"
 msgstr "The first account"
 
@@ -9505,7 +9505,7 @@ msgid "The new one"
 msgstr "The new one"
 
 #: src/features/analytics/usage-page.tsx:42
-#: src/routes/dashboard.index.tsx:55
+#: src/features/dashboard/home-page.tsx:45
 msgid "The numbers could not be read just now."
 msgstr "The numbers could not be read just now."
 
@@ -9607,7 +9607,7 @@ msgstr "The six digits"
 msgid "The six digits from your app to turn it off"
 msgstr "The six digits from your app to turn it off"
 
-#: src/routes/login.tsx:138
+#: src/features/auth/login-page.tsx:113
 msgid "The six digits from your authenticator"
 msgstr "The six digits from your authenticator"
 
@@ -9787,7 +9787,7 @@ msgstr "This database holds more than one site and this version serves one. It h
 msgid "This is not yours to open"
 msgstr "This is not yours to open"
 
-#: src/routes/setup.tsx:97
+#: src/features/auth/setup-page.tsx:73
 msgid "This is the account that runs the machine. Everybody else is invited from inside, and this screen never appears again."
 msgstr "This is the account that runs the machine. Everybody else is invited from inside, and this screen never appears again."
 
@@ -10205,7 +10205,7 @@ msgstr "Upload image"
 #~ msgid "Uploading"
 #~ msgstr "Uploading"
 
-#: src/routes/dashboard.index.tsx:91
+#: src/features/dashboard/home-page.tsx:81
 msgid "Uploads"
 msgstr "Uploads"
 
@@ -10399,7 +10399,7 @@ msgstr "Waiting to be thrown away"
 #~ msgid "Watching how sending is going"
 #~ msgstr "Watching how sending is going"
 
-#: src/routes/forgotten.tsx:202
+#: src/features/auth/forgotten-page.tsx:183
 msgid "We will send a link to the address on the account."
 msgstr "We will send a link to the address on the account."
 
@@ -11118,7 +11118,7 @@ msgstr "Whole word"
 #~ msgid "Won"
 #~ msgstr "Won"
 
-#: src/routes/dashboard.index.tsx:118
+#: src/features/dashboard/home-page.tsx:108
 msgid "Work backlog"
 msgstr "Work backlog"
 
@@ -11232,8 +11232,8 @@ msgstr "Writing"
 #~ msgstr "writing the content — {0} parts done"
 
 #: src/features/analytics/usage-page.tsx:65
+#: src/features/dashboard/home-page.tsx:62
 #: src/features/portability/portable-page.tsx:135
-#: src/routes/dashboard.index.tsx:72
 msgid "Writings"
 msgstr "Writings"
 
@@ -11337,7 +11337,7 @@ msgstr "Yes or no"
 #~ msgid "Your account"
 #~ msgstr "Your account"
 
-#: src/routes/forgotten.tsx:121
+#: src/features/auth/forgotten-page.tsx:102
 msgid "Your address is confirmed"
 msgstr "Your address is confirmed"
 
@@ -11388,7 +11388,7 @@ msgstr "Your address is confirmed"
 #~ msgid "Your monthly hosting"
 #~ msgstr "Your monthly hosting"
 
-#: src/routes/setup.tsx:124
+#: src/features/auth/setup-page.tsx:100
 msgid "Your name"
 msgstr "Your name"
 

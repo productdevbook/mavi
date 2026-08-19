@@ -1222,6 +1222,30 @@
                 ],
                 "maxLength": 2048,
                 "format": "uri"
+              },
+              "mail_sender": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "required": [
+                  "address"
+                ],
+                "properties": {
+                  "address": {
+                    "type": "string",
+                    "format": "email",
+                    "maxLength": 320
+                  },
+                  "name": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 200
+                  }
+                },
+                "additionalProperties": false
               }
             },
             "additionalProperties": false

@@ -1,8 +1,8 @@
 use chrono::{DateTime, Utc};
 use mavi_contract::{Endpoint, Method, Permission, Shape};
 use mavi_core::{
-    Action, Capability, ErrorCode, MailDeliveryId, MailListId, MailTemplateId, MaviError, Page,
-    PageRequest, Result, SiteContext,
+    Action, Capability, ErrorCode, MailDeliveryId, MailListId, MailSender, MailTemplateId,
+    MaviError, Page, PageRequest, Result, SiteContext,
     ports::{MailContentType, MailDeliveryReceipt, MailMessage, Seals},
 };
 use mavi_storage::SiteTx;
@@ -30,7 +30,7 @@ const MAX_IDEMPOTENCY_KEY_CHARS: usize = 128;
 const MAX_DELIVERY_ERROR_CHARS: usize = 2_000;
 
 const DELIVERY_COLUMNS: &str =
-    "id, template_id, list_id, recipient, subject, body, body_protected, content_type, purpose, status,
+    "id, template_id, list_id, recipient, sender_address, sender_name, subject, body, body_protected, content_type, purpose, status,
      attempts, available_at, lease_owner, lease_until, provider, provider_reference,
      last_error, idempotency_key, created_at, updated_at, sent_at";
 const MAX_MAIL_SUBJECT_CHARS: usize = 300;
@@ -134,6 +134,7 @@ pub struct MailDelivery {
     pub template_id: Option<MailTemplateId>,
     pub list_id: Option<MailListId>,
     pub recipient: String,
+    pub sender: Option<MailSender>,
     pub subject: String,
     pub body: String,
     pub body_protected: bool,
@@ -159,6 +160,7 @@ pub struct SendCount {
 pub struct ClaimedDelivery {
     pub delivery: MailDelivery,
     pub message: MailMessage,
+    pub sender: Option<MailSender>,
     pub attempt_number: i16,
     pub idempotency_key: Option<String>,
 }
@@ -174,6 +176,7 @@ struct CampaignEnqueue<'a> {
     variables: &'a Map<String, Value>,
     idempotency_key: Option<&'a str>,
     canonical_url: Option<&'a str>,
+    sender: Option<&'a MailSender>,
 }
 
 struct ClaimCandidate {
@@ -326,11 +329,12 @@ fn shapes() -> Vec<Shape> {
         ),
         Shape::new(
             "MailDelivery",
-            json!({"type": "object", "required": ["id", "template_id", "list_id", "recipient", "subject", "body", "body_protected", "content_type", "purpose", "status", "attempts", "available_at", "provider", "provider_reference", "last_error", "created_at", "updated_at", "sent_at"], "properties": {
+            json!({"type": "object", "required": ["id", "template_id", "list_id", "recipient", "sender", "subject", "body", "body_protected", "content_type", "purpose", "status", "attempts", "available_at", "provider", "provider_reference", "last_error", "created_at", "updated_at", "sent_at"], "properties": {
                 "id": {"type": "string", "format": "uuid"},
                 "template_id": {"type": ["string", "null"], "format": "uuid"},
                 "list_id": {"type": ["string", "null"], "format": "uuid"},
                 "recipient": {"type": "string", "format": "email"},
+                "sender": {"$ref": "#/components/schemas/MailSender"},
                 "subject": {"type": "string"},
                 "body": {"type": "string"},
                 "body_protected": {"type": "boolean"},
@@ -346,6 +350,18 @@ fn shapes() -> Vec<Shape> {
                 "updated_at": {"type": "string", "format": "date-time"},
                 "sent_at": {"type": ["string", "null"], "format": "date-time"}
             }}),
+        ),
+        Shape::new(
+            "MailSender",
+            json!({
+                "type": ["object", "null"],
+                "required": ["address", "name"],
+                "properties": {
+                    "address": {"type": "string", "format": "email", "maxLength": 320},
+                    "name": {"type": ["string", "null"], "maxLength": 200},
+                },
+                "additionalProperties": false,
+            }),
         ),
         Shape::new(
             "MailDeliveryPage",
@@ -459,10 +475,12 @@ impl MailService {
                 &input.variables,
             )
             .await?;
+        let sender = site_sender(tx, context).await?;
         let id = MailDeliveryId::new();
         let row = sqlx::QueryBuilder::<sqlx::Postgres>::new(
             "insert into mail_deliveries
-                (site_id, id, template_id, recipient, subject, body, content_type, purpose, idempotency_key)
+                (site_id, id, template_id, recipient, sender_address, sender_name,
+                 subject, body, content_type, purpose, idempotency_key)
              values (",
         )
         .push_bind(context.site_id.into_uuid())
@@ -472,6 +490,10 @@ impl MailService {
         .push_bind(input.template_id.into_uuid())
         .push(", ")
         .push_bind(&message.recipient)
+        .push(", ")
+        .push_bind(sender.as_ref().map(|sender| sender.address.as_str()))
+        .push(", ")
+        .push_bind(sender.as_ref().and_then(|sender| sender.name.as_deref()))
         .push(", ")
         .push_bind(&message.subject)
         .push(", ")
@@ -518,11 +540,13 @@ impl MailService {
         }
 
         let (recipient, subject) = validate_system_message(&message)?;
+        let sender = site_sender(tx, context).await?;
 
         let id = MailDeliveryId::new();
         let row = sqlx::QueryBuilder::<sqlx::Postgres>::new(
             "insert into mail_deliveries
-                (site_id, id, template_id, list_id, recipient, subject, body, content_type, purpose, idempotency_key)
+                (site_id, id, template_id, list_id, recipient, sender_address, sender_name,
+                 subject, body, content_type, purpose, idempotency_key)
              values (",
         )
         .push_bind(context.site_id.into_uuid())
@@ -530,6 +554,10 @@ impl MailService {
         .push_bind(id.into_uuid())
         .push(", null, null, ")
         .push_bind(recipient.as_str())
+        .push(", ")
+        .push_bind(sender.as_ref().map(|sender| sender.address.as_str()))
+        .push(", ")
+        .push_bind(sender.as_ref().and_then(|sender| sender.name.as_deref()))
         .push(", ")
         .push_bind(subject)
         .push(", ")
@@ -580,13 +608,14 @@ impl MailService {
         }
 
         let (recipient, subject) = validate_system_message(&message)?;
+        let sender = site_sender(tx, context).await?;
 
         let ciphertext = sealer.seal(context, message.body.as_bytes()).await?;
         let id = MailDeliveryId::new();
         let row = sqlx::QueryBuilder::<sqlx::Postgres>::new(
             "insert into mail_deliveries
-                (site_id, id, template_id, list_id, recipient, subject, body,
-                 body_protected, content_type, purpose, idempotency_key)
+                (site_id, id, template_id, list_id, recipient, sender_address, sender_name,
+                 subject, body, body_protected, content_type, purpose, idempotency_key)
              values (",
         )
         .push_bind(context.site_id.into_uuid())
@@ -594,6 +623,10 @@ impl MailService {
         .push_bind(id.into_uuid())
         .push(", null, null, ")
         .push_bind(recipient.as_str())
+        .push(", ")
+        .push_bind(sender.as_ref().map(|sender| sender.address.as_str()))
+        .push(", ")
+        .push_bind(sender.as_ref().and_then(|sender| sender.name.as_deref()))
         .push(", ")
         .push_bind(subject)
         .push(", ")
@@ -649,12 +682,14 @@ impl MailService {
         let idempotency_key = validate_idempotency_key(input.idempotency_key.as_deref())?;
         let recipients = campaign_recipients(tx, context, list_id).await?;
         let canonical_url = campaign_canonical_url(tx, context, !recipients.is_empty()).await?;
+        let sender = site_sender(tx, context).await?;
         let campaign = CampaignEnqueue {
             list_id,
             template_id: input.template_id,
             variables: &input.variables,
             idempotency_key: idempotency_key.as_deref(),
             canonical_url: canonical_url.as_deref(),
+            sender: sender.as_ref(),
         };
         let mut enqueued = 0_u64;
         for recipient in recipients {
@@ -701,8 +736,9 @@ impl MailService {
             .map(|key| format!("{key}:{}", recipient.id));
         let inserted = sqlx::query_scalar::<_, Uuid>(
             "insert into mail_deliveries
-                (site_id, id, template_id, list_id, recipient, subject, body, content_type, purpose, idempotency_key)
-             values ($1, $2, $3, $4, $5, $6, $7, $8, 'campaign', $9)
+                (site_id, id, template_id, list_id, recipient, sender_address, sender_name,
+                 subject, body, content_type, purpose, idempotency_key)
+             values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'campaign', $11)
              on conflict (site_id, idempotency_key) where idempotency_key is not null do nothing
              returning id",
         )
@@ -711,6 +747,8 @@ impl MailService {
         .bind(campaign.template_id.into_uuid())
         .bind(campaign.list_id.into_uuid())
         .bind(&message.recipient)
+        .bind(campaign.sender.map(|sender| sender.address.as_str()))
+        .bind(campaign.sender.and_then(|sender| sender.name.as_deref()))
         .bind(&message.subject)
         .bind(&message.body)
         .bind(message.content_type.as_str())
@@ -867,9 +905,11 @@ impl MailService {
                 content_type: delivery.content_type,
                 unsubscribe_url,
             };
+            let sender = delivery.sender.clone();
             return Ok(Some(ClaimedDelivery {
                 delivery,
                 message,
+                sender,
                 attempt_number,
                 idempotency_key: candidate.idempotency_key,
             }));
@@ -1074,6 +1114,33 @@ async fn campaign_canonical_url(
     .filter(|url| !url.trim().is_empty())
     .map(Some)
     .ok_or_else(|| MaviError::validation(MAIL_CANONICAL_URL_REQUIRED))
+}
+
+async fn site_sender(tx: &mut SiteTx, context: &SiteContext) -> Result<Option<MailSender>> {
+    let Some(row) = sqlx::query(
+        "select mail_sender_address, mail_sender_name
+           from site_settings where site_id = $1",
+    )
+    .bind(context.site_id.into_uuid())
+    .fetch_optional(tx.conn())
+    .await
+    .map_err(|_| MaviError::Internal)?
+    else {
+        return Ok(None);
+    };
+    let address: Option<String> = row
+        .try_get("mail_sender_address")
+        .map_err(|_| MaviError::Internal)?;
+    let name: Option<String> = row
+        .try_get("mail_sender_name")
+        .map_err(|_| MaviError::Internal)?;
+    match address {
+        Some(address) => MailSender::parse(&address, name.as_deref())
+            .map(Some)
+            .map_err(|_| MaviError::Internal),
+        None if name.is_none() => Ok(None),
+        None => Err(MaviError::Internal),
+    }
 }
 
 async fn persist_campaign_bearer_link(
@@ -1377,6 +1444,19 @@ fn validate_error(value: &str) -> Result<String> {
 
 fn from_row(row: &sqlx::postgres::PgRow) -> Result<MailDelivery> {
     let attempts: i16 = row.try_get("attempts").map_err(|_| MaviError::Internal)?;
+    let sender_address: Option<String> = row
+        .try_get("sender_address")
+        .map_err(|_| MaviError::Internal)?;
+    let sender_name: Option<String> = row
+        .try_get("sender_name")
+        .map_err(|_| MaviError::Internal)?;
+    let sender = match sender_address {
+        Some(address) => Some(
+            MailSender::parse(&address, sender_name.as_deref()).map_err(|_| MaviError::Internal)?,
+        ),
+        None if sender_name.is_none() => None,
+        None => return Err(MaviError::Internal),
+    };
     Ok(MailDelivery {
         id: MailDeliveryId::from_uuid(row.try_get("id").map_err(|_| MaviError::Internal)?),
         template_id: row
@@ -1388,6 +1468,7 @@ fn from_row(row: &sqlx::postgres::PgRow) -> Result<MailDelivery> {
             .map_err(|_| MaviError::Internal)?
             .map(MailListId::from_uuid),
         recipient: row.try_get("recipient").map_err(|_| MaviError::Internal)?,
+        sender,
         subject: row.try_get("subject").map_err(|_| MaviError::Internal)?,
         body: row.try_get("body").map_err(|_| MaviError::Internal)?,
         body_protected: row

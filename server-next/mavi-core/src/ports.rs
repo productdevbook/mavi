@@ -1,6 +1,6 @@
 use std::{fmt::Debug, future::Future, pin::Pin};
 
-use crate::{MailDeliveryId, Money, Result, SiteContext};
+use crate::{MailDeliveryId, MailSender, Money, Result, SiteContext};
 use serde::{Deserialize, Serialize};
 
 pub type BoxFuture<'a, T> = Pin<Box<dyn Future<Output = T> + Send + 'a>>;
@@ -71,6 +71,10 @@ pub struct MailDeliveryRequest {
     pub attempt_number: u16,
     pub idempotency_key: Option<String>,
     pub purpose: MailDeliveryPurpose,
+    /// The site-level sender captured when the delivery was queued.
+    /// `None` lets the deployment policy supply its backwards-compatible
+    /// default for sites that have not configured a sender yet.
+    pub sender: Option<MailSender>,
     pub message: MailMessage,
 }
 

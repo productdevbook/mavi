@@ -8,6 +8,7 @@ mod email;
 mod error;
 mod grants;
 mod ids;
+mod mail_policy;
 mod money;
 mod pagination;
 pub mod ports;
@@ -25,5 +26,6 @@ pub use ids::{
     PasswordResetTokenId, PersonId, ProductId, RequestId, RoleId, SessionId, SiteId, StockHoldId,
     StudentId, StudentSessionId, TermId,
 };
+pub use mail_policy::{MailSender, MailSenderPolicy};
 pub use money::{Currency, Money};
 pub use pagination::{Cursor, Page, PageRequest};

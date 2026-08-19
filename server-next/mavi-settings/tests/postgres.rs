@@ -3,7 +3,7 @@ use std::env;
 use mavi_core::{MaviError, SiteContext, SiteId};
 use mavi_settings::{
     CanonicalSiteUrl, CanonicalUrlUpdate, CreateLanguage, DEFAULT_LANGUAGE_REQUIRED,
-    LanguageListFilter, SettingsService, UpdateLanguage, UpdateSiteSettings,
+    LanguageListFilter, MailSenderUpdate, SettingsService, UpdateLanguage, UpdateSiteSettings,
 };
 use mavi_storage::Database;
 
@@ -65,6 +65,10 @@ async fn settings_languages_are_site_scoped_and_audited() {
                 canonical_url: CanonicalUrlUpdate::Set(
                     "https://first.example.test/site/".to_owned(),
                 ),
+                mail_sender: MailSenderUpdate::Set {
+                    address: "noreply@example.test".to_owned(),
+                    name: Some("First site".to_owned()),
+                },
             },
         )
         .await
@@ -81,6 +85,9 @@ async fn settings_languages_are_site_scoped_and_audited() {
             .map(CanonicalSiteUrl::as_str),
         Some("https://first.example.test/site")
     );
+    let sender = settings.mail_sender.as_ref().expect("sender settings");
+    assert_eq!(sender.address.as_str(), "noreply@example.test");
+    assert_eq!(sender.name.as_deref(), Some("First site"));
 
     service
         .update_settings(
@@ -90,6 +97,7 @@ async fn settings_languages_are_site_scoped_and_audited() {
                 name: None,
                 timezone: None,
                 canonical_url: CanonicalUrlUpdate::Clear,
+                mail_sender: MailSenderUpdate::Unchanged,
             },
         )
         .await

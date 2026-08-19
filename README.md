@@ -94,6 +94,9 @@ The clean API reads these at its binary boundary:
 | `MAVI_MAIL_WEBHOOK_URL` | none | Trusted HTTPS gateway used for outbound mail; absent means fail-closed delivery. |
 | `MAVI_MAIL_WEBHOOK_TOKEN` | none | Optional bearer credential sent to the outbound mail gateway. |
 | `MAVI_MAIL_WEBHOOK_INGEST_TOKEN` | none | Separate bearer credential required by the gateway for normalized bounce/complaint callbacks. |
+| `MAVI_MAIL_FROM` | — | Required when outbound mail is enabled; deployment default sender address. |
+| `MAVI_MAIL_FROM_NAME` | none | Optional deployment default display name. |
+| `MAVI_MAIL_ALLOWED_SENDER_DOMAINS` | default sender domain | Comma-separated domains allowed for site-configured sender identities. |
 | `RUST_LOG` | `info` | |
 
 ## Self-host and cloud boundary

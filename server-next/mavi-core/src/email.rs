@@ -45,6 +45,11 @@ impl Email {
     pub fn as_str(&self) -> &str {
         &self.0
     }
+
+    #[must_use]
+    pub fn domain(&self) -> &str {
+        self.0.rsplit_once('@').map_or("", |(_, domain)| domain)
+    }
 }
 
 impl fmt::Display for Email {

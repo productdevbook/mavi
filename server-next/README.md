@@ -190,6 +190,13 @@ for that gateway. The webhook receives delivery/attempt/idempotency metadata
 plus campaign unsubscribe headers and must return `{"reference":"..."}`;
 provider credentials never enter site rows.
 
+Outbound sender identity is deployment policy, not an arbitrary request field.
+`MAVI_MAIL_FROM` is required when the gateway is enabled,
+`MAVI_MAIL_FROM_NAME` supplies its optional display name, and
+`MAVI_MAIL_ALLOWED_SENDER_DOMAINS` is a comma-separated allowlist. A site may
+configure a sender only within that allowlist. Mavi stores the validated sender
+on the site and copies it onto each queued delivery before the worker runs.
+
 Provider callbacks use a separate `MAVI_MAIL_WEBHOOK_INGEST_TOKEN` and the
 `POST /internal/v1/mail/provider-events` contract. The trusted gateway
 normalizes vendor-specific events into `delivered`, `bounced` (transient or

@@ -48,6 +48,9 @@ pub const FORM_ANSWERS_TOO_LARGE: &str = "form_answers_too_large";
 pub const FORM_SUBMISSION_CLOSED: &str = "form_submission_closed";
 pub const FORM_RETENTION_JOB: JobKind = JobKind::new("forms.retention", 5);
 pub const FORM_RETENTION_BUCKET_SECONDS: i64 = 24 * 60 * 60;
+pub const FORM_SUBMISSION_EXPORT_FORMAT: &str = "mavi.forms.submissions";
+pub const FORM_SUBMISSION_EXPORT_VERSION: u16 = 1;
+pub const MAX_FORM_EXPORT_ITEMS: u16 = 50;
 
 pub const DEFAULT_KEPT_DAYS: i32 = 365;
 pub const MAX_FORM_FIELDS: usize = 50;
@@ -141,6 +144,25 @@ pub struct SubmissionListFilter {
     pub unread: bool,
 }
 
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct SubmissionExportFilter {
+    #[serde(flatten)]
+    pub page: PageRequest,
+}
+
+impl SubmissionExportFilter {
+    #[must_use]
+    pub const fn effective_limit(&self) -> u16 {
+        let limit = self.page.effective_limit();
+        if limit > MAX_FORM_EXPORT_ITEMS {
+            MAX_FORM_EXPORT_ITEMS
+        } else {
+            limit
+        }
+    }
+}
+
 #[derive(Clone, Debug, Serialize)]
 pub struct Form {
     pub id: FormId,
@@ -172,6 +194,24 @@ pub struct FormSubmission {
 #[derive(Clone, Debug, Serialize)]
 pub struct SubmissionReceipt {
     pub id: FormSubmissionId,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct FormExportMetadata {
+    pub id: FormId,
+    pub slug: String,
+    pub name: String,
+    pub fields: Vec<FormField>,
+    pub kept_days: i32,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct FormSubmissionExport {
+    pub format: &'static str,
+    pub version: u16,
+    pub form: FormExportMetadata,
+    pub items: Vec<FormSubmission>,
+    pub next_cursor: Option<Cursor>,
 }
 
 /// The payload for the idempotent daily form-submission retention job.
@@ -330,6 +370,22 @@ pub fn endpoints() -> Vec<Endpoint> {
             ErrorCode::Internal,
         ]),
         Endpoint::new(
+            Method::Get,
+            "/api/v1/forms/{id}/submissions/export",
+            "forms.submissions.export",
+            "Export bounded active form submissions in the versioned Mavi JSON format",
+        )
+        .account_or_assistant()
+        .requires(view)
+        .takes_query("SubmissionExportFilter")
+        .returns(200, "FormSubmissionExport")
+        .refuses([
+            ErrorCode::Forbidden,
+            ErrorCode::Validation,
+            ErrorCode::NotFound,
+            ErrorCode::Internal,
+        ]),
+        Endpoint::new(
             Method::Post,
             "/api/v1/forms/{id}/submissions/mark-read",
             "forms.submissions.mark_read",
@@ -464,6 +520,13 @@ pub fn shapes() -> Vec<Shape> {
             }}),
         ),
         Shape::new(
+            "SubmissionExportFilter",
+            json!({"type": "object", "properties": {
+                "after": {"type": ["string", "null"], "maxLength": 512},
+                "limit": {"type": "integer", "minimum": 1, "maximum": MAX_FORM_EXPORT_ITEMS}
+            }}),
+        ),
+        Shape::new(
             "Form",
             json!({
                 "type": "object",
@@ -509,6 +572,34 @@ pub fn shapes() -> Vec<Shape> {
         Shape::new(
             "SubmissionReceipt",
             json!({"type": "object", "required": ["id"], "properties": {"id": {"type": "string", "format": "uuid"}}}),
+        ),
+        Shape::new(
+            "FormExportMetadata",
+            json!({
+                "type": "object",
+                "required": ["id", "slug", "name", "fields", "kept_days"],
+                "properties": {
+                    "id": {"type": "string", "format": "uuid"},
+                    "slug": {"type": "string"},
+                    "name": {"type": "string"},
+                    "fields": {"type": "array", "items": {"$ref": "#/components/schemas/FormField"}},
+                    "kept_days": {"type": "integer", "minimum": 1, "maximum": 3650}
+                }
+            }),
+        ),
+        Shape::new(
+            "FormSubmissionExport",
+            json!({
+                "type": "object",
+                "required": ["format", "version", "form", "items", "next_cursor"],
+                "properties": {
+                    "format": {"type": "string", "const": FORM_SUBMISSION_EXPORT_FORMAT},
+                    "version": {"type": "integer", "const": FORM_SUBMISSION_EXPORT_VERSION},
+                    "form": {"$ref": "#/components/schemas/FormExportMetadata"},
+                    "items": {"type": "array", "maxItems": MAX_FORM_EXPORT_ITEMS, "items": {"$ref": "#/components/schemas/FormSubmission"}},
+                    "next_cursor": {"type": ["string", "null"], "maxLength": 512}
+                }
+            }),
         ),
         Shape::new(
             "SeenCount",
@@ -930,6 +1021,86 @@ impl FormService {
         Ok(Page::new(items, next_cursor))
     }
 
+    pub async fn export_submissions(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        form_id: FormId,
+        filter: &SubmissionExportFilter,
+    ) -> Result<FormSubmissionExport> {
+        let form = self.get(tx, context, form_id).await?;
+        let after = filter.page.after.as_ref().map(decode_cursor).transpose()?;
+        let limit = i64::from(filter.effective_limit());
+        let mut query = sqlx::QueryBuilder::<sqlx::Postgres>::new(
+            "select id, form_id, answers, seen_at, created_at
+               from form_submissions where site_id = ",
+        );
+        query
+            .push_bind(context.site_id.into_uuid())
+            .push(" and form_id = ")
+            .push_bind(form_id.into_uuid())
+            .push(" and deleted_at is null");
+        if let Some(after) = after {
+            query
+                .push(" and (created_at, id) < (")
+                .push_bind(after.created_at)
+                .push(", ")
+                .push_bind(after.id)
+                .push(")");
+        }
+        let rows = query
+            .push(" order by created_at desc, id desc limit ")
+            .push_bind(limit + 1)
+            .build()
+            .fetch_all(tx.conn())
+            .await
+            .map_err(|_| MaviError::Internal)?;
+        let mut items = rows
+            .iter()
+            .map(from_submission_row)
+            .collect::<Result<Vec<_>>>()?;
+        let page_limit = usize::try_from(limit).map_err(|_| MaviError::Internal)?;
+        let next_cursor = if items.len() > page_limit {
+            let last = items
+                .get(page_limit.saturating_sub(1))
+                .ok_or(MaviError::Internal)?;
+            Some(encode_cursor(last.created_at, last.id.into_uuid())?)
+        } else {
+            None
+        };
+        items.truncate(page_limit);
+        AuditService
+            .record(
+                tx,
+                context,
+                &AuditEntry {
+                    action: "forms.submissions.exported".to_owned(),
+                    resource_type: "Form".to_owned(),
+                    resource_id: Some(form_id.into_uuid()),
+                    payload: json!({
+                        "format": FORM_SUBMISSION_EXPORT_FORMAT,
+                        "version": FORM_SUBMISSION_EXPORT_VERSION,
+                        "count": items.len(),
+                        "has_next": next_cursor.is_some()
+                    }),
+                },
+            )
+            .await?;
+        Ok(FormSubmissionExport {
+            format: FORM_SUBMISSION_EXPORT_FORMAT,
+            version: FORM_SUBMISSION_EXPORT_VERSION,
+            form: FormExportMetadata {
+                id: form.id,
+                slug: form.slug,
+                name: form.name,
+                fields: form.fields,
+                kept_days: form.kept_days,
+            },
+            items,
+            next_cursor,
+        })
+    }
+
     pub async fn mark_read(
         &self,
         tx: &mut SiteTx,
@@ -1282,7 +1453,11 @@ mod tests {
     fn forms_use_only_opaque_keyset_pagination() {
         let catalog = api();
         catalog.validate().expect("forms API contract");
-        for name in ["FormListFilter", "SubmissionListFilter"] {
+        for name in [
+            "FormListFilter",
+            "SubmissionListFilter",
+            "SubmissionExportFilter",
+        ] {
             let shape = shapes()
                 .into_iter()
                 .find(|shape| shape.name == name)
@@ -1293,5 +1468,21 @@ mod tests {
             assert!(!properties.contains_key("page"));
             assert!(!properties.contains_key("offset"));
         }
+        assert!(
+            catalog
+                .endpoints
+                .iter()
+                .any(|endpoint| endpoint.operation_id == "forms.submissions.export")
+        );
+        assert_eq!(
+            SubmissionExportFilter {
+                page: PageRequest {
+                    after: None,
+                    limit: Some(PageRequest::MAX_LIMIT),
+                },
+            }
+            .effective_limit(),
+            MAX_FORM_EXPORT_ITEMS
+        );
     }
 }

@@ -111,6 +111,22 @@ async fn form_routes_validate_public_submissions_cursor_inbox_and_permissions() 
     assert_eq!(unread["items"].as_array().expect("unread items").len(), 1);
     assert!(unread["next_cursor"].is_null());
 
+    let export = send(
+        &app,
+        Method::GET,
+        &format!("/api/v1/forms/{form_id}/submissions/export?limit=1"),
+        Some(&owner_token),
+        None,
+    )
+    .await;
+    assert_eq!(export.status(), StatusCode::OK);
+    let export = response_json(export).await;
+    assert_eq!(export["format"], "mavi.forms.submissions");
+    assert_eq!(export["version"], 1);
+    assert_eq!(export["form"]["id"], form_id);
+    assert_eq!(export["items"].as_array().expect("export items").len(), 1);
+    assert!(export["next_cursor"].is_null());
+
     let marked = send(
         &app,
         Method::POST,

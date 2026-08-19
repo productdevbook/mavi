@@ -7449,6 +7449,120 @@
         }
       }
     },
+    "/api/v1/forms/{id}/submissions/export": {
+      "get": {
+        "operationId": "forms.submissions.export",
+        "summary": "Export bounded active form submissions in the versioned Mavi JSON format",
+        "tags": [
+          "forms"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FormSubmissionExport"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "maxLength": 512
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-mavi": {
+          "scope": "site",
+          "authentication": "account_or_assistant",
+          "mutation": "none",
+          "permission": {
+            "capability": "forms",
+            "action": "view"
+          },
+          "errors": [
+            "forbidden",
+            "validation",
+            "not_found",
+            "internal"
+          ]
+        }
+      }
+    },
     "/api/v1/forms/{id}/submissions/mark-read": {
       "post": {
         "operationId": "forms.submissions.mark_read",
@@ -21387,6 +21501,40 @@
         },
         "additionalProperties": false
       },
+      "FormExportMetadata": {
+        "type": "object",
+        "required": [
+          "id",
+          "slug",
+          "name",
+          "fields",
+          "kept_days"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FormField"
+            }
+          },
+          "kept_days": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3650
+          }
+        },
+        "additionalProperties": false
+      },
       "FormField": {
         "type": "object",
         "required": [
@@ -21508,6 +21656,44 @@
           "created_at": {
             "type": "string",
             "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "FormSubmissionExport": {
+        "type": "object",
+        "required": [
+          "format",
+          "version",
+          "form",
+          "items",
+          "next_cursor"
+        ],
+        "properties": {
+          "format": {
+            "type": "string",
+            "const": "mavi.forms.submissions"
+          },
+          "version": {
+            "type": "integer",
+            "const": 1
+          },
+          "form": {
+            "$ref": "#/components/schemas/FormExportMetadata"
+          },
+          "items": {
+            "type": "array",
+            "maxItems": 50,
+            "items": {
+              "$ref": "#/components/schemas/FormSubmission"
+            }
+          },
+          "next_cursor": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 512
           }
         },
         "additionalProperties": false
@@ -24572,6 +24758,24 @@
           "learning",
           "stopped"
         ]
+      },
+      "SubmissionExportFilter": {
+        "type": "object",
+        "properties": {
+          "after": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 512
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50
+          }
+        },
+        "additionalProperties": false
       },
       "SubmissionListFilter": {
         "type": "object",

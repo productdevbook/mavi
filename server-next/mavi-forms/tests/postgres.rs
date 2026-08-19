@@ -4,7 +4,7 @@ use chrono::{Duration, Utc};
 use mavi_core::{FormSubmissionId, MaviError, PageRequest, SiteContext, SiteId};
 use mavi_forms::{
     CreateForm, FORM_RETENTION_JOB, FormField, FormFieldKind, FormListFilter, FormService,
-    SubmissionListFilter, SubmitForm,
+    SubmissionExportFilter, SubmissionListFilter, SubmitForm,
 };
 use mavi_jobs::JobsService;
 use mavi_storage::Database;
@@ -173,6 +173,26 @@ async fn forms_declarations_submissions_and_rls_are_site_scoped() {
     assert_eq!(unread.items.len(), 1);
     assert_eq!(unread.items[0].id, receipt.id);
 
+    let export = service
+        .export_submissions(
+            &mut transaction,
+            &first_context,
+            first_form.id,
+            &SubmissionExportFilter {
+                page: PageRequest {
+                    after: None,
+                    limit: Some(1),
+                },
+            },
+        )
+        .await
+        .expect("submission export");
+    assert_eq!(export.format, "mavi.forms.submissions");
+    assert_eq!(export.version, 1);
+    assert_eq!(export.form.id, first_form.id);
+    assert_eq!(export.items.len(), 1);
+    assert!(export.next_cursor.is_none());
+
     let seen = service
         .mark_read(&mut transaction, &first_context, first_form.id)
         .await
@@ -203,7 +223,7 @@ async fn forms_declarations_submissions_and_rls_are_site_scoped() {
     .fetch_one(transaction.conn())
     .await
     .expect("forms audit count");
-    assert_eq!(audit_count, 5);
+    assert_eq!(audit_count, 6);
     transaction.commit().await.expect("first commit");
 
     let second_context = SiteContext::public(second_site);

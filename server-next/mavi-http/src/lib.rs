@@ -67,8 +67,9 @@ use mavi_flows::{
     SimulationStep, TriggerDescription, UpdateFlow,
 };
 use mavi_forms::{
-    CreateForm, Form, FormListFilter, FormService, FormSubmission, PublicForm, SeenCount,
-    SubmissionListFilter, SubmissionReceipt, SubmitForm, UpdateForm,
+    CreateForm, Form, FormListFilter, FormService, FormSubmission, FormSubmissionExport,
+    PublicForm, SeenCount, SubmissionExportFilter, SubmissionListFilter, SubmissionReceipt,
+    SubmitForm, UpdateForm,
 };
 use mavi_identity::{
     ApiKeyCreated, ApiKeyListFilter, ApiKeyRecord, CreateApiKey, CreatePerson, CreateRole,
@@ -1341,6 +1342,10 @@ where
         .route(
             "/api/v1/forms/{id}/submissions",
             get(list_form_submissions::<R>),
+        )
+        .route(
+            "/api/v1/forms/{id}/submissions/export",
+            get(export_form_submissions::<R>),
         )
         .route(
             "/api/v1/forms/{id}/submissions/mark-read",
@@ -4862,6 +4867,32 @@ where
         .map_err(HttpError)?;
     transaction.commit().await.map_err(HttpError)?;
     Ok(Json(submissions))
+}
+
+async fn export_form_submissions<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(form_id): Path<mavi_core::FormId>,
+    Query(filter): Query<SubmissionExportFilter>,
+) -> Result<Json<FormSubmissionExport>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Forms, Action::View),
+        "Form",
+        form_id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let export = state
+        .forms
+        .export_submissions(&mut transaction, &context, form_id, &filter)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(export))
 }
 
 async fn mark_form_submissions_read<R>(

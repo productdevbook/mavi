@@ -797,7 +797,7 @@ msgstr "Derleme jetonu bu siteyi okur ve hiçbir şeyi değiştiremez; onunla ba
 msgid "A card"
 msgstr "Bir kart"
 
-#: src/routes/dashboard.orders.tsx:139
+#: src/features/shop/orders-page.tsx:137
 msgid "A card payment says so itself, signed by the provider. Say it here only for money that arrived another way — it is written down as you saying so."
 msgstr "Kartla ödeme kendini bildirir, sağlayıcı tarafından imzalanır. Burada yalnızca başka yolla gelen para için söyleyin — kayıtta bunu sizin söylediğiniz yazar."
 
@@ -913,7 +913,7 @@ msgstr "Yeni bir pano"
 msgid "A new card"
 msgstr "Yeni bir kart"
 
-#: src/routes/dashboard.coupons.tsx:175
+#: src/features/shop/coupons-page.tsx:176
 msgid "A new code"
 msgstr "Yeni bir kod"
 
@@ -941,7 +941,7 @@ msgstr "Yeni bir liste"
 msgid "A new password"
 msgstr "Yeni bir parola"
 
-#: src/routes/dashboard.products.tsx:201
+#: src/features/shop/products-page.tsx:204
 msgid "A new product"
 msgstr "Yeni bir ürün"
 
@@ -983,7 +983,7 @@ msgstr "Eğitimin bir bölümü"
 msgid "A password is at least twelve characters."
 msgstr "Bir parola en az on iki karakterdir."
 
-#: src/routes/dashboard.coupons.tsx:204
+#: src/features/shop/coupons-page.tsx:203
 msgid "A percentage"
 msgstr "Yüzde"
 
@@ -1540,7 +1540,7 @@ msgstr "Toplam"
 #~ msgid "An agency can only be opened from a link you make here. Send it however you like — it works once, and stops working after a fortnight."
 #~ msgstr "Bir ajans yalnızca burada ürettiğiniz bağlantıyla açılabilir. Nasıl isterseniz gönderin — bir kez çalışır ve iki hafta sonra geçersiz olur."
 
-#: src/routes/dashboard.coupons.tsx:205
+#: src/features/shop/coupons-page.tsx:204
 msgid "An amount"
 msgstr "Sabit tutar"
 
@@ -1806,7 +1806,7 @@ msgstr "Geldiği gibi"
 #~ msgid "as many as they like"
 #~ msgstr "istedikleri kadar"
 
-#: src/routes/dashboard.coupons.tsx:228
+#: src/features/shop/coupons-page.tsx:227
 msgid "as often as they like"
 msgstr "istedikleri kadar"
 
@@ -2328,6 +2328,8 @@ msgstr "{0} alanın {summary} tanesini açabilir."
 #: src/features/people/people-page.tsx:353
 #: src/features/people/people-page.tsx:377
 #: src/features/people/roles-page.tsx:454
+#: src/features/shop/coupons-page.tsx:250
+#: src/features/shop/products-page.tsx:270
 #: src/features/taxonomy/categories-page.tsx:289
 #: src/features/taxonomy/categories-page.tsx:332
 #: src/features/taxonomy/tags-page.tsx:189
@@ -2335,18 +2337,16 @@ msgstr "{0} alanın {summary} tanesini açabilir."
 #: src/routes/dashboard.boards_.$boardId.tsx:230
 #: src/routes/dashboard.boards.tsx:210
 #: src/routes/dashboard.boards.tsx:232
-#: src/routes/dashboard.coupons.tsx:251
 #: src/routes/dashboard.design.tsx:213
 #: src/routes/dashboard.flows.tsx:329
 #: src/routes/dashboard.languages.tsx:183
 #: src/routes/dashboard.mail.tsx:268
 #: src/routes/dashboard.mail.tsx:332
-#: src/routes/dashboard.products.tsx:267
 #: src/routes/dashboard.students.tsx:241
 msgid "Cancel"
 msgstr "Vazgeç"
 
-#: src/routes/dashboard.orders.tsx:49
+#: src/features/shop/orders-page.tsx:48
 #: src/shop/app.tsx:274
 msgid "Cancelled"
 msgstr "İptal edildi"
@@ -2457,7 +2457,7 @@ msgstr "Onay kutulu yapılacaklar"
 #~ msgid "Checked twice: once when somebody types it into the basket, and again when the order is made — because a code with one use left can be used by somebody else in the minute in between."
 #~ msgstr "İki kez kontrol edilir: biri sepete yazıldığında, biri sipariş oluşurken — çünkü tek kullanımı kalmış bir kodu aradaki dakikada başkası kullanabilir."
 
-#: src/routes/dashboard.coupons.tsx:77
+#: src/features/shop/coupons-page.tsx:74
 msgid "Checked twice: once when somebody types it into the basket, and again when the order is made."
 msgstr ""
 
@@ -3312,6 +3312,14 @@ msgstr "Kapak önizlemesi"
 msgid "Create"
 msgstr "Oluştur"
 
+#: src/features/shop/coupons-page.tsx:88
+msgid "Create a code to offer a discount during checkout."
+msgstr ""
+
+#: src/features/shop/products-page.tsx:139
+msgid "Create a product before you start taking orders."
+msgstr ""
+
 #: src/features/taxonomy/tags-page.tsx:164
 msgid "Create a tag once and reuse it across content in this language."
 msgstr ""
@@ -3621,7 +3629,7 @@ msgstr "Tasarım"
 #~ msgstr "İndirim kodu"
 
 #: src/components/dashboard/dashboard-shell.tsx:98
-#: src/routes/dashboard.coupons.tsx:75
+#: src/features/shop/coupons-page.tsx:73
 msgid "Discount codes"
 msgstr "İndirim kodları"
 
@@ -4124,7 +4132,7 @@ msgstr "Yazı tipi"
 #~ msgid "for sale"
 #~ msgstr "satılık"
 
-#: src/routes/dashboard.products.tsx:186
+#: src/features/shop/products-page.tsx:187
 msgid "For sale"
 msgstr "Satışta"
 
@@ -4501,11 +4509,11 @@ msgstr "Ana sayfa"
 #~ msgid "How many left"
 #~ msgstr "Kaç tane kaldı"
 
-#: src/routes/dashboard.coupons.tsx:211
+#: src/features/shop/coupons-page.tsx:210
 msgid "How many percent"
 msgstr "Yüzde kaç"
 
-#: src/routes/dashboard.products.tsx:255
+#: src/features/shop/products-page.tsx:258
 msgid "How many there are"
 msgstr "Kaç adet var"
 
@@ -4514,7 +4522,7 @@ msgstr "Kaç adet var"
 #~ msgid "How many to keep"
 #~ msgstr "Kaç tanesi saklansın"
 
-#: src/routes/dashboard.coupons.tsx:211
+#: src/features/shop/coupons-page.tsx:210
 msgid "How much"
 msgstr "Ne kadar"
 
@@ -4637,7 +4645,7 @@ msgstr "İçe / dışa aktar"
 #~ msgid "Import this archive?"
 #~ msgstr "Bu arşiv içe aktarılsın mı?"
 
-#: src/routes/dashboard.products.tsx:233
+#: src/features/shop/products-page.tsx:236
 msgid "In"
 msgstr "Para birimi"
 
@@ -4825,7 +4833,7 @@ msgstr "İhtiyacım olan bir şeyi yapamıyor"
 #~ msgid "It had already finished"
 #~ msgstr "Zaten bitmişti"
 
-#: src/routes/dashboard.orders.tsx:216
+#: src/features/shop/orders-page.tsx:212
 msgid "It has gone"
 msgstr "Kargoya verildi"
 
@@ -5121,7 +5129,7 @@ msgstr ""
 #~ msgid "Leaving the sandbox is the first increase. This is the one after it — Amazon treats it as a support request, and this opens one in the same words its console would."
 #~ msgstr "Kum havuzundan çıkmak ilk artıştır. Bu ondan sonraki — Amazon bunu bir destek talebi sayar ve buradan, konsolunun kullanacağı ifadelerle bir talep açılır."
 
-#: src/routes/dashboard.products.tsx:168
+#: src/features/shop/products-page.tsx:169
 msgid "Left"
 msgstr "Kalan"
 
@@ -5349,10 +5357,10 @@ msgid "Make default"
 msgstr "Varsayılan yap"
 
 #: src/features/people/roles-page.tsx:461
+#: src/features/shop/products-page.tsx:277
 #: src/routes/dashboard.boards.tsx:214
 #: src/routes/dashboard.flows.tsx:333
 #: src/routes/dashboard.mail.tsx:275
-#: src/routes/dashboard.products.tsx:274
 msgid "Make it"
 msgstr "Oluştur"
 
@@ -5404,7 +5412,7 @@ msgstr "Markdown içeri aktarıldı"
 #~ msgid "Marked as a template on GitHub, under the account this server creates repositories in."
 #~ msgstr "GitHub'da şablon olarak işaretli, bu sunucunun depo açtığı hesabın altında."
 
-#: src/routes/dashboard.orders.tsx:103
+#: src/features/shop/orders-page.tsx:102
 msgid "Marked as sent"
 msgstr "Kargoya verildi olarak işaretlendi"
 
@@ -5418,7 +5426,7 @@ msgstr ""
 #~ msgstr "Mavi CMS, sitenizi saklamak için bir veritabanına ihtiyaç duyar."
 
 #. placeholder {0}: row.at_most_uses
-#: src/routes/dashboard.coupons.tsx:107
+#: src/features/shop/coupons-page.tsx:108
 msgid "max {0} uses"
 msgstr ""
 
@@ -5673,7 +5681,8 @@ msgstr "Yeni pano"
 msgid "New category"
 msgstr "Yeni kategori"
 
-#: src/routes/dashboard.coupons.tsx:81
+#: src/features/shop/coupons-page.tsx:77
+#: src/features/shop/coupons-page.tsx:91
 msgid "New code"
 msgstr "Yeni kod"
 
@@ -5698,7 +5707,8 @@ msgstr "Yeni liste"
 #~ msgid "New password"
 #~ msgstr "Yeni parola"
 
-#: src/routes/dashboard.products.tsx:132
+#: src/features/shop/products-page.tsx:128
+#: src/features/shop/products-page.tsx:142
 msgid "New product"
 msgstr "Yeni ürün"
 
@@ -5833,7 +5843,7 @@ msgstr "Henüz kategori yok"
 msgid "No categories yet."
 msgstr "Henüz kategori yok."
 
-#: src/routes/dashboard.coupons.tsx:92
+#: src/features/shop/coupons-page.tsx:87
 msgid "No codes yet."
 msgstr "Henüz kod yok."
 
@@ -6078,7 +6088,7 @@ msgstr "Seçilmedi"
 msgid "Not everything"
 msgstr "Hepsi değil"
 
-#: src/routes/dashboard.products.tsx:186
+#: src/features/shop/products-page.tsx:187
 msgid "Not for sale"
 msgstr "Satışta değil"
 
@@ -6171,7 +6181,7 @@ msgstr ""
 #~ msgid "Nothing else. Accounts, credentials, backups, how the site is built and sending a mailing are deliberately not here — nor is deleting a post or a file. Those stay things a person does in this panel."
 #~ msgstr "Başka bir şey yok. Hesaplar, kimlik bilgileri, yedekler, sitenin nasıl derlendiği ve posta göndermek bilerek burada değil — bir yazıyı ya da dosyayı silmek de öyle. Bunlar bir insanın bu panelde yaptığı şeyler olarak kalıyor."
 
-#: src/routes/dashboard.products.tsx:143
+#: src/features/shop/products-page.tsx:138
 msgid "Nothing for sale yet."
 msgstr "Henüz satışta bir şey yok."
 
@@ -6325,7 +6335,7 @@ msgstr "Henüz ölçüm yok. Yayındaki siteye gerçek ziyaretçiler geldikçe s
 #~ msgid "Nothing sent yet"
 #~ msgstr "Henüz bir şey gönderilmedi"
 
-#: src/routes/dashboard.orders.tsx:150
+#: src/features/shop/orders-page.tsx:145
 msgid "Nothing sold yet."
 msgstr "Henüz satış yok."
 
@@ -6793,13 +6803,17 @@ msgstr "Sipariş #{0}"
 #~ msgstr "Sipariş alındı"
 
 #: src/components/dashboard/dashboard-shell.tsx:97
+#: src/features/shop/orders-page.tsx:136
 #: src/routes/dashboard.index.tsx:106
-#: src/routes/dashboard.orders.tsx:137
 msgid "Orders"
 msgstr "Siparişler"
 
 #: src/routes/dashboard.index.tsx:108
 msgid "orders placed"
+msgstr ""
+
+#: src/features/shop/orders-page.tsx:146
+msgid "Orders will appear here after a customer completes checkout."
 msgstr ""
 
 #: src/components/dashboard/dashboard-shell.tsx:88
@@ -6882,7 +6896,7 @@ msgstr ""
 #~ msgid "Pages, worst first"
 #~ msgstr "Sayfalar, en kötüsü önce"
 
-#: src/routes/dashboard.orders.tsx:47
+#: src/features/shop/orders-page.tsx:46
 #: src/shop/app.tsx:272
 msgid "Paid"
 msgstr "Ödendi"
@@ -7188,7 +7202,7 @@ msgid "product"
 msgstr "ürün"
 
 #: src/components/dashboard/dashboard-shell.tsx:96
-#: src/routes/dashboard.products.tsx:126
+#: src/features/shop/products-page.tsx:124
 msgid "Products"
 msgstr "Ürünler"
 
@@ -7420,16 +7434,16 @@ msgstr "Yenile"
 #~ msgid "Refund"
 #~ msgstr "İade"
 
-#: src/routes/dashboard.orders.tsx:200
+#: src/features/shop/orders-page.tsx:196
 msgid "Refund it"
 msgstr "İade et"
 
-#: src/routes/dashboard.orders.tsx:50
+#: src/features/shop/orders-page.tsx:49
 #: src/shop/app.tsx:275
 msgid "Refunded"
 msgstr "İade edildi"
 
-#: src/routes/dashboard.orders.tsx:86
+#: src/features/shop/orders-page.tsx:85
 msgid "Refunded. What the provider does with it is theirs."
 msgstr "İade edildi. Sağlayıcının bununla ne yaptığı onların işi."
 
@@ -7471,13 +7485,13 @@ msgstr "Düzenli ifade"
 #: src/features/forms/forms-page.tsx:466
 #: src/features/people/people-page.tsx:248
 #: src/features/people/people-page.tsx:379
+#: src/features/shop/coupons-page.tsx:122
 #: src/features/taxonomy/tags-page.tsx:243
 #: src/routes/dashboard.boards_.$boardId.tsx:156
 #: src/routes/dashboard.boards.tsx:141
 #: src/routes/dashboard.boards.tsx:188
 #: src/routes/dashboard.boards.tsx:234
 #: src/routes/dashboard.content-types.tsx:106
-#: src/routes/dashboard.coupons.tsx:121
 #: src/routes/dashboard.courses.$courseId.tsx:140
 #: src/routes/dashboard.courses.$courseId.tsx:165
 #: src/routes/dashboard.flows.tsx:180
@@ -7547,7 +7561,7 @@ msgstr "Bu etiket kaldırılsın mı?"
 #~ msgid "removed"
 #~ msgstr "kaldırıldı"
 
-#: src/routes/dashboard.coupons.tsx:47
+#: src/features/shop/coupons-page.tsx:46
 msgid "Removed"
 msgstr "Kaldırıldı"
 
@@ -7759,9 +7773,9 @@ msgstr ""
 #: src/components/editor/mavi-editor.tsx:681
 #: src/features/forms/forms-page.tsx:310
 #: src/features/settings/settings-page.tsx:82
+#: src/features/shop/coupons-page.tsx:247
 #: src/features/taxonomy/categories-page.tsx:281
 #: src/features/taxonomy/tags-page.tsx:181
-#: src/routes/dashboard.coupons.tsx:248
 #: src/routes/dashboard.design.tsx:210
 #: src/routes/dashboard.design.tsx:252
 #: src/routes/dashboard.letters.tsx:208
@@ -7808,7 +7822,7 @@ msgstr "Kaydet"
 #: src/components/editor/status-bar.tsx:116
 #: src/features/forms/forms-page.tsx:106
 #: src/features/settings/settings-page.tsx:47
-#: src/routes/dashboard.coupons.tsx:164
+#: src/features/shop/coupons-page.tsx:165
 #: src/routes/dashboard.letters.tsx:80
 #: src/routes/dashboard.plugins.tsx:81
 msgid "Saved"
@@ -7844,7 +7858,7 @@ msgstr "Kaydediliyor…"
 #~ msgid "Say how much"
 #~ msgstr "Ne kadar olduğunu yazın"
 
-#: src/routes/dashboard.orders.tsx:56
+#: src/features/shop/orders-page.tsx:55
 msgid "Say the money for this order has arrived? The record will say you said so."
 msgstr "Bu siparişin ödemesinin geldiğini söylüyor musunuz? Kayıtta bunu sizin söylediğiniz yazacak."
 
@@ -8083,7 +8097,7 @@ msgstr "Bağlantıyı gönder"
 #~ msgid "sent"
 #~ msgstr "gönderildi"
 
-#: src/routes/dashboard.orders.tsx:48
+#: src/features/shop/orders-page.tsx:47
 #: src/shop/app.tsx:273
 msgid "Sent"
 msgstr "Gönderildi"
@@ -9061,7 +9075,7 @@ msgstr "Bu istek bu siteden gelmedi. Sayfayı yenileyip yeniden deneyin."
 #~ msgid "The address it answers on"
 #~ msgstr "Yanıt vereceği adres"
 
-#: src/routes/dashboard.products.tsx:203
+#: src/features/shop/products-page.tsx:206
 msgid "The address it answers on is made from the name and never changes, because a front end will be asking for it."
 msgstr "Yanıt verdiği adres addan üretilir ve hiç değişmez; çünkü bir ön yüz onu isteyecek."
 
@@ -9119,7 +9133,7 @@ msgstr "Seçenekler, virgülle ayrılmış"
 #~ msgid "The clock"
 #~ msgstr "Saat"
 
-#: src/routes/dashboard.coupons.tsx:183
+#: src/features/shop/coupons-page.tsx:182
 msgid "The code"
 msgstr "Kod"
 
@@ -9250,7 +9264,7 @@ msgstr ""
 #~ msgid "The main one"
 #~ msgstr "Ana adres"
 
-#: src/routes/dashboard.orders.tsx:189
+#: src/features/shop/orders-page.tsx:185
 msgid "The money arrived"
 msgstr "Ödeme geldi"
 
@@ -9712,7 +9726,7 @@ msgstr "Çöpe at"
 msgid "Tick it"
 msgstr "Seç"
 
-#: src/routes/dashboard.coupons.tsx:222
+#: src/features/shop/coupons-page.tsx:221
 msgid "Times in total"
 msgstr "Toplam kaç kez"
 
@@ -9832,7 +9846,7 @@ msgstr "Aç"
 #~ msgid "Type"
 #~ msgstr "Tür"
 
-#: src/routes/dashboard.coupons.tsx:177
+#: src/features/shop/coupons-page.tsx:177
 msgid "Typed without case: launch2026 and LAUNCH2026 are one code."
 msgstr "Büyük küçük harf farketmez: launch2026 ile LAUNCH2026 aynı koddur."
 
@@ -9882,8 +9896,8 @@ msgstr "Seçimi bırak"
 
 #. placeholder {0}: new Date(key.expires_at).toLocaleString()
 #. placeholder {0}: new Date(row.expires_at).toLocaleDateString()
+#: src/features/shop/coupons-page.tsx:113
 #: src/routes/dashboard.api.tsx:142
-#: src/routes/dashboard.coupons.tsx:112
 msgid "until {0}"
 msgstr "{0} tarihine kadar"
 
@@ -10099,7 +10113,7 @@ msgstr "Ziyaretçiler"
 #~ msgid "waiting for DNS"
 #~ msgstr "DNS bekleniyor"
 
-#: src/routes/dashboard.orders.tsx:46
+#: src/features/shop/orders-page.tsx:45
 #: src/shop/app.tsx:271
 msgid "Waiting for payment"
 msgstr "Ödeme bekleniyor"
@@ -10308,7 +10322,7 @@ msgstr "Yayında olanlar"
 msgid "What it asks for"
 msgstr "Nelerin sorulduğu"
 
-#: src/routes/dashboard.products.tsx:222
+#: src/features/shop/products-page.tsx:225
 msgid "What it costs"
 msgstr "Kaça satılıyor"
 
@@ -10324,10 +10338,10 @@ msgstr "Neyle ilgili"
 #: src/components/dashboard/content-type-editor.tsx:146
 #: src/features/forms/forms-page.tsx:401
 #: src/features/settings/settings-page.tsx:64
+#: src/features/shop/products-page.tsx:212
 #: src/routes/dashboard.boards.tsx:162
 #: src/routes/dashboard.flows.tsx:215
 #: src/routes/dashboard.mail.tsx:258
-#: src/routes/dashboard.products.tsx:209
 #: src/routes/dashboard.teaching.start.tsx:76
 msgid "What it is called"
 msgstr "Görünen adı"
@@ -10369,7 +10383,7 @@ msgstr "Ne yazıyor"
 #~ msgid "What it says nothing about"
 #~ msgstr "Hakkında bir şey söylemedikleri"
 
-#: src/routes/dashboard.coupons.tsx:193
+#: src/features/shop/coupons-page.tsx:192
 msgid "What it takes off"
 msgstr "Ne kadar indirir"
 
@@ -10514,7 +10528,7 @@ msgstr "Bu sitenin bağlandığı şeyler. Burada olmayan bir şeyle konuşturul
 msgid "What this site publishes"
 msgstr "Bu site ne yayınlıyor"
 
-#: src/routes/dashboard.products.tsx:128
+#: src/features/shop/products-page.tsx:125
 msgid "What this site sells. Stock is held while somebody pays and let go if they do not, so two people cannot buy the last one."
 msgstr "Bu sitenin sattıkları. Stok, biri öderken tutulur ve ödemezse bırakılır; böylece son ürünü iki kişi alamaz."
 
@@ -10906,7 +10920,7 @@ msgstr "Üzerinde çalışılıyor"
 #~ msgid "Working through"
 #~ msgstr "Yürüyen işler"
 
-#: src/routes/dashboard.coupons.tsx:232
+#: src/features/shop/coupons-page.tsx:231
 msgid "Works until"
 msgstr "Şu tarihe kadar"
 

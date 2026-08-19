@@ -797,7 +797,7 @@ msgstr "A build token can read this site and change nothing, so an assistant con
 msgid "A card"
 msgstr "A card"
 
-#: src/routes/dashboard.orders.tsx:139
+#: src/features/shop/orders-page.tsx:137
 msgid "A card payment says so itself, signed by the provider. Say it here only for money that arrived another way — it is written down as you saying so."
 msgstr "A card payment says so itself, signed by the provider. Say it here only for money that arrived another way — it is written down as you saying so."
 
@@ -913,7 +913,7 @@ msgstr "A new board"
 msgid "A new card"
 msgstr "A new card"
 
-#: src/routes/dashboard.coupons.tsx:175
+#: src/features/shop/coupons-page.tsx:176
 msgid "A new code"
 msgstr "A new code"
 
@@ -941,7 +941,7 @@ msgstr "A new list"
 msgid "A new password"
 msgstr "A new password"
 
-#: src/routes/dashboard.products.tsx:201
+#: src/features/shop/products-page.tsx:204
 msgid "A new product"
 msgstr "A new product"
 
@@ -983,7 +983,7 @@ msgstr "A part of the course"
 msgid "A password is at least twelve characters."
 msgstr "A password is at least twelve characters."
 
-#: src/routes/dashboard.coupons.tsx:204
+#: src/features/shop/coupons-page.tsx:203
 msgid "A percentage"
 msgstr "A percentage"
 
@@ -1540,7 +1540,7 @@ msgstr "Altogether"
 #~ msgid "An agency can only be opened from a link you make here. Send it however you like — it works once, and stops working after a fortnight."
 #~ msgstr "An agency can only be opened from a link you make here. Send it however you like — it works once, and stops working after a fortnight."
 
-#: src/routes/dashboard.coupons.tsx:205
+#: src/features/shop/coupons-page.tsx:204
 msgid "An amount"
 msgstr "An amount"
 
@@ -1806,7 +1806,7 @@ msgstr "As it comes"
 #~ msgid "as many as they like"
 #~ msgstr "as many as they like"
 
-#: src/routes/dashboard.coupons.tsx:228
+#: src/features/shop/coupons-page.tsx:227
 msgid "as often as they like"
 msgstr "as often as they like"
 
@@ -2328,6 +2328,8 @@ msgstr "Can open {summary} of {0} areas."
 #: src/features/people/people-page.tsx:353
 #: src/features/people/people-page.tsx:377
 #: src/features/people/roles-page.tsx:454
+#: src/features/shop/coupons-page.tsx:250
+#: src/features/shop/products-page.tsx:270
 #: src/features/taxonomy/categories-page.tsx:289
 #: src/features/taxonomy/categories-page.tsx:332
 #: src/features/taxonomy/tags-page.tsx:189
@@ -2335,18 +2337,16 @@ msgstr "Can open {summary} of {0} areas."
 #: src/routes/dashboard.boards_.$boardId.tsx:230
 #: src/routes/dashboard.boards.tsx:210
 #: src/routes/dashboard.boards.tsx:232
-#: src/routes/dashboard.coupons.tsx:251
 #: src/routes/dashboard.design.tsx:213
 #: src/routes/dashboard.flows.tsx:329
 #: src/routes/dashboard.languages.tsx:183
 #: src/routes/dashboard.mail.tsx:268
 #: src/routes/dashboard.mail.tsx:332
-#: src/routes/dashboard.products.tsx:267
 #: src/routes/dashboard.students.tsx:241
 msgid "Cancel"
 msgstr "Cancel"
 
-#: src/routes/dashboard.orders.tsx:49
+#: src/features/shop/orders-page.tsx:48
 #: src/shop/app.tsx:274
 msgid "Cancelled"
 msgstr "Cancelled"
@@ -2457,7 +2457,7 @@ msgstr "Checkbox to-do list"
 #~ msgid "Checked twice: once when somebody types it into the basket, and again when the order is made — because a code with one use left can be used by somebody else in the minute in between."
 #~ msgstr "Checked twice: once when somebody types it into the basket, and again when the order is made — because a code with one use left can be used by somebody else in the minute in between."
 
-#: src/routes/dashboard.coupons.tsx:77
+#: src/features/shop/coupons-page.tsx:74
 msgid "Checked twice: once when somebody types it into the basket, and again when the order is made."
 msgstr "Checked twice: once when somebody types it into the basket, and again when the order is made."
 
@@ -3312,6 +3312,14 @@ msgstr "Cover preview"
 msgid "Create"
 msgstr "Create"
 
+#: src/features/shop/coupons-page.tsx:88
+msgid "Create a code to offer a discount during checkout."
+msgstr "Create a code to offer a discount during checkout."
+
+#: src/features/shop/products-page.tsx:139
+msgid "Create a product before you start taking orders."
+msgstr "Create a product before you start taking orders."
+
 #: src/features/taxonomy/tags-page.tsx:164
 msgid "Create a tag once and reuse it across content in this language."
 msgstr "Create a tag once and reuse it across content in this language."
@@ -3621,7 +3629,7 @@ msgstr "Design"
 #~ msgstr "Discount code"
 
 #: src/components/dashboard/dashboard-shell.tsx:98
-#: src/routes/dashboard.coupons.tsx:75
+#: src/features/shop/coupons-page.tsx:73
 msgid "Discount codes"
 msgstr "Discount codes"
 
@@ -4124,7 +4132,7 @@ msgstr "Font"
 #~ msgid "for sale"
 #~ msgstr "for sale"
 
-#: src/routes/dashboard.products.tsx:186
+#: src/features/shop/products-page.tsx:187
 msgid "For sale"
 msgstr "For sale"
 
@@ -4501,11 +4509,11 @@ msgstr "Home"
 #~ msgid "How many left"
 #~ msgstr "How many left"
 
-#: src/routes/dashboard.coupons.tsx:211
+#: src/features/shop/coupons-page.tsx:210
 msgid "How many percent"
 msgstr "How many percent"
 
-#: src/routes/dashboard.products.tsx:255
+#: src/features/shop/products-page.tsx:258
 msgid "How many there are"
 msgstr "How many there are"
 
@@ -4514,7 +4522,7 @@ msgstr "How many there are"
 #~ msgid "How many to keep"
 #~ msgstr "How many to keep"
 
-#: src/routes/dashboard.coupons.tsx:211
+#: src/features/shop/coupons-page.tsx:210
 msgid "How much"
 msgstr "How much"
 
@@ -4637,7 +4645,7 @@ msgstr "Import / export"
 #~ msgid "Import this archive?"
 #~ msgstr "Import this archive?"
 
-#: src/routes/dashboard.products.tsx:233
+#: src/features/shop/products-page.tsx:236
 msgid "In"
 msgstr "In"
 
@@ -4825,7 +4833,7 @@ msgstr "It cannot do something I need"
 #~ msgid "It had already finished"
 #~ msgstr "It had already finished"
 
-#: src/routes/dashboard.orders.tsx:216
+#: src/features/shop/orders-page.tsx:212
 msgid "It has gone"
 msgstr "It has gone"
 
@@ -5121,7 +5129,7 @@ msgstr "learning here"
 #~ msgid "Leaving the sandbox is the first increase. This is the one after it — Amazon treats it as a support request, and this opens one in the same words its console would."
 #~ msgstr "Leaving the sandbox is the first increase. This is the one after it — Amazon treats it as a support request, and this opens one in the same words its console would."
 
-#: src/routes/dashboard.products.tsx:168
+#: src/features/shop/products-page.tsx:169
 msgid "Left"
 msgstr "Left"
 
@@ -5349,10 +5357,10 @@ msgid "Make default"
 msgstr "Make default"
 
 #: src/features/people/roles-page.tsx:461
+#: src/features/shop/products-page.tsx:277
 #: src/routes/dashboard.boards.tsx:214
 #: src/routes/dashboard.flows.tsx:333
 #: src/routes/dashboard.mail.tsx:275
-#: src/routes/dashboard.products.tsx:274
 msgid "Make it"
 msgstr "Make it"
 
@@ -5404,7 +5412,7 @@ msgstr "Markdown imported"
 #~ msgid "Marked as a template on GitHub, under the account this server creates repositories in."
 #~ msgstr "Marked as a template on GitHub, under the account this server creates repositories in."
 
-#: src/routes/dashboard.orders.tsx:103
+#: src/features/shop/orders-page.tsx:102
 msgid "Marked as sent"
 msgstr "Marked as sent"
 
@@ -5418,7 +5426,7 @@ msgstr "Mavi CMS"
 #~ msgstr "Mavi CMS needs a database to store your site."
 
 #. placeholder {0}: row.at_most_uses
-#: src/routes/dashboard.coupons.tsx:107
+#: src/features/shop/coupons-page.tsx:108
 msgid "max {0} uses"
 msgstr "max {0} uses"
 
@@ -5673,7 +5681,8 @@ msgstr "New board"
 msgid "New category"
 msgstr "New category"
 
-#: src/routes/dashboard.coupons.tsx:81
+#: src/features/shop/coupons-page.tsx:77
+#: src/features/shop/coupons-page.tsx:91
 msgid "New code"
 msgstr "New code"
 
@@ -5698,7 +5707,8 @@ msgstr "New list"
 #~ msgid "New password"
 #~ msgstr "New password"
 
-#: src/routes/dashboard.products.tsx:132
+#: src/features/shop/products-page.tsx:128
+#: src/features/shop/products-page.tsx:142
 msgid "New product"
 msgstr "New product"
 
@@ -5833,7 +5843,7 @@ msgstr "No categories yet"
 msgid "No categories yet."
 msgstr "No categories yet."
 
-#: src/routes/dashboard.coupons.tsx:92
+#: src/features/shop/coupons-page.tsx:87
 msgid "No codes yet."
 msgstr "No codes yet."
 
@@ -6078,7 +6088,7 @@ msgstr "Not chosen"
 msgid "Not everything"
 msgstr "Not everything"
 
-#: src/routes/dashboard.products.tsx:186
+#: src/features/shop/products-page.tsx:187
 msgid "Not for sale"
 msgstr "Not for sale"
 
@@ -6171,7 +6181,7 @@ msgstr "Nothing else about your account changed. You can sign in the way you alw
 #~ msgid "Nothing else. Accounts, credentials, backups, how the site is built and sending a mailing are deliberately not here — nor is deleting a post or a file. Those stay things a person does in this panel."
 #~ msgstr "Nothing else. Accounts, credentials, backups, how the site is built and sending a mailing are deliberately not here — nor is deleting a post or a file. Those stay things a person does in this panel."
 
-#: src/routes/dashboard.products.tsx:143
+#: src/features/shop/products-page.tsx:138
 msgid "Nothing for sale yet."
 msgstr "Nothing for sale yet."
 
@@ -6325,7 +6335,7 @@ msgstr "Nothing measured yet. Numbers appear once real visitors reach the publis
 #~ msgid "Nothing sent yet"
 #~ msgstr "Nothing sent yet"
 
-#: src/routes/dashboard.orders.tsx:150
+#: src/features/shop/orders-page.tsx:145
 msgid "Nothing sold yet."
 msgstr "Nothing sold yet."
 
@@ -6793,14 +6803,18 @@ msgstr "Order #{0}"
 #~ msgstr "Order received"
 
 #: src/components/dashboard/dashboard-shell.tsx:97
+#: src/features/shop/orders-page.tsx:136
 #: src/routes/dashboard.index.tsx:106
-#: src/routes/dashboard.orders.tsx:137
 msgid "Orders"
 msgstr "Orders"
 
 #: src/routes/dashboard.index.tsx:108
 msgid "orders placed"
 msgstr "orders placed"
+
+#: src/features/shop/orders-page.tsx:146
+msgid "Orders will appear here after a customer completes checkout."
+msgstr "Orders will appear here after a customer completes checkout."
 
 #: src/components/dashboard/dashboard-shell.tsx:88
 msgid "Organize"
@@ -6882,7 +6896,7 @@ msgstr "Pages read"
 #~ msgid "Pages, worst first"
 #~ msgstr "Pages, worst first"
 
-#: src/routes/dashboard.orders.tsx:47
+#: src/features/shop/orders-page.tsx:46
 #: src/shop/app.tsx:272
 msgid "Paid"
 msgstr "Paid"
@@ -7188,7 +7202,7 @@ msgid "product"
 msgstr "product"
 
 #: src/components/dashboard/dashboard-shell.tsx:96
-#: src/routes/dashboard.products.tsx:126
+#: src/features/shop/products-page.tsx:124
 msgid "Products"
 msgstr "Products"
 
@@ -7420,16 +7434,16 @@ msgstr "Refresh"
 #~ msgid "Refund"
 #~ msgstr "Refund"
 
-#: src/routes/dashboard.orders.tsx:200
+#: src/features/shop/orders-page.tsx:196
 msgid "Refund it"
 msgstr "Refund it"
 
-#: src/routes/dashboard.orders.tsx:50
+#: src/features/shop/orders-page.tsx:49
 #: src/shop/app.tsx:275
 msgid "Refunded"
 msgstr "Refunded"
 
-#: src/routes/dashboard.orders.tsx:86
+#: src/features/shop/orders-page.tsx:85
 msgid "Refunded. What the provider does with it is theirs."
 msgstr "Refunded. What the provider does with it is theirs."
 
@@ -7471,13 +7485,13 @@ msgstr "Regular expression"
 #: src/features/forms/forms-page.tsx:466
 #: src/features/people/people-page.tsx:248
 #: src/features/people/people-page.tsx:379
+#: src/features/shop/coupons-page.tsx:122
 #: src/features/taxonomy/tags-page.tsx:243
 #: src/routes/dashboard.boards_.$boardId.tsx:156
 #: src/routes/dashboard.boards.tsx:141
 #: src/routes/dashboard.boards.tsx:188
 #: src/routes/dashboard.boards.tsx:234
 #: src/routes/dashboard.content-types.tsx:106
-#: src/routes/dashboard.coupons.tsx:121
 #: src/routes/dashboard.courses.$courseId.tsx:140
 #: src/routes/dashboard.courses.$courseId.tsx:165
 #: src/routes/dashboard.flows.tsx:180
@@ -7547,7 +7561,7 @@ msgstr "Remove this tag?"
 #~ msgid "removed"
 #~ msgstr "removed"
 
-#: src/routes/dashboard.coupons.tsx:47
+#: src/features/shop/coupons-page.tsx:46
 msgid "Removed"
 msgstr "Removed"
 
@@ -7759,9 +7773,9 @@ msgstr "Samples"
 #: src/components/editor/mavi-editor.tsx:681
 #: src/features/forms/forms-page.tsx:310
 #: src/features/settings/settings-page.tsx:82
+#: src/features/shop/coupons-page.tsx:247
 #: src/features/taxonomy/categories-page.tsx:281
 #: src/features/taxonomy/tags-page.tsx:181
-#: src/routes/dashboard.coupons.tsx:248
 #: src/routes/dashboard.design.tsx:210
 #: src/routes/dashboard.design.tsx:252
 #: src/routes/dashboard.letters.tsx:208
@@ -7808,7 +7822,7 @@ msgstr "Save it"
 #: src/components/editor/status-bar.tsx:116
 #: src/features/forms/forms-page.tsx:106
 #: src/features/settings/settings-page.tsx:47
-#: src/routes/dashboard.coupons.tsx:164
+#: src/features/shop/coupons-page.tsx:165
 #: src/routes/dashboard.letters.tsx:80
 #: src/routes/dashboard.plugins.tsx:81
 msgid "Saved"
@@ -7844,7 +7858,7 @@ msgstr "Saving…"
 #~ msgid "Say how much"
 #~ msgstr "Say how much"
 
-#: src/routes/dashboard.orders.tsx:56
+#: src/features/shop/orders-page.tsx:55
 msgid "Say the money for this order has arrived? The record will say you said so."
 msgstr "Say the money for this order has arrived? The record will say you said so."
 
@@ -8083,7 +8097,7 @@ msgstr "Send the link"
 #~ msgid "sent"
 #~ msgstr "sent"
 
-#: src/routes/dashboard.orders.tsx:48
+#: src/features/shop/orders-page.tsx:47
 #: src/shop/app.tsx:273
 msgid "Sent"
 msgstr "Sent"
@@ -9061,7 +9075,7 @@ msgstr "That request did not come from this site. Reload the page and try again.
 #~ msgid "The address it answers on"
 #~ msgstr "The address it answers on"
 
-#: src/routes/dashboard.products.tsx:203
+#: src/features/shop/products-page.tsx:206
 msgid "The address it answers on is made from the name and never changes, because a front end will be asking for it."
 msgstr "The address it answers on is made from the name and never changes, because a front end will be asking for it."
 
@@ -9119,7 +9133,7 @@ msgstr "The choices, separated by commas"
 #~ msgid "The clock"
 #~ msgstr "The clock"
 
-#: src/routes/dashboard.coupons.tsx:183
+#: src/features/shop/coupons-page.tsx:182
 msgid "The code"
 msgstr "The code"
 
@@ -9250,7 +9264,7 @@ msgstr "The lists this site writes to, and messages sent to them."
 #~ msgid "The main one"
 #~ msgstr "The main one"
 
-#: src/routes/dashboard.orders.tsx:189
+#: src/features/shop/orders-page.tsx:185
 msgid "The money arrived"
 msgstr "The money arrived"
 
@@ -9712,7 +9726,7 @@ msgstr "Throw them away"
 msgid "Tick it"
 msgstr "Tick it"
 
-#: src/routes/dashboard.coupons.tsx:222
+#: src/features/shop/coupons-page.tsx:221
 msgid "Times in total"
 msgstr "Times in total"
 
@@ -9832,7 +9846,7 @@ msgstr "Turn it on"
 #~ msgid "Type"
 #~ msgstr "Type"
 
-#: src/routes/dashboard.coupons.tsx:177
+#: src/features/shop/coupons-page.tsx:177
 msgid "Typed without case: launch2026 and LAUNCH2026 are one code."
 msgstr "Typed without case: launch2026 and LAUNCH2026 are one code."
 
@@ -9882,8 +9896,8 @@ msgstr "Untick"
 
 #. placeholder {0}: new Date(key.expires_at).toLocaleString()
 #. placeholder {0}: new Date(row.expires_at).toLocaleDateString()
+#: src/features/shop/coupons-page.tsx:113
 #: src/routes/dashboard.api.tsx:142
-#: src/routes/dashboard.coupons.tsx:112
 msgid "until {0}"
 msgstr "until {0}"
 
@@ -10099,7 +10113,7 @@ msgstr "Visitors"
 #~ msgid "waiting for DNS"
 #~ msgstr "waiting for DNS"
 
-#: src/routes/dashboard.orders.tsx:46
+#: src/features/shop/orders-page.tsx:45
 #: src/shop/app.tsx:271
 msgid "Waiting for payment"
 msgstr "Waiting for payment"
@@ -10308,7 +10322,7 @@ msgstr "What is published"
 msgid "What it asks for"
 msgstr "What it asks for"
 
-#: src/routes/dashboard.products.tsx:222
+#: src/features/shop/products-page.tsx:225
 msgid "What it costs"
 msgstr "What it costs"
 
@@ -10324,10 +10338,10 @@ msgstr "What it is about"
 #: src/components/dashboard/content-type-editor.tsx:146
 #: src/features/forms/forms-page.tsx:401
 #: src/features/settings/settings-page.tsx:64
+#: src/features/shop/products-page.tsx:212
 #: src/routes/dashboard.boards.tsx:162
 #: src/routes/dashboard.flows.tsx:215
 #: src/routes/dashboard.mail.tsx:258
-#: src/routes/dashboard.products.tsx:209
 #: src/routes/dashboard.teaching.start.tsx:76
 msgid "What it is called"
 msgstr "What it is called"
@@ -10369,7 +10383,7 @@ msgstr "What it says"
 #~ msgid "What it says nothing about"
 #~ msgstr "What it says nothing about"
 
-#: src/routes/dashboard.coupons.tsx:193
+#: src/features/shop/coupons-page.tsx:192
 msgid "What it takes off"
 msgstr "What it takes off"
 
@@ -10514,7 +10528,7 @@ msgstr "What this site plugs into. Anything not here is not something it can be 
 msgid "What this site publishes"
 msgstr "What this site publishes"
 
-#: src/routes/dashboard.products.tsx:128
+#: src/features/shop/products-page.tsx:125
 msgid "What this site sells. Stock is held while somebody pays and let go if they do not, so two people cannot buy the last one."
 msgstr "What this site sells. Stock is held while somebody pays and let go if they do not, so two people cannot buy the last one."
 
@@ -10906,7 +10920,7 @@ msgstr "Working on it"
 #~ msgid "Working through"
 #~ msgstr "Working through"
 
-#: src/routes/dashboard.coupons.tsx:232
+#: src/features/shop/coupons-page.tsx:231
 msgid "Works until"
 msgstr "Works until"
 

@@ -94,7 +94,7 @@ exposes process-local HTTP and worker counters in Prometheus text format.
 | `mavi-audit` | immutable site-scoped mutation receipts and cursor-filtered audit reads |
 | `mavi-trash` | shared trash listing, restore, permanent deletion and media cleanup policy |
 | `mavi-design` | site-owned source files, immutable preview builds, publish/rollback and public asset metadata |
-| `mavi-forms` | validated site form declarations, public submissions and cursor-based inbox management |
+| `mavi-forms` | validated site form declarations, public submissions, cursor-based inbox management and versioned bounded export |
 | `mavi-mail` | strict templates, subscriber lists, unsubscribe tokens and a provider-neutral outbox with sealed security messages |
 | `mavi-shop` | site-scoped products, money, stock holds, coupons, checkout and order state transitions |
 | `mavi-courses` | course authoring, ordered modules/lessons, isolated student sessions, enrollment, progress and protected lesson media |
@@ -143,7 +143,11 @@ Forms use the same rule for both form declarations and submission inboxes.
 Each form's `kept_days` is enforced by the shared site-scoped worker through
 an idempotent daily `forms.retention` job; expired answers are redacted behind
 a submission tombstone and the retention count is recorded as a system audit
-receipt in the same transaction.
+receipt in the same transaction. Authenticated form managers can export active
+submissions through `/api/v1/forms/{id}/submissions/export`; the response is a
+bounded `mavi.forms.submissions` version 1 JSON envelope with an opaque cursor,
+the form declaration and an auditable read. Deleted or retention-redacted rows
+never appear in this export.
 Site settings store an optional normalized canonical HTTP(S) URL; query strings,
 fragments and userinfo are refused, and PATCH can explicitly set or clear the
 value. Public content resolution first tries the requested language, then its

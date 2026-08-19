@@ -131,7 +131,8 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Submission inbox uses `after`/`limit` cursors, unread filtering, mark-read and audited deletion.
   - [x] Forms/submissions use composite keys, RLS, Cedar grants and mutation audit receipts.
   - [x] Per-form `kept_days` is enforced by an idempotent site-scoped `forms.retention` job; expired answers are redacted behind a tombstone and the system audit receipt commits atomically, with worker and cross-site tests.
-  - [ ] Export format and spam/rate-limit controls.
+  - [x] Versioned `mavi.forms.submissions` JSON export returns only active rows through a bounded opaque cursor, includes the form declaration, and records an audit receipt in the same transaction.
+  - [ ] Spam/rate-limit controls.
 - [-] Mail templates, delivery queue, retries and provider adapters.
   - [x] Strict site-scoped templates render bounded `{{variable}}` placeholders and expose preview without sending.
   - [x] Mailing lists/readers use normalized addresses, hashed unsubscribe tokens and explicit standing states.
@@ -214,7 +215,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Audit receipt PostgreSQL isolation/cursor tests and audit/trash HTTP acceptance tests.
   - [x] Trash restore/permanent-delete PostgreSQL tests, including media cleanup receipts.
   - [x] Design source/build PostgreSQL isolation, immutable artifact, publish/rollback and HTTP serving tests.
-  - [x] Forms declaration/submission PostgreSQL RLS isolation and HTTP validation/cursor/permission tests.
+  - [x] Forms declaration/submission/export PostgreSQL RLS isolation and HTTP validation/cursor/permission tests.
   - [x] Mail template/list/outbox PostgreSQL RLS state-machine tests and HTTP contract coverage.
   - [x] Shop catalog/checkout/stock/order PostgreSQL isolation tests and HTTP permission/contract coverage.
   - [x] Courses authoring/order/student-session/enrollment/progress/media PostgreSQL isolation tests and HTTP permission/contract coverage.

@@ -25,7 +25,7 @@ export function SettingsPage() {
   const [busy, setBusy] = React.useState(false)
 
   const load = React.useCallback(() => {
-    api("GET /api/settings")
+    api("settings.read")
       .then((found) => {
         setSite(found)
         setName(found.name)
@@ -42,7 +42,7 @@ export function SettingsPage() {
     setBusy(true)
 
     try {
-      await api("PATCH /api/settings", { body: { name: name.trim() } })
+      await api("settings.change", { body: { name: name.trim() } })
       load()
       toast.success(t`Saved`)
     } catch (why) {
@@ -104,7 +104,7 @@ function SecondFactor() {
   const [busy, setBusy] = React.useState(false)
 
   const load = React.useCallback(() => {
-    api("GET /api/second")
+    api("second.standing")
       .then(setState)
       .catch((why: unknown) => {
         toast.error(said(why))
@@ -118,7 +118,7 @@ function SecondFactor() {
     setBusy(true)
 
     try {
-      setSecret(await api("POST /api/second"))
+      setSecret(await api("second.set-up"))
     } catch (why) {
       toast.error(said(why))
     } finally {
@@ -130,7 +130,7 @@ function SecondFactor() {
     setBusy(true)
 
     try {
-      await api("POST /api/second/confirm", {
+      await api("second.confirm", {
         body: { code: code.trim() },
       })
       setSecret(null)
@@ -148,7 +148,7 @@ function SecondFactor() {
     setBusy(true)
 
     try {
-      await api("DELETE /api/second", { body: { code: code.trim() } })
+      await api("second.take-off", { body: { code: code.trim() } })
       setCode("")
       load()
     } catch (why) {
@@ -249,7 +249,7 @@ function Working() {
   } | null>(null)
 
   React.useEffect(() => {
-    api("GET /api/health")
+    api("health.read")
       .then(setHealth)
       .catch((why: unknown) => {
         toast.error(said(why))

@@ -17,7 +17,7 @@ export function PerformancePage() {
   React.useEffect(() => {
     let current = true
 
-    api("GET /api/analytics/felt")
+    api("analytics.felt")
       .then((found) => current && setFelts(found))
       .catch(() => current && setFelts([]))
 

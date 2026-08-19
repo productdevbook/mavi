@@ -15,7 +15,7 @@ export function useBoards() {
   React.useEffect(() => {
     let alive = true
 
-    api("GET /api/boards")
+    api("boards.list")
       .then((all) => alive && setBoards(all))
       .catch(() => alive && setBoards([]))
 

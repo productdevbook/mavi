@@ -42,7 +42,7 @@ export function MediaPage() {
   const chooser = React.useRef<HTMLInputElement>(null)
 
   const load = React.useCallback(() => {
-    every("GET /api/files")
+    every("files.list")
       .then(setMedia)
       .catch((why: unknown) => {
         toast.error(said(why))
@@ -104,7 +104,7 @@ export function MediaPage() {
     if (!going) return
 
     try {
-      await api("DELETE /api/files/{id}", { path: { id: going.id } })
+      await api("files.remove", { path: { id: going.id } })
       setMedia((held) => held?.filter((one) => one.id !== going.id) ?? null)
     } catch (why) {
       toast.error(said(why))

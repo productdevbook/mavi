@@ -53,7 +53,7 @@ export function CategoriesPage() {
 
   const load = React.useCallback(() => {
     if (!locale) return
-    every("GET /api/terms", { query: { sort: "category", language: locale } })
+    every("terms.list", { query: { sort: "category", language: locale } })
       .then((terms) =>
         setCategories(terms.filter((t) => t.sort === "category"))
       )
@@ -74,7 +74,7 @@ export function CategoriesPage() {
     const value = name.trim()
     if (!value) return
     try {
-      await api("POST /api/terms", {
+      await api("terms.make", {
         body: {
           sort: "category",
           language: locale,
@@ -101,7 +101,7 @@ export function CategoriesPage() {
     const value = editName.trim()
     if (!value) return
     try {
-      await api("PATCH /api/terms/{id}", {
+      await api("terms.change", {
         path: { id: editing.id },
         body: {
           name: value,
@@ -118,7 +118,7 @@ export function CategoriesPage() {
   const confirmDelete = async () => {
     if (!pendingDelete) return
     try {
-      await api("DELETE /api/terms/{id}", { path: { id: pendingDelete.id } })
+      await api("terms.remove", { path: { id: pendingDelete.id } })
       load()
     } catch (why) {
       toast.error(said(why))

@@ -34,7 +34,7 @@ function ContentTypesRoute() {
 
   const remove = async (kind: ContentType) => {
     try {
-      await api("DELETE /api/kinds/{kind}", { path: { kind: kind.kind } })
+      await api("kinds.stop-saying", { path: { kind: kind.kind } })
       reload()
     } catch (why) {
       toast.error(said(why))

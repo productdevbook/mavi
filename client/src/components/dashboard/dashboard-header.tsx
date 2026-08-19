@@ -26,7 +26,7 @@ export function DashboardHeader({
   const navigate = useNavigate()
 
   const signOut = React.useCallback(() => {
-    void api("DELETE /api/sessions").finally(() => navigate({ to: "/login" }))
+    void api("sessions.end").finally(() => navigate({ to: "/login" }))
   }, [navigate])
 
   return (

@@ -54,7 +54,7 @@ export function TagsPage() {
   const load = React.useCallback(() => {
     if (!language) return
 
-    every("GET /api/terms", { query: { sort: "tag", language } })
+    every("terms.list", { query: { sort: "tag", language } })
       .then((terms) => setTags(terms.filter((t) => t.sort === "tag")))
       .catch((why: unknown) => {
         toast.error(said(why))
@@ -70,7 +70,7 @@ export function TagsPage() {
     if (!wanted) return
 
     try {
-      await api("POST /api/terms", {
+      await api("terms.make", {
         body: {
           sort: "tag",
           language,
@@ -89,7 +89,7 @@ export function TagsPage() {
     if (!editing || !editName.trim()) return
 
     try {
-      await api("PATCH /api/terms/{id}", {
+      await api("terms.change", {
         path: { id: editing.id },
         body: { name: editName.trim() },
       })
@@ -104,7 +104,7 @@ export function TagsPage() {
     if (!going) return
 
     try {
-      await api("DELETE /api/terms/{id}", { path: { id: going.id } })
+      await api("terms.remove", { path: { id: going.id } })
       load()
     } catch (why) {
       toast.error(said(why))

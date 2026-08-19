@@ -65,7 +65,7 @@ export function PeoplePage() {
   const [next, setNext] = React.useState("")
 
   const load = React.useCallback(() => {
-    every("GET /api/people")
+    every("people.list")
       .then(setPeople)
       .catch((why: unknown) => {
         toast.error(said(why))
@@ -74,7 +74,7 @@ export function PeoplePage() {
 
     // Only an account that may read roles gets any; a narrower one simply sees
     // no role controls.
-    api("GET /api/roles")
+    api("roles.list")
       .then((r) => setRoles(r ?? []))
       .catch((why: unknown) => {
         toast.error(said(why))
@@ -88,7 +88,7 @@ export function PeoplePage() {
     setBusy(true)
 
     try {
-      await api("POST /api/people", {
+      await api("people.invite", {
         body: { email, name: name.trim() || email, role },
       })
       setInviting(false)
@@ -106,7 +106,7 @@ export function PeoplePage() {
 
   const changeRole = async (person: Person, roleId: string) => {
     try {
-      await api("PATCH /api/people/{id}", {
+      await api("people.move", {
         path: { id: person.id },
         body: { role: roleId },
       })
@@ -119,7 +119,7 @@ export function PeoplePage() {
 
   const suspend = async (person: Person) => {
     try {
-      await api("PATCH /api/people/{id}", {
+      await api("people.move", {
         path: { id: person.id },
         body: { role: person.role },
       })
@@ -133,7 +133,7 @@ export function PeoplePage() {
     if (!removing) return
 
     try {
-      await api("DELETE /api/people/{id}", { path: { id: removing.id } })
+      await api("people.remove", { path: { id: removing.id } })
       load()
     } catch (why) {
       toast.error(said(why))
@@ -146,7 +146,7 @@ export function PeoplePage() {
     setBusy(true)
 
     try {
-      await api("POST /api/passwords", {
+      await api("passwords.choose", {
         body: { token: current, password: next },
       })
       setCurrent("")
@@ -406,7 +406,7 @@ function AboutSomebody() {
     setBusy(true)
 
     try {
-      const answer = await api("POST /api/about", {
+      const answer = await api("about.gather", {
         body: { email: email.trim() },
       })
 
@@ -430,7 +430,7 @@ function AboutSomebody() {
     setBusy(true)
 
     try {
-      await api("POST /api/about/forget", { body: { email: email.trim() } })
+      await api("about.forget", { body: { email: email.trim() } })
       setFound(null)
       toast.success(t`Forgotten.`)
     } catch (why) {

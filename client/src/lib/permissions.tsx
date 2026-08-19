@@ -53,7 +53,7 @@ export function PermissionProvider({
   const [ready, setReady] = React.useState(false)
 
   const reload = React.useCallback(() => {
-    api("GET /api/roles")
+    api("roles.list")
       .then((roles) => {
         const allGrants = roles.flatMap((r) => r.grants)
         setGrants(allGrants)

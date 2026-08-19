@@ -21,7 +21,7 @@ export function PublishPage() {
   const [showing, setShowing] = React.useState<string | null>(null)
 
   const load = React.useCallback(() => {
-    every("GET /api/design/changes")
+    every("changes.list")
       .then(setChanges)
       .catch((why: unknown) => {
         toast.error(said(why))

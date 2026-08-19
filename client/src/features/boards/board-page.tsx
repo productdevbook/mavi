@@ -47,8 +47,8 @@ export function BoardPage({
 
   const load = React.useCallback(() => {
     Promise.all([
-      api("GET /api/boards/{id}", { path: { id: boardId } }),
-      every("GET /api/boards/{id}/cards", { path: { id: boardId } }),
+      api("boards.read", { path: { id: boardId } }),
+      every("cards.list", { path: { id: boardId } }),
     ])
       .then(([b, c]) => {
         setBoard(b)
@@ -66,7 +66,7 @@ export function BoardPage({
     setBusy(true)
 
     try {
-      await api("POST /api/boards/{id}/cards", {
+      await api("cards.make", {
         path: { id: boardId },
         body: {
           stage: stageId,
@@ -87,7 +87,7 @@ export function BoardPage({
 
   const move = async (card: OneCard, stageId: string) => {
     try {
-      await api("PUT /api/cards/{id}/place", {
+      await api("cards.move", {
         path: { id: card.id },
         body: { stage: stageId },
       })
@@ -99,7 +99,7 @@ export function BoardPage({
 
   const remove = async (card: OneCard) => {
     try {
-      await api("DELETE /api/cards/{id}", { path: { id: card.id } })
+      await api("cards.remove", { path: { id: card.id } })
       load()
     } catch (why) {
       toast.error(said(why))

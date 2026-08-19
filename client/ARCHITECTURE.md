@@ -14,8 +14,10 @@ scope, authorization, validation, and audit.
 - `src/lib/dashboard-navigation.ts` is the canonical panel information
   architecture. Each destination declares its capability next to its URL;
   the renderer only draws destinations the current grants allow.
-- `src/lib/v1.ts` is the only HTTP plumbing. Shapes come from `@api`, which is
-  generated from the server contract and must not be duplicated in a screen.
+- `src/lib/v1.ts` is the only HTTP plumbing. Screens name generated operations
+  from `@api`; they never handwrite methods or paths. Shapes come from the
+  server contract and must not be duplicated in a screen. Cursor helpers are
+  only for operations whose generated answer is a page.
 - `src/components/editor/` and `src/components/mail/` contain shared editor
   primitives, while `src/features/<domain>/` contains complete domain
   screens. The current feature boundaries are `people`, `forms`, `settings`,

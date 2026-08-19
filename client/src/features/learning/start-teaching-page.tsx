@@ -41,7 +41,7 @@ export function StartTeachingPage() {
     setBusy(true)
 
     try {
-      const course = await api("POST /api/courses", {
+      const course = await api("courses.make", {
         body: {
           slug: slug.trim() || slugged(title),
           title: title.trim(),

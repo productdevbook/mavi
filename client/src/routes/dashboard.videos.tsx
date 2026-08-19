@@ -22,7 +22,7 @@ function VideosRoute() {
   const chooser = React.useRef<HTMLInputElement>(null)
 
   const load = React.useCallback(() => {
-    every("GET /api/files")
+    every("files.list")
       .then((files) => setVideos(files.filter((f) => f.kind === "video" || f.mime.startsWith("video/"))))
       .catch((why: unknown) => {
         toast.error(said(why))
@@ -71,7 +71,7 @@ function VideosRoute() {
 
   const remove = async (video: VideoFile) => {
     try {
-      await api("DELETE /api/files/{id}", { path: { id: video.id } })
+      await api("files.remove", { path: { id: video.id } })
       load()
     } catch (why) {
       toast.error(said(why))

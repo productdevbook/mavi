@@ -139,7 +139,7 @@ export function RolesPage() {
   const [pending, setPending] = React.useState<string | null>(null)
 
   const load = React.useCallback(() => {
-    api("GET /api/roles")
+    api("roles.list")
       .then(setRoles)
       .catch((why: unknown) => {
         toast.error(said(why))
@@ -209,7 +209,7 @@ export function RolesPage() {
     )
 
     try {
-      await api("PATCH /api/roles/{id}", {
+      await api("roles.change", {
         path: { id: role.id },
         body: { grants },
       })
@@ -226,7 +226,7 @@ export function RolesPage() {
     setBusy(true)
 
     try {
-      await api("POST /api/roles", {
+      await api("roles.make", {
         body: { name: label || name, grants: [] },
       })
       toast.success(t`Role made`)
@@ -251,7 +251,7 @@ export function RolesPage() {
     }
 
     try {
-      await api("DELETE /api/roles/{id}", { path: { id: role.id } })
+      await api("roles.remove", { path: { id: role.id } })
       toast.success(t`Gone`)
       load()
     } catch (why) {

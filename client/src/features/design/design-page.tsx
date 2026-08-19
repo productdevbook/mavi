@@ -21,7 +21,7 @@ export function DesignPage() {
   const [publishing, setPublishing] = React.useState(false)
 
   const load = React.useCallback(() => {
-    every("GET /api/design/changes")
+    every("changes.list")
       .then(setChanges)
       .catch((why: unknown) => toast.error(said(why)))
   }, [])
@@ -34,7 +34,7 @@ export function DesignPage() {
     if (!latest) return
     setPreviewing(true)
 
-    api("POST /api/design/changes/{id}/builds", { path: { id: latest.id } })
+    api("changes.build", { path: { id: latest.id } })
       .then(() => {
         toast.success(t`Building preview.`)
         load()
@@ -47,7 +47,7 @@ export function DesignPage() {
     if (!latest) return
     setPublishing(true)
 
-    api("POST /api/design/changes/{id}/published", { path: { id: latest.id } })
+    api("changes.publish", { path: { id: latest.id } })
       .then(() => {
         toast.success(t`Publishing.`)
         load()
@@ -125,7 +125,7 @@ function Files({
   const [path, setPath] = React.useState("src/")
 
   const load = React.useCallback(() => {
-    api("GET /api/design/files")
+    api("design.files")
       .then(setFiles)
       .catch((why: unknown) => {
         toast.error(said(why))
@@ -140,7 +140,7 @@ function Files({
     setBody("")
 
     try {
-      const read = await api("GET /api/design/files/{path}", {
+      const read = await api("design.read", {
         path: { path: at },
       })
 
@@ -154,7 +154,7 @@ function Files({
     setBusy(true)
 
     try {
-      await api("PUT /api/design/files/{path}", {
+      await api("design.write", {
         path: { path: at },
         body: { change: changeId ?? "", contents: body },
       })

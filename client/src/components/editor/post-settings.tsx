@@ -86,11 +86,11 @@ export function PostSettings({
 
   React.useEffect(() => {
     if (!locale) return
-    every("GET /api/terms", { query: { sort: "category", language: locale } })
+    every("terms.list", { query: { sort: "category", language: locale } })
       .then((terms) => setCategories(terms.filter((t) => t.sort === "category")))
       .catch(() => setCategories([]))
 
-    every("GET /api/terms", { query: { sort: "tag", language: locale } })
+    every("terms.list", { query: { sort: "tag", language: locale } })
       .then((terms) => setTags(terms.filter((t) => t.sort === "tag")))
       .catch(() => setTags([]))
   }, [locale])
@@ -99,7 +99,7 @@ export function PostSettings({
     const name = newCategory.trim()
     if (!name) return
     try {
-      const created = await api("POST /api/terms", {
+      const created = await api("terms.make", {
         body: {
           sort: "category",
           language: locale,
@@ -126,7 +126,7 @@ export function PostSettings({
     setTagDraft("")
     onChange({ tags: [...meta.tags, value] })
     try {
-      const created = await api("POST /api/terms", {
+      const created = await api("terms.make", {
         body: {
           sort: "tag",
           language: locale,

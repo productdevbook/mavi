@@ -50,7 +50,7 @@ export function useContentTypes() {
   React.useEffect(() => {
     let cancelled = false
 
-    api("GET /api/kinds")
+    api("kinds.list")
       .then((all) => {
         if (!cancelled) setLoaded(all)
       })

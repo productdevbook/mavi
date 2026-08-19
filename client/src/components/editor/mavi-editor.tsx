@@ -224,7 +224,7 @@ export function MaviEditor({
   React.useEffect(() => {
     if (!postId || !editor) return
     let cancelled = false
-    api("GET /api/writings/{id}", { path: { id: postId } })
+    api("writings.read", { path: { id: postId } })
       .then((post) => {
         if (cancelled) return
 
@@ -275,12 +275,12 @@ export function MaviEditor({
 
       try {
         const id = currentPostId
-          ? (await api("PATCH /api/writings/{id}", {
+          ? (await api("writings.change", {
               path: { id: currentPostId },
               body: written,
             })).id
           : (
-              await api("POST /api/writings", {
+              await api("writings.write", {
                 body: {
                   ...written,
                   slug: written.slug || slugify(nextMeta.title),
@@ -291,7 +291,7 @@ export function MaviEditor({
             ).id
 
         if (nextMeta.categoryIds.length > 0) {
-          await api("PUT /api/writings/{id}/terms", {
+          await api("writings.file-under", {
             path: { id },
             body: { terms: nextMeta.categoryIds },
           })

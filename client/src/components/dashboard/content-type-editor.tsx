@@ -64,7 +64,7 @@ export function ContentTypeEditor({
 
     try {
       const kindName = kind ? kind.kind : keyed(name)
-      const saved = await api("PUT /api/kinds/{kind}", {
+      const saved = await api("kinds.declare", {
         path: { kind: kindName },
         body: { name, fields },
       })

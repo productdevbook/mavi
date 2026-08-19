@@ -63,7 +63,7 @@ export function ProductsPage() {
   const [busy, setBusy] = React.useState(false)
 
   const load = React.useCallback(() => {
-    every("GET /api/products")
+    every("products.list")
       .then(setProducts)
       .catch((why: unknown) => {
         toast.error(said(why))
@@ -84,7 +84,7 @@ export function ProductsPage() {
     setBusy(true)
 
     try {
-      await api("POST /api/products", {
+      await api("products.make", {
         body: {
           slug: slugged(name),
           name: name.trim(),
@@ -108,7 +108,7 @@ export function ProductsPage() {
 
   const change = async (product: Product, changes: ProductChanges) => {
     try {
-      await api("PATCH /api/products/{id}", {
+      await api("products.change", {
         path: { id: product.id },
         body: changes,
       })

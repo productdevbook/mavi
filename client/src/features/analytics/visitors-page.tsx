@@ -25,7 +25,7 @@ export function VisitorsPage() {
   React.useEffect(() => {
     let current = true
 
-    api("GET /api/analytics")
+    api("analytics.read")
       .then((found) => current && setReads(found))
       .catch(() => current && setReads([]))
 

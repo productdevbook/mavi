@@ -42,7 +42,7 @@ function SiteHome() {
 
   React.useEffect(() => {
     let current = true
-    api("GET /api/overview")
+    api("site.overview")
       .then((found) => current && setStats(found))
       .catch(() => current && setStats("failed"))
     return () => {

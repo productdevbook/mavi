@@ -25,7 +25,7 @@ export function CoursePage({ courseId }: { courseId: string }) {
   const [busy, setBusy] = React.useState(false)
 
   const load = React.useCallback(() => {
-    api("GET /api/courses/{id}", { path: { id: courseId } })
+    api("courses.read", { path: { id: courseId } })
       .then(setCourse)
       .catch((why: unknown) => {
         toast.error(said(why))
@@ -37,7 +37,7 @@ export function CoursePage({ courseId }: { courseId: string }) {
 
   const open = async (state: "draft" | "open" | "closed") => {
     try {
-      await api("PATCH /api/courses/{id}", {
+      await api("courses.change", {
         path: { id: courseId },
         body: { state },
       })
@@ -51,7 +51,7 @@ export function CoursePage({ courseId }: { courseId: string }) {
     setBusy(true)
 
     try {
-      await api("POST /api/courses/{id}/modules", {
+      await api("modules.make", {
         path: { id: courseId },
         body: { title: moduleTitle.trim() },
       })
@@ -70,7 +70,7 @@ export function CoursePage({ courseId }: { courseId: string }) {
     if (!title) return
 
     try {
-      await api("POST /api/modules/{id}/lessons", {
+      await api("lessons.make", {
         path: { id: moduleId },
         body: { title, body: "" },
       })
@@ -83,7 +83,7 @@ export function CoursePage({ courseId }: { courseId: string }) {
 
   const removeModule = async (id: string) => {
     try {
-      await api("DELETE /api/modules/{id}", { path: { id } })
+      await api("modules.remove", { path: { id } })
       load()
     } catch (why) {
       toast.error(said(why))
@@ -92,7 +92,7 @@ export function CoursePage({ courseId }: { courseId: string }) {
 
   const removeLesson = async (id: string) => {
     try {
-      await api("DELETE /api/lessons/{id}", { path: { id } })
+      await api("lessons.remove", { path: { id } })
       load()
     } catch (why) {
       toast.error(said(why))
@@ -224,7 +224,7 @@ function OnIt() {
   const [people, setPeople] = React.useState<Student[] | null>(null)
 
   React.useEffect(() => {
-    every("GET /api/students")
+    every("students.list")
       .then(setPeople)
       .catch((why: unknown) => {
         toast.error(said(why))

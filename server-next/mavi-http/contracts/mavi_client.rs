@@ -1723,6 +1723,11 @@ pub struct ReplaceCourseInstructor {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ReplacePersonRoles {
+    pub role_ids: Vec<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ReplaceRoleGrants {
     pub grants: Vec<Grant>,
 }
@@ -2164,6 +2169,7 @@ pub const OPERATIONS: &[OperationDefinition] = &[
     OperationDefinition { name: "people.list", method: "get", path: "/api/v1/people", request: Some("PeopleListFilter"), request_location: Some("query"), query: None, response: Some("PersonPage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("people"), action: Some("view") },
     OperationDefinition { name: "people.create", method: "post", path: "/api/v1/people", request: Some("CreatePerson"), request_location: Some("json"), query: None, response: Some("PersonRecord"), response_location: None, status: 201, authentication: "account_or_assistant", capability: Some("people"), action: Some("write") },
     OperationDefinition { name: "people.status.update", method: "patch", path: "/api/v1/people/{id}/status", request: Some("UpdatePersonStatus"), request_location: Some("json"), query: None, response: Some("PersonRecord"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("people"), action: Some("write") },
+    OperationDefinition { name: "people.roles.replace", method: "put", path: "/api/v1/people/{id}/roles", request: Some("ReplacePersonRoles"), request_location: Some("json"), query: None, response: Some("PersonRecord"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("people"), action: Some("write") },
     OperationDefinition { name: "roles.list", method: "get", path: "/api/v1/roles", request: Some("RoleListFilter"), request_location: Some("query"), query: None, response: Some("RolePage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("people"), action: Some("view") },
     OperationDefinition { name: "roles.create", method: "post", path: "/api/v1/roles", request: Some("CreateRole"), request_location: Some("json"), query: None, response: Some("Role"), response_location: None, status: 201, authentication: "account_or_assistant", capability: Some("people"), action: Some("write") },
     OperationDefinition { name: "roles.delete", method: "delete", path: "/api/v1/roles/{id}", request: None, request_location: None, query: None, response: Some("Empty"), response_location: None, status: 204, authentication: "account_or_assistant", capability: Some("people"), action: Some("delete") },

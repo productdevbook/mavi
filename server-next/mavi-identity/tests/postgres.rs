@@ -7,8 +7,8 @@ use mavi_core::{
 use mavi_identity::{
     ApiKeyListFilter, CreateApiKey, CreatePerson, CreateRole, EmailVerificationRedeemInput,
     EmailVerificationRequestInput, IdentityService, LoginInput, PasswordResetRedeemInput,
-    PasswordResetRequestInput, PeopleListFilter, PersonStatus, ReplaceRoleGrants, RoleListFilter,
-    SetupInput, UpdatePersonStatus,
+    PasswordResetRequestInput, PeopleListFilter, PersonStatus, ReplacePersonRoles,
+    ReplaceRoleGrants, RoleListFilter, SetupInput, UpdatePersonStatus,
 };
 use mavi_storage::Database;
 
@@ -146,6 +146,48 @@ async fn identity_people_and_roles_are_site_scoped_and_audited() {
     assert!(matches!(
         assigned_error,
         MaviError::Conflict { ref code } if code == mavi_identity::ROLE_ASSIGNED
+    ));
+
+    let replacement_role = service
+        .create_role(
+            &mut tx,
+            &owner_context,
+            &CreateRole {
+                name: "reviewer".to_owned(),
+                grants: vec![Grant::new(Capability::Content, Action::View)],
+            },
+        )
+        .await
+        .expect("replacement role");
+    let replaced_person = service
+        .replace_person_roles(
+            &mut tx,
+            &owner_context,
+            person.id,
+            &ReplacePersonRoles {
+                role_ids: vec![replacement_role.id, replacement_role.id],
+            },
+            Utc::now(),
+        )
+        .await
+        .expect("replace person roles");
+    assert_eq!(replaced_person.role_ids, vec![replacement_role.id]);
+
+    let self_role_error = service
+        .replace_person_roles(
+            &mut tx,
+            &owner_context,
+            owner.id,
+            &ReplacePersonRoles {
+                role_ids: vec![replacement_role.id],
+            },
+            Utc::now(),
+        )
+        .await
+        .expect_err("the current person's roles cannot be changed");
+    assert!(matches!(
+        self_role_error,
+        MaviError::Conflict { ref code } if code == "cannot_change_current_person_roles"
     ));
 
     let owner_role = roles

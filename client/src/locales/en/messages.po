@@ -1022,8 +1022,8 @@ msgid "A scheduled post needs a publish date"
 msgstr "A scheduled post needs a publish date"
 
 #: src/features/settings/settings-page.tsx:165
-msgid "A second factor"
-msgstr "A second factor"
+#~ msgid "A second factor"
+#~ msgstr "A second factor"
 
 #: src/components/ses-account.tsx:241
 #~ msgid "a second, at most"
@@ -1135,6 +1135,10 @@ msgstr "A token carries the grants of the key that made it. Keep it private: any
 #~ msgid "Account added"
 #~ msgstr "Account added"
 
+#: src/features/people/people-page.tsx:102
+msgid "Account created"
+msgstr "Account created"
+
 #: src/routes/dashboard.plugins_.video.tsx:252
 #~ msgid "Account id"
 #~ msgstr "Account id"
@@ -1143,9 +1147,17 @@ msgstr "A token carries the grants of the key that made it. Keep it private: any
 #~ msgid "Account or organisation"
 #~ msgstr "Account or organisation"
 
+#: src/features/people/people-page.tsx:155
+msgid "Account removed"
+msgstr "Account removed"
+
 #: src/routes/dashboard.usage.tsx:96
 #~ msgid "Accounts"
 #~ msgstr "Accounts"
+
+#: src/features/people/people-page.tsx:168
+msgid "Accounts that can sign in to this site and the roles that shape their access."
+msgstr "Accounts that can sign in to this site and the roles that shape their access."
 
 #. placeholder {0}: stats.kinds.length
 #: src/routes/dashboard.index.tsx:114
@@ -1297,7 +1309,7 @@ msgid "Add somebody"
 msgstr "Add somebody"
 
 #: src/features/people/people-page.tsx:171
-#: src/features/people/people-page.tsx:303
+#: src/features/people/people-page.tsx:273
 msgid "Add someone"
 msgstr "Add someone"
 
@@ -1318,8 +1330,8 @@ msgid "Add the first language your site's content can be written in."
 msgstr "Add the first language your site's content can be written in."
 
 #: src/features/settings/settings-page.tsx:201
-msgid "Add this to your authenticator, then type what it shows."
-msgstr "Add this to your authenticator, then type what it shows."
+#~ msgid "Add this to your authenticator, then type what it shows."
+#~ msgstr "Add this to your authenticator, then type what it shows."
 
 #: src/routes/dashboard.mail.tsx:592
 #~ msgid "Added here counts as confirmed — say so only if they asked to be on it."
@@ -1665,8 +1677,8 @@ msgstr "Another step"
 #~ msgstr "Answered"
 
 #: src/features/settings/settings-page.tsx:280
-msgid "Answering"
-msgstr "Answering"
+#~ msgid "Answering"
+#~ msgstr "Answering"
 
 #. placeholder {0}: draft.slug || "…"
 #: src/routes/dashboard.forms.tsx:288
@@ -1809,7 +1821,7 @@ msgstr "Archived"
 #~ msgid "Archiving stops the public site and active usage charges, but keeps its data and media stored. Storage costs $9/month until you restore or delete the site."
 #~ msgstr "Archiving stops the public site and active usage charges, but keeps its data and media stored. Storage costs $9/month until you restore or delete the site."
 
-#: src/features/people/roles-page.tsx:332
+#: src/features/people/roles-page.tsx:339
 msgid "Area"
 msgstr "Area"
 
@@ -2147,7 +2159,7 @@ msgstr "board"
 #: src/components/dashboard/dashboard-shell.tsx:104
 #: src/features/boards/board-page.tsx:120
 #: src/features/boards/boards-page.tsx:106
-#: src/features/people/roles-page.tsx:161
+#: src/features/people/roles-page.tsx:169
 msgid "Boards"
 msgstr "Boards"
 
@@ -2359,7 +2371,7 @@ msgstr "Campaign #{campaignId}"
 #~ msgstr "Campaigns"
 
 #. placeholder {0}: CAPABILITY_ORDER.length
-#: src/features/people/roles-page.tsx:306
+#: src/features/people/roles-page.tsx:313
 msgid "Can open {summary} of {0} areas."
 msgstr "Can open {summary} of {0} areas."
 
@@ -2385,9 +2397,9 @@ msgstr "Can open {summary} of {0} areas."
 #: src/features/mail/mail-page.tsx:276
 #: src/features/mail/mail-page.tsx:340
 #: src/features/media/media-page.tsx:192
-#: src/features/people/people-page.tsx:353
-#: src/features/people/people-page.tsx:377
-#: src/features/people/roles-page.tsx:454
+#: src/features/people/people-page.tsx:335
+#: src/features/people/people-page.tsx:365
+#: src/features/people/roles-page.tsx:448
 #: src/features/shop/coupons-page.tsx:250
 #: src/features/shop/products-page.tsx:270
 #: src/features/taxonomy/categories-page.tsx:289
@@ -2402,9 +2414,9 @@ msgstr "Cancel"
 msgid "Cancelled"
 msgstr "Cancelled"
 
-#: src/components/editor/post-settings.tsx:466
-#~ msgid "Canonical URL"
-#~ msgstr "Canonical URL"
+#: src/features/settings/settings-page.tsx:85
+msgid "Canonical URL"
+msgstr "Canonical URL"
 
 #: src/features/governance/trash-page.tsx:69
 msgid "card"
@@ -2435,7 +2447,7 @@ msgstr "Case sensitive"
 msgid "Categories"
 msgstr "Categories"
 
-#: src/features/people/roles-page.tsx:154
+#: src/features/people/roles-page.tsx:162
 msgid "Categories & tags"
 msgstr "Categories & tags"
 
@@ -2464,13 +2476,13 @@ msgid "Center the paragraph"
 msgstr "Center the paragraph"
 
 #. placeholder {0}: CAPABILITY_LABELS[capability]
-#: src/features/people/roles-page.tsx:397
+#: src/features/people/roles-page.tsx:404
 msgid "Change {0}"
 msgstr "Change {0}"
 
 #: src/features/people/people-page.tsx:293
-msgid "Change it"
-msgstr "Change it"
+#~ msgid "Change it"
+#~ msgstr "Change it"
 
 #: src/routes/dashboard.api.tsx:254
 #~ msgid "Change one."
@@ -2489,8 +2501,8 @@ msgstr "Changes made to this site will appear here."
 #~ msgstr "Changes things"
 
 #: src/features/people/people-page.tsx:264
-msgid "Changing it closes everything that is open, here and everywhere else you are signed in."
-msgstr "Changing it closes everything that is open, here and everywhere else you are signed in."
+#~ msgid "Changing it closes everything that is open, here and everywhere else you are signed in."
+#~ msgstr "Changing it closes everything that is open, here and everywhere else you are signed in."
 
 #: src/routes/dashboard.billing.tsx:89
 #~ msgid "Charge"
@@ -2560,6 +2572,10 @@ msgstr "Choose a JSON copy"
 #: src/features/auth/forgotten-page.tsx:75
 msgid "Choose a password"
 msgstr "Choose a password"
+
+#: src/features/people/people-page.tsx:320
+msgid "Choose a role"
+msgstr "Choose a role"
 
 #: src/routes/console.customers.tsx:243
 #: src/routes/console.themes.tsx:348
@@ -2772,7 +2788,7 @@ msgstr "Connecting with a token instead, from a terminal"
 #~ msgid "contains"
 #~ msgstr "contains"
 
-#: src/features/people/roles-page.tsx:153
+#: src/features/people/roles-page.tsx:161
 msgid "Content"
 msgstr "Content"
 
@@ -3432,6 +3448,10 @@ msgstr "Create a tag once and reuse it across content in this language."
 msgid "Create a trigger and steps to automate work on this site."
 msgstr "Create a trigger and steps to automate work on this site."
 
+#: src/features/people/people-page.tsx:347
+msgid "Create account"
+msgstr "Create account"
+
 #: src/components/editor/extensions/slash-command.tsx:110
 msgid "Create an ordered list"
 msgstr "Create an ordered list"
@@ -3443,6 +3463,10 @@ msgstr "Create an unordered list"
 #: src/routes/console_.register.tsx:202
 #~ msgid "Create the account"
 #~ msgstr "Create the account"
+
+#: src/features/people/people-page.tsx:275
+msgid "Create the account with an initial password, then share that password securely with its owner."
+msgstr "Create the account with an initial password, then share that password securely with its owner."
 
 #: src/components/setup/setup-wizard.tsx:622
 #~ msgid "Create your administrator account"
@@ -3563,7 +3587,7 @@ msgstr "Default"
 #: src/features/content/languages-page.tsx:164
 #: src/features/media/media-page.tsx:169
 #: src/features/media/media-page.tsx:194
-#: src/features/people/roles-page.tsx:172
+#: src/features/people/roles-page.tsx:180
 #: src/features/taxonomy/categories-page.tsx:308
 #: src/features/taxonomy/categories-page.tsx:334
 #: src/features/taxonomy/tags-page.tsx:217
@@ -3580,7 +3604,7 @@ msgid "Delete column"
 msgstr "Delete column"
 
 #. placeholder {0}: CAPABILITY_LABELS[capability]
-#: src/features/people/roles-page.tsx:398
+#: src/features/people/roles-page.tsx:405
 msgid "Delete in {0}"
 msgstr "Delete in {0}"
 
@@ -3588,7 +3612,7 @@ msgstr "Delete in {0}"
 #~ msgid "Delete one, and any image left with no owner."
 #~ msgstr "Delete one, and any image left with no owner."
 
-#: src/features/people/roles-page.tsx:315
+#: src/features/people/roles-page.tsx:322
 msgid "Delete role"
 msgstr "Delete role"
 
@@ -3601,7 +3625,7 @@ msgid "Delete table"
 msgstr "Delete table"
 
 #. placeholder {0}: role.name
-#: src/features/people/roles-page.tsx:247
+#: src/features/people/roles-page.tsx:254
 msgid "Delete the \"{0}\" role? Move its people to another role first — this only removes the role, not the accounts."
 msgstr "Delete the \"{0}\" role? Move its people to another role first — this only removes the role, not the accounts."
 
@@ -3690,7 +3714,7 @@ msgstr "Deleted content waits thirty days before it is removed permanently, and 
 
 #: src/components/dashboard/dashboard-shell.tsx:113
 #: src/features/design/design-page.tsx:62
-#: src/features/people/roles-page.tsx:162
+#: src/features/people/roles-page.tsx:170
 msgid "Design"
 msgstr "Design"
 
@@ -3896,15 +3920,15 @@ msgid "Editing"
 msgstr "Editing"
 
 #: src/features/people/roles-page.tsx:430
-msgid "Editor-in-chief"
-msgstr "Editor-in-chief"
+#~ msgid "Editor-in-chief"
+#~ msgstr "Editor-in-chief"
 
 #: src/components/dashboard/content-type-editor.tsx:58
 #: src/features/auth/forgotten-page.tsx:146
 #: src/features/auth/login-page.tsx:69
 #: src/features/auth/setup-page.tsx:112
 #: src/features/learning/students-page.tsx:205
-#: src/features/people/people-page.tsx:311
+#: src/features/people/people-page.tsx:281
 #: src/learn/app.tsx:159
 msgid "Email"
 msgstr "Email"
@@ -4230,7 +4254,7 @@ msgstr "flow"
 #: src/components/dashboard/dashboard-shell.tsx:93
 #: src/features/automation/flows-page.tsx:135
 #: src/features/dashboard/home-page.tsx:102
-#: src/features/people/roles-page.tsx:158
+#: src/features/people/roles-page.tsx:166
 msgid "Flows"
 msgstr "Flows"
 
@@ -4277,8 +4301,8 @@ msgstr "For sale"
 #~ msgstr "For what"
 
 #: src/features/people/people-page.tsx:447
-msgid "For when somebody writes in and asks. Everything under one address, across everything this site keeps."
-msgstr "For when somebody writes in and asks. Everything under one address, across everything this site keeps."
+#~ msgid "For when somebody writes in and asks. Everything under one address, across everything this site keeps."
+#~ msgstr "For when somebody writes in and asks. Everything under one address, across everything this site keeps."
 
 #: src/routes/console.themes.tsx:339
 #~ msgid "For which site"
@@ -4289,16 +4313,16 @@ msgid "Forget it"
 msgstr "Forget it"
 
 #: src/features/people/people-page.tsx:470
-msgid "Forget them"
-msgstr "Forget them"
+#~ msgid "Forget them"
+#~ msgstr "Forget them"
 
 #: src/components/editor/content-fields.tsx:167
 #~ msgid "Forget this value"
 #~ msgstr "Forget this value"
 
 #: src/features/people/people-page.tsx:435
-msgid "Forgotten."
-msgstr "Forgotten."
+#~ msgid "Forgotten."
+#~ msgstr "Forgotten."
 
 #: src/features/governance/trash-page.tsx:64
 msgid "form"
@@ -4323,7 +4347,7 @@ msgstr "Formatting"
 #: src/features/dashboard/home-page.tsx:68
 #: src/features/forms/form-detail-page.tsx:126
 #: src/features/forms/forms-page.tsx:146
-#: src/features/people/roles-page.tsx:156
+#: src/features/people/roles-page.tsx:164
 msgid "Forms"
 msgstr "Forms"
 
@@ -4459,7 +4483,7 @@ msgstr "Give your post a title first"
 #~ msgid "Going out"
 #~ msgstr "Going out"
 
-#: src/features/people/roles-page.tsx:255
+#: src/features/people/roles-page.tsx:262
 msgid "Gone"
 msgstr "Gone"
 
@@ -4850,6 +4874,10 @@ msgstr "Increase indent"
 #~ msgid "Individual"
 #~ msgstr "Individual"
 
+#: src/features/people/people-page.tsx:300
+msgid "Initial password"
+msgstr "Initial password"
+
 #: src/components/editor/dialogs.tsx:548
 #: src/components/editor/extensions/slash-command.tsx:241
 #: src/components/editor/toolbar.tsx:338
@@ -4894,24 +4922,24 @@ msgstr "Insights"
 #~ msgstr "Invitations"
 
 #: src/features/people/people-page.tsx:359
-msgid "Invite"
-msgstr "Invite"
+#~ msgid "Invite"
+#~ msgstr "Invite"
 
 #: src/routes/dashboard.themes.tsx:552
 #~ msgid "invited"
 #~ msgstr "invited"
 
 #: src/features/people/people-page.tsx:195
-msgid "Invited"
-msgstr "Invited"
+#~ msgid "Invited"
+#~ msgstr "Invited"
 
 #: src/features/people/people-page.tsx:99
-msgid "Invited. They choose their own password from the link."
-msgstr "Invited. They choose their own password from the link."
+#~ msgid "Invited. They choose their own password from the link."
+#~ msgstr "Invited. They choose their own password from the link."
 
 #: src/features/settings/settings-page.tsx:267
-msgid "Is everything answering"
-msgstr "Is everything answering"
+#~ msgid "Is everything answering"
+#~ msgstr "Is everything answering"
 
 #: src/components/flows/flow-settings.tsx:475
 #: src/components/flows/flow-settings.tsx:483
@@ -5246,6 +5274,10 @@ msgstr "learning here"
 #~ msgid "Leave empty for AWS S3"
 #~ msgstr "Leave empty for AWS S3"
 
+#: src/features/settings/settings-page.tsx:94
+msgid "Leave empty to clear it. This is the public origin used in generated links."
+msgstr "Leave empty to clear it. This is the public origin used in generated links."
+
 #: src/routes/console.account.tsx:92
 #~ msgid "Leave empty to keep the one you have"
 #~ msgstr "Leave empty to keep the one you have"
@@ -5307,7 +5339,7 @@ msgstr "Left"
 #~ msgid "Lessons"
 #~ msgstr "Lessons"
 
-#: src/features/people/people-page.tsx:238
+#: src/features/people/people-page.tsx:244
 msgid "Let back in"
 msgstr "Let back in"
 
@@ -5401,8 +5433,8 @@ msgid "Long text"
 msgstr "Long text"
 
 #: src/features/people/people-page.tsx:463
-msgid "Look"
-msgstr "Look"
+#~ msgid "Look"
+#~ msgstr "Look"
 
 #: src/features/design/design-page.tsx:73
 msgid "Look at it"
@@ -5429,8 +5461,8 @@ msgstr "Look in your email"
 #~ msgstr "Lost"
 
 #: src/features/people/roles-page.tsx:448
-msgid "Lower-case, letters, digits and dashes. This is what a person's account is filed under."
-msgstr "Lower-case, letters, digits and dashes. This is what a person's account is filed under."
+#~ msgid "Lower-case, letters, digits and dashes. This is what a person's account is filed under."
+#~ msgstr "Lower-case, letters, digits and dashes. This is what a person's account is filed under."
 
 #. placeholder {0}: new Date(token.created_at).toLocaleString()
 #: src/components/local-env.tsx:180
@@ -5444,7 +5476,7 @@ msgstr "Lower-case, letters, digits and dashes. This is what a person's account 
 #: src/components/dashboard/dashboard-shell.tsx:92
 #: src/features/mail/campaign-page.tsx:23
 #: src/features/mail/mail-page.tsx:147
-#: src/features/people/roles-page.tsx:157
+#: src/features/people/roles-page.tsx:165
 msgid "Mail"
 msgstr "Mail"
 
@@ -5489,7 +5521,7 @@ msgstr "Make a key"
 #~ msgid "Make a link"
 #~ msgstr "Make a link"
 
-#: src/features/people/roles-page.tsx:422
+#: src/features/people/roles-page.tsx:429
 msgid "Make a role, then tick what it may do below."
 msgstr "Make a role, then tick what it may do below."
 
@@ -5512,7 +5544,7 @@ msgstr "Make default"
 #: src/features/automation/flows-page.tsx:333
 #: src/features/boards/boards-page.tsx:216
 #: src/features/mail/mail-page.tsx:283
-#: src/features/people/roles-page.tsx:461
+#: src/features/people/roles-page.tsx:455
 #: src/features/shop/products-page.tsx:277
 msgid "Make it"
 msgstr "Make it"
@@ -5608,7 +5640,7 @@ msgid "Measurements"
 msgstr "Measurements"
 
 #: src/components/dashboard/dashboard-shell.tsx:85
-#: src/features/people/roles-page.tsx:155
+#: src/features/people/roles-page.tsx:163
 msgid "Media"
 msgstr "Media"
 
@@ -5755,7 +5787,7 @@ msgstr "My courses"
 #: src/features/forms/forms-page.tsx:243
 #: src/features/integrations/api-page.tsx:152
 #: src/features/learning/students-page.tsx:216
-#: src/features/people/people-page.tsx:321
+#: src/features/people/people-page.tsx:291
 msgid "Name"
 msgstr "Name"
 
@@ -5764,8 +5796,8 @@ msgstr "Name"
 #~ msgstr "Name (optional)"
 
 #: src/features/people/roles-page.tsx:427
-msgid "Name people see"
-msgstr "Name people see"
+#~ msgid "Name people see"
+#~ msgstr "Name people see"
 
 #: src/components/plugin-forms.tsx:430
 #~ msgid "Name shown"
@@ -5880,8 +5912,8 @@ msgstr "New list"
 msgid "New product"
 msgstr "New product"
 
-#: src/features/people/roles-page.tsx:277
-#: src/features/people/roles-page.tsx:420
+#: src/features/people/roles-page.tsx:284
+#: src/features/people/roles-page.tsx:427
 msgid "New role"
 msgstr "New role"
 
@@ -5953,6 +5985,10 @@ msgstr "Next"
 #: src/features/content/content-list.tsx:217
 msgid "No {many} yet"
 msgstr "No {many} yet"
+
+#: src/features/people/people-page.tsx:183
+msgid "No accounts yet."
+msgstr "No accounts yet."
 
 #: src/routes/dashboard.agencies.tsx:124
 #~ msgid "No agencies yet. Invite one from Sites."
@@ -6138,6 +6174,10 @@ msgstr "No people found"
 msgid "No results found"
 msgstr "No results found"
 
+#: src/features/people/people-page.tsx:226
+msgid "No role"
+msgstr "No role"
+
 #: src/routes/dashboard.themes.tsx:448
 #~ msgid "No site — sells a repository only"
 #~ msgstr "No site — sells a repository only"
@@ -6248,8 +6288,8 @@ msgstr "Nobody yet"
 #~ msgstr "None yet. A site with no address is a site nobody can reach."
 
 #: src/features/settings/settings-page.tsx:280
-msgid "Not answering"
-msgstr "Not answering"
+#~ msgid "Not answering"
+#~ msgstr "Not answering"
 
 #: src/components/editor/content-fields.tsx:87
 msgid "Not chosen"
@@ -6268,8 +6308,8 @@ msgstr "Not chosen"
 #~ msgstr "Not doing it"
 
 #: src/features/settings/settings-page.tsx:269
-msgid "Not everything"
-msgstr "Not everything"
+#~ msgid "Not everything"
+#~ msgstr "Not everything"
 
 #: src/features/shop/products-page.tsx:187
 msgid "Not for sale"
@@ -6624,8 +6664,8 @@ msgstr "Numbered list"
 #~ msgstr "off"
 
 #: src/features/settings/settings-page.tsx:168
-msgid "Off"
-msgstr "Off"
+#~ msgid "Off"
+#~ msgstr "Off"
 
 #: src/routes/dashboard.balances.tsx:186
 #~ msgid "Off adds the amount to the balance; on takes it away."
@@ -6677,8 +6717,8 @@ msgstr "Older"
 #~ msgstr "oldest: just now"
 
 #: src/features/settings/settings-page.tsx:168
-msgid "On"
-msgstr "On"
+#~ msgid "On"
+#~ msgstr "On"
 
 #. placeholder {0}: row.lists.filter((l) => l.status === "confirmed").length
 #: src/routes/dashboard.mail.tsx:524
@@ -6743,8 +6783,8 @@ msgid "on your own address"
 msgstr "on your own address"
 
 #: src/features/settings/settings-page.tsx:139
-msgid "On. You will be asked for the digits when you sign in."
-msgstr "On. You will be asked for the digits when you sign in."
+#~ msgid "On. You will be asked for the digits when you sign in."
+#~ msgstr "On. You will be asked for the digits when you sign in."
 
 #: src/routes/console_.register.tsx:135
 #~ msgid "One account for every site you run. Each site keeps its own content and its own people."
@@ -7044,7 +7084,7 @@ msgstr "Overview"
 #~ msgid "Owed now"
 #~ msgstr "Owed now"
 
-#: src/features/people/roles-page.tsx:296
+#: src/features/people/roles-page.tsx:303
 msgid "Owner"
 msgstr "Owner"
 
@@ -7109,8 +7149,8 @@ msgstr "Password"
 #~ msgstr "Password changed"
 
 #: src/features/people/people-page.tsx:155
-msgid "Password changed — sign in again"
-msgstr "Password changed — sign in again"
+#~ msgid "Password changed — sign in again"
+#~ msgstr "Password changed — sign in again"
 
 #: src/routes/dashboard.students.tsx:248
 #~ msgid "Password link"
@@ -7182,7 +7222,7 @@ msgstr "Paste the video link."
 
 #: src/components/dashboard/dashboard-shell.tsx:110
 #: src/features/people/people-page.tsx:167
-#: src/features/people/roles-page.tsx:164
+#: src/features/people/roles-page.tsx:172
 msgid "People"
 msgstr "People"
 
@@ -7406,11 +7446,15 @@ msgstr "Public"
 #~ msgid "Public base URL"
 #~ msgstr "Public base URL"
 
+#: src/features/settings/settings-page.tsx:72
+msgid "Public identity"
+msgstr "Public identity"
+
 #: src/components/dashboard/dashboard-shell.tsx:117
 #: src/components/editor/mavi-editor.tsx:726
 #: src/features/design/design-page.tsx:89
 #: src/features/design/publish-page.tsx:44
-#: src/features/people/roles-page.tsx:163
+#: src/features/people/roles-page.tsx:171
 msgid "Publish"
 msgstr "Publish"
 
@@ -7520,11 +7564,11 @@ msgstr "Raise text above the line"
 #~ msgid "Ran out {0}"
 #~ msgstr "Ran out {0}"
 
-#: src/features/people/roles-page.tsx:301
+#: src/features/people/roles-page.tsx:308
 msgid "Reaches nothing"
 msgstr "Reaches nothing"
 
-#: src/features/people/roles-page.tsx:170
+#: src/features/people/roles-page.tsx:178
 msgid "Read"
 msgstr "Read"
 
@@ -7612,7 +7656,7 @@ msgstr "Ready to preview"
 
 #: src/components/dashboard/dashboard-shell.tsx:105
 #: src/features/governance/audit-page.tsx:87
-#: src/features/people/roles-page.tsx:166
+#: src/features/people/roles-page.tsx:174
 msgid "Record"
 msgstr "Record"
 
@@ -7695,8 +7739,8 @@ msgstr "Regular expression"
 #: src/features/learning/course-page.tsx:139
 #: src/features/learning/course-page.tsx:164
 #: src/features/media/videos-page.tsx:122
-#: src/features/people/people-page.tsx:248
-#: src/features/people/people-page.tsx:379
+#: src/features/people/people-page.tsx:257
+#: src/features/people/people-page.tsx:367
 #: src/features/shop/coupons-page.tsx:122
 #: src/features/taxonomy/tags-page.tsx:243
 msgid "Remove"
@@ -7733,7 +7777,7 @@ msgstr "Remove link"
 msgid "Remove the picture"
 msgstr "Remove the picture"
 
-#: src/features/people/people-page.tsx:371
+#: src/features/people/people-page.tsx:359
 msgid "Remove this account?"
 msgstr "Remove this account?"
 
@@ -7765,6 +7809,7 @@ msgstr "Remove this tag?"
 #~ msgid "removed"
 #~ msgstr "removed"
 
+#: src/features/people/people-page.tsx:208
 #: src/features/shop/coupons-page.tsx:46
 msgid "Removed"
 msgstr "Removed"
@@ -7886,20 +7931,24 @@ msgstr "Responds to input"
 #~ msgid "Right now"
 #~ msgstr "Right now"
 
-#: src/routes/dashboard.users.tsx:350
-#~ msgid "Role"
-#~ msgstr "Role"
+#: src/features/people/people-page.tsx:314
+msgid "Role"
+msgstr "Role"
 
-#: src/features/people/people-page.tsx:113
+#: src/features/people/people-page.tsx:124
 msgid "Role changed"
 msgstr "Role changed"
 
-#: src/features/people/roles-page.tsx:232
+#: src/features/people/roles-page.tsx:240
 msgid "Role made"
 msgstr "Role made"
 
+#: src/features/people/roles-page.tsx:434
+msgid "Role name"
+msgstr "Role name"
+
 #: src/components/dashboard/dashboard-shell.tsx:111
-#: src/features/people/roles-page.tsx:273
+#: src/features/people/roles-page.tsx:280
 msgid "Roles"
 msgstr "Roles"
 
@@ -7979,7 +8028,6 @@ msgstr "Samples"
 #: src/features/design/design-page.tsx:265
 #: src/features/forms/forms-page.tsx:310
 #: src/features/mail/letters-page.tsx:214
-#: src/features/settings/settings-page.tsx:82
 #: src/features/shop/coupons-page.tsx:247
 #: src/features/taxonomy/categories-page.tsx:281
 #: src/features/taxonomy/tags-page.tsx:181
@@ -8001,6 +8049,10 @@ msgstr "Save it"
 #: src/routes/dashboard.flows.tsx:303
 #~ msgid "Save it first"
 #~ msgstr "Save it first"
+
+#: src/features/settings/settings-page.tsx:124
+msgid "Save settings"
+msgstr "Save settings"
 
 #: src/routes/dashboard.platform-reports.tsx:223
 #~ msgid "Save the answer"
@@ -8025,7 +8077,7 @@ msgstr "Save it"
 #: src/components/editor/status-bar.tsx:116
 #: src/features/forms/forms-page.tsx:106
 #: src/features/mail/letters-page.tsx:83
-#: src/features/settings/settings-page.tsx:47
+#: src/features/settings/settings-page.tsx:54
 #: src/features/shop/coupons-page.tsx:165
 msgid "Saved"
 msgstr "Saved"
@@ -8158,7 +8210,7 @@ msgstr "Section title"
 #~ msgstr "Sections, and the lessons in them. A lesson's own notes are written in the editor like any other page; what is set here is its video, its order, and who may see it when."
 
 #. placeholder {0}: CAPABILITY_LABELS[capability]
-#: src/features/people/roles-page.tsx:395
+#: src/features/people/roles-page.tsx:402
 msgid "See {0}"
 msgstr "See {0}"
 
@@ -8422,8 +8474,8 @@ msgstr "Serif"
 #~ msgstr "Set it up"
 
 #: src/features/settings/settings-page.tsx:231
-msgid "Set one up"
-msgstr "Set one up"
+#~ msgid "Set one up"
+#~ msgstr "Set one up"
 
 #: src/features/auth/setup-page.tsx:140
 msgid "Set up"
@@ -8443,7 +8495,7 @@ msgstr "Set up"
 #~ msgstr "Setting it up, field by field:"
 
 #: src/components/dashboard/dashboard-shell.tsx:114
-#: src/features/people/roles-page.tsx:165
+#: src/features/people/roles-page.tsx:173
 msgid "Settings"
 msgstr "Settings"
 
@@ -8485,7 +8537,7 @@ msgstr "Settings, then Tools & MCP, then New MCP Server — which opens the file
 #~ msgid "Shared mail"
 #~ msgstr "Shared mail"
 
-#: src/features/people/roles-page.tsx:160
+#: src/features/people/roles-page.tsx:168
 msgid "Shop"
 msgstr "Shop"
 
@@ -8498,8 +8550,8 @@ msgid "Short description shown on listing pages"
 msgstr "Short description shown on listing pages"
 
 #: src/features/people/roles-page.tsx:440
-msgid "Short name"
-msgstr "Short name"
+#~ msgid "Short name"
+#~ msgstr "Short name"
 
 #: src/components/editor/dialogs.tsx:582
 #: src/components/editor/mavi-editor.tsx:549
@@ -8599,6 +8651,7 @@ msgstr "Signed in"
 #~ msgstr "Site limit"
 
 #: src/features/auth/setup-page.tsx:88
+#: src/features/settings/settings-page.tsx:76
 msgid "Site name"
 msgstr "Site name"
 
@@ -8646,8 +8699,8 @@ msgstr "Sitemap"
 #~ msgstr "Sites being given a theme's demo, and packages being written in. A transfer that was killed starts again after the last part it finished."
 
 #: src/features/settings/settings-page.tsx:174
-msgid "Six digits from an app on your phone, as well as your password. It is asked for when you sign in and nowhere else."
-msgstr "Six digits from an app on your phone, as well as your password. It is asked for when you sign in and nowhere else."
+#~ msgid "Six digits from an app on your phone, as well as your password. It is asked for when you sign in and nowhere else."
+#~ msgstr "Six digits from an app on your phone, as well as your password. It is asked for when you sign in and nowhere else."
 
 #: src/components/editor/extensions/slash-command.tsx:83
 msgid "Small section heading"
@@ -8687,7 +8740,6 @@ msgstr "Small section heading"
 #~ msgstr "Somebody signing in with an account somewhere else. The address that comes back has to be one this site already knows: this adds a way in for an account, never an account."
 
 #: src/features/mail/mail-page.tsx:213
-#: src/features/people/people-page.tsx:454
 msgid "somebody@example.test"
 msgstr "somebody@example.test"
 
@@ -8794,8 +8846,8 @@ msgstr "Steps"
 #~ msgstr "Still open"
 
 #: src/features/people/people-page.tsx:238
-msgid "Stop"
-msgstr "Stop"
+#~ msgid "Stop"
+#~ msgstr "Stop"
 
 #: src/components/ses-account.tsx:281
 #~ msgid "Stop all sending"
@@ -8824,8 +8876,8 @@ msgstr "Stop"
 #~ msgstr "stopped"
 
 #: src/features/people/people-page.tsx:200
-msgid "Stopped"
-msgstr "Stopped"
+#~ msgid "Stopped"
+#~ msgstr "Stopped"
 
 #: src/routes/dashboard.transfers.tsx:243
 #~ msgid "Stopping one does not undo what it wrote. The site is what arrived up to the last part that finished, and asking again finishes the rest without writing any of it twice."
@@ -8944,6 +8996,14 @@ msgstr "Superscript"
 #~ msgid "Support cases, which a quota increase is"
 #~ msgstr "Support cases, which a quota increase is"
 
+#: src/features/people/people-page.tsx:245
+msgid "Suspend"
+msgstr "Suspend"
+
+#: src/features/people/people-page.tsx:207
+msgid "Suspended"
+msgstr "Suspended"
+
 #: src/components/mail/account-choice.tsx:59
 #~ msgid "Switch it on"
 #~ msgstr "Switch it on"
@@ -9058,8 +9118,8 @@ msgstr "Tags"
 #~ msgstr "Take a copy"
 
 #: src/features/people/people-page.tsx:424
-msgid "Take everything this site holds about {email}? What was paid stays, with their address out of it. This cannot be undone."
-msgstr "Take everything this site holds about {email}? What was paid stays, with their address out of it. This cannot be undone."
+#~ msgid "Take everything this site holds about {email}? What was paid stays, with their address out of it. This cannot be undone."
+#~ msgstr "Take everything this site holds about {email}? What was paid stays, with their address out of it. This cannot be undone."
 
 #: src/routes/console.themes.tsx:370
 #~ msgid "Take it"
@@ -9125,7 +9185,7 @@ msgstr "Taking answers"
 msgid "Task list"
 msgstr "Task list"
 
-#: src/features/people/roles-page.tsx:159
+#: src/features/people/roles-page.tsx:167
 msgid "Teaching"
 msgstr "Teaching"
 
@@ -9267,6 +9327,10 @@ msgstr "That request did not come from this site. Reload the page and try again.
 #: src/routes/dashboard.platform-billing.tsx:92
 #~ msgid "The account agencies' top-ups arrive in. Neither secret is ever shown back — the screen says whether one is held."
 #~ msgstr "The account agencies' top-ups arrive in. Neither secret is ever shown back — the screen says whether one is held."
+
+#: src/features/people/people-page.tsx:361
+msgid "The account will no longer be able to sign in. Its content and audit history remain."
+msgstr "The account will no longer be able to sign in. Its content and audit history remain."
 
 #: src/routes/dashboard.api.tsx:264
 #~ msgid "The address a title would get."
@@ -9526,8 +9590,8 @@ msgstr "The most common shortcuts in the editor."
 #~ msgstr "The name on the card"
 
 #: src/features/people/people-page.tsx:278
-msgid "The new one"
-msgstr "The new one"
+#~ msgid "The new one"
+#~ msgstr "The new one"
 
 #: src/features/analytics/usage-page.tsx:42
 #: src/features/dashboard/home-page.tsx:45
@@ -9535,8 +9599,8 @@ msgid "The numbers could not be read just now."
 msgstr "The numbers could not be read just now."
 
 #: src/features/people/people-page.tsx:268
-msgid "The one you have"
-msgstr "The one you have"
+#~ msgid "The one you have"
+#~ msgstr "The one you have"
 
 #: src/components/plugin-forms.tsx:327
 #~ msgid "The one your SES identities are verified in. Verification does not cross regions."
@@ -9549,6 +9613,10 @@ msgstr "The one you have"
 #: src/components/site-mail.tsx:145
 #~ msgid "The only honest check. A key without permission, an address SES has not verified and an account still in the sandbox all look the same until something is actually sent."
 #~ msgstr "The only honest check. A key without permission, an address SES has not verified and an account still in the sandbox all look the same until something is actually sent."
+
+#: src/features/settings/settings-page.tsx:66
+msgid "The public identity and URL settings used by this site."
+msgstr "The public identity and URL settings used by this site."
 
 #: src/routes/dashboard.plugins_.video.tsx:196
 #~ msgid "The pull zone hostname is on the same tab — it looks like vz-… .b-cdn.net"
@@ -9625,12 +9693,12 @@ msgstr "The site introduced to AI assistants, page by page."
 #~ msgstr "The sites could not be read just now."
 
 #: src/features/settings/settings-page.tsx:207
-msgid "The six digits"
-msgstr "The six digits"
+#~ msgid "The six digits"
+#~ msgstr "The six digits"
 
 #: src/features/settings/settings-page.tsx:180
-msgid "The six digits from your app to turn it off"
-msgstr "The six digits from your app to turn it off"
+#~ msgid "The six digits from your app to turn it off"
+#~ msgstr "The six digits from your app to turn it off"
 
 #: src/features/auth/login-page.tsx:113
 #~ msgid "The six digits from your authenticator"
@@ -9728,8 +9796,8 @@ msgstr "Theme"
 #~ msgstr "They can write, publish and manage this site."
 
 #: src/features/people/people-page.tsx:305
-msgid "They get a link and choose their own password. Nobody here types it for them."
-msgstr "They get a link and choose their own password. Nobody here types it for them."
+#~ msgid "They get a link and choose their own password. Nobody here types it for them."
+#~ msgstr "They get a link and choose their own password. Nobody here types it for them."
 
 #: src/routes/dashboard.students.tsx:337
 #~ msgid "They get an account with no password. Send them the link afterwards and they choose one themselves."
@@ -9748,8 +9816,8 @@ msgstr "They get a link and choose their own password. Nobody here types it for 
 #~ msgstr "They said yes"
 
 #: src/features/people/people-page.tsx:373
-msgid "They stop being able to sign in. What they wrote stays, and so does what the record says they did."
-msgstr "They stop being able to sign in. What they wrote stays, and so does what the record says they did."
+#~ msgid "They stop being able to sign in. What they wrote stays, and so does what the record says they did."
+#~ msgstr "They stop being able to sign in. What they wrote stays, and so does what the record says they did."
 
 #: src/components/flows/flow-settings.tsx:457
 #~ msgid "This"
@@ -9880,7 +9948,7 @@ msgstr "This post could not be opened, so it has been left untouched."
 msgid "This request conflicts with the current site state."
 msgstr "This request conflicts with the current site state."
 
-#: src/features/people/roles-page.tsx:326
+#: src/features/people/roles-page.tsx:333
 msgid "This role came with the build and is not a site's to change."
 msgstr "This role came with the build and is not a site's to change."
 
@@ -9905,7 +9973,7 @@ msgstr "This role came with the build and is not a site's to change."
 #~ msgid "This signs you in to the server itself. Everyone else signs in somewhere else:"
 #~ msgstr "This signs you in to the server itself. Everyone else signs in somewhere else:"
 
-#: src/features/settings/settings-page.tsx:58
+#: src/features/settings/settings-page.tsx:65
 msgid "This site"
 msgstr "This site"
 
@@ -9987,6 +10055,10 @@ msgstr "Throw them away"
 msgid "Tick it"
 msgstr "Tick it"
 
+#: src/features/settings/settings-page.tsx:102
+msgid "Time"
+msgstr "Time"
+
 #: src/features/shop/coupons-page.tsx:221
 msgid "Times in total"
 msgstr "Times in total"
@@ -9994,6 +10066,10 @@ msgstr "Times in total"
 #: src/routes/dashboard.coupons.tsx:254
 #~ msgid "Times per person"
 #~ msgstr "Times per person"
+
+#: src/features/settings/settings-page.tsx:106
+msgid "Timezone"
+msgstr "Timezone"
 
 #: src/components/flows/flow-settings.tsx:305
 #~ msgid "To"
@@ -10092,12 +10168,12 @@ msgid "Turn into"
 msgstr "Turn into"
 
 #: src/features/settings/settings-page.tsx:195
-msgid "Turn it off"
-msgstr "Turn it off"
+#~ msgid "Turn it off"
+#~ msgstr "Turn it off"
 
 #: src/features/settings/settings-page.tsx:221
-msgid "Turn it on"
-msgstr "Turn it on"
+#~ msgid "Turn it on"
+#~ msgstr "Turn it on"
 
 #: src/routes/dashboard.boards.tsx:338
 #~ msgid "Two stages that end things is usually right: one for the way you wanted and one for the way you did not. Keeping them apart is what lets you look back and see why."
@@ -10260,9 +10336,21 @@ msgstr "Usage"
 #~ msgid "Use {0} — {1} off your balance"
 #~ msgstr "Use {0} — {1} off your balance"
 
+#: src/features/settings/settings-page.tsx:114
+msgid "Use an IANA timezone such as Europe/Berlin or UTC."
+msgstr "Use an IANA timezone such as Europe/Berlin or UTC."
+
+#: src/features/people/people-page.tsx:309
+msgid "Use at least {MINIMUM_PASSWORD} characters. The owner can use the password reset flow later."
+msgstr "Use at least {MINIMUM_PASSWORD} characters. The owner can use the password reset flow later."
+
 #: src/shop/app.tsx:282
 #~ msgid "Use it"
 #~ msgstr "Use it"
+
+#: src/features/people/roles-page.tsx:442
+msgid "Use lower-case letters, digits, underscores or dashes."
+msgstr "Use lower-case letters, digits, underscores or dashes."
 
 #: src/components/icon-picker.tsx:129
 #~ msgid "Use no icon"
@@ -10518,7 +10606,7 @@ msgstr "What a lesson plays. Nothing here is public: a video is watched by someb
 msgid "What comes in is kept as it was sent, so changing the fields later never rewrites it."
 msgstr "What comes in is kept as it was sent, so changing the fields later never rewrites it."
 
-#: src/features/people/roles-page.tsx:274
+#: src/features/people/roles-page.tsx:281
 msgid "What each role on this site may read, write and delete. Menus follow this — a screen a role cannot open is not shown to it."
 msgstr "What each role on this site may read, write and delete. Menus follow this — a screen a role cannot open is not shown to it."
 
@@ -10617,14 +10705,13 @@ msgstr "What it is about"
 #: src/features/forms/forms-page.tsx:401
 #: src/features/learning/start-teaching-page.tsx:70
 #: src/features/mail/mail-page.tsx:266
-#: src/features/settings/settings-page.tsx:64
 #: src/features/shop/products-page.tsx:212
 msgid "What it is called"
 msgstr "What it is called"
 
 #: src/features/settings/settings-page.tsx:59
-msgid "What it is called and where it answers."
-msgstr "What it is called and where it answers."
+#~ msgid "What it is called and where it answers."
+#~ msgstr "What it is called and where it answers."
 
 #: src/features/boards/boards-page.tsx:158
 msgid "What it is called, and the stages a card moves through. Both can be changed afterwards."
@@ -10749,8 +10836,8 @@ msgstr "What starts it, and what it does. Each step's settings are written as JS
 #~ msgstr "What there is"
 
 #: src/features/people/people-page.tsx:330
-msgid "What they may reach"
-msgstr "What they may reach"
+#~ msgid "What they may reach"
+#~ msgstr "What they may reach"
 
 #: src/routes/dashboard.leads.tsx:426
 #~ msgid "What they sent"
@@ -10849,8 +10936,8 @@ msgstr "What this site writes to one person: an invitation, a password link, a r
 #~ msgstr "What was typed into {field}"
 
 #: src/features/people/people-page.tsx:445
-msgid "What we hold about somebody"
-msgstr "What we hold about somebody"
+#~ msgid "What we hold about somebody"
+#~ msgstr "What we hold about somebody"
 
 #: src/routes/dashboard.themes.tsx:692
 #~ msgid "What went in"
@@ -11027,8 +11114,8 @@ msgstr "Which course to enroll the student in."
 #~ msgstr "Which language"
 
 #: src/features/people/people-page.tsx:336
-msgid "Which role"
-msgstr "Which role"
+#~ msgid "Which role"
+#~ msgstr "Which role"
 
 #: src/routes/dashboard.plugins_.payment.tsx:118
 #~ msgid "Which service"
@@ -11039,8 +11126,8 @@ msgid "Who"
 msgstr "Who"
 
 #: src/features/people/people-page.tsx:168
-msgid "Who can sign in to this site and write on it."
-msgstr "Who can sign in to this site and write on it."
+#~ msgid "Who can sign in to this site and write on it."
+#~ msgstr "Who can sign in to this site and write on it."
 
 #: src/routes/dashboard.audit.tsx:66
 #~ msgid "Who did what to this site, and from where. Kept for six months."
@@ -11222,7 +11309,7 @@ msgstr "Works until"
 #~ msgid "Worth pursuing"
 #~ msgstr "Worth pursuing"
 
-#: src/features/people/roles-page.tsx:171
+#: src/features/people/roles-page.tsx:179
 msgid "Write"
 msgstr "Write"
 
@@ -11310,8 +11397,8 @@ msgid "Yellow"
 msgstr "Yellow"
 
 #: src/features/settings/settings-page.tsx:269
-msgid "Yes"
-msgstr "Yes"
+#~ msgid "Yes"
+#~ msgstr "Yes"
 
 #: src/components/dashboard/content-type-editor.tsx:57
 #: src/features/forms/forms-page.tsx:361
@@ -11446,8 +11533,8 @@ msgstr "Your name"
 #~ msgstr "Your own code"
 
 #: src/features/people/people-page.tsx:261
-msgid "Your own password"
-msgstr "Your own password"
+#~ msgid "Your own password"
+#~ msgstr "Your own password"
 
 #: src/routes/console.payments.tsx:128
 #~ msgid "Your own Stripe or iyzico account, your margin, and your hourly rate. Bills are paid on the customer's panel and land with you — never with this server."

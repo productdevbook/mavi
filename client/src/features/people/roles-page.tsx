@@ -23,9 +23,9 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 
-import { api } from "@/lib/v1"
-import { said } from "@/lib/v1-said"
-import type { Role } from "@api"
+import { nextApi, nextEvery } from "@/lib/server-next"
+import { serverNextMessage } from "@/lib/server-next-auth"
+import type { Grant, Role } from "@api-next"
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -80,8 +80,17 @@ type Capability =
   | "settings"
   | "audit"
 
+const grantKey = (grant: Grant) => `${grant.capability}:${grant.action}`
+
 const holds = (role: Role, capability: Capability, access: Access) =>
-  role.grants.includes(`${capability}:${access}`)
+  role.grants.some(
+    (grant) => grant.capability === capability && grant.action === access
+  )
+
+function grantFromKey(key: string): Grant {
+  const [capability, action] = key.split(":")
+  return { capability, action }
+}
 
 const CAPABILITY_ORDER: Capability[] = [
   "content",
@@ -134,15 +143,14 @@ export function RolesPage() {
   const [roles, setRoles] = React.useState<Role[] | null>(null)
   const [creating, setCreating] = React.useState(false)
   const [name, setName] = React.useState("")
-  const [label, setLabel] = React.useState("")
   const [busy, setBusy] = React.useState(false)
   const [pending, setPending] = React.useState<string | null>(null)
 
   const load = React.useCallback(() => {
-    api("roles.list")
+    nextEvery("roles.list", { query: {} })
       .then(setRoles)
       .catch((why: unknown) => {
-        toast.error(said(why))
+        toast.error(serverNextMessage(why))
         setRoles((held) => held ?? [])
       })
   }, [])
@@ -178,7 +186,7 @@ export function RolesPage() {
     access: Access,
     next: boolean
   ) => {
-    const wanted = new Set(role.grants)
+    const wanted = new Set(role.grants.map(grantKey))
 
     if (next) {
       wanted.add(`${capability}:${access}`)
@@ -197,7 +205,7 @@ export function RolesPage() {
       }
     }
 
-    const grants = [...wanted]
+    const grants = [...wanted].map(grantFromKey)
 
     setPending(`${role.id}:${capability}:${access}`)
 
@@ -209,13 +217,13 @@ export function RolesPage() {
     )
 
     try {
-      await api("roles.change", {
+      await nextApi("roles.grants.replace", {
         path: { id: role.id },
         body: { grants },
       })
       load()
     } catch (why) {
-      toast.error(said(why))
+      toast.error(serverNextMessage(why))
       load()
     } finally {
       setPending(null)
@@ -226,16 +234,15 @@ export function RolesPage() {
     setBusy(true)
 
     try {
-      await api("roles.make", {
-        body: { name: label || name, grants: [] },
+      await nextApi("roles.create", {
+        body: { name: slug(name), grants: [] },
       })
       toast.success(t`Role made`)
       setCreating(false)
       setName("")
-      setLabel("")
       load()
     } catch (why) {
-      toast.error(said(why))
+      toast.error(serverNextMessage(why))
     } finally {
       setBusy(false)
     }
@@ -251,11 +258,11 @@ export function RolesPage() {
     }
 
     try {
-      await api("roles.remove", { path: { id: role.id } })
+      await nextApi("roles.delete", { path: { id: role.id } })
       toast.success(t`Gone`)
       load()
     } catch (why) {
-      toast.error(said(why))
+      toast.error(serverNextMessage(why))
     }
   }
 
@@ -281,7 +288,7 @@ export function RolesPage() {
 
       <div className="flex flex-col gap-5">
         {roles.map((role) => {
-          const locked = role.is_the_owner
+          const locked = role.protected
           const summary = CAPABILITY_ORDER.filter((capability) =>
             holds(role, capability, "view")
           ).length
@@ -291,7 +298,7 @@ export function RolesPage() {
               <CardHeader className="border-b border-border/60 bg-muted/30">
                 <CardTitle className="flex items-center gap-2 text-base">
                   {role.name}
-                  {role.is_the_owner && (
+                  {role.protected && (
                     <Badge variant="secondary" className="font-normal">
                       {t`Owner`}
                     </Badge>
@@ -305,7 +312,7 @@ export function RolesPage() {
                 <CardDescription>
                   {t`Can open ${summary} of ${CAPABILITY_ORDER.length} areas.`}
                 </CardDescription>
-                {!role.is_the_owner && (
+                {!role.protected && (
                   <CardAction>
                     <Button
                       variant="ghost"
@@ -424,28 +431,15 @@ export function RolesPage() {
           </DialogHeader>
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="role-label">{t`Name people see`}</Label>
-              <Input
-                id="role-label"
-                placeholder={t`Editor-in-chief`}
-                value={label}
-                onChange={(event) => {
-                  setLabel(event.target.value)
-                  if (!name.trim() || name === slug(label))
-                    setName(slug(event.target.value))
-                }}
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="role-name">{t`Short name`}</Label>
+              <Label htmlFor="role-name">{t`Role name`}</Label>
               <Input
                 id="role-name"
                 placeholder="editor-in-chief"
                 value={name}
-                onChange={(event) => setName(slug(event.target.value))}
+                onChange={(event) => setName(event.target.value)}
               />
               <p className="text-xs text-muted-foreground">
-                {t`Lower-case, letters, digits and dashes. This is what a person's account is filed under.`}
+                {t`Use lower-case letters, digits, underscores or dashes.`}
               </p>
             </div>
           </div>
@@ -467,7 +461,7 @@ export function RolesPage() {
   )
 }
 
-/** A label turned into a short name: lower-case, dashes for gaps. */
+/** A role identifier accepted by the canonical identity contract. */
 function slug(text: string): string {
   return text
     .toLowerCase()

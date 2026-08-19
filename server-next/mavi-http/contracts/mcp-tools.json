@@ -194,6 +194,58 @@
       }
     },
     {
+      "name": "people.roles.replace",
+      "description": "Replace a person's roles",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ]
+          },
+          "body": {
+            "type": "object",
+            "required": [
+              "role_ids"
+            ],
+            "properties": {
+              "role_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "path",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false
+      },
+      "x-mavi": {
+        "authentication": "account_or_assistant",
+        "scope": "site",
+        "permission": {
+          "capability": "people",
+          "action": "write"
+        }
+      }
+    },
+    {
       "name": "roles.list",
       "description": "List site roles",
       "inputSchema": {

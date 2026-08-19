@@ -1,11 +1,11 @@
 import * as React from "react"
 import { useLingui } from "@lingui/react/macro"
-import { Ban, KeyRound, Loader2, Plus, Trash2, UserRound } from "lucide-react"
+import { Ban, Loader2, Plus, Trash2, UserRound } from "lucide-react"
 import { toast } from "sonner"
 
-import { api, every } from "@/lib/v1"
-import { said } from "@/lib/v1-said"
-import type { Person, Role } from "@api"
+import { nextApi, nextEvery } from "@/lib/server-next"
+import { serverNextMessage } from "@/lib/server-next-auth"
+import type { PersonRecord, Role } from "@api-next"
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -19,14 +19,6 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -36,96 +28,117 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
-/** What the API asks for, said here so a form can refuse before a request does. */
 const MINIMUM_PASSWORD = 12
 
-/**
- * Who can sign in to this site and write on it.
- *
- * Nobody types anybody else's password: an account is invited and whoever it
- * belongs to chooses one from the link. What an administrator can do here is
- * decide what somebody may reach, stop them, or take the account away.
- */
+/** Accounts and their site roles. Every mutation maps to one canonical operation. */
 export function PeoplePage() {
   const { t } = useLingui()
-
-  const [people, setPeople] = React.useState<Person[] | null>(null)
+  const [people, setPeople] = React.useState<PersonRecord[] | null>(null)
   const [roles, setRoles] = React.useState<Role[]>([])
-  const [inviting, setInviting] = React.useState(false)
+  const [adding, setAdding] = React.useState(false)
   const [email, setEmail] = React.useState("")
   const [name, setName] = React.useState("")
-  const [role, setRole] = React.useState("")
+  const [password, setPassword] = React.useState("")
+  const [roleId, setRoleId] = React.useState("")
   const [busy, setBusy] = React.useState(false)
-  const [removing, setRemoving] = React.useState<Person | null>(null)
+  const [removing, setRemoving] = React.useState<PersonRecord | null>(null)
 
-  // Changing your own is a different act from anything done to somebody else,
-  // and asks for the current one.
-  const [current, setCurrent] = React.useState("")
-  const [next, setNext] = React.useState("")
-
-  const load = React.useCallback(() => {
-    every("people.list")
+  const loadPeople = React.useCallback(() => {
+    nextEvery("people.list", { query: {} })
       .then(setPeople)
       .catch((why: unknown) => {
-        toast.error(said(why))
+        toast.error(serverNextMessage(why))
         setPeople((held) => held ?? [])
-      })
-
-    // Only an account that may read roles gets any; a narrower one simply sees
-    // no role controls.
-    api("roles.list")
-      .then((r) => setRoles(r ?? []))
-      .catch((why: unknown) => {
-        toast.error(said(why))
-        setRoles((held) => held ?? [])
       })
   }, [])
 
+  const loadRoles = React.useCallback(() => {
+    nextEvery("roles.list", { query: {} })
+      .then(setRoles)
+      .catch((why: unknown) => {
+        toast.error(serverNextMessage(why))
+      })
+  }, [])
+
+  const load = React.useCallback(() => {
+    loadPeople()
+    loadRoles()
+  }, [loadPeople, loadRoles])
+
   React.useEffect(load, [load])
 
-  const invite = async () => {
+  const resetForm = () => {
+    setEmail("")
+    setName("")
+    setPassword("")
+    setRoleId("")
+  }
+
+  const create = async () => {
     setBusy(true)
 
     try {
-      await api("people.invite", {
-        body: { email, name: name.trim() || email, role },
+      await nextApi("people.create", {
+        body: {
+          email: email.trim(),
+          name: name.trim() || email.trim(),
+          password,
+          role_ids: roleId ? [roleId] : [],
+        },
       })
-      setInviting(false)
-      setEmail("")
-      setName("")
-      setRole("")
+      setAdding(false)
+      resetForm()
       load()
-      toast.success(t`Invited. They choose their own password from the link.`)
+      toast.success(t`Account created`)
     } catch (why) {
-      toast.error(said(why))
+      toast.error(serverNextMessage(why))
     } finally {
       setBusy(false)
     }
   }
 
-  const changeRole = async (person: Person, roleId: string) => {
+  const replaceRole = async (person: PersonRecord, nextRoleId: string) => {
+    if (
+      !nextRoleId ||
+      (person.role_ids.length === 1 && person.role_ids[0] === nextRoleId)
+    ) {
+      return
+    }
+
     try {
-      await api("people.move", {
+      await nextApi("people.roles.replace", {
         path: { id: person.id },
-        body: { role: roleId },
+        body: { role_ids: [nextRoleId] },
       })
+      loadPeople()
       toast.success(t`Role changed`)
-      load()
     } catch (why) {
-      toast.error(said(why))
+      toast.error(serverNextMessage(why))
     }
   }
 
-  const suspend = async (person: Person) => {
+  const toggleSuspension = async (person: PersonRecord) => {
+    if (person.status === "removed") return
+
     try {
-      await api("people.move", {
+      await nextApi("people.status.update", {
         path: { id: person.id },
-        body: { role: person.role },
+        body: {
+          status: person.status === "suspended" ? "active" : "suspended",
+        },
       })
-      load()
+      loadPeople()
     } catch (why) {
-      toast.error(said(why))
+      toast.error(serverNextMessage(why))
     }
   }
 
@@ -133,30 +146,16 @@ export function PeoplePage() {
     if (!removing) return
 
     try {
-      await api("people.remove", { path: { id: removing.id } })
-      load()
+      await nextApi("people.status.update", {
+        path: { id: removing.id },
+        body: { status: "removed" },
+      })
+      loadPeople()
+      toast.success(t`Account removed`)
     } catch (why) {
-      toast.error(said(why))
+      toast.error(serverNextMessage(why))
     } finally {
       setRemoving(null)
-    }
-  }
-
-  const changeMine = async () => {
-    setBusy(true)
-
-    try {
-      await api("passwords.choose", {
-        body: { token: current, password: next },
-      })
-      setCurrent("")
-      setNext("")
-      // Every session went, including this one.
-      toast.success(t`Password changed — sign in again`)
-      window.location.href = "/login"
-    } catch (why) {
-      toast.error(said(why))
-      setBusy(false)
     }
   }
 
@@ -165,144 +164,114 @@ export function PeoplePage() {
       <DashboardPageHeader
         className="mb-6"
         title={t`People`}
-        description={t`Who can sign in to this site and write on it.`}
+        description={t`Accounts that can sign in to this site and the roles that shape their access.`}
         actions={
-          <Button onClick={() => setInviting(true)}>
-            <Plus /> {t`Add someone`}
+          <Button onClick={() => setAdding(true)}>
+            <Plus className="size-4" /> {t`Add someone`}
           </Button>
         }
       />
 
-      <div className="flex max-w-2xl flex-col gap-8">
+      <div className="flex max-w-3xl flex-col gap-8">
         {!people ? (
           <div className="flex justify-center py-16">
             <Loader2 className="size-6 animate-spin text-muted-foreground" />
           </div>
+        ) : people.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-border px-4 py-10 text-center text-sm text-muted-foreground">
+            {t`No accounts yet.`}
+          </div>
         ) : (
           <div className="flex flex-col divide-y divide-border rounded-xl border border-border">
-            {people.map((person) => (
-              <div
-                key={person.id}
-                className="flex flex-wrap items-center gap-3 px-4 py-3"
-              >
-                <UserRound className="size-4 shrink-0 text-muted-foreground" />
+            {people.map((person) => {
+              const selectedRole = person.role_ids[0] ?? ""
+              const roleNames = person.role_ids
+                .map((id) => roles.find((role) => role.id === id)?.name)
+                .filter(Boolean)
+                .join(", ")
 
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">
-                    {person.name}
-                    {person.standing === "invited" && (
-                      <Badge variant="secondary" className="ml-2">
-                        {t`Invited`}
-                      </Badge>
-                    )}
-                    {person.standing === "stopped" && (
-                      <Badge variant="secondary" className="ml-2">
-                        {t`Stopped`}
-                      </Badge>
-                    )}
-                  </p>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {person.email}
-                  </p>
+              return (
+                <div
+                  key={person.id}
+                  className="flex flex-wrap items-center gap-3 px-4 py-3"
+                >
+                  <UserRound className="size-4 shrink-0 text-muted-foreground" />
+
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">
+                      {person.name}
+                      {person.status !== "active" && (
+                        <Badge variant="secondary" className="ml-2">
+                          {person.status === "suspended"
+                            ? t`Suspended`
+                            : t`Removed`}
+                        </Badge>
+                      )}
+                    </p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {person.email}
+                      {roleNames ? ` · ${roleNames}` : ""}
+                    </p>
+                  </div>
+
+                  {roles.length > 0 && person.status !== "removed" && (
+                    <Select
+                      value={selectedRole}
+                      onValueChange={(value) =>
+                        void replaceRole(person, value ?? "")
+                      }
+                    >
+                      <SelectTrigger size="sm" className="w-44">
+                        <SelectValue placeholder={t`No role`} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {roles.map((role) => (
+                          <SelectItem key={role.id} value={role.id}>
+                            {role.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+
+                  {person.status !== "removed" && (
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={
+                        person.status === "suspended"
+                          ? t`Let back in`
+                          : t`Suspend`
+                      }
+                      onClick={() => void toggleSuspension(person)}
+                    >
+                      <Ban className="size-4" />
+                    </Button>
+                  )}
+
+                  {person.status !== "removed" && (
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={t`Remove`}
+                      onClick={() => setRemoving(person)}
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
+                  )}
                 </div>
-
-                {roles.length > 0 && (
-                  <Select
-                    value={
-                      roles.find(
-                        (one) =>
-                          one.name === person.role || one.id === person.role
-                      )?.id ?? ""
-                    }
-                    onValueChange={(value) =>
-                      void changeRole(person, value ?? "")
-                    }
-                  >
-                    <SelectTrigger size="sm" className="w-44">
-                      <SelectValue placeholder={person.role} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {roles.map((one) => (
-                        <SelectItem key={one.id} value={one.id}>
-                          {one.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label={
-                    person.standing === "stopped" ? t`Let back in` : t`Stop`
-                  }
-                  onClick={() => void suspend(person)}
-                >
-                  <Ban />
-                </Button>
-
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label={t`Remove`}
-                  onClick={() => setRemoving(person)}
-                >
-                  <Trash2 />
-                </Button>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
-
-        <section className="flex flex-col gap-3 rounded-xl border border-border p-4">
-          <div className="flex items-center gap-2">
-            <KeyRound className="size-4 text-muted-foreground" />
-            <h2 className="text-sm font-medium">{t`Your own password`}</h2>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            {t`Changing it closes everything that is open, here and everywhere else you are signed in.`}
-          </p>
-
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="current">{t`The one you have`}</Label>
-            <Input
-              id="current"
-              type="password"
-              value={current}
-              onChange={(event) => setCurrent(event.target.value)}
-            />
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="next">{t`The new one`}</Label>
-            <Input
-              id="next"
-              type="password"
-              value={next}
-              onChange={(event) => setNext(event.target.value)}
-            />
-          </div>
-
-          <Button
-            className="self-start"
-            disabled={busy || !current || next.length < MINIMUM_PASSWORD}
-            onClick={() => void changeMine()}
-          >
-            {busy && <Loader2 className="animate-spin" />}
-            {t`Change it`}
-          </Button>
-        </section>
       </div>
 
-      <AboutSomebody />
-
-      <Dialog open={inviting} onOpenChange={setInviting}>
+      <Dialog open={adding} onOpenChange={setAdding}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{t`Add someone`}</DialogTitle>
             <DialogDescription>
-              {t`They get a link and choose their own password. Nobody here types it for them.`}
+              {t`Create the account with an initial password, then share that password securely with its owner.`}
             </DialogDescription>
           </DialogHeader>
 
@@ -327,18 +296,32 @@ export function PeoplePage() {
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="person-role">{t`What they may reach`}</Label>
+              <Label htmlFor="person-password">{t`Initial password`}</Label>
+              <Input
+                id="person-password"
+                type="password"
+                minLength={MINIMUM_PASSWORD}
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                {t`Use at least ${MINIMUM_PASSWORD} characters. The owner can use the password reset flow later.`}
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="person-role">{t`Role`}</Label>
               <Select
-                value={role}
-                onValueChange={(value) => setRole(value ?? "")}
+                value={roleId}
+                onValueChange={(value) => setRoleId(value ?? "")}
               >
                 <SelectTrigger id="person-role">
-                  <SelectValue placeholder={t`Which role`} />
+                  <SelectValue placeholder={t`Choose a role`} />
                 </SelectTrigger>
                 <SelectContent>
-                  {roles.map((one) => (
-                    <SelectItem key={one.id} value={one.id}>
-                      {one.name}
+                  {roles.map((role) => (
+                    <SelectItem key={role.id} value={role.id}>
+                      {role.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -347,16 +330,20 @@ export function PeoplePage() {
           </div>
 
           <DialogFooter>
+            <Button variant="outline" onClick={() => setAdding(false)}>
+              {t`Cancel`}
+            </Button>
             <Button
-              variant="outline"
-              onClick={() => setInviting(false)}
-            >{t`Cancel`}</Button>
-            <Button
-              disabled={busy || !email.trim() || !role}
-              onClick={() => void invite()}
+              disabled={
+                busy ||
+                !email.trim() ||
+                password.length < MINIMUM_PASSWORD ||
+                (roles.length > 0 && !roleId)
+              }
+              onClick={() => void create()}
             >
-              {busy && <Loader2 className="animate-spin" />}
-              {t`Invite`}
+              {busy && <Loader2 className="size-4 animate-spin" />}
+              {t`Create account`}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -370,7 +357,7 @@ export function PeoplePage() {
           <AlertDialogHeader>
             <AlertDialogTitle>{t`Remove this account?`}</AlertDialogTitle>
             <AlertDialogDescription>
-              {t`They stop being able to sign in. What they wrote stays, and so does what the record says they did.`}
+              {t`The account will no longer be able to sign in. Its content and audit history remain.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -382,100 +369,5 @@ export function PeoplePage() {
         </AlertDialogContent>
       </AlertDialog>
     </>
-  )
-}
-
-/**
- * What this site holds about one person, and forgetting them.
- *
- * Somebody writes in and asks; this is the answer, and the other half of it.
- * Everything under one address across every table that holds one — an account,
- * a student, a subscriber, an order, a letter that was sent.
- *
- * What forgetting does not do is unmake an order: what a shop was paid stays,
- * with the address taken out of it.
- */
-function AboutSomebody() {
-  const { t } = useLingui()
-
-  const [email, setEmail] = React.useState("")
-  const [found, setFound] = React.useState<unknown>(null)
-  const [busy, setBusy] = React.useState(false)
-
-  const look = async () => {
-    setBusy(true)
-
-    try {
-      const answer = await api("about.gather", {
-        body: { email: email.trim() },
-      })
-
-      setFound(answer)
-    } catch (why) {
-      toast.error(said(why))
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  const forget = async () => {
-    if (
-      !window.confirm(
-        t`Take everything this site holds about ${email}? What was paid stays, with their address out of it. This cannot be undone.`
-      )
-    ) {
-      return
-    }
-
-    setBusy(true)
-
-    try {
-      await api("about.forget", { body: { email: email.trim() } })
-      setFound(null)
-      toast.success(t`Forgotten.`)
-    } catch (why) {
-      toast.error(said(why))
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  return (
-    <section className="flex flex-col gap-3 rounded-xl border border-border p-4">
-      <h2 className="text-sm font-medium">{t`What we hold about somebody`}</h2>
-      <p className="text-xs text-muted-foreground">
-        {t`For when somebody writes in and asks. Everything under one address, across everything this site keeps.`}
-      </p>
-
-      <div className="flex gap-2">
-        <Input
-          type="email"
-          value={email}
-          placeholder={t`somebody@example.test`}
-          onChange={(event) => setEmail(event.target.value)}
-        />
-        <Button
-          variant="outline"
-          disabled={!email.trim() || busy}
-          onClick={() => void look()}
-        >
-          {busy && <Loader2 className="animate-spin" />}
-          {t`Look`}
-        </Button>
-        <Button
-          variant="ghost"
-          disabled={!email.trim() || busy}
-          onClick={() => void forget()}
-        >
-          {t`Forget them`}
-        </Button>
-      </div>
-
-      {found !== null && (
-        <pre className="max-h-72 overflow-auto rounded-lg bg-muted px-3 py-2 text-xs">
-          {JSON.stringify(found, null, 2)}
-        </pre>
-      )}
-    </section>
   )
 }

@@ -1511,6 +1511,10 @@ export interface ReplaceCourseInstructor {
   grants: CourseInstructorGrant[];
 }
 
+export interface ReplacePersonRoles {
+  role_ids: string[];
+}
+
 export interface ReplaceRoleGrants {
   grants: Grant[];
 }
@@ -1892,6 +1896,7 @@ export const operations = {
   "people.list": { method: "get", path: "/api/v1/people", input: { location: "query", shape: "PeopleListFilter" }, query: null, output: "PersonPage", status: 200, authentication: "account_or_assistant", permission: { capability: "people", action: "view" } },
   "people.create": { method: "post", path: "/api/v1/people", input: { location: "json", shape: "CreatePerson" }, query: null, output: "PersonRecord", status: 201, authentication: "account_or_assistant", permission: { capability: "people", action: "write" } },
   "people.status.update": { method: "patch", path: "/api/v1/people/{id}/status", input: { location: "json", shape: "UpdatePersonStatus" }, query: null, output: "PersonRecord", status: 200, authentication: "account_or_assistant", permission: { capability: "people", action: "write" } },
+  "people.roles.replace": { method: "put", path: "/api/v1/people/{id}/roles", input: { location: "json", shape: "ReplacePersonRoles" }, query: null, output: "PersonRecord", status: 200, authentication: "account_or_assistant", permission: { capability: "people", action: "write" } },
   "roles.list": { method: "get", path: "/api/v1/roles", input: { location: "query", shape: "RoleListFilter" }, query: null, output: "RolePage", status: 200, authentication: "account_or_assistant", permission: { capability: "people", action: "view" } },
   "roles.create": { method: "post", path: "/api/v1/roles", input: { location: "json", shape: "CreateRole" }, query: null, output: "Role", status: 201, authentication: "account_or_assistant", permission: { capability: "people", action: "write" } },
   "roles.delete": { method: "delete", path: "/api/v1/roles/{id}", input: null, query: null, output: "Empty", status: 204, authentication: "account_or_assistant", permission: { capability: "people", action: "delete" } },
@@ -2092,6 +2097,7 @@ export interface OperationArguments {
   "people.list": { path?: never; query: PeopleListFilter; body?: never; }
   "people.create": { path?: never; query?: never; body: CreatePerson; }
   "people.status.update": { path: { id: string }; query?: never; body: UpdatePersonStatus; }
+  "people.roles.replace": { path: { id: string }; query?: never; body: ReplacePersonRoles; }
   "roles.list": { path?: never; query: RoleListFilter; body?: never; }
   "roles.create": { path?: never; query?: never; body: CreateRole; }
   "roles.delete": { path: { id: string }; query?: never; body?: never; }
@@ -2290,6 +2296,7 @@ export interface OperationResponses {
   "people.list": PersonPage;
   "people.create": PersonRecord;
   "people.status.update": PersonRecord;
+  "people.roles.replace": PersonRecord;
   "roles.list": RolePage;
   "roles.create": Role;
   "roles.delete": void;

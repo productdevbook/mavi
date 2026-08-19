@@ -3,6 +3,7 @@
 //! This crate deliberately knows nothing about HTTP, `PostgreSQL` or a domain.
 //! A type belongs here only when every domain needs the same meaning.
 
+mod analytics_retention;
 mod context;
 mod email;
 mod error;
@@ -13,6 +14,10 @@ mod money;
 mod pagination;
 pub mod ports;
 
+pub use analytics_retention::{
+    AnalyticsRetentionPolicy, DEFAULT_ANALYTICS_AGGREGATE_RETENTION_DAYS,
+    DEFAULT_ANALYTICS_RAW_RETENTION_DAYS, MAX_ANALYTICS_RETENTION_DAYS,
+};
 pub use context::{Caller, SiteContext};
 pub use email::Email;
 pub use error::{ErrorCode, MaviError, Result};

@@ -199,7 +199,8 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Raw event export and daily aggregates use opaque cursors; daily rollups are updated in the ingestion transaction.
   - [x] Raw and aggregate retention pruning is bounded, explicit and audit-recorded.
   - [x] Public analytics ingestion uses the shared privacy-preserving site/IP/device edge limiter and emits auditable `security.edge_rate_limited` outcomes with `Retry-After`.
-  - [ ] Scheduled retention worker, privacy documentation and panel charts.
+  - [x] Site-configured raw/aggregate retention windows enqueue one idempotent UTC-day job; the shared worker prunes both tables with a system audit receipt.
+  - [ ] Privacy documentation and panel charts.
 - [-] Portable export/import with versioned manifests and validation.
   - [x] Explicit `mavi.portable` v2 bundles carry source-site provenance, canonical site URL, counts and a schema hash.
   - [x] Settings/languages, content types, taxonomy, content/revisions, slug history and assignments export/import with typed records.

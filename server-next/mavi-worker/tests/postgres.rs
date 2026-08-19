@@ -1,11 +1,12 @@
 use std::{env, sync::Arc};
 
 use chrono::{Duration, Utc};
+use mavi_analytics::ANALYTICS_RETENTION_JOB;
 use mavi_content::{
     ContentService, CreateContent, Publication, PublicationInput, SCHEDULED_PUBLISH_JOB,
     ScheduledPublishJob,
 };
-use mavi_core::{FormSubmissionId, SiteContext, SiteId, ports::FileStore};
+use mavi_core::{AnalyticsEventId, FormSubmissionId, SiteContext, SiteId, ports::FileStore};
 use mavi_files::InMemoryFileStore;
 use mavi_forms::{CreateForm, FORM_RETENTION_JOB, FormService};
 use mavi_jobs::JobsService;
@@ -370,6 +371,123 @@ async fn form_retention_worker_prunes_expired_submissions_and_records_system_aud
     .expect("retention audit");
     assert_eq!(actor_kind, "system");
     assert_eq!(actor_id.as_deref(), Some("test-form-retention-worker"));
+    transaction.commit().await.expect("check commit");
+}
+
+#[tokio::test]
+#[ignore = "requires TEST_DATABASE_URL and a non-superuser PostgreSQL role"]
+async fn analytics_retention_worker_uses_site_policy_and_records_system_audit() {
+    let database_url = env::var("TEST_DATABASE_URL").expect("TEST_DATABASE_URL");
+    let database = Database::connect(&database_url, 4)
+        .await
+        .expect("database connection");
+    database.migrate().await.expect("migrations");
+    let site_id = SiteId::new();
+    database.ensure_site(site_id).await.expect("site");
+
+    let context = SiteContext::public(site_id);
+    let old_event_id = AnalyticsEventId::new();
+    let old_day = Utc::now().date_naive() - Duration::days(2);
+    let mut transaction = database.begin(&context).await.expect("analytics scope");
+    sqlx::query("insert into site_settings (site_id, name) values ($1, 'Analytics retention')")
+        .bind(site_id.into_uuid())
+        .execute(transaction.conn())
+        .await
+        .expect("site settings");
+    sqlx::query(
+        "update site_settings
+            set analytics_raw_retention_days = 1,
+                analytics_aggregate_retention_days = 1
+          where site_id = $1",
+    )
+    .bind(site_id.into_uuid())
+    .execute(transaction.conn())
+    .await
+    .expect("retention policy");
+    sqlx::query(
+        "insert into analytics_events
+            (site_id, id, event_name, path, value, occurred_at, created_at)
+         values ($1, $2, 'page_view', '/old', 1, $3, $3)",
+    )
+    .bind(site_id.into_uuid())
+    .bind(old_event_id.into_uuid())
+    .bind(Utc::now() - Duration::days(2))
+    .execute(transaction.conn())
+    .await
+    .expect("old event");
+    sqlx::query(
+        "insert into analytics_daily
+            (site_id, day, event_name, path, event_count, value_sum, value_min, value_max)
+         values ($1, $2, 'page_view', '/old', 1, 1, 1, 1)",
+    )
+    .bind(site_id.into_uuid())
+    .bind(old_day)
+    .execute(transaction.conn())
+    .await
+    .expect("old aggregate");
+    transaction.commit().await.expect("analytics seed commit");
+
+    let supervisor = WorkerSupervisor::new(
+        database.clone(),
+        [site_id],
+        WorkerConfig::new(
+            "test-analytics-retention-worker",
+            30,
+            std::time::Duration::from_millis(10),
+        )
+        .expect("worker config"),
+        Arc::new(InMemoryFileStore::default()),
+    );
+    assert!(supervisor.run_once(site_id).await.expect("retention run"));
+
+    let jobs = JobsService::new([ANALYTICS_RETENTION_JOB]);
+    let mut transaction = database.begin(&context).await.expect("check scope");
+    let event_exists: bool = sqlx::query_scalar(
+        "select exists(
+             select 1 from analytics_events where site_id = $1 and id = $2
+         )",
+    )
+    .bind(site_id.into_uuid())
+    .bind(old_event_id.into_uuid())
+    .fetch_one(transaction.conn())
+    .await
+    .expect("event state");
+    assert!(!event_exists);
+    let aggregate_exists: bool = sqlx::query_scalar(
+        "select exists(
+             select 1 from analytics_daily
+              where site_id = $1 and day = $2 and event_name = 'page_view' and path = '/old'
+         )",
+    )
+    .bind(site_id.into_uuid())
+    .bind(old_day)
+    .fetch_one(transaction.conn())
+    .await
+    .expect("aggregate state");
+    assert!(!aggregate_exists);
+    let retention_jobs = jobs
+        .list(
+            &mut transaction,
+            &mavi_jobs::JobListFilter {
+                kind: Some(ANALYTICS_RETENTION_JOB.name.to_owned()),
+                ..Default::default()
+            },
+        )
+        .await
+        .expect("retention jobs");
+    assert_eq!(retention_jobs.items.len(), 1);
+    assert_eq!(retention_jobs.items[0].state.as_str(), "done");
+    let (actor_kind, actor_id): (String, Option<String>) = sqlx::query_as(
+        "select actor_kind, actor_id from audit_events
+          where site_id = $1 and action = 'analytics.retention.scheduled_pruned'
+          order by created_at desc limit 1",
+    )
+    .bind(site_id.into_uuid())
+    .fetch_one(transaction.conn())
+    .await
+    .expect("retention audit");
+    assert_eq!(actor_kind, "system");
+    assert_eq!(actor_id.as_deref(), Some("test-analytics-retention-worker"));
     transaction.commit().await.expect("check commit");
 }
 

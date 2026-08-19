@@ -8,6 +8,7 @@ description = "Site-scoped background worker supervisor for durable Mavi jobs."
 
 [dependencies]
 chrono.workspace = true
+mavi-analytics = { path = "../mavi-analytics" }
 mavi-audit = { path = "../mavi-audit" }
 mavi-content = { path = "../mavi-content" }
 mavi-core = { path = "../mavi-core" }
@@ -16,6 +17,7 @@ mavi-jobs = { path = "../mavi-jobs" }
 mavi-media = { path = "../mavi-media" }
 mavi-mail = { path = "../mavi-mail" }
 mavi-observability = { path = "../mavi-observability" }
+mavi-settings = { path = "../mavi-settings" }
 mavi-storage = { path = "../mavi-storage" }
 serde_json.workspace = true
 tokio.workspace = true

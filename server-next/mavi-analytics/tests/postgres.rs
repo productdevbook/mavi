@@ -2,10 +2,11 @@ use std::env;
 
 use chrono::{Duration, Utc};
 use mavi_analytics::{
-    AnalyticsEventBatch, AnalyticsEventInput, AnalyticsService, DailyListFilter, EventListFilter,
-    PruneAnalytics,
+    ANALYTICS_RETENTION_JOB, AnalyticsEventBatch, AnalyticsEventInput, AnalyticsService,
+    DailyListFilter, EventListFilter, PruneAnalytics,
 };
 use mavi_core::{PageRequest, SiteContext, SiteId};
+use mavi_jobs::{JobListFilter, JobsService};
 use mavi_storage::Database;
 
 fn database_url() -> Option<String> {
@@ -146,4 +147,97 @@ async fn analytics_are_bounded_aggregated_cursor_only_and_site_scoped() {
             .is_empty()
     );
     tx.commit().await.expect("isolation commit");
+}
+
+#[tokio::test]
+#[ignore = "requires TEST_DATABASE_URL and a non-superuser PostgreSQL role"]
+async fn analytics_retention_enqueue_is_idempotent_per_site_and_day() {
+    let url = database_url().expect("TEST_DATABASE_URL");
+    let database = Database::connect(&url, 4).await.expect("database");
+    database.migrate().await.expect("migrations");
+    let first_site = SiteId::new();
+    let second_site = SiteId::new();
+    database.ensure_site(first_site).await.expect("first site");
+    database
+        .ensure_site(second_site)
+        .await
+        .expect("second site");
+
+    let analytics = AnalyticsService;
+    let now = Utc::now();
+    let first_context = SiteContext::system(
+        first_site,
+        "analytics-retention-test".to_owned(),
+        mavi_core::RequestId::new(),
+    );
+    let second_context = SiteContext::system(
+        second_site,
+        "analytics-retention-test".to_owned(),
+        mavi_core::RequestId::new(),
+    );
+
+    let first_job = {
+        let mut tx = database.begin(&first_context).await.expect("first scope");
+        let jobs = JobsService::new([ANALYTICS_RETENTION_JOB]);
+        let first = analytics
+            .enqueue_retention_job(&mut tx, &first_context, &jobs, now)
+            .await
+            .expect("first retention job");
+        let second = analytics
+            .enqueue_retention_job(&mut tx, &first_context, &jobs, now)
+            .await
+            .expect("idempotent retention job");
+        assert_eq!(first, second);
+        tx.commit().await.expect("first commit");
+        first
+    };
+
+    let second_job = {
+        let mut tx = database.begin(&second_context).await.expect("second scope");
+        let jobs = JobsService::new([ANALYTICS_RETENTION_JOB]);
+        let job = analytics
+            .enqueue_retention_job(&mut tx, &second_context, &jobs, now)
+            .await
+            .expect("second retention job");
+        tx.commit().await.expect("second commit");
+        job
+    };
+    assert_ne!(first_job, second_job);
+
+    let jobs = JobsService::new([ANALYTICS_RETENTION_JOB]);
+    let mut first_tx = database
+        .begin(&first_context)
+        .await
+        .expect("first list scope");
+    let first_page = jobs
+        .list(
+            &mut first_tx,
+            &JobListFilter {
+                kind: Some(ANALYTICS_RETENTION_JOB.name.to_owned()),
+                ..Default::default()
+            },
+        )
+        .await
+        .expect("first jobs");
+    assert_eq!(first_page.items.len(), 1);
+    assert_eq!(first_page.items[0].id, first_job);
+    first_tx.commit().await.expect("first list commit");
+
+    let mut second_tx = database
+        .begin(&second_context)
+        .await
+        .expect("second list scope");
+    let second_page = jobs
+        .list(
+            &mut second_tx,
+            &JobListFilter {
+                kind: Some(ANALYTICS_RETENTION_JOB.name.to_owned()),
+                ..Default::default()
+            },
+        )
+        .await
+        .expect("second jobs");
+    assert_eq!(second_page.items.len(), 1);
+    assert_eq!(second_page.items[0].id, second_job);
+    second_tx.commit().await.expect("second list commit");
 }

@@ -11,8 +11,8 @@ use chrono::{DateTime, Utc};
 use mavi_audit::{AuditEntry, AuditService};
 use mavi_contract::{Api, Endpoint, Method, Permission, Shape};
 use mavi_core::{
-    Action, Capability, Cursor, ErrorCode, MailSender, MaviError, Page, PageRequest, Result,
-    SiteContext, SiteId,
+    Action, AnalyticsRetentionPolicy, Capability, Cursor, ErrorCode, MailSender, MaviError, Page,
+    PageRequest, Result, SiteContext, SiteId,
 };
 use mavi_storage::SiteTx;
 use serde::{Deserialize, Deserializer, Serialize};
@@ -162,13 +162,14 @@ fn settings_shapes() -> Vec<Shape> {
             "SiteSettings",
             json!({
                 "type": "object",
-                "required": ["site_id", "name", "timezone", "canonical_url", "mail_sender", "updated_at"],
+                "required": ["site_id", "name", "timezone", "canonical_url", "mail_sender", "analytics_retention", "updated_at"],
                 "properties": {
                     "site_id": {"type": "string", "format": "uuid"},
                     "name": {"type": "string", "maxLength": 200},
                     "timezone": {"type": "string", "maxLength": 64},
                     "canonical_url": {"type": ["string", "null"], "maxLength": 2048, "format": "uri"},
                     "mail_sender": {"$ref": "#/components/schemas/MailSender"},
+                    "analytics_retention": {"$ref": "#/components/schemas/AnalyticsRetention"},
                     "updated_at": {"type": "string", "format": "date-time"},
                 },
             }),
@@ -182,7 +183,32 @@ fn settings_shapes() -> Vec<Shape> {
                     "timezone": {"type": ["string", "null"], "maxLength": 64},
                     "canonical_url": {"type": ["string", "null"], "maxLength": 2048, "format": "uri"},
                     "mail_sender": {"$ref": "#/components/schemas/MailSenderUpdate"},
+                    "analytics_retention": {"$ref": "#/components/schemas/AnalyticsRetentionUpdate"},
                 },
+            }),
+        ),
+        Shape::new(
+            "AnalyticsRetention",
+            json!({
+                "type": "object",
+                "required": ["raw_days", "aggregate_days"],
+                "properties": {
+                    "raw_days": {"type": "integer", "minimum": 1, "maximum": 3650},
+                    "aggregate_days": {"type": "integer", "minimum": 1, "maximum": 3650},
+                },
+                "additionalProperties": false,
+            }),
+        ),
+        Shape::new(
+            "AnalyticsRetentionUpdate",
+            json!({
+                "type": ["object", "null"],
+                "required": ["raw_days", "aggregate_days"],
+                "properties": {
+                    "raw_days": {"type": "integer", "minimum": 1, "maximum": 3650},
+                    "aggregate_days": {"type": "integer", "minimum": 1, "maximum": 3650},
+                },
+                "additionalProperties": false,
             }),
         ),
         Shape::new(
@@ -427,6 +453,7 @@ pub struct SiteSettings {
     pub timezone: String,
     pub canonical_url: Option<CanonicalSiteUrl>,
     pub mail_sender: Option<MailSender>,
+    pub analytics_retention: AnalyticsRetentionPolicy,
     pub updated_at: DateTime<Utc>,
 }
 
@@ -438,6 +465,14 @@ pub struct UpdateSiteSettings {
     pub canonical_url: CanonicalUrlUpdate,
     #[serde(default)]
     pub mail_sender: MailSenderUpdate,
+    #[serde(default)]
+    pub analytics_retention: Option<AnalyticsRetentionInput>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+pub struct AnalyticsRetentionInput {
+    pub raw_days: u16,
+    pub aggregate_days: u16,
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
@@ -547,6 +582,7 @@ fn decode_cursor(cursor: &Cursor) -> Result<LanguageCursor> {
 }
 
 fn settings_from_row(row: &sqlx::postgres::PgRow) -> Result<SiteSettings> {
+    let analytics_retention = analytics_retention_from_row(row)?;
     let mail_sender_address: Option<String> = row
         .try_get("mail_sender_address")
         .map_err(|_| MaviError::Internal)?;
@@ -571,8 +607,23 @@ fn settings_from_row(row: &sqlx::postgres::PgRow) -> Result<SiteSettings> {
             .map(|value| CanonicalSiteUrl::parse(&value))
             .transpose()?,
         mail_sender,
+        analytics_retention,
         updated_at: row.try_get("updated_at").map_err(|_| MaviError::Internal)?,
     })
+}
+
+fn analytics_retention_from_row(row: &sqlx::postgres::PgRow) -> Result<AnalyticsRetentionPolicy> {
+    let raw_days: i16 = row
+        .try_get("analytics_raw_retention_days")
+        .map_err(|_| MaviError::Internal)?;
+    let aggregate_days: i16 = row
+        .try_get("analytics_aggregate_retention_days")
+        .map_err(|_| MaviError::Internal)?;
+    AnalyticsRetentionPolicy::new(
+        u16::try_from(raw_days).map_err(|_| MaviError::Internal)?,
+        u16::try_from(aggregate_days).map_err(|_| MaviError::Internal)?,
+    )
+    .map_err(|_| MaviError::Internal)
 }
 
 fn language_from_row(row: &sqlx::postgres::PgRow) -> Result<Language> {
@@ -639,7 +690,8 @@ impl SettingsService {
     ) -> Result<SiteSettings> {
         let row = sqlx::query(
             "select site_id, name, timezone, canonical_url, mail_sender_address,
-                    mail_sender_name, updated_at
+                    mail_sender_name, analytics_raw_retention_days,
+                    analytics_aggregate_retention_days, updated_at
                from site_settings where site_id = $1",
         )
         .bind(context.site_id.into_uuid())
@@ -652,6 +704,27 @@ impl SettingsService {
         settings_from_row(&row)
     }
 
+    /// Reads only the retention policy needed by the background worker.
+    /// Sites that are still being initialized use the explicit safe default
+    /// until their settings row exists.
+    pub async fn analytics_retention(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+    ) -> Result<AnalyticsRetentionPolicy> {
+        let row = sqlx::query(
+            "select analytics_raw_retention_days, analytics_aggregate_retention_days
+               from site_settings where site_id = $1",
+        )
+        .bind(context.site_id.into_uuid())
+        .fetch_optional(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?;
+        row.map_or(Ok(AnalyticsRetentionPolicy::default()), |row| {
+            analytics_retention_from_row(&row)
+        })
+    }
+
     pub async fn update_settings(
         &self,
         tx: &mut SiteTx,
@@ -662,6 +735,7 @@ impl SettingsService {
             && input.timezone.is_none()
             && matches!(&input.canonical_url, CanonicalUrlUpdate::Unchanged)
             && matches!(&input.mail_sender, MailSenderUpdate::Unchanged)
+            && input.analytics_retention.is_none()
         {
             return Err(MaviError::validation(SETTINGS_PATCH_EMPTY));
         }
@@ -682,6 +756,11 @@ impl SettingsService {
             ),
             MailSenderUpdate::Clear | MailSenderUpdate::Unchanged => None,
         };
+        let analytics_retention = input
+            .analytics_retention
+            .as_ref()
+            .map(|input| AnalyticsRetentionPolicy::new(input.raw_days, input.aggregate_days))
+            .transpose()?;
 
         let row = sqlx::query(
             "update site_settings
@@ -690,10 +769,13 @@ impl SettingsService {
                     canonical_url = case when $4 then $5 else canonical_url end,
                     mail_sender_address = case when $6 then $7 else mail_sender_address end,
                     mail_sender_name = case when $6 then $8 else mail_sender_name end,
+                    analytics_raw_retention_days = coalesce($9, analytics_raw_retention_days),
+                    analytics_aggregate_retention_days = coalesce($10, analytics_aggregate_retention_days),
                     updated_at = now()
               where site_id = $1
              returning site_id, name, timezone, canonical_url, mail_sender_address,
-                       mail_sender_name, updated_at",
+                       mail_sender_name, analytics_raw_retention_days,
+                       analytics_aggregate_retention_days, updated_at",
         )
         .bind(context.site_id.into_uuid())
         .bind(name)
@@ -706,6 +788,20 @@ impl SettingsService {
             mail_sender
                 .as_ref()
                 .and_then(|sender| sender.name.as_deref()),
+        )
+        .bind(
+            analytics_retention
+                .as_ref()
+                .map(|policy| i16::try_from(policy.raw_days).map_err(|_| MaviError::Internal))
+                .transpose()?,
+        )
+        .bind(
+            analytics_retention
+                .as_ref()
+                .map(|policy| {
+                    i16::try_from(policy.aggregate_days).map_err(|_| MaviError::Internal)
+                })
+                .transpose()?,
         )
         .fetch_optional(tx.conn())
         .await
@@ -726,7 +822,8 @@ impl SettingsService {
                         "name_changed": input.name.is_some(),
                         "timezone_changed": input.timezone.is_some(),
                         "canonical_url_changed": canonical_url_changed,
-                        "mail_sender_changed": mail_sender_changed
+                        "mail_sender_changed": mail_sender_changed,
+                        "analytics_retention_changed": input.analytics_retention.is_some()
                     }),
                 },
             )

@@ -1713,6 +1713,7 @@ dependencies = [
  "mavi-audit",
  "mavi-contract",
  "mavi-core",
+ "mavi-jobs",
  "mavi-storage",
  "serde",
  "serde_json",
@@ -2176,6 +2177,7 @@ name = "mavi-worker"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "mavi-analytics",
  "mavi-audit",
  "mavi-content",
  "mavi-core",
@@ -2186,6 +2188,7 @@ dependencies = [
  "mavi-media",
  "mavi-observability",
  "mavi-sealing",
+ "mavi-settings",
  "mavi-storage",
  "mavi-trash",
  "serde_json",

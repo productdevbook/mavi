@@ -17,11 +17,7 @@ export interface Page<T> {
   next?: string
 }
 
-type EndpointCalls = {
-  [K in keyof typeof operations as `${Uppercase<(typeof operations)[K]["method"]>} ${(typeof operations)[K]["path"]}`]: Calls[K]
-}
-
-export type AllCalls = Calls & EndpointCalls
+export type AllCalls = Calls
 
 /** Every call there is, as the API describes them. */
 export type Call = keyof AllCalls
@@ -29,6 +25,11 @@ export type Call = keyof AllCalls
 /** What a call takes and gives, for one call. */
 export type Takes<K extends Call> = AllCalls[K]["takes"]
 export type Gives<K extends Call> = AllCalls[K]["gives"]
+
+/** Calls whose contract actually returns a cursor page. */
+type PagedCall = {
+  [K in Call]: Gives<K> extends Page<unknown> ? K : never
+}[Call]
 
 /**
  * What came back when it did not work.
@@ -89,31 +90,17 @@ const inFlight = new Map<string, Promise<unknown>>()
 /**
  * Makes one call.
  *
- * The call is named the way the API names it — `"GET /api/posts/{id}"` — so a
- * path this build does not have is a type error rather than a 404 somebody
- * finds later.
+ * Every call is a generated operation name. A screen cannot invent a path or
+ * method here: the contract is the only place that decides where an operation
+ * lives.
  */
 export async function api<K extends Call>(
   call: K,
   asking: Asking<K> = {} as Asking<K>,
 ): Promise<Gives<K>> {
-  let method: string
-  let template: string
-
-  if (typeof call === "string" && (call as string).includes(" ")) {
-    const [m, t] = (call as string).split(" ", 2)
-    method = m.toUpperCase()
-    template = t
-  } else {
-    const op = (operations as Record<string, { method: string; path: string }>)[call as string]
-    if (op) {
-      method = op.method.toUpperCase()
-      template = op.path
-    } else {
-      method = "GET"
-      template = call as string
-    }
-  }
+  const operation = operations[call as keyof typeof operations]
+  const method = operation.method.toUpperCase()
+  const template = operation.path
   const path = fill(template, asking.path ?? {})
   const url = path + search(asking.query)
 
@@ -172,7 +159,7 @@ async function ask<K extends Call>(
 
 /** Everything on a listing, as one array — for the screens that show a list. */
 export async function every<K extends Call>(
-  call: K,
+  call: K extends PagedCall ? K : never,
   asking: Asking<K> = {} as Asking<K>,
 ): Promise<Gives<K> extends Page<infer T> ? T[] : never> {
   const all: unknown[] = []

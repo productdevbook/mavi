@@ -66,7 +66,7 @@ export function FlowsPage() {
   const [busy, setBusy] = React.useState(false)
 
   const load = React.useCallback(() => {
-    every("GET /api/flows")
+    every("flows.list")
       .then(setFlows)
       .catch((why: unknown) => {
         toast.error(said(why))
@@ -78,7 +78,7 @@ export function FlowsPage() {
 
   const switchIt = async (flow: Flow, on: boolean) => {
     try {
-      await api("PATCH /api/flows/{id}", {
+      await api("flows.change", {
         path: { id: flow.id },
         body: { on },
       })
@@ -90,7 +90,7 @@ export function FlowsPage() {
 
   const remove = async (flow: Flow) => {
     try {
-      await api("DELETE /api/flows/{id}", { path: { id: flow.id } })
+      await api("flows.remove", { path: { id: flow.id } })
       load()
     } catch (why) {
       toast.error(said(why))
@@ -106,7 +106,7 @@ export function FlowsPage() {
         told: step.told.trim() ? JSON.parse(step.told) : {},
       }))
 
-      await api("POST /api/flows", {
+      await api("flows.make", {
         body: {
           name: name.trim(),
           trigger,

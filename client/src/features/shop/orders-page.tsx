@@ -31,7 +31,7 @@ export function OrdersPage() {
   const [items, setItems] = React.useState<Record<string, string>>({})
 
   const load = React.useCallback(() => {
-    every("GET /api/orders")
+    every("orders.list")
       .then(setRows)
       .catch((why: unknown) => {
         toast.error(said(why))
@@ -61,7 +61,7 @@ export function OrdersPage() {
     setBusy(id)
 
     try {
-      await api("POST /api/orders/{id}/moves", {
+      await api("orders.move", {
         path: { id },
         body: { to: "paid" },
       })
@@ -77,7 +77,7 @@ export function OrdersPage() {
     setBusy(id)
 
     try {
-      await api("POST /api/orders/{id}/moves", {
+      await api("orders.move", {
         path: { id },
         body: { to: "given_back" },
       })
@@ -94,7 +94,7 @@ export function OrdersPage() {
     setBusy(id)
 
     try {
-      await api("POST /api/orders/{id}/moves", {
+      await api("orders.move", {
         path: { id },
         body: { to: "sent" },
       })
@@ -117,7 +117,7 @@ export function OrdersPage() {
     }
 
     try {
-      const whole = await api("GET /api/orders/{id}", { path: { id } })
+      const whole = await api("orders.read", { path: { id } })
 
       setItems((held) => ({
         ...held,

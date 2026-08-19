@@ -13,7 +13,7 @@ export function AddressHealth() {
   const [checks, setChecks] = React.useState<Check[] | null>(null)
 
   React.useEffect(() => {
-    api("GET /api/health")
+    api("health.read")
       .then((health) => setChecks(health.checks))
       .catch((why: unknown) => {
         toast.error(said(why))

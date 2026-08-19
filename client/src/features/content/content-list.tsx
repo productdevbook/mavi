@@ -65,7 +65,7 @@ export function ContentList({ kind }: { kind: string }) {
   const load = React.useCallback(() => {
     if (!locale) return
 
-    every("GET /api/writings", { query: { kind, language: locale } })
+    every("writings.list", { query: { kind, language: locale } })
       .then((page) => setPosts(page.filter((p) => p.kind === kind)))
       .catch((why: unknown) => {
         toast.error(said(why))
@@ -92,17 +92,17 @@ export function ContentList({ kind }: { kind: string }) {
     try {
       for (const id of chosen) {
         if (act === "publish") {
-          await api("PATCH /api/writings/{id}", {
+          await api("writings.change", {
             path: { id },
             body: { publish_at: new Date().toISOString() },
           })
         } else if (act === "unpublish") {
-          await api("PATCH /api/writings/{id}", {
+          await api("writings.change", {
             path: { id },
             body: { publish_at: null },
           })
         } else if (act === "trash") {
-          await api("DELETE /api/writings/{id}", { path: { id } })
+          await api("writings.throw-away", { path: { id } })
         }
       }
 
@@ -118,7 +118,7 @@ export function ContentList({ kind }: { kind: string }) {
     if (!going) return
 
     try {
-      await api("DELETE /api/writings/{id}", { path: { id: going.id } })
+      await api("writings.throw-away", { path: { id: going.id } })
       load()
       toast.success(t`${one} deleted`)
     } catch (why) {

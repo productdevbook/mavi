@@ -46,7 +46,7 @@ export function StudentsPage() {
   )
 
   const load = React.useCallback(() => {
-    every("GET /api/students")
+    every("students.list")
       .then(setStudents)
       .catch((why: unknown) => {
         toast.error(said(why))
@@ -57,7 +57,7 @@ export function StudentsPage() {
   React.useEffect(load, [load])
 
   React.useEffect(() => {
-    every("GET /api/courses")
+    every("courses.list")
       .then(setCourses)
       .catch((why: unknown) => {
         toast.error(said(why))
@@ -166,7 +166,7 @@ function GiveAccess({
     try {
       let studentId = known ? student.id : ""
       if (!known) {
-        const created = await api("POST /api/students", {
+        const created = await api("students.ask", {
           body: {
             email,
             name: name.trim() || email,
@@ -175,7 +175,7 @@ function GiveAccess({
         studentId = created.id
       }
 
-      await api("POST /api/courses/{id}/students", {
+      await api("enrolments.add", {
         path: { id: course },
         body: {
           student: studentId,

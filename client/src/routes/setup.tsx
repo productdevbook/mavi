@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label"
 
 export const Route = createFileRoute("/setup")({
   loader: async () => {
-    const site = await api("GET /api/open/site").catch(() => null)
+    const site = await api("open.site").catch(() => null)
 
     if (site) {
       throw redirect({ to: "/dashboard" })
@@ -55,7 +55,7 @@ function SetupRoute() {
     setRefused("")
 
     try {
-      await api("POST /api/setup", {
+      await api("setup.once", {
         body: {
           site: siteName.trim() || "Mavi CMS",
           email: email.trim(),

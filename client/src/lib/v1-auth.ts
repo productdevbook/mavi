@@ -37,7 +37,7 @@ export async function signIn(
   moment?: string,
 ): Promise<SigningIn> {
   if (moment && secondFactor) {
-    const session = await api("POST /api/sessions/finish", {
+    const session = await api("sessions.finish", {
       body: {
         moment,
         code: secondFactor.trim(),
@@ -47,7 +47,7 @@ export async function signIn(
     return { done: true, session }
   }
 
-  const wayIn: WayIn = await api("POST /api/sessions", {
+  const wayIn: WayIn = await api("sessions.begin", {
     body: {
       email,
       password,
@@ -76,7 +76,7 @@ export async function signIn(
 }
 
 export async function whoAmI(): Promise<Me> {
-  const settings = await api("GET /api/settings")
+  const settings = await api("settings.read")
   return {
     grants: [],
     site: settings.name,
@@ -84,7 +84,7 @@ export async function whoAmI(): Promise<Me> {
 }
 
 export async function signOut(): Promise<void> {
-  await api("DELETE /api/sessions")
+  await api("sessions.end")
 }
 
 /** Whether somebody holds a grant, for a screen deciding what to show. */

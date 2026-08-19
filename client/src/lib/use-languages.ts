@@ -12,7 +12,7 @@ export function useLanguages() {
   const [loading, setLoading] = React.useState(true)
 
   React.useEffect(() => {
-    api("GET /api/languages")
+    api("languages.list")
       .then(setLanguages)
       .catch(() => setLanguages([]))
       .finally(() => setLoading(false))

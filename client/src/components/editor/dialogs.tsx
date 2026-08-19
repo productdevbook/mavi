@@ -109,7 +109,7 @@ function ImageUrlDialog({ editor, open, onClose }: DialogPartProps) {
 
   React.useEffect(() => {
     if (!open || library) return
-    every("GET /api/files")
+    every("files.list")
       .then(setLibrary)
       .catch(() => setLibrary([]))
   }, [open, library])

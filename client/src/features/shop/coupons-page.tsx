@@ -3,7 +3,7 @@ import { useLingui } from "@lingui/react/macro"
 import { Loader2, Plus, Tag, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
-import { api, every } from "@/lib/v1"
+import { api } from "@/lib/v1"
 import { said } from "@/lib/v1-said"
 import { money } from "@/lib/money"
 import type { Coupon } from "@api"
@@ -29,7 +29,7 @@ export function CouponsPage() {
   const [making, setMaking] = React.useState(false)
 
   const load = React.useCallback(() => {
-    every("GET /api/coupons")
+    api("coupons.list")
       .then(setRows)
       .catch((why: unknown) => {
         toast.error(said(why))
@@ -41,7 +41,7 @@ export function CouponsPage() {
 
   const stop = async (row: Coupon) => {
     try {
-      await api("DELETE /api/coupons/{code}", { path: { code: row.code } })
+      await api("coupons.remove", { path: { code: row.code } })
       load()
       toast.success(t`Removed`)
     } catch (why) {
@@ -152,7 +152,7 @@ function NewCoupon({ onDone }: { onDone: () => void }) {
     setBusy(true)
 
     try {
-      await api("POST /api/coupons", {
+      await api("coupons.make", {
         body: {
           code: code.trim().toUpperCase(),
           percent: kind === "percent" ? Number(amount) : null,

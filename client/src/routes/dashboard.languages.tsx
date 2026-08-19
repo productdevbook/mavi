@@ -40,7 +40,7 @@ function LanguagesRoute() {
   const [going, setGoing] = React.useState<Language | null>(null)
 
   const load = React.useCallback(() => {
-    api("GET /api/languages")
+    api("languages.list")
       .then(setLanguages)
       .catch((why: unknown) => {
         toast.error(said(why))
@@ -54,7 +54,7 @@ function LanguagesRoute() {
     if (!code.trim()) return
 
     try {
-      await api("POST /api/languages", {
+      await api("languages.add", {
         body: { tag: code.trim(), name: name.trim() || code.trim() },
       })
       setCode("")
@@ -67,7 +67,7 @@ function LanguagesRoute() {
 
   const makeDefault = async (language: Language) => {
     try {
-      await api("PUT /api/languages/{tag}/own", {
+      await api("languages.make-own", {
         path: { tag: language.tag },
       })
       load()
@@ -80,7 +80,7 @@ function LanguagesRoute() {
     if (!going) return
 
     try {
-      await api("DELETE /api/languages/{tag}", { path: { tag: going.tag } })
+      await api("languages.forget", { path: { tag: going.tag } })
       load()
     } catch (why) {
       toast.error(said(why))

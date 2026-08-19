@@ -17,7 +17,7 @@ export async function requireAuth(currentHref: string): Promise<{
   /** What this site calls itself, for the tab and the header. */
   site: string | null
 }> {
-  const settings = await api("GET /api/settings").catch(() => {
+  const settings = await api("settings.read").catch(() => {
     throw redirect({ to: "/login", search: { redirect: currentHref } })
   })
 

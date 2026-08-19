@@ -68,8 +68,8 @@ function FormSubmissionsRoute() {
 
   const load = React.useCallback(() => {
     Promise.all([
-      api("GET /api/forms/{id}", { path: { id: formId } }),
-      every("GET /api/forms/{id}/filled", { path: { id: formId } }),
+      api("forms.read", { path: { id: formId } }),
+      every("forms.filled", { path: { id: formId } }),
     ])
       .then(([one, submissions]) => {
         setForm(one as Form)
@@ -82,7 +82,7 @@ function FormSubmissionsRoute() {
 
   const remove = async (submission: Submission) => {
     try {
-      await api("DELETE /api/filled/{id}", {
+      await api("filled.forget", {
         path: { id: submission.id },
       })
       setRows((held) => (held ?? []).filter((row) => row.id !== submission.id))

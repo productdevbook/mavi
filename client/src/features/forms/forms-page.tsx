@@ -64,7 +64,7 @@ export function FormsPage() {
   const [removing, setRemoving] = React.useState<Form | null>(null)
 
   const load = React.useCallback(() => {
-    every("GET /api/forms")
+    every("forms.list")
       .then(setForms)
       .catch((why: unknown) => {
         toast.error(said(why))
@@ -81,7 +81,7 @@ export function FormsPage() {
 
     try {
       if (draft.id) {
-        await api("PATCH /api/forms/{id}", {
+        await api("forms.change", {
           path: { id: draft.id },
           body: {
             name: draft.name.trim(),
@@ -91,7 +91,7 @@ export function FormsPage() {
           },
         })
       } else {
-        await api("POST /api/forms", {
+        await api("forms.make", {
           body: {
             slug: draft.slug.trim() || keyed(draft.name),
             name: draft.name.trim(),
@@ -115,7 +115,7 @@ export function FormsPage() {
     if (!removing) return
 
     try {
-      await api("DELETE /api/forms/{id}", { path: { id: removing.id } })
+      await api("forms.remove", { path: { id: removing.id } })
       load()
     } catch (why) {
       toast.error(said(why))

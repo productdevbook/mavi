@@ -24,7 +24,7 @@ export function UsagePage() {
   React.useEffect(() => {
     let current = true
 
-    api("GET /api/overview")
+    api("site.overview")
       .then((found) => current && setAnswer(found))
       .catch((why: unknown) => {
         if (!current) return

@@ -4,7 +4,7 @@ import { useLingui } from "@lingui/react/macro"
 import { KanbanSquare, Loader2, Plus, Trash2, X } from "lucide-react"
 import { toast } from "sonner"
 
-import { api, every } from "@/lib/v1"
+import { api } from "@/lib/v1"
 import { said } from "@/lib/v1-said"
 import type { Board } from "@api"
 import { Button } from "@/components/ui/button"
@@ -57,7 +57,7 @@ export function BoardsPage() {
   const [going, setGoing] = React.useState<Board | null>(null)
 
   const load = React.useCallback(() => {
-    every("GET /api/boards")
+    api("boards.list")
       .then(setBoards)
       .catch((why: unknown) => {
         toast.error(said(why))
@@ -71,7 +71,7 @@ export function BoardsPage() {
     setBusy(true)
 
     try {
-      await api("POST /api/boards", {
+      await api("boards.make", {
         body: {
           name: name.trim(),
           stages: stages.map((stage) => stage.trim()).filter(Boolean),
@@ -91,7 +91,7 @@ export function BoardsPage() {
     if (!going) return
 
     try {
-      await api("DELETE /api/boards/{id}", { path: { id: going.id } })
+      await api("boards.remove", { path: { id: going.id } })
       load()
     } catch (why) {
       toast.error(said(why))

@@ -59,7 +59,7 @@ function ForgottenRoute() {
 
     void (async () => {
       try {
-        await api("POST /api/addresses", { body: { token: link } })
+        await api("addresses.prove", { body: { token: link } })
         if (live) setProof("proved")
       } catch {
         if (live) setProof("elsewhere")
@@ -89,7 +89,7 @@ function ForgottenRoute() {
     setRefused("")
 
     try {
-      await api("POST /api/passwords", {
+      await api("passwords.choose", {
         body: { token: token ?? "", password },
       })
       await navigate({ to: "/login" })

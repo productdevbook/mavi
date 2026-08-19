@@ -51,6 +51,26 @@ User-Agent values never enter the limiter buckets or security audit payloads;
 the in-process adapter is bounded and records only the first edge-limit event
 per source/action window.
 
+## Self-host image
+
+The release image is built from this workspace only. It runs as a non-root
+user, persists site files below `/data/files`, listens on `0.0.0.0:8080` and
+does not include the legacy `server/` workspace or panel. The panel is a later
+generated-client slice; deploying it beside this image would mix incompatible
+API contracts.
+
+For a local image build:
+
+```bash
+docker compose -f ../docker-compose.dev.yml up --build
+```
+
+For a published image, use the root `docker-compose.yml` and pin
+`MAVI_VERSION` to a release tag. Keep `MAVI_SITE_ID`, `MAVI_KEYS`, the
+PostgreSQL data and `/data` stable across upgrades. The binary applies pending
+SQL migrations before it starts serving traffic; a failed migration prevents
+the listener from opening.
+
 Operational probes are global and do not require a site `Host`: `/healthz`
 reports process liveness, `/readyz` checks the shared database, and `/metrics`
 exposes process-local HTTP and worker counters in Prometheus text format.

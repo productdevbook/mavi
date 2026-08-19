@@ -1,4 +1,4 @@
-# Runs the published images. To build from this checkout instead:
+# Runs the published clean Mavi runtime. To build from this checkout instead:
 #   docker compose -f docker-compose.dev.yml up --build
 services:
   postgres:
@@ -27,8 +27,10 @@ services:
       # Point this at any PostgreSQL you like — the bundled "postgres"
       # service above is just the default.
       DATABASE_URL: ${DATABASE_URL:-postgres://${POSTGRES_USER:-mavi}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-mavi}}
-      HOST: 0.0.0.0
-      PORT: 8080
+      LISTEN: 0.0.0.0:8080
+      MAVI_RUNTIME_MODE: fixed_site
+      MAVI_SITE_ID: ${MAVI_SITE_ID:?set MAVI_SITE_ID in .env — see .env.example}
+      MAVI_FILES_DIR: /data/files
       RUST_LOG: ${RUST_LOG:-info}
       # What seals every secret a site keeps: its mail password, its payment
       # keys. Asked for rather than defaulted, because a default here would
@@ -36,14 +38,6 @@ services:
       # because a key that changes on restart is a site whose secrets are
       # unreadable afterwards.
       MAVI_KEYS: ${MAVI_KEYS:?set MAVI_KEYS in .env — see .env.example}
-      # The address this answers on, as somebody outside would type it. Asked
-      # for rather than defaulted: it is what a link in a letter is built from,
-      # a job sending one has no request to take an address off, and a guess
-      # here would send everybody links that work on this machine alone.
-      MAVI_URL: ${MAVI_URL:?set MAVI_URL in .env — see .env.example}
-      # api, worker, or both. One process can do both; two make the queue
-      # somebody else's problem when the API is busy.
-      MAVI_ROLE: ${MAVI_ROLE:-both}
     volumes:
       # Uploaded media and the key that encrypts stored credentials live here.
       # Without this volume both are lost on every restart.
@@ -51,32 +45,15 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    # Reached by the frontend over the compose network, by name, and not
-    # published to the host. Published, it was a way round that frontend —
-    # which is what puts the caller's real address on a request. Everything
-    # keyed on that address (how often somebody may try a password, what the
-    # log says a change was made from) is decided from a header the caller
-    # writes, so a direct port lets one caller look like as many as it likes.
+    # The API is reached through Caddy rather than published directly. This
+    # leaves one trusted proxy boundary for forwarded client signals.
     #
     # To reach it while working on something, and only then:
     #   ports: ["127.0.0.1:8080:8080"]
     expose:
       - "8080"
 
-  panel:
-    image: ghcr.io/productdevbook/mavi-panel:${MAVI_VERSION:-latest}
-    restart: unless-stopped
-    depends_on:
-      - api
-    # Reached through caddy rather than published: one way in means one place
-    # where the visitor's real address is written down, and everything that is
-    # decided from that address — how often somebody may try a password, what
-    # the record says a change was made from — is decided from a header the
-    # proxy sets rather than one a caller can write.
-    expose:
-      - "80"
-
-  # Certificates, and the address a site answers on. Anything can stand here —
+  # Certificates, and the address the API answers on. Anything can stand here —
   # this is nginx, Traefik, or whatever is already in front of your machine —
   # as long as it passes the `Host` header through and sets `X-Forwarded-For`
   # and `X-Forwarded-Proto`. Caddy is here because it asks for a certificate
@@ -85,7 +62,7 @@ services:
     image: caddy:2-alpine
     restart: unless-stopped
     depends_on:
-      - panel
+      - api
     environment:
       # The address this answers on. Left as it is, it serves plain HTTP on
       # localhost, which is what you want while you are looking at it and

@@ -1,0 +1,6 @@
+target
+**/tests
+.git
+.github
+*.md
+*.log

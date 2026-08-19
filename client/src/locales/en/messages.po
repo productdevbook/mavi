@@ -921,7 +921,8 @@ msgstr "A new code"
 #~ msgid "A new course"
 #~ msgstr "A new course"
 
-#: src/routes/dashboard.design.tsx:185
+#: src/features/design/design-page.tsx:184
+#: src/features/design/design-page.tsx:234
 msgid "A new file"
 msgstr "A new file"
 
@@ -1035,6 +1036,10 @@ msgstr "A site already answers to that name."
 #: src/routes/dashboard.platform-mail.tsx:250
 #~ msgid "A site starts at 200 a day — a contact form and some notifications, not a mailing list. Nought stops it without taking anything away: the lists and the history stay, and raising the number starts it again."
 #~ msgstr "A site starts at 200 a day — a contact form and some notifications, not a mailing list. Nought stops it without taking anything away: the lists and the history stay, and raising the number starts it again."
+
+#: src/features/design/design-page.tsx:225
+msgid "A site with no files of its own is served whatever its build makes from nothing."
+msgstr "A site with no files of its own is served whatever its build makes from nothing."
 
 #: src/lib/v1-said.ts:59
 msgid "A site writes in one language unless a post says otherwise, so there has to be one."
@@ -2152,7 +2157,7 @@ msgstr "Bold"
 #~ msgid "Branch"
 #~ msgstr "Branch"
 
-#: src/routes/dashboard.publish.tsx:38
+#: src/features/design/publish-page.tsx:37
 msgid "Broken"
 msgstr "Broken"
 
@@ -2164,9 +2169,13 @@ msgstr "Brown"
 #~ msgid "Bucket"
 #~ msgstr "Bucket"
 
-#: src/routes/dashboard.design.tsx:93
+#: src/features/design/design-page.tsx:85
 msgid "Build a preview"
 msgstr "Build a preview"
+
+#: src/features/design/publish-page.tsx:54
+msgid "Build and publish a design change to put a version live."
+msgstr "Build and publish a design change to put a version live."
 
 #: src/components/publish-panel.tsx:228
 #~ msgid "Build command"
@@ -2200,7 +2209,7 @@ msgstr "Build modules and lessons for this course."
 #~ msgid "Building only what changed"
 #~ msgstr "Building only what changed"
 
-#: src/routes/dashboard.design.tsx:40
+#: src/features/design/design-page.tsx:39
 msgid "Building preview."
 msgstr "Building preview."
 
@@ -2335,6 +2344,7 @@ msgstr "Can open {summary} of {0} areas."
 #: src/features/boards/boards-page.tsx:212
 #: src/features/boards/boards-page.tsx:234
 #: src/features/content/content-list.tsx:316
+#: src/features/design/design-page.tsx:214
 #: src/features/forms/forms-page.tsx:306
 #: src/features/forms/forms-page.tsx:328
 #: src/features/learning/students-page.tsx:246
@@ -2348,7 +2358,6 @@ msgstr "Can open {summary} of {0} areas."
 #: src/features/taxonomy/categories-page.tsx:332
 #: src/features/taxonomy/tags-page.tsx:189
 #: src/features/taxonomy/tags-page.tsx:241
-#: src/routes/dashboard.design.tsx:213
 #: src/routes/dashboard.languages.tsx:183
 #: src/routes/dashboard.mail.tsx:268
 #: src/routes/dashboard.mail.tsx:332
@@ -2559,7 +2568,7 @@ msgstr "Clear formatting"
 #~ msgstr "Clocked work, bills and server use, one site at a time."
 
 #: src/components/editor/find-replace.tsx:75
-#: src/routes/dashboard.design.tsx:259
+#: src/features/design/design-page.tsx:272
 msgid "Close"
 msgstr "Close"
 
@@ -3594,8 +3603,8 @@ msgid "Description text shown in search results."
 msgstr "Description text shown in search results."
 
 #: src/components/dashboard/dashboard-shell.tsx:115
+#: src/features/design/design-page.tsx:62
 #: src/features/people/roles-page.tsx:162
-#: src/routes/dashboard.design.tsx:66
 msgid "Design"
 msgstr "Design"
 
@@ -3768,7 +3777,7 @@ msgstr "Edit"
 #~ msgid "Edit board"
 #~ msgstr "Edit board"
 
-#: src/routes/dashboard.design.tsx:69
+#: src/features/design/design-page.tsx:63
 msgid "Edit site templates and static files."
 msgstr "Edit site templates and static files."
 
@@ -5247,7 +5256,7 @@ msgid "Lists"
 msgstr "Lists"
 
 #: src/components/dashboard/discoverability.tsx:87
-#: src/routes/dashboard.publish.tsx:39
+#: src/features/design/publish-page.tsx:38
 msgid "Live"
 msgstr "Live"
 
@@ -5271,7 +5280,7 @@ msgstr "Long text"
 msgid "Look"
 msgstr "Look"
 
-#: src/routes/dashboard.design.tsx:81
+#: src/features/design/design-page.tsx:73
 msgid "Look at it"
 msgstr "Look at it"
 
@@ -6234,7 +6243,7 @@ msgstr "Nothing has been handed over."
 #~ msgid "Nothing has been moved yet."
 #~ msgstr "Nothing has been moved yet."
 
-#: src/routes/dashboard.publish.tsx:59
+#: src/features/design/publish-page.tsx:53
 msgid "Nothing has been published yet."
 msgstr "Nothing has been published yet."
 
@@ -6396,13 +6405,13 @@ msgstr "Nothing was declared called {0}, so nothing can be asked about it."
 #~ msgid "Nothing written yet"
 #~ msgstr "Nothing written yet"
 
-#: src/routes/dashboard.mail.tsx:212
-#~ msgid "Nothing written yet."
-#~ msgstr "Nothing written yet."
+#: src/features/design/design-page.tsx:224
+msgid "Nothing written yet."
+msgstr "Nothing written yet."
 
 #: src/routes/dashboard.design.tsx:223
-msgid "Nothing written yet. A site with no files of its own is served whatever its build makes from nothing."
-msgstr "Nothing written yet. A site with no files of its own is served whatever its build makes from nothing."
+#~ msgid "Nothing written yet. A site with no files of its own is served whatever its build makes from nothing."
+#~ msgstr "Nothing written yet. A site with no files of its own is served whatever its build makes from nothing."
 
 #: src/routes/console.accounts.tsx:78
 #: src/routes/dashboard.billing.tsx:106
@@ -7235,9 +7244,9 @@ msgstr "Products"
 
 #: src/components/dashboard/dashboard-shell.tsx:118
 #: src/components/editor/mavi-editor.tsx:684
+#: src/features/design/design-page.tsx:89
+#: src/features/design/publish-page.tsx:44
 #: src/features/people/roles-page.tsx:163
-#: src/routes/dashboard.design.tsx:97
-#: src/routes/dashboard.publish.tsx:45
 msgid "Publish"
 msgstr "Publish"
 
@@ -7285,7 +7294,7 @@ msgstr "Published"
 #~ msgid "Publishing these is what proves the domain is yours, and what lets Amazon sign as you. Nothing sends until they are up."
 #~ msgstr "Publishing these is what proves the domain is yours, and what lets Amazon sign as you. Nothing sends until they are up."
 
-#: src/routes/dashboard.design.tsx:53
+#: src/features/design/design-page.tsx:52
 msgid "Publishing."
 msgstr "Publishing."
 
@@ -7417,7 +7426,7 @@ msgstr "readers reached"
 #~ msgid "Ready to be fetched"
 #~ msgstr "Ready to be fetched"
 
-#: src/routes/dashboard.publish.tsx:37
+#: src/features/design/publish-page.tsx:36
 msgid "Ready to preview"
 msgstr "Ready to preview"
 
@@ -7794,13 +7803,13 @@ msgstr "Samples"
 #: src/components/dashboard/content-type-editor.tsx:224
 #: src/components/editor/mavi-editor.tsx:677
 #: src/components/editor/mavi-editor.tsx:681
+#: src/features/design/design-page.tsx:211
+#: src/features/design/design-page.tsx:265
 #: src/features/forms/forms-page.tsx:310
 #: src/features/settings/settings-page.tsx:82
 #: src/features/shop/coupons-page.tsx:247
 #: src/features/taxonomy/categories-page.tsx:281
 #: src/features/taxonomy/tags-page.tsx:181
-#: src/routes/dashboard.design.tsx:210
-#: src/routes/dashboard.design.tsx:252
 #: src/routes/dashboard.letters.tsx:208
 #: src/routes/dashboard.plugins.tsx:171
 msgid "Save"
@@ -7860,7 +7869,7 @@ msgstr "Saved at {0}"
 #~ msgid "Saved to the draft."
 #~ msgstr "Saved to the draft."
 
-#: src/routes/dashboard.design.tsx:164
+#: src/features/design/design-page.tsx:163
 msgid "Saved."
 msgstr "Saved."
 
@@ -9193,7 +9202,7 @@ msgstr "The curve draws itself from the first visit on."
 #~ msgid "The faded ones need something set up first, and say what underneath."
 #~ msgstr "The faded ones need something set up first, and say what underneath."
 
-#: src/routes/dashboard.design.tsx:175
+#: src/features/design/design-page.tsx:174
 msgid "The files"
 msgstr "The files"
 
@@ -9246,7 +9255,7 @@ msgstr "The languages, what things are filed under, and what has been written. N
 #~ msgid "The last backup failed: {0}"
 #~ msgstr "The last backup failed: {0}"
 
-#: src/routes/dashboard.design.tsx:106
+#: src/features/design/design-page.tsx:99
 msgid "The last build did not work"
 msgstr "The last build did not work"
 
@@ -10305,7 +10314,7 @@ msgstr "What has already come in goes with it."
 #~ msgid "What has been published, and what it cost in seconds. A build that fails leaves what is live alone."
 #~ msgstr "What has been published, and what it cost in seconds. A build that fails leaves what is live alone."
 
-#: src/routes/dashboard.publish.tsx:47
+#: src/features/design/publish-page.tsx:45
 msgid "What has been published. A set of changes leaves what is live alone until published."
 msgstr "What has been published. A set of changes leaves what is live alone until published."
 
@@ -10603,7 +10612,7 @@ msgstr "What we hold about somebody"
 #~ msgid "What went in"
 #~ msgstr "What went in"
 
-#: src/routes/dashboard.publish.tsx:90
+#: src/features/design/publish-page.tsx:82
 msgid "What went wrong"
 msgstr "What went wrong"
 
@@ -10997,7 +11006,7 @@ msgstr "Write"
 #~ msgid "Write time in"
 #~ msgstr "Write time in"
 
-#: src/routes/dashboard.publish.tsx:36
+#: src/features/design/publish-page.tsx:35
 msgid "Writing"
 msgstr "Writing"
 

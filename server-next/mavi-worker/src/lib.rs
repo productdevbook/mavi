@@ -5,13 +5,7 @@
 //! as the domain result. Every worker mutation uses the explicit `system`
 //! caller so background work never appears as anonymous public activity.
 
-use std::{
-    sync::{
-        Arc,
-        atomic::{AtomicU64, Ordering},
-    },
-    time::Duration,
-};
+use std::{sync::Arc, time::Duration};
 
 use chrono::Utc;
 use mavi_audit::{AuditEntry, AuditService};
@@ -20,6 +14,7 @@ use mavi_content::{
 };
 use mavi_core::{MaviError, RequestId, Result, SiteContext, SiteId};
 use mavi_jobs::{DEFAULT_LEASE_SECONDS, JobClaim, JobsService, LeaseOutcome};
+pub use mavi_observability::{WorkerMetrics, WorkerMetricsSnapshot};
 use mavi_storage::{Database, SiteTx};
 use serde_json::json;
 use tokio::sync::RwLock;
@@ -68,58 +63,6 @@ impl Default for WorkerConfig {
     }
 }
 
-/// Process-local counters for the shared worker supervisor.
-///
-/// The counters deliberately do not depend on a metrics backend. Self-host
-/// can expose a snapshot directly, while the operator can export the same
-/// values to its own telemetry pipeline without changing job execution.
-#[derive(Clone, Debug, Default)]
-pub struct WorkerMetrics {
-    inner: Arc<WorkerMetricCounters>,
-}
-
-#[derive(Debug, Default)]
-struct WorkerMetricCounters {
-    polls: AtomicU64,
-    claims: AtomicU64,
-    completed: AtomicU64,
-    failed: AtomicU64,
-    deferred: AtomicU64,
-    lost_leases: AtomicU64,
-    errors: AtomicU64,
-}
-
-/// A consistent, copyable view of worker activity.
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub struct WorkerMetricsSnapshot {
-    pub polls: u64,
-    pub claims: u64,
-    pub completed: u64,
-    pub failed: u64,
-    pub deferred: u64,
-    pub lost_leases: u64,
-    pub errors: u64,
-}
-
-impl WorkerMetrics {
-    #[must_use]
-    pub fn snapshot(&self) -> WorkerMetricsSnapshot {
-        WorkerMetricsSnapshot {
-            polls: self.inner.polls.load(Ordering::Relaxed),
-            claims: self.inner.claims.load(Ordering::Relaxed),
-            completed: self.inner.completed.load(Ordering::Relaxed),
-            failed: self.inner.failed.load(Ordering::Relaxed),
-            deferred: self.inner.deferred.load(Ordering::Relaxed),
-            lost_leases: self.inner.lost_leases.load(Ordering::Relaxed),
-            errors: self.inner.errors.load(Ordering::Relaxed),
-        }
-    }
-
-    fn increment(counter: &AtomicU64) {
-        counter.fetch_add(1, Ordering::Relaxed);
-    }
-}
-
 #[derive(Clone, Debug)]
 pub struct WorkerSupervisor {
     database: Database,
@@ -136,13 +79,22 @@ impl WorkerSupervisor {
         sites: impl IntoIterator<Item = SiteId>,
         config: WorkerConfig,
     ) -> Self {
+        Self::new_with_metrics(database, sites, config, WorkerMetrics::default())
+    }
+
+    pub fn new_with_metrics(
+        database: Database,
+        sites: impl IntoIterator<Item = SiteId>,
+        config: WorkerConfig,
+        metrics: WorkerMetrics,
+    ) -> Self {
         Self {
             database,
             sites: Arc::new(RwLock::new(site_snapshot(sites))),
             jobs: JobsService::new([SCHEDULED_PUBLISH_JOB]),
             content: ContentService,
             config,
-            metrics: WorkerMetrics::default(),
+            metrics,
         }
     }
 
@@ -191,10 +143,10 @@ impl WorkerSupervisor {
     /// This method is intentionally public so self-host smoke tests and a
     /// future operator-managed supervisor can drive the exact same worker.
     pub async fn run_once(&self, site_id: SiteId) -> Result<bool> {
-        WorkerMetrics::increment(&self.metrics.inner.polls);
+        self.metrics.record_poll();
         let result = self.run_once_inner(site_id).await;
         if result.is_err() {
-            WorkerMetrics::increment(&self.metrics.inner.errors);
+            self.metrics.record_error();
         }
         result
     }
@@ -217,7 +169,7 @@ impl WorkerSupervisor {
         let Some(claim) = claim else {
             return Ok(false);
         };
-        WorkerMetrics::increment(&self.metrics.inner.claims);
+        self.metrics.record_claim();
         self.execute_claim(site_id, claim).await?;
         Ok(true)
     }
@@ -300,11 +252,11 @@ impl WorkerSupervisor {
     ) -> Result<()> {
         match self.jobs.complete(&mut transaction, context, claim).await? {
             LeaseOutcome::Completed => {
-                WorkerMetrics::increment(&self.metrics.inner.completed);
+                self.metrics.record_completed();
                 transaction.commit().await?;
             }
             LeaseOutcome::Lost => {
-                WorkerMetrics::increment(&self.metrics.inner.lost_leases);
+                self.metrics.record_lost_lease();
             }
         }
         Ok(())
@@ -323,11 +275,11 @@ impl WorkerSupervisor {
             .await?
         {
             LeaseOutcome::Completed => {
-                WorkerMetrics::increment(&self.metrics.inner.deferred);
+                self.metrics.record_deferred();
                 transaction.commit().await?;
             }
             LeaseOutcome::Lost => {
-                WorkerMetrics::increment(&self.metrics.inner.lost_leases);
+                self.metrics.record_lost_lease();
             }
         }
         Ok(())
@@ -346,11 +298,11 @@ impl WorkerSupervisor {
             .await?
         {
             LeaseOutcome::Completed => {
-                WorkerMetrics::increment(&self.metrics.inner.failed);
+                self.metrics.record_failed();
                 transaction.commit().await?;
             }
             LeaseOutcome::Lost => {
-                WorkerMetrics::increment(&self.metrics.inner.lost_leases);
+                self.metrics.record_lost_lease();
             }
         }
         Ok(())

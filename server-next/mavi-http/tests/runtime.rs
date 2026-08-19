@@ -1,6 +1,9 @@
 mod support;
 
-use axum::http::{Method, StatusCode};
+use axum::{
+    body::to_bytes,
+    http::{Method, StatusCode},
+};
 use serde_json::Value;
 use support::{response_json, send};
 use uuid::Uuid;
@@ -49,4 +52,20 @@ async fn liveness_and_readiness_are_global_in_shard_mode() {
         .expect("readiness request id");
     assert!(Uuid::parse_str(readiness_request_id).is_ok());
     assert_ne!(liveness_request_id, readiness_request_id);
+
+    let metrics = support::send(&app, Method::GET, "/metrics", None, None).await;
+    assert_eq!(metrics.status(), StatusCode::OK);
+    assert_eq!(
+        metrics
+            .headers()
+            .get("content-type")
+            .and_then(|value| value.to_str().ok()),
+        Some("text/plain; version=0.0.4; charset=utf-8")
+    );
+    let metrics_body = to_bytes(metrics.into_body(), usize::MAX)
+        .await
+        .expect("metrics body");
+    let metrics_body = String::from_utf8(metrics_body.to_vec()).expect("metrics text");
+    assert!(metrics_body.contains("mavi_http_requests_total"));
+    assert!(metrics_body.contains("mavi_worker_polls_total"));
 }

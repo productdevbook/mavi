@@ -3,7 +3,8 @@ use std::{env, net::SocketAddr, sync::Arc, time::Duration};
 use mavi_core::{MaviError, Result, SiteId};
 use mavi_design::StaticBuildEngine;
 use mavi_files::DirectoryFileStore;
-use mavi_http::{EdgeSecurityConfig, router_with_config};
+use mavi_http::EdgeSecurityConfig;
+use mavi_observability::RuntimeMetrics;
 use mavi_runtime::{
     FixedSiteResolver, HostSiteResolver, Runtime, RuntimeMode, SiteResolver, parse_site_id,
 };
@@ -97,15 +98,22 @@ where
 {
     let worker_database = database.clone();
     let runtime = Runtime::new(database, resolver);
-    let router = router_with_config(
+    let metrics = RuntimeMetrics::default();
+    let router = mavi_http::router_with_config_and_metrics(
         runtime,
         file_store,
         Arc::new(StaticBuildEngine),
         sealer,
         edge,
+        metrics.clone(),
     )?
     .into_make_service_with_connect_info::<SocketAddr>();
-    let worker = mavi_worker::WorkerSupervisor::new(worker_database, sites, worker_config()?);
+    let worker = mavi_worker::WorkerSupervisor::new_with_metrics(
+        worker_database,
+        sites,
+        worker_config()?,
+        metrics.worker_metrics(),
+    );
     let worker_task = tokio::spawn(async move { worker.run().await });
     let result = axum::serve(listener, router)
         .await

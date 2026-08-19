@@ -1,0 +1,10 @@
+[package]
+name = "mavi-observability"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+description = "Process-local metrics primitives and Prometheus exposition for Mavi runtimes."
+
+[lints]
+workspace = true

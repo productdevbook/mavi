@@ -12,6 +12,7 @@ mavi-audit = { path = "../mavi-audit" }
 mavi-content = { path = "../mavi-content" }
 mavi-core = { path = "../mavi-core" }
 mavi-jobs = { path = "../mavi-jobs" }
+mavi-observability = { path = "../mavi-observability" }
 mavi-storage = { path = "../mavi-storage" }
 serde_json.workspace = true
 tokio.workspace = true

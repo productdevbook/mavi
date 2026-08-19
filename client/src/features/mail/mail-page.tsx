@@ -3,9 +3,9 @@ import { useLingui } from "@lingui/react/macro"
 import { Loader2, Plus, Send, Users } from "lucide-react"
 import { toast } from "sonner"
 
-import { api, every } from "@/lib/v1"
-import { said } from "@/lib/v1-said"
-import type { List as MailList, Reader as Subscriber } from "@legacy-api"
+import { api, every } from "@/lib/api"
+import { apiMessage } from "@/lib/auth"
+import type { MailList, MailReader as Subscriber } from "@api"
 import {
   DashboardEmpty,
   DashboardError,
@@ -32,6 +32,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 
+function slugged(value: string): string {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+}
+
 export function MailPage() {
   const { t } = useLingui()
 
@@ -52,10 +60,10 @@ export function MailPage() {
 
   const load = React.useCallback(() => {
     setError(false)
-    api("lists.list")
+    every("mail.lists.list", { query: {} })
       .then(setLists)
       .catch((why: unknown) => {
-        toast.error(said(why))
+        toast.error(apiMessage(why))
         setError(true)
         setLists([])
       })
@@ -69,13 +77,14 @@ export function MailPage() {
     if (people[id] && !refresh) return
 
     try {
-      const found = await every("readers.list", {
+      const found = await every("mail.readers.list", {
         path: { id },
+        query: {},
       })
 
       setPeople((held) => ({ ...held, [id]: found }))
     } catch (why) {
-      toast.error(said(why))
+      toast.error(apiMessage(why))
     }
   }
 
@@ -86,7 +95,7 @@ export function MailPage() {
     setBusy(true)
 
     try {
-      await api("readers.add", {
+      await api("mail.readers.add", {
         path: { id: targetListId },
         body: { email: joinEmail.trim() },
       })
@@ -100,7 +109,7 @@ export function MailPage() {
       })
       void look(targetListId, true)
     } catch (why) {
-      toast.error(said(why))
+      toast.error(apiMessage(why))
     } finally {
       setBusy(false)
     }
@@ -110,12 +119,14 @@ export function MailPage() {
     setBusy(true)
 
     try {
-      await api("lists.make", { body: { name: listName.trim() } })
+      await api("mail.lists.create", {
+        body: { name: listName.trim(), slug: slugged(listName) },
+      })
       setMakingList(false)
       setListName("")
       load()
     } catch (why) {
-      toast.error(said(why))
+      toast.error(apiMessage(why))
     } finally {
       setBusy(false)
     }
@@ -125,9 +136,17 @@ export function MailPage() {
     setBusy(true)
 
     try {
-      await api("sendings.send", {
+      const template = await api("mail.templates.create", {
+        body: {
+          key: `campaign-${Date.now()}`,
+          language: "und",
+          subject: subject.trim(),
+          body,
+        },
+      })
+      await api("mail.deliveries.campaign", {
         path: { id: listId },
-        body: { subject: subject.trim(), body },
+        body: { template_id: template.id },
       })
       setWriting(false)
       setSubject("")
@@ -135,7 +154,7 @@ export function MailPage() {
       toast.success(t`Sent to the list.`)
       load()
     } catch (why) {
-      toast.error(said(why))
+      toast.error(apiMessage(why))
     } finally {
       setBusy(false)
     }
@@ -193,7 +212,7 @@ export function MailPage() {
                 <span className="text-xs text-muted-foreground">
                   {people[list.id]
                     ? `${people[list.id].length} on it`
-                    : `${list.reading ?? 0} reading`}
+                    : `${list.subscriber_count} reading`}
                 </span>
               </button>
 

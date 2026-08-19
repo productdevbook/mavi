@@ -3,10 +3,10 @@ import { useLingui } from "@lingui/react/macro"
 import { Loader2, Plus, Tag, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
-import { api } from "@/lib/v1"
-import { said } from "@/lib/v1-said"
+import { api, every } from "@/lib/api"
+import { apiMessage } from "@/lib/auth"
 import { money } from "@/lib/money"
-import type { Coupon } from "@legacy-api"
+import type { Coupon } from "@api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -29,10 +29,10 @@ export function CouponsPage() {
   const [making, setMaking] = React.useState(false)
 
   const load = React.useCallback(() => {
-    api("coupons.list")
+    every("shop.coupons.list")
       .then(setRows)
       .catch((why: unknown) => {
-        toast.error(said(why))
+        toast.error(apiMessage(why))
         setRows((held) => held ?? [])
       })
   }, [])
@@ -41,20 +41,18 @@ export function CouponsPage() {
 
   const stop = async (row: Coupon) => {
     try {
-      await api("coupons.remove", { path: { code: row.code } })
+      await api("shop.coupons.delete", { path: { id: row.id } })
       load()
       toast.success(t`Removed`)
     } catch (why) {
-      toast.error(said(why))
+      toast.error(apiMessage(why))
     }
   }
 
   const worth = (row: Coupon) =>
     row.percent !== null && row.percent !== undefined
       ? `%${row.percent}`
-      : row.amount
-        ? money(row.amount.minor, row.amount.currency)
-        : ""
+      : moneyAmount(row.amount)
 
   if (making) {
     return (
@@ -103,9 +101,8 @@ export function CouponsPage() {
                 <p className="font-mono text-sm font-medium">{row.code}</p>
                 <p className="truncate text-xs text-muted-foreground">
                   {worth(row)}
-                  {row.at_most_uses !== null &&
-                    row.at_most_uses !== undefined && (
-                      <> · {t`max ${row.at_most_uses} uses`}</>
+                  {row.max_uses !== null && row.max_uses !== undefined && (
+                    <> · {t`max ${row.max_uses} uses`}</>
                     )}
                   {row.expires_at && (
                     <>
@@ -152,20 +149,20 @@ function NewCoupon({ onDone }: { onDone: () => void }) {
     setBusy(true)
 
     try {
-      await api("coupons.make", {
+      await api("shop.coupons.create", {
         body: {
           code: code.trim().toUpperCase(),
           percent: kind === "percent" ? Number(amount) : null,
           amount_minor: kind === "amount" ? minor(amount) : null,
           currency: kind === "amount" ? "TRY" : null,
-          at_most_uses: usesAllowed.trim() ? Number(usesAllowed) : null,
+          max_uses: usesAllowed.trim() ? Number(usesAllowed) : null,
           expires_at: expires.trim() ? `${expires}T23:59:59Z` : null,
         },
       })
       toast.success(t`Saved`)
       onDone()
     } catch (why) {
-      toast.error(said(why))
+      toast.error(apiMessage(why))
       setBusy(false)
     }
   }
@@ -252,4 +249,16 @@ function NewCoupon({ onDone }: { onDone: () => void }) {
       </div>
     </div>
   )
+}
+
+function moneyAmount(value: unknown): string {
+  if (!value || typeof value !== "object") {
+    return ""
+  }
+
+  const amount = value as { minor?: unknown; currency?: unknown }
+
+  return typeof amount.minor === "number" && typeof amount.currency === "string"
+    ? money(amount.minor, amount.currency)
+    : ""
 }

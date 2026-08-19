@@ -1644,7 +1644,9 @@ where
         )
         .route(
             "/api/v1/boards/cards/{id}",
-            get(read_board_card::<R>).patch(update_board_card::<R>),
+            get(read_board_card::<R>)
+                .patch(update_board_card::<R>)
+                .delete(delete_board_card::<R>),
         )
         .route("/api/v1/boards/cards/{id}/move", post(move_board_card::<R>))
         .route(
@@ -1951,6 +1953,31 @@ where
         .map_err(HttpError)?;
     transaction.commit().await.map_err(HttpError)?;
     Ok(Json(card))
+}
+
+async fn delete_board_card<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<BoardCardId>,
+) -> Result<StatusCode, HttpError>
+where
+    R: SiteResolver,
+{
+    require_boards_grant(
+        &state,
+        &context,
+        Action::Delete,
+        "BoardCard",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    state
+        .boards
+        .delete_card(&mut transaction, &context, id)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(StatusCode::NO_CONTENT)
 }
 
 async fn move_board_card<R>(

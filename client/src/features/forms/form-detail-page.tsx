@@ -4,9 +4,9 @@ import { useLingui } from "@lingui/react/macro"
 import { ArrowLeft, Check, Copy, RefreshCw, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
-import { api, every } from "@/lib/v1"
-import { said } from "@/lib/v1-said"
-import type { Form, FormField, Sent as Submission } from "@legacy-api"
+import { api, every } from "@/lib/api"
+import { apiMessage } from "@/lib/auth"
+import type { Form, FormField, FormSubmission as Submission } from "@api"
 import {
   DashboardEmpty,
   DashboardLoading,
@@ -64,25 +64,25 @@ export function FormDetailPage({ formId }: { formId: string }) {
   const load = React.useCallback(() => {
     Promise.all([
       api("forms.read", { path: { id: formId } }),
-      every("forms.filled", { path: { id: formId } }),
+      every("forms.submissions.list", { path: { id: formId }, query: {} }),
     ])
       .then(([one, submissions]) => {
         setForm(one)
         setRows(submissions)
       })
-      .catch((why: unknown) => toast.error(said(why)))
+      .catch((why: unknown) => toast.error(apiMessage(why)))
   }, [formId])
 
   React.useEffect(load, [load])
 
   const remove = async (submission: Submission) => {
     try {
-      await api("filled.forget", {
+      await api("forms.submissions.delete", {
         path: { id: submission.id },
       })
       setRows((held) => (held ?? []).filter((row) => row.id !== submission.id))
     } catch (why) {
-      toast.error(said(why))
+      toast.error(apiMessage(why))
     }
   }
 
@@ -92,7 +92,7 @@ export function FormDetailPage({ formId }: { formId: string }) {
 
   const fields = (form.fields as FormField[] | null) ?? []
 
-  const endpoint = `${window.location.origin}/api/open/forms/${form.slug}`
+  const endpoint = `${window.location.origin}/public/v1/forms/${form.slug}/submissions`
 
   const example = JSON.stringify(
     {

@@ -3,34 +3,30 @@ import { useLingui } from "@lingui/react/macro"
 import { Activity, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 
-import { api } from "@/lib/v1"
-import { said } from "@/lib/v1-said"
+import { api } from "@/lib/api"
+import { apiMessage } from "@/lib/auth"
 import { Badge } from "@/components/ui/badge"
-import type { Check } from "@legacy-api"
+import type { RuntimeManifest } from "@api"
 
 export function AddressHealth() {
   const { t } = useLingui()
-  const [checks, setChecks] = React.useState<Check[] | null>(null)
+  const [manifest, setManifest] = React.useState<RuntimeManifest | null>(null)
 
   React.useEffect(() => {
-    api("health.read")
-      .then((health) => setChecks(health.checks))
+    api("runtime.manifest.read")
+      .then(setManifest)
       .catch((why: unknown) => {
-        toast.error(said(why))
-        setChecks([])
+        toast.error(apiMessage(why))
+        setManifest(null)
       })
   }, [])
 
-  if (checks === null) {
+  if (manifest === null) {
     return (
       <div className="flex justify-center py-6">
         <Loader2 className="size-5 animate-spin text-muted-foreground" />
       </div>
     )
-  }
-
-  if (checks.length === 0) {
-    return null
   }
 
   return (
@@ -41,14 +37,16 @@ export function AddressHealth() {
       </div>
 
       <div className="flex flex-col divide-y divide-border">
-        {checks.map((check) => (
-          <div key={check.what} className="flex items-center justify-between py-2 text-sm">
-            <span>{check.what}</span>
-            <Badge variant={check.well ? "outline" : "destructive"}>
-              {check.well ? t`Healthy` : t`Issue`}
-            </Badge>
-          </div>
-        ))}
+        <div className="flex items-center justify-between py-2 text-sm">
+          <span>{t`Runtime ${manifest.runtime_mode}`}</span>
+          <Badge variant="outline">{t`Healthy`}</Badge>
+        </div>
+        <div className="flex items-center justify-between py-2 text-sm">
+          <span>{t`Release ${manifest.release}`}</span>
+          <span className="font-mono text-xs text-muted-foreground">
+            {manifest.api_contract_hash.slice(0, 12)}
+          </span>
+        </div>
       </div>
     </section>
   )

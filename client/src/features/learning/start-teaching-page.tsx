@@ -4,8 +4,8 @@ import { useLingui } from "@lingui/react/macro"
 import { Loader2 } from "lucide-react"
 import { toast } from "sonner"
 
-import { api } from "@/lib/v1"
-import { said } from "@/lib/v1-said"
+import { api } from "@/lib/api"
+import { apiMessage } from "@/lib/auth"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -41,7 +41,7 @@ export function StartTeachingPage() {
     setBusy(true)
 
     try {
-      const course = await api("courses.make", {
+      const course = await api("courses.create", {
         body: {
           slug: slug.trim() || slugged(title),
           title: title.trim(),
@@ -54,7 +54,7 @@ export function StartTeachingPage() {
         params: { courseId: course.id },
       })
     } catch (why) {
-      toast.error(said(why))
+      toast.error(apiMessage(why))
       setBusy(false)
     }
   }

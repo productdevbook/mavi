@@ -3,7 +3,6 @@ import { useLingui } from "@lingui/react/macro"
 import { ImagePlus, Loader2, MessageSquareWarning, X } from "lucide-react"
 import { toast } from "sonner"
 
-import { said } from "@/lib/v1-said"
 import { Badge } from "@/components/ui/badge"
 
 export interface Report {
@@ -98,17 +97,11 @@ export function ReportAProblem({ trigger }: { trigger?: React.ReactNode }) {
     setKind("broken")
   }
 
-  const submit = async () => {
+  const submit = () => {
     setSending(true)
-
-    try {
-      toast.success(t`Said. Whoever runs this machine can see it.`)
-      close()
-    } catch (why) {
-      toast.error(said(why))
-    } finally {
-      setSending(false)
-    }
+    toast.success(t`Said. Whoever runs this machine can see it.`)
+    close()
+    setSending(false)
   }
 
   return (
@@ -237,7 +230,7 @@ export function ReportAProblem({ trigger }: { trigger?: React.ReactNode }) {
             </Button>
             <Button
               disabled={sending || title.trim().length === 0}
-              onClick={() => void submit()}
+              onClick={submit}
             >
               {sending ? <Loader2 className="animate-spin" /> : null}
               {t`Send`}

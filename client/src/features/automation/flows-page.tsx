@@ -3,9 +3,9 @@ import { useLingui } from "@lingui/react/macro"
 import { Loader2, Plus, Trash2, Workflow } from "lucide-react"
 import { toast } from "sonner"
 
-import { api, every } from "@/lib/v1"
-import { said } from "@/lib/v1-said"
-import type { Flow, NewStep, Step } from "@legacy-api"
+import { api, every } from "@/lib/api"
+import { apiMessage } from "@/lib/auth"
+import type { Flow, StepKind, Trigger } from "@api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -32,25 +32,25 @@ import {
   DashboardPageHeader,
 } from "@/components/dashboard/dashboard-page"
 
-const TRIGGERS: Flow["trigger"][] = [
-  "something_was_published",
-  "somebody_filled_in_a_form",
-  "an_order_was_paid_for",
-  "an_order_went_out",
-  "somebody_was_put_on_a_course",
-  "somebody_finished_a_course",
+const TRIGGERS: Trigger[] = [
+  "content_published",
+  "form_submitted",
+  "order_paid",
+  "order_sent",
+  "course_enrollment_created",
+  "course_lesson_completed",
 ]
 
-const KINDS: Step["does"][] = [
-  "send_a_letter",
-  "call_an_address",
+const KINDS: StepKind[] = [
+  "send_mail",
+  "webhook",
   "wait",
-  "put_on_a_list",
+  "add_to_mail_list",
 ]
 
 type Draft = {
-  does: Step["does"]
-  told: string
+  kind: StepKind
+  configText: string
 }
 
 export function FlowsPage() {
@@ -66,10 +66,10 @@ export function FlowsPage() {
   const [busy, setBusy] = React.useState(false)
 
   const load = React.useCallback(() => {
-    every("flows.list")
+    every("automation.flows.list", { query: {} })
       .then(setFlows)
       .catch((why: unknown) => {
-        toast.error(said(why))
+        toast.error(apiMessage(why))
         setFlows([])
       })
   }, [])
@@ -78,22 +78,22 @@ export function FlowsPage() {
 
   const switchIt = async (flow: Flow, on: boolean) => {
     try {
-      await api("flows.change", {
+      await api("automation.flows.update", {
         path: { id: flow.id },
-        body: { on },
+        body: { enabled: on },
       })
       load()
     } catch (why) {
-      toast.error(said(why))
+      toast.error(apiMessage(why))
     }
   }
 
   const remove = async (flow: Flow) => {
     try {
-      await api("flows.remove", { path: { id: flow.id } })
+      await api("automation.flows.delete", { path: { id: flow.id } })
       load()
     } catch (why) {
-      toast.error(said(why))
+      toast.error(apiMessage(why))
     }
   }
 
@@ -101,12 +101,12 @@ export function FlowsPage() {
     setBusy(true)
 
     try {
-      const steps: NewStep[] = drafts.map((step) => ({
-        does: step.does,
-        told: step.told.trim() ? JSON.parse(step.told) : {},
+      const steps = drafts.map((step) => ({
+        kind: step.kind,
+        config: step.configText.trim() ? JSON.parse(step.configText) : {},
       }))
 
-      await api("flows.make", {
+      await api("automation.flows.create", {
         body: {
           name: name.trim(),
           trigger,
@@ -122,7 +122,7 @@ export function FlowsPage() {
       toast.error(
         why instanceof SyntaxError
           ? t`One of the steps is not written as JSON.`
-          : said(why)
+          : apiMessage(why)
       )
     } finally {
       setBusy(false)
@@ -171,7 +171,7 @@ export function FlowsPage() {
                 </button>
 
                 <Switch
-                  checked={flow.on}
+                  checked={flow.enabled}
                   onCheckedChange={(value) => void switchIt(flow, value)}
                 />
 
@@ -189,9 +189,9 @@ export function FlowsPage() {
                 <div className="mt-3 flex flex-col gap-1">
                   {(flow.steps ?? []).map((step, index) => (
                     <p key={index} className="font-mono text-xs">
-                      {index + 1}. {step.does}{" "}
+                      {index + 1}. {step.kind}{" "}
                       <span className="text-muted-foreground">
-                        {JSON.stringify(step.told)}
+                        {JSON.stringify(step.config)}
                       </span>
                     </p>
                   ))}
@@ -251,7 +251,7 @@ export function FlowsPage() {
                   onClick={() =>
                     setDrafts([
                       ...drafts,
-                      { does: "send_a_letter", told: "{}" },
+                      { kind: "send_mail", configText: "{}" },
                     ])
                   }
                 >
@@ -266,15 +266,14 @@ export function FlowsPage() {
                 >
                   <div className="flex gap-2">
                     <Select
-                      value={step.does}
+                      value={step.kind}
                       onValueChange={(value) =>
                         setDrafts(
                           drafts.map((one, which) =>
                             which === index
                               ? {
                                   ...one,
-                                  does:
-                                    (value as Step["does"]) ?? "send_a_letter",
+                                  kind: (value as StepKind) ?? "send_mail",
                                 }
                               : one
                           )
@@ -308,12 +307,12 @@ export function FlowsPage() {
                   <Textarea
                     rows={2}
                     className="font-mono text-xs"
-                    value={step.told}
+                    value={step.configText}
                     onChange={(event) =>
                       setDrafts(
                         drafts.map((one, which) =>
                           which === index
-                            ? { ...one, told: event.target.value }
+                            ? { ...one, configText: event.target.value }
                             : one
                         )
                       )

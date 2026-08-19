@@ -3,9 +3,9 @@ import { useLingui } from "@lingui/react/macro"
 import { Download, FileJson, Loader2, Upload } from "lucide-react"
 import { toast } from "sonner"
 
-import { api } from "@/lib/v1"
-import { said } from "@/lib/v1-said"
-import type { WhatWasRead } from "@legacy-api"
+import { api } from "@/lib/api"
+import { apiMessage } from "@/lib/auth"
+import type { ImportReceipt } from "@api"
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -15,13 +15,13 @@ export function PortablePage() {
   const chooser = React.useRef<HTMLInputElement>(null)
   const [exporting, setExporting] = React.useState(false)
   const [importing, setImporting] = React.useState(false)
-  const [summary, setSummary] = React.useState<WhatWasRead | null>(null)
+  const [summary, setSummary] = React.useState<ImportReceipt | null>(null)
 
   const take = async () => {
     setExporting(true)
 
     try {
-      const bundle = await api("portable.take")
+      const bundle = await api("portable.export")
       const url = URL.createObjectURL(
         new Blob([JSON.stringify(bundle, null, 2)], {
           type: "application/json",
@@ -34,7 +34,7 @@ export function PortablePage() {
       link.click()
       setTimeout(() => URL.revokeObjectURL(url), 0)
     } catch (why) {
-      toast.error(said(why))
+      toast.error(apiMessage(why))
     } finally {
       setExporting(false)
     }
@@ -50,7 +50,9 @@ export function PortablePage() {
 
     try {
       const bundle = JSON.parse(await file.text())
-      const result = await api("portable.read-in", { body: bundle })
+      const result = await api("portable.import", {
+        body: { bundle, strategy: "create_only" },
+      })
 
       setSummary(result)
       toast.success(t`The copy was read in.`)
@@ -58,7 +60,7 @@ export function PortablePage() {
       toast.error(
         why instanceof SyntaxError
           ? t`That is not a copy of a site.`
-          : said(why)
+          : apiMessage(why)
       )
     } finally {
       setImporting(false)
@@ -127,13 +129,13 @@ export function PortablePage() {
           <div className="flex items-center gap-2">
             <FileJson className="size-4 text-muted-foreground" />
             <h2 className="text-sm font-medium">{t`Import complete`}</h2>
-            <Badge variant="secondary">{t`Nothing was overwritten`}</Badge>
+            <Badge variant="secondary">{summary.strategy}</Badge>
           </div>
           <div className="grid gap-3 text-sm sm:grid-cols-4">
             <Count label={t`Languages`} value={summary.languages} />
             <Count label={t`Categories and tags`} value={summary.terms} />
-            <Count label={t`Writings`} value={summary.writings} />
-            <Count label={t`Already present`} value={summary.left_alone} />
+            <Count label={t`Writings`} value={summary.content} />
+            <Count label={t`Revisions`} value={summary.revisions} />
           </div>
         </section>
       ) : null}

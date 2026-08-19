@@ -89,7 +89,6 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
       // The canonical API contract and the explicitly temporary legacy one.
       "@api": path.resolve(__dirname, "./src/api/server.ts"),
-      "@legacy-api": path.resolve(__dirname, "./src/api/legacy.ts"),
     },
   },
   server: {

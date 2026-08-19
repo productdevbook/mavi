@@ -2,8 +2,8 @@ import * as React from "react"
 import { useLingui } from "@lingui/react/macro"
 import { Eye, Users } from "lucide-react"
 
-import { api } from "@/lib/v1"
-import type { Read } from "@legacy-api"
+import { every } from "@/lib/api"
+import type { DailyAggregate } from "@api"
 import { Bars, Curve, Figure, Panel } from "@/components/charts"
 import {
   DashboardLoading,
@@ -20,12 +20,12 @@ import {
  */
 export function VisitorsPage() {
   const { t } = useLingui()
-  const [reads, setReads] = React.useState<Read[] | null>(null)
+  const [reads, setReads] = React.useState<DailyAggregate[] | null>(null)
 
   React.useEffect(() => {
     let current = true
 
-    api("analytics.read")
+    every("analytics.daily.list", { query: { event_name: "page_view" } })
       .then((found) => current && setReads(found))
       .catch(() => current && setReads([]))
 
@@ -38,22 +38,22 @@ export function VisitorsPage() {
     return <DashboardLoading />
   }
 
-  const views = reads.reduce((all, r) => all + r.views, 0)
+  const views = reads.reduce((all, r) => all + r.event_count, 0)
 
   // Group by day for the curve
   const byDayMap = new Map<string, number>()
   for (const r of reads) {
-    byDayMap.set(r.on_day, (byDayMap.get(r.on_day) ?? 0) + r.views)
+    byDayMap.set(r.day, (byDayMap.get(r.day) ?? 0) + r.event_count)
   }
-  const points = Array.from(byDayMap.entries()).map(([on_day, count]) => ({
-    on_day,
+  const points = Array.from(byDayMap.entries()).map(([day, count]) => ({
+    on_day: day,
     count,
   }))
 
   // Group by page for the bars
   const byPageMap = new Map<string, number>()
   for (const r of reads) {
-    byPageMap.set(r.path, (byPageMap.get(r.path) ?? 0) + r.views)
+    byPageMap.set(r.path, (byPageMap.get(r.path) ?? 0) + r.event_count)
   }
   const slices = Array.from(byPageMap.entries())
     .sort((a, b) => b[1] - a[1])

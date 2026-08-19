@@ -3,10 +3,10 @@ import { useLingui } from "@lingui/react/macro"
 import { Boxes, Loader2, Plus } from "lucide-react"
 import { toast } from "sonner"
 
-import { api, every } from "@/lib/v1"
-import { said } from "@/lib/v1-said"
+import { api, every } from "@/lib/api"
+import { apiMessage } from "@/lib/auth"
 import { money } from "@/lib/money"
-import type { Product, ProductChanges } from "@legacy-api"
+import type { Product, UpdateProduct } from "@api"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -63,10 +63,10 @@ export function ProductsPage() {
   const [busy, setBusy] = React.useState(false)
 
   const load = React.useCallback(() => {
-    every("products.list")
+    every("shop.products.list")
       .then(setProducts)
       .catch((why: unknown) => {
-        toast.error(said(why))
+        toast.error(apiMessage(why))
         setProducts((held) => held ?? [])
       })
   }, [])
@@ -84,13 +84,12 @@ export function ProductsPage() {
     setBusy(true)
 
     try {
-      await api("products.make", {
+      await api("shop.products.create", {
         body: {
           slug: slugged(name),
           name: name.trim(),
-          price_minor: minor(price),
-          currency,
-          on_the_shelf: Number(stock) || 0,
+          price: { minor: minor(price), currency },
+          stock: Number(stock) || 0,
         },
       })
 
@@ -100,21 +99,21 @@ export function ProductsPage() {
       setStock("0")
       load()
     } catch (why) {
-      toast.error(said(why))
+      toast.error(apiMessage(why))
     } finally {
       setBusy(false)
     }
   }
 
-  const change = async (product: Product, changes: ProductChanges) => {
+  const change = async (product: Product, changes: UpdateProduct) => {
     try {
-      await api("products.change", {
+      await api("shop.products.update", {
         path: { id: product.id },
         body: changes,
       })
       load()
     } catch (why) {
-      toast.error(said(why))
+      toast.error(apiMessage(why))
     }
   }
 
@@ -172,25 +171,25 @@ export function ProductsPage() {
                   id={`stock-${product.id}`}
                   inputMode="numeric"
                   className="h-8 w-20"
-                  defaultValue={String(product.on_the_shelf)}
+                  defaultValue={String(product.stock)}
                   onBlur={(event) => {
                     const wanted = Number(event.target.value)
 
-                    if (wanted !== product.on_the_shelf) {
-                      void change(product, { on_the_shelf: wanted })
+                    if (wanted !== product.stock) {
+                      void change(product, { stock: wanted })
                     }
                   }}
                 />
               </div>
 
-              <Badge variant={product.for_sale ? "default" : "secondary"}>
-                {product.for_sale ? t`For sale` : t`Not for sale`}
+              <Badge variant={product.on_sale ? "default" : "secondary"}>
+                {product.on_sale ? t`For sale` : t`Not for sale`}
               </Badge>
 
               <Switch
-                checked={product.for_sale}
+                checked={product.on_sale}
                 onCheckedChange={(value) =>
-                  void change(product, { for_sale: value })
+                  void change(product, { on_sale: value })
                 }
               />
             </div>

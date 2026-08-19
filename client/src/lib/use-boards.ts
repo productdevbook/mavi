@@ -1,7 +1,7 @@
 import * as React from "react"
 
-import { api } from "@/lib/v1"
-import type { Board } from "@legacy-api"
+import { every } from "@/lib/api"
+import type { Board } from "@api"
 
 /**
  * The boards this site has made, for the menu.
@@ -15,7 +15,7 @@ export function useBoards() {
   React.useEffect(() => {
     let alive = true
 
-    api("boards.list")
+    every("boards.list", { query: {} })
       .then((all) => alive && setBoards(all))
       .catch(() => alive && setBoards([]))
 

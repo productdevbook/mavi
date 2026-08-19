@@ -1,5 +1,12 @@
 import { useLingui } from "@lingui/react/macro"
-import { drawing, type Entry } from "@/lib/v1-audit"
+import { ShieldAlert } from "lucide-react"
+import type { AuditEvent } from "@api"
+
+const GRAVE_ACTIONS = ["delete", "trash", "revoke", "replace", "refuse"]
+
+function grave(action: string): boolean {
+  return GRAVE_ACTIONS.some((word) => action.includes(word))
+}
 
 /**
  * What was done to this site, drawn once.
@@ -7,7 +14,7 @@ import { drawing, type Entry } from "@/lib/v1-audit"
  * A phrase and how grave it looks belong together: written in two places they
  * drift, and what drifts is which entries somebody's eye stops on.
  */
-export function AuditTable({ entries }: { entries: Entry[] }) {
+export function AuditTable({ entries }: { entries: AuditEvent[] }) {
   const { t } = useLingui()
 
   return (
@@ -23,7 +30,7 @@ export function AuditTable({ entries }: { entries: Entry[] }) {
         </thead>
         <tbody>
           {entries.map((entry) => {
-            const { icon: Icon, grave } = drawing(entry.did)
+            const isGrave = grave(entry.action)
 
             return (
               <tr
@@ -31,22 +38,24 @@ export function AuditTable({ entries }: { entries: Entry[] }) {
                 className="border-b border-border last:border-0"
               >
                 <td className="w-10 py-2 pl-3 align-top">
-                  <Icon
+                  <ShieldAlert
                     className={
-                      grave
+                      isGrave
                         ? "size-4 text-destructive"
                         : "size-4 text-muted-foreground"
                     }
                   />
                 </td>
                 <td className="py-2 align-top">
-                  <p className="font-medium">{entry.did}</p>
+                  <p className="font-medium">{entry.action}</p>
                   <p className="text-muted-foreground">
-                    {entry.about}
-                    {entry.about_id ? ` · ${entry.about_id}` : ""}
+                    {entry.resource_type}
+                    {entry.resource_id ? ` · ${entry.resource_id}` : ""}
                   </p>
                 </td>
-                <td className="py-2 align-top">{entry.who_id ?? entry.who}</td>
+                <td className="py-2 align-top">
+                  {entry.actor_id ?? entry.actor_kind}
+                </td>
                 <td className="py-2 pr-3 text-right align-top whitespace-nowrap text-muted-foreground">
                   {new Date(entry.created_at).toLocaleString()}
                 </td>

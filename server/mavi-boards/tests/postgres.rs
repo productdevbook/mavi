@@ -223,6 +223,25 @@ async fn boards_are_ordered_site_scoped_and_audited() {
             .iter()
             .any(|item| item.kind == "board.card.moved")
     );
+    boards
+        .delete_card(&mut tx, &owner_context, second_card.id)
+        .await
+        .expect("delete card");
+    assert!(boards.get_card(&mut tx, second_card.id).await.is_err());
+    let activity = boards
+        .list_activity(
+            &mut tx,
+            board.id,
+            &mavi_boards::ActivityPageFilter::default(),
+        )
+        .await
+        .expect("activity after delete");
+    assert!(
+        activity
+            .items
+            .iter()
+            .any(|item| item.kind == "board.card.deleted")
+    );
     tx.commit().await.expect("order commit");
 
     let second_context = SiteContext::public(second_site);

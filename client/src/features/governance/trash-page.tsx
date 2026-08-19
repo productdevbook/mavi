@@ -10,8 +10,9 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 
-import { said } from "@/lib/v1-said"
-import { forGood, inTheBin, putBack, type Thrown } from "@/lib/v1-trash"
+import { api, every } from "@/lib/api"
+import { apiMessage } from "@/lib/auth"
+import type { TrashItem } from "@api"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -39,16 +40,16 @@ import {
 export function TrashPage() {
   const { t } = useLingui()
 
-  const [entries, setEntries] = React.useState<Thrown[] | null>(null)
+  const [entries, setEntries] = React.useState<TrashItem[] | null>(null)
   const [busy, setBusy] = React.useState<string | null>(null)
   const [error, setError] = React.useState(false)
 
   const load = React.useCallback(() => {
     setError(false)
-    inTheBin()
+    every("trash.items.list", { query: {} })
       .then(setEntries)
       .catch((why: unknown) => {
-        toast.error(said(why))
+        toast.error(apiMessage(why))
         setError(true)
         setEntries([])
       })
@@ -56,27 +57,19 @@ export function TrashPage() {
 
   React.useEffect(load, [load])
 
-  // v1 names the table a thing came out of, which is what putting it back
-  // needs to know.
   const named: Record<string, string> = {
-    writings: t`post`,
-    files: t`file`,
-    forms: t`form`,
-    terms: t`category or tag`,
-    products: t`product`,
-    courses: t`course`,
-    boards: t`board`,
-    cards: t`card`,
-    flows: t`flow`,
+    content: t`post`,
+    file: t`file`,
+    term: t`category or tag`,
   }
 
   const icon = (kind: string) => {
     const glyph =
-      kind === "files"
+      kind === "file"
         ? ImageIcon
-        : kind === "forms"
+        : kind === "content"
           ? Inbox
-          : kind === "terms"
+          : kind === "term"
             ? Tags
             : FileText
     return React.createElement(glyph, {
@@ -84,22 +77,24 @@ export function TrashPage() {
     })
   }
 
-  const restore = (entry: Thrown) => {
+  const restore = (entry: TrashItem) => {
     setBusy(entry.id)
-    putBack(entry.kind, entry.id)
+    api("trash.items.restore", { path: { kind: entry.kind, id: entry.id } })
       .then(() => {
-        toast.success(t`${entry.called} is back`)
+        toast.success(t`${entry.label} is back`)
         load()
       })
-      .catch((why) => toast.error(said(why)))
+      .catch((why) => toast.error(apiMessage(why)))
       .finally(() => setBusy(null))
   }
 
-  const purge = (entry: Thrown) => {
+  const purge = (entry: TrashItem) => {
     setBusy(entry.id)
-    forGood(entry.kind, entry.id)
+    api("trash.items.delete_permanently", {
+      path: { kind: entry.kind, id: entry.id },
+    })
       .then(load)
-      .catch((why) => toast.error(said(why)))
+      .catch((why) => toast.error(apiMessage(why)))
       .finally(() => setBusy(null))
   }
 
@@ -134,10 +129,10 @@ export function TrashPage() {
                 <Item key={entry.id} size="sm">
                   <ItemMedia>{icon(entry.kind)}</ItemMedia>
                   <ItemContent>
-                    <ItemTitle>{entry.called}</ItemTitle>
+                    <ItemTitle>{entry.label}</ItemTitle>
                     <ItemDescription>
-                      {named[entry.kind] ?? entry.kind} ·{" "}
-                      {new Date(entry.thrown_away_at).toLocaleString()}
+                        {named[entry.kind] ?? entry.kind} ·{" "}
+                        {new Date(entry.deleted_at).toLocaleString()}
                     </ItemDescription>
                   </ItemContent>
                   <ItemActions>

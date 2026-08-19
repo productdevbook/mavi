@@ -3,9 +3,9 @@ import { useLingui } from "@lingui/react/macro"
 import { Loader2, Plus, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
-import { api, every } from "@/lib/v1"
-import { said } from "@/lib/v1-said"
-import type { Course, Student } from "@legacy-api"
+import { api, every } from "@/lib/api"
+import { apiMessage } from "@/lib/auth"
+import type { Course, Student } from "@api"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -28,7 +28,7 @@ export function CoursePage({ courseId }: { courseId: string }) {
     api("courses.read", { path: { id: courseId } })
       .then(setCourse)
       .catch((why: unknown) => {
-        toast.error(said(why))
+        toast.error(apiMessage(why))
         setCourse(null)
       })
   }, [courseId])
@@ -37,13 +37,13 @@ export function CoursePage({ courseId }: { courseId: string }) {
 
   const open = async (state: "draft" | "open" | "closed") => {
     try {
-      await api("courses.change", {
+      await api("courses.update", {
         path: { id: courseId },
         body: { state },
       })
       load()
     } catch (why) {
-      toast.error(said(why))
+      toast.error(apiMessage(why))
     }
   }
 
@@ -51,14 +51,14 @@ export function CoursePage({ courseId }: { courseId: string }) {
     setBusy(true)
 
     try {
-      await api("modules.make", {
+      await api("courses.modules.create", {
         path: { id: courseId },
         body: { title: moduleTitle.trim() },
       })
       setModuleTitle("")
       load()
     } catch (why) {
-      toast.error(said(why))
+      toast.error(apiMessage(why))
     } finally {
       setBusy(false)
     }
@@ -70,32 +70,32 @@ export function CoursePage({ courseId }: { courseId: string }) {
     if (!title) return
 
     try {
-      await api("lessons.make", {
+      await api("courses.lessons.create", {
         path: { id: moduleId },
         body: { title, body: "" },
       })
       setLessonTitles((held) => ({ ...held, [moduleId]: "" }))
       load()
     } catch (why) {
-      toast.error(said(why))
+      toast.error(apiMessage(why))
     }
   }
 
   const removeModule = async (id: string) => {
     try {
-      await api("modules.remove", { path: { id } })
+      await api("courses.modules.delete", { path: { id } })
       load()
     } catch (why) {
-      toast.error(said(why))
+      toast.error(apiMessage(why))
     }
   }
 
   const removeLesson = async (id: string) => {
     try {
-      await api("lessons.remove", { path: { id } })
+      await api("courses.lessons.delete", { path: { id } })
       load()
     } catch (why) {
-      toast.error(said(why))
+      toast.error(apiMessage(why))
     }
   }
 
@@ -224,10 +224,10 @@ function OnIt() {
   const [people, setPeople] = React.useState<Student[] | null>(null)
 
   React.useEffect(() => {
-    every("students.list")
+    every("courses.students.list", { query: {} })
       .then(setPeople)
       .catch((why: unknown) => {
-        toast.error(said(why))
+        toast.error(apiMessage(why))
         setPeople((held) => held ?? [])
       })
   }, [])

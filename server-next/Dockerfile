@@ -3,11 +3,27 @@
 # The release image is built from the clean workspace. The legacy `server/`
 # workspace is intentionally not part of this context or this image.
 FROM rust:alpine AS builder
-RUN apk add --no-cache musl-dev
+ARG SCCACHE_VERSION=0.17.0
+ARG TARGETARCH
+RUN apk add --no-cache ca-certificates curl musl-dev tar \
+    && case "$TARGETARCH" in \
+         amd64) SCCACHE_ARCH=x86_64-unknown-linux-musl ;; \
+         arm64) SCCACHE_ARCH=aarch64-unknown-linux-musl ;; \
+         *) echo "unsupported TARGETARCH: $TARGETARCH" >&2; exit 1 ;; \
+       esac \
+    && curl -fsSL "https://github.com/mozilla/sccache/releases/download/v${SCCACHE_VERSION}/sccache-v${SCCACHE_VERSION}-${SCCACHE_ARCH}.tar.gz" \
+       | tar -xz --strip-components=1 -C /usr/local/bin "sccache-v${SCCACHE_VERSION}-${SCCACHE_ARCH}/sccache" \
+    && chmod 0755 /usr/local/bin/sccache
 
 WORKDIR /app
 COPY . .
-RUN cargo build --locked --release --bin mavi
+RUN --mount=type=secret,id=sccache-env,required=false \
+    if [ -r /run/secrets/sccache-env ]; then \
+      set -a; . /run/secrets/sccache-env; set +a; \
+      export RUSTC_WRAPPER=/usr/local/bin/sccache; \
+    fi; \
+    export CARGO_INCREMENTAL=0; \
+    cargo build --locked --release --bin mavi
 
 FROM alpine:latest AS runtime
 RUN apk add --no-cache ca-certificates tzdata \

@@ -3,7 +3,7 @@ import { Link, useNavigate } from "@tanstack/react-router"
 import { useLingui } from "@lingui/react/macro"
 
 import { calledIn } from "@/lib/kind-name"
-import { Loader2, Pencil, Trash2 } from "lucide-react"
+import { Pencil, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { api, every } from "@/lib/v1"
@@ -33,6 +33,11 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { useStatusLabels } from "@/components/editor/types"
+import {
+  DashboardEmpty,
+  DashboardLoading,
+  DashboardPageHeader,
+} from "@/components/dashboard/dashboard-page"
 
 /**
  * The list behind both Posts and Pages.
@@ -124,7 +129,12 @@ export function ContentList({ kind }: { kind: string }) {
   }
 
   return (
-    <>
+    <div className="flex flex-col gap-5">
+      <DashboardPageHeader
+        title={many}
+        description={t`Create, edit, and publish ${many.toLocaleLowerCase()}.`}
+      />
+
       {languages.length > 1 && (
         <div className="mb-4 flex items-center gap-2">
           <span className="text-sm text-muted-foreground">{t`Language`}</span>
@@ -164,7 +174,11 @@ export function ContentList({ kind }: { kind: string }) {
       {chosen.size > 0 && (
         <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-border px-4 py-2">
           <span className="text-sm">{t`${chosen.size} ticked`}</span>
-          <Button variant="outline" size="sm" onClick={() => void actOnMany("publish")}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void actOnMany("publish")}
+          >
             {t`Publish them`}
           </Button>
           <Button
@@ -174,7 +188,11 @@ export function ContentList({ kind }: { kind: string }) {
           >
             {t`Take them down`}
           </Button>
-          <Button variant="outline" size="sm" onClick={() => void actOnMany("trash")}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void actOnMany("trash")}
+          >
             {t`Throw them away`}
           </Button>
           <Button
@@ -189,23 +207,23 @@ export function ContentList({ kind }: { kind: string }) {
       )}
 
       {posts === null ? (
-        <div className="flex justify-center py-16">
-          <Loader2 className="size-6 animate-spin text-muted-foreground" />
-        </div>
+        <DashboardLoading />
       ) : posts.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border py-16 text-center">
-          <p className="text-sm text-muted-foreground">{t`No ${many} yet`}</p>
-          <Button
-            onClick={() =>
-              navigate({
-                to: "/editor/new",
-                search: { locale, translationOf: undefined, kind },
-              })
-            }
-          >
-            {t`New ${one}`}
-          </Button>
-        </div>
+        <DashboardEmpty
+          title={t`No ${many} yet`}
+          action={
+            <Button
+              onClick={() =>
+                navigate({
+                  to: "/editor/new",
+                  search: { locale, translationOf: undefined, kind },
+                })
+              }
+            >
+              {t`New ${one}`}
+            </Button>
+          }
+        />
       ) : (
         <div className="flex flex-col divide-y divide-border rounded-xl border border-border">
           {posts.map((post) => (
@@ -243,10 +261,12 @@ export function ContentList({ kind }: { kind: string }) {
                   {post.title || t`Untitled`}
                 </Link>
                 <p className="truncate text-xs text-muted-foreground">
-                  {new Date(post.published_at ?? post.created_at).toLocaleString(
-                    i18n.locale,
-                    { dateStyle: "medium", timeStyle: "short" },
-                  )}
+                  {new Date(
+                    post.published_at ?? post.created_at
+                  ).toLocaleString(i18n.locale, {
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                  })}
                 </p>
               </div>
               <Badge
@@ -300,6 +320,6 @@ export function ContentList({ kind }: { kind: string }) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </div>
   )
 }

@@ -8,6 +8,7 @@ import { toast } from "sonner"
 import { api, every } from "@/lib/v1"
 import { said } from "@/lib/v1-said"
 import type { Person, Role } from "@api"
+import { DashboardPageHeader } from "@/components/dashboard/dashboard-page"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -165,17 +166,16 @@ function UsersRoute() {
 
   return (
     <>
-      <div className="mb-6 flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-lg font-semibold">{t`People`}</h1>
-          <p className="text-sm text-muted-foreground">
-            {t`Who can sign in to this site and write on it.`}
-          </p>
-        </div>
-        <Button onClick={() => setInviting(true)}>
-          <Plus /> {t`Add someone`}
-        </Button>
-      </div>
+      <DashboardPageHeader
+        className="mb-6"
+        title={t`People`}
+        description={t`Who can sign in to this site and write on it.`}
+        actions={
+          <Button onClick={() => setInviting(true)}>
+            <Plus /> {t`Add someone`}
+          </Button>
+        }
+      />
 
       <div className="flex max-w-2xl flex-col gap-8">
         {!people ? (

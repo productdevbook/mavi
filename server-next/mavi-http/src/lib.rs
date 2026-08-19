@@ -4777,6 +4777,7 @@ fn design_build_error_code(error: &MaviError) -> String {
         | MaviError::Forbidden
         | MaviError::NotFound { .. }
         | MaviError::RateLimited
+        | MaviError::ProviderRateLimited { .. }
         | MaviError::Internal => DESIGN_BUILD_FAILED.to_owned(),
     }
 }

@@ -10,6 +10,7 @@ use mavi_core::{
     MaviError, Result, SiteContext,
     ports::{BoxFuture, MailDeliveryReceipt, MailDeliveryRequest, Mailer},
 };
+use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 
 const WEBHOOK_ENV: &str = "MAVI_MAIL_WEBHOOK_URL";
@@ -18,6 +19,8 @@ const INGEST_TOKEN_ENV: &str = "MAVI_MAIL_WEBHOOK_INGEST_TOKEN";
 const MAX_ENDPOINT_CHARS: usize = 2_048;
 const MAX_TOKEN_CHARS: usize = 4_096;
 const MAX_REFERENCE_CHARS: usize = 1_024;
+const DEFAULT_PROVIDER_RETRY_AFTER_SECONDS: u64 = 60;
+const MAX_PROVIDER_RETRY_AFTER_SECONDS: u64 = 86_400;
 
 /// Builds the mail adapter once at process startup.
 pub fn from_env() -> Result<Arc<dyn Mailer>> {
@@ -112,10 +115,7 @@ impl Mailer for WebhookMailer {
                 .map_err(|_| MaviError::conflict("mail_provider_unavailable"))?;
             let status = response.status();
             if !status.is_success() {
-                return Err(MaviError::conflict(format!(
-                    "mail_provider_http_{}",
-                    status.as_u16()
-                )));
+                return Err(provider_response_error(status, response.headers()));
             }
             let response: WebhookResponse = response
                 .json()
@@ -128,6 +128,25 @@ impl Mailer for WebhookMailer {
             })
         })
     }
+}
+
+fn provider_response_error(status: StatusCode, headers: &reqwest::header::HeaderMap) -> MaviError {
+    if status == StatusCode::TOO_MANY_REQUESTS {
+        return MaviError::ProviderRateLimited {
+            retry_after_seconds: retry_after_seconds(headers),
+        };
+    }
+    MaviError::conflict(format!("mail_provider_http_{}", status.as_u16()))
+}
+
+fn retry_after_seconds(headers: &reqwest::header::HeaderMap) -> u64 {
+    headers
+        .get(reqwest::header::RETRY_AFTER)
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| value.trim().parse::<u64>().ok())
+        .map_or(DEFAULT_PROVIDER_RETRY_AFTER_SECONDS, |value| {
+            value.clamp(1, MAX_PROVIDER_RETRY_AFTER_SECONDS)
+        })
 }
 
 #[derive(Debug)]
@@ -221,7 +240,14 @@ fn validate_token(value: &str) -> Result<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{validate_endpoint, validate_reference, validate_token};
+    use reqwest::{StatusCode, header::HeaderMap};
+
+    use super::{
+        DEFAULT_PROVIDER_RETRY_AFTER_SECONDS, MAX_PROVIDER_RETRY_AFTER_SECONDS,
+        provider_response_error, retry_after_seconds, validate_endpoint, validate_reference,
+        validate_token,
+    };
+    use mavi_core::{ErrorCode, MaviError};
 
     #[test]
     fn webhook_endpoint_rejects_embedded_credentials_and_fragments() {
@@ -247,5 +273,51 @@ mod tests {
             "gateway-token"
         );
         assert!(validate_token("bad token").is_err());
+    }
+
+    #[test]
+    fn provider_rate_limit_preserves_a_bounded_retry_after_hint() {
+        let mut headers = HeaderMap::new();
+        headers.insert("retry-after", "120".parse().expect("header"));
+
+        assert_eq!(retry_after_seconds(&headers), 120);
+        assert!(matches!(
+            provider_response_error(StatusCode::TOO_MANY_REQUESTS, &headers),
+            MaviError::ProviderRateLimited {
+                retry_after_seconds: 120
+            }
+        ));
+    }
+
+    #[test]
+    fn provider_rate_limit_uses_safe_defaults_for_missing_or_invalid_hints() {
+        let headers = HeaderMap::new();
+        assert_eq!(
+            retry_after_seconds(&headers),
+            DEFAULT_PROVIDER_RETRY_AFTER_SECONDS
+        );
+
+        let mut headers = HeaderMap::new();
+        headers.insert("retry-after", "not-a-duration".parse().expect("header"));
+        assert_eq!(
+            retry_after_seconds(&headers),
+            DEFAULT_PROVIDER_RETRY_AFTER_SECONDS
+        );
+
+        headers.insert("retry-after", "999999999".parse().expect("header"));
+        assert_eq!(
+            retry_after_seconds(&headers),
+            MAX_PROVIDER_RETRY_AFTER_SECONDS
+        );
+    }
+
+    #[test]
+    fn non_rate_limited_provider_responses_keep_their_http_error_code() {
+        let error = provider_response_error(StatusCode::BAD_GATEWAY, &HeaderMap::new());
+        assert_eq!(error.code(), ErrorCode::Conflict);
+        assert!(matches!(
+            error,
+            MaviError::Conflict { code } if code == "mail_provider_http_502"
+        ));
     }
 }

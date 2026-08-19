@@ -32,6 +32,8 @@ pub const FILE_NAME_INVALID: &str = "media_file_name_invalid";
 pub const FILE_NAME_TOO_LONG: &str = "media_file_name_too_long";
 pub const FILE_VISIBILITY_INVALID: &str = "media_file_visibility_invalid";
 pub const MEDIA_CLEANUP_JOB: JobKind = JobKind::new("media.cleanup", 8);
+pub const MEDIA_ORPHAN_CLEANUP_JOB: JobKind = JobKind::new("media.orphan_cleanup", 5);
+pub const MEDIA_ORPHAN_BUCKET_SECONDS: i64 = 60 * 60;
 
 pub const MAX_FILE_BYTES: usize = 100 * 1024 * 1024;
 /// Maximum raw binary payload carried by one private shard relocation.
@@ -137,6 +139,17 @@ pub struct FileRecord {
 pub struct MediaCleanupJob {
     pub file_id: FileId,
     pub storage_key: String,
+}
+
+/// Payload for the periodic, site-scoped storage reconciliation job.
+///
+/// The bucket is part of the idempotency key so one worker process can poll
+/// frequently without creating duplicate scans while another worker may
+/// safely claim the same site after a restart.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct MediaOrphanCleanupJob {
+    pub bucket: i64,
 }
 
 /// Site media transferred only by the authenticated shard relocation port.
@@ -851,6 +864,78 @@ impl MediaService {
         .await
     }
 
+    /// Enqueues one immediate storage reconciliation job for the current
+    /// time bucket. Repeated polls in the same bucket are idempotent.
+    pub async fn enqueue_orphan_cleanup_job(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        jobs: &JobsService,
+        now: DateTime<Utc>,
+    ) -> Result<JobId> {
+        let bucket = now.timestamp().div_euclid(MEDIA_ORPHAN_BUCKET_SECONDS);
+        let payload = serde_json::to_value(MediaOrphanCleanupJob { bucket })
+            .map_err(|_| MaviError::Internal)?;
+        jobs.enqueue(
+            tx,
+            context,
+            MEDIA_ORPHAN_CLEANUP_JOB.name,
+            &payload,
+            None,
+            Some(&format!("media-orphan:{bucket}")),
+        )
+        .await
+    }
+
+    /// Returns every metadata-owned key plus pending permanent-deletion keys.
+    /// The latter keeps an object from being mistaken for an orphan between
+    /// metadata deletion and the external cleanup receipt.
+    pub async fn known_storage_keys(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+    ) -> Result<BTreeSet<String>> {
+        let rows = sqlx::query(
+            "select storage_key from media_files where site_id = $1
+             union
+             select storage_key from media_cleanup_tasks
+              where site_id = $1 and completed_at is null",
+        )
+        .bind(context.site_id.into_uuid())
+        .fetch_all(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?;
+
+        rows.into_iter()
+            .map(|row| row.try_get("storage_key").map_err(|_| MaviError::Internal))
+            .collect()
+    }
+
+    /// Records one immutable receipt when orphan bytes were actually removed.
+    pub async fn record_orphan_cleanup(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        count: usize,
+        bucket: i64,
+    ) -> Result<()> {
+        if count == 0 {
+            return Ok(());
+        }
+        AuditService
+            .record(
+                tx,
+                context,
+                &AuditEntry {
+                    action: "media.orphans.cleaned".to_owned(),
+                    resource_type: "MediaStorage".to_owned(),
+                    resource_id: None,
+                    payload: json!({"bucket": bucket, "count": count}),
+                },
+            )
+            .await
+    }
+
     /// Marks a durable cleanup task complete after the binary adapter confirms
     /// removal. The row remains as a receipt that the external deletion was
     /// attempted, which lets a future worker distinguish pending work.
@@ -958,6 +1043,46 @@ fn storage_key(id: FileId, extension: &str) -> String {
     let flat = id.to_string().replace('-', "");
     let (front, back) = flat.split_at(2);
     format!("{front}/{back}.{extension}")
+}
+
+/// Returns whether a storage key has Mavi's generated media shape.
+///
+/// This intentionally does not accept arbitrary site files, design sources,
+/// build artifacts or temporary files. The worker must call this allowlist
+/// before it considers a listed object for deletion.
+#[must_use]
+pub fn is_generated_media_storage_key(key: &str) -> bool {
+    let mut parts = key.split('/');
+    let Some(prefix) = parts.next() else {
+        return false;
+    };
+    let Some(filename) = parts.next() else {
+        return false;
+    };
+    if parts.next().is_some() || prefix.len() != 2 {
+        return false;
+    }
+
+    let Some((stem, extension)) = filename.rsplit_once('.') else {
+        return false;
+    };
+    if stem.len() != 30
+        || !is_lower_hex(prefix)
+        || !is_lower_hex(stem)
+        || !SIGNATURES
+            .iter()
+            .any(|(_, _, _, _, known)| *known == extension)
+    {
+        return false;
+    }
+
+    Uuid::parse_str(&format!("{prefix}{stem}")).is_ok()
+}
+
+fn is_lower_hex(value: &str) -> bool {
+    value
+        .bytes()
+        .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
 }
 
 fn hex_digest(digest: &[u8]) -> String {
@@ -1081,6 +1206,25 @@ mod tests {
         );
         assert_eq!(key, "01/8f1f277f2d7c2e8c3d0123456789ab.png");
         assert!(!key.contains("holiday"));
+    }
+
+    #[test]
+    fn orphan_allowlist_accepts_only_generated_media_keys() {
+        let id = FileId::from_uuid(
+            Uuid::parse_str("018f1f27-7f2d-7c2e-8c3d-0123456789ab").expect("uuid"),
+        );
+        assert!(is_generated_media_storage_key(&storage_key(id, "png")));
+        assert!(!is_generated_media_storage_key("src/index.html"));
+        assert!(!is_generated_media_storage_key("public/index.html"));
+        assert!(!is_generated_media_storage_key(
+            "ab/0123456789abcdef0123456789abcd.tmp"
+        ));
+        assert!(!is_generated_media_storage_key(
+            "AB/8f1f277f2d7c2e8c3d0123456789ab.png"
+        ));
+        assert!(!is_generated_media_storage_key(
+            "ab/8f1f277f2d7c2e8c3d0123456789ab.png/extra"
+        ));
     }
 
     #[test]

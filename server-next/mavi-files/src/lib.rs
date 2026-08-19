@@ -106,6 +106,44 @@ impl FileStore for DirectoryFileStore {
             }
         })
     }
+
+    fn list<'a>(&'a self, context: &'a SiteContext) -> BoxFuture<'a, Result<Vec<String>>> {
+        Box::pin(async move {
+            let site_root = self.root.join(context.site_id.to_string());
+            let mut directories = vec![site_root.clone()];
+            let mut keys = Vec::new();
+
+            while let Some(directory) = directories.pop() {
+                let mut entries = match tokio::fs::read_dir(&directory).await {
+                    Ok(entries) => entries,
+                    Err(error) if error.kind() == std::io::ErrorKind::NotFound => continue,
+                    Err(_) => return Err(MaviError::Internal),
+                };
+
+                while let Some(entry) = entries
+                    .next_entry()
+                    .await
+                    .map_err(|_| MaviError::Internal)?
+                {
+                    let file_type = entry.file_type().await.map_err(|_| MaviError::Internal)?;
+                    if file_type.is_dir() {
+                        directories.push(entry.path());
+                    } else if file_type.is_file() {
+                        let entry_path = entry.path();
+                        let relative = entry_path
+                            .strip_prefix(&site_root)
+                            .map_err(|_| MaviError::Internal)?;
+                        if let Some(key) = normalized_key(relative) {
+                            keys.push(key);
+                        }
+                    }
+                }
+            }
+
+            keys.sort();
+            Ok(keys)
+        })
+    }
 }
 
 /// An in-memory adapter for domain and HTTP tests.
@@ -167,6 +205,37 @@ impl FileStore for InMemoryFileStore {
             Ok(())
         })
     }
+
+    fn list<'a>(&'a self, context: &'a SiteContext) -> BoxFuture<'a, Result<Vec<String>>> {
+        Box::pin(async move {
+            let mut keys = self
+                .files
+                .lock()
+                .map_err(|_| MaviError::Internal)?
+                .iter()
+                .filter(|((site_id, _), _)| *site_id == context.site_id)
+                .map(|((_, key), _)| key.clone())
+                .collect::<Vec<_>>();
+            keys.sort();
+            Ok(keys)
+        })
+    }
+}
+
+fn normalized_key(path: &Path) -> Option<String> {
+    let mut parts = Vec::new();
+    for component in path.components() {
+        let Component::Normal(part) = component else {
+            return None;
+        };
+        parts.push(part.to_str()?.to_owned());
+    }
+    if parts.is_empty() {
+        return None;
+    }
+    let key = parts.join("/");
+    safe_relative_path(&key).ok()?;
+    Some(key)
 }
 
 fn safe_relative_path(key: &str) -> Result<PathBuf> {
@@ -241,13 +310,64 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn local_store_lists_only_regular_nested_files_for_one_site() {
+        let root = std::env::temp_dir().join(format!("mavi-files-list-{}", uuid::Uuid::now_v7()));
+        let store = DirectoryFileStore::at(&root);
+        let first = SiteContext::public(mavi_core::SiteId::new());
+        let second = SiteContext::public(mavi_core::SiteId::new());
+
+        store
+            .put(&first, "ab/nested/file.png", vec![1])
+            .await
+            .expect("put");
+        store.put(&first, "root.bin", vec![2]).await.expect("put");
+        store
+            .put(&second, "ab/other.png", vec![3])
+            .await
+            .expect("put");
+
+        assert_eq!(
+            store.list(&first).await.expect("list"),
+            vec!["ab/nested/file.png", "root.bin"]
+        );
+        assert_eq!(
+            store.list(&second).await.expect("list"),
+            vec!["ab/other.png"]
+        );
+
+        let _ = tokio::fs::remove_dir_all(root).await;
+    }
+
+    #[tokio::test]
     async fn memory_store_isolated_by_site() {
         let store = InMemoryFileStore::default();
         let first = SiteContext::public(mavi_core::SiteId::new());
         let second = SiteContext::public(mavi_core::SiteId::new());
 
         store.put(&first, "a/file.bin", vec![1]).await.expect("put");
-        assert!(store.get(&first, "a/file.bin").await.is_ok());
-        assert!(store.get(&second, "a/file.bin").await.is_err());
+        store
+            .put(&first, "z/other.bin", vec![2])
+            .await
+            .expect("put");
+        store
+            .put(&second, "a/file.bin", vec![3])
+            .await
+            .expect("put");
+        assert_eq!(
+            store.get(&first, "a/file.bin").await.expect("first get"),
+            vec![1]
+        );
+        assert_eq!(
+            store.get(&second, "a/file.bin").await.expect("second get"),
+            vec![3]
+        );
+        assert_eq!(
+            store.list(&first).await.expect("first list"),
+            vec!["a/file.bin", "z/other.bin"]
+        );
+        assert_eq!(
+            store.list(&second).await.expect("second list"),
+            vec!["a/file.bin"]
+        );
     }
 }

@@ -101,7 +101,8 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Private shard relocation exports live metadata plus verified bytes and retries through the site-scoped `FileStore`.
 - [-] Image variants and orphan cleanup worker.
   - [x] Permanent media deletion creates an idempotent site-scoped cleanup job; the shared worker removes bytes through `FileStore`, records an immutable completion audit and reopens dead jobs for later retry.
-  - [ ] Image variants and storage-orphan discovery remain open.
+  - [x] Shared worker enumerates one site namespace, preserves live and pending-cleanup keys, removes only generated media keys and records the removed count.
+  - [ ] Image variants remain open.
 
 ## Operations and publishing
 

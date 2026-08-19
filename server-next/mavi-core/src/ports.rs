@@ -21,6 +21,12 @@ pub trait FileStore: Debug + Send + Sync {
     fn get<'a>(&'a self, context: &'a SiteContext, path: &'a str)
     -> BoxFuture<'a, Result<Vec<u8>>>;
     fn remove<'a>(&'a self, context: &'a SiteContext, path: &'a str) -> BoxFuture<'a, Result<()>>;
+    /// Lists site-scoped object keys in deterministic order.
+    ///
+    /// Adapters must not cross the site namespace and must ignore entries
+    /// that cannot be represented as safe storage keys. The worker applies a
+    /// second domain-level allowlist before deleting anything returned here.
+    fn list<'a>(&'a self, context: &'a SiteContext) -> BoxFuture<'a, Result<Vec<String>>>;
 }
 
 pub trait Mailer: Debug + Send + Sync {

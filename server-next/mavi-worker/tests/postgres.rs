@@ -8,7 +8,7 @@ use mavi_content::{
 use mavi_core::{SiteContext, SiteId, ports::FileStore};
 use mavi_files::InMemoryFileStore;
 use mavi_jobs::JobsService;
-use mavi_media::{FileVisibility, MEDIA_CLEANUP_JOB, MediaService};
+use mavi_media::{FileVisibility, MEDIA_CLEANUP_JOB, MEDIA_ORPHAN_CLEANUP_JOB, MediaService};
 use mavi_storage::Database;
 use mavi_trash::{TrashKind, TrashService};
 use mavi_worker::{WorkerConfig, WorkerSupervisor};
@@ -360,4 +360,93 @@ async fn media_cleanup_worker_removes_bytes_and_completes_the_receipt() {
     .expect("cleanup audit");
     assert_eq!(cleanup_audits, 1);
     transaction.commit().await.expect("scope commit");
+}
+
+#[tokio::test]
+#[ignore = "requires TEST_DATABASE_URL and a non-superuser PostgreSQL role"]
+async fn media_orphan_worker_removes_only_unknown_generated_media_keys() {
+    let database_url = env::var("TEST_DATABASE_URL").expect("TEST_DATABASE_URL");
+    let database = Database::connect(&database_url, 4)
+        .await
+        .expect("database connection");
+    database.migrate().await.expect("migrations");
+    let site_id = SiteId::new();
+    database.ensure_site(site_id).await.expect("site");
+
+    let context = SiteContext::public(site_id);
+    let store = Arc::new(InMemoryFileStore::default());
+    let media = MediaService;
+    let jobs = JobsService::new([MEDIA_ORPHAN_CLEANUP_JOB]);
+    let mut transaction = database.begin(&context).await.expect("scope");
+    let live = media
+        .upload(
+            &mut transaction,
+            &context,
+            store.as_ref(),
+            "live.png",
+            FileVisibility::Private,
+            b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR".to_vec(),
+        )
+        .await
+        .expect("upload");
+    transaction.commit().await.expect("upload commit");
+
+    let mut transaction = database.begin(&context).await.expect("live key scope");
+    let live_key: String =
+        sqlx::query_scalar("select storage_key from media_files where site_id = $1 and id = $2")
+            .bind(site_id.into_uuid())
+            .bind(live.id.into_uuid())
+            .fetch_one(transaction.conn())
+            .await
+            .expect("live key");
+    transaction.commit().await.expect("live key commit");
+    let orphan_key = "ab/0123456789abcdef0123456789abcd.png";
+    store
+        .put(&context, orphan_key, b"orphan".to_vec())
+        .await
+        .expect("orphan put");
+    store
+        .put(&context, "src/index.html", b"design".to_vec())
+        .await
+        .expect("design put");
+
+    let supervisor = WorkerSupervisor::new(
+        database.clone(),
+        [site_id],
+        WorkerConfig::new(
+            "test-media-orphan-worker",
+            30,
+            std::time::Duration::from_millis(10),
+        )
+        .expect("worker config"),
+        Arc::clone(&store) as Arc<dyn mavi_core::ports::FileStore>,
+    );
+    assert!(supervisor.run_once(site_id).await.expect("orphan run"));
+    assert!(store.get(&context, &live_key).await.is_ok());
+    assert!(store.get(&context, orphan_key).await.is_err());
+    assert!(store.get(&context, "src/index.html").await.is_ok());
+
+    let mut transaction = database.begin(&context).await.expect("audit scope");
+    let orphan_audits: i64 = sqlx::query_scalar(
+        "select count(*) from audit_events
+          where site_id = $1 and action = 'media.orphans.cleaned'",
+    )
+    .bind(site_id.into_uuid())
+    .fetch_one(transaction.conn())
+    .await
+    .expect("orphan audit");
+    assert_eq!(orphan_audits, 1);
+    let orphan_jobs = jobs
+        .list(
+            &mut transaction,
+            &mavi_jobs::JobListFilter {
+                kind: Some(MEDIA_ORPHAN_CLEANUP_JOB.name.to_owned()),
+                ..Default::default()
+            },
+        )
+        .await
+        .expect("orphan jobs");
+    assert_eq!(orphan_jobs.items.len(), 1);
+    assert_eq!(orphan_jobs.items[0].state.as_str(), "done");
+    transaction.commit().await.expect("audit commit");
 }

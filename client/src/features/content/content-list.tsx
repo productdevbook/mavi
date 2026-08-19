@@ -6,9 +6,13 @@ import { calledIn } from "@/lib/kind-name"
 import { Pencil, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
-import { api, every } from "@/lib/v1"
-import { said } from "@/lib/v1-said"
-import type { Writing as Post } from "@api"
+import { nextApi, nextEvery } from "@/lib/server-next"
+import { serverNextMessage } from "@/lib/server-next-auth"
+import type { Content as Post } from "@api-next"
+import {
+  contentPublicationDate,
+  contentStatus,
+} from "@/lib/server-next-content"
 import { useContentTypes } from "@/lib/use-content-types"
 import { useLanguages } from "@/lib/use-languages"
 import {
@@ -65,10 +69,10 @@ export function ContentList({ kind }: { kind: string }) {
   const load = React.useCallback(() => {
     if (!locale) return
 
-    every("writings.list", { query: { kind, language: locale } })
-      .then((page) => setPosts(page.filter((p) => p.kind === kind)))
+    nextEvery("content.list", { query: { kind, language: locale } })
+      .then(setPosts)
       .catch((why: unknown) => {
-        toast.error(said(why))
+        toast.error(serverNextMessage(why))
         setPosts((held) => held ?? [])
       })
   }, [locale, kind])
@@ -76,11 +80,10 @@ export function ContentList({ kind }: { kind: string }) {
   React.useEffect(() => load(), [load])
 
   const counts = React.useMemo(() => {
-    const res = { draft: 0, published: 0 }
+    const res = { draft: 0, scheduled: 0, published: 0, archived: 0 }
     if (!posts) return res
     for (const post of posts) {
-      if (post.state === "published") res.published++
-      else res.draft++
+      res[contentStatus(post)]++
     }
     return res
   }, [posts])
@@ -92,17 +95,16 @@ export function ContentList({ kind }: { kind: string }) {
     try {
       for (const id of chosen) {
         if (act === "publish") {
-          await api("writings.change", {
+          await nextApi("content.publish", {
             path: { id },
-            body: { publish_at: new Date().toISOString() },
           })
         } else if (act === "unpublish") {
-          await api("writings.change", {
+          await nextApi("content.update", {
             path: { id },
-            body: { publish_at: null },
+            body: { publication: "draft" },
           })
         } else if (act === "trash") {
-          await api("writings.throw-away", { path: { id } })
+          await nextApi("content.trash", { path: { id } })
         }
       }
 
@@ -110,7 +112,7 @@ export function ContentList({ kind }: { kind: string }) {
       load()
       toast.success(t`Done.`)
     } catch (why) {
-      toast.error(said(why))
+      toast.error(serverNextMessage(why))
     }
   }
 
@@ -118,11 +120,11 @@ export function ContentList({ kind }: { kind: string }) {
     if (!going) return
 
     try {
-      await api("writings.throw-away", { path: { id: going.id } })
+      await nextApi("content.trash", { path: { id: going.id } })
       load()
       toast.success(t`${one} deleted`)
     } catch (why) {
-      toast.error(said(why))
+      toast.error(serverNextMessage(why))
     } finally {
       setGoing(null)
     }
@@ -159,16 +161,18 @@ export function ContentList({ kind }: { kind: string }) {
       )}
 
       <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-2">
-        {(["draft", "published"] as const).map((status) => (
-          <Card key={status}>
-            <CardContent className="pt-6">
-              <p className="text-2xl font-semibold">{counts[status]}</p>
-              <p className="text-sm text-muted-foreground">
-                {STATUS_LABELS[status]}
-              </p>
-            </CardContent>
-          </Card>
-        ))}
+        {(["draft", "scheduled", "published", "archived"] as const).map(
+          (status) => (
+            <Card key={status}>
+              <CardContent className="pt-6">
+                <p className="text-2xl font-semibold">{counts[status]}</p>
+                <p className="text-sm text-muted-foreground">
+                  {STATUS_LABELS[status]}
+                </p>
+              </CardContent>
+            </Card>
+          )
+        )}
       </div>
 
       {chosen.size > 0 && (
@@ -261,19 +265,22 @@ export function ContentList({ kind }: { kind: string }) {
                   {post.title || t`Untitled`}
                 </Link>
                 <p className="truncate text-xs text-muted-foreground">
-                  {new Date(
-                    post.published_at ?? post.created_at
-                  ).toLocaleString(i18n.locale, {
-                    dateStyle: "medium",
-                    timeStyle: "short",
-                  })}
+                  {new Date(contentPublicationDate(post)).toLocaleString(
+                    i18n.locale,
+                    {
+                      dateStyle: "medium",
+                      timeStyle: "short",
+                    }
+                  )}
                 </p>
               </div>
               <Badge
-                variant={post.state === "published" ? "default" : "secondary"}
+                variant={
+                  contentStatus(post) === "published" ? "default" : "secondary"
+                }
                 className="ml-auto sm:ml-0"
               >
-                {STATUS_LABELS[post.state]}
+                {STATUS_LABELS[contentStatus(post)]}
               </Badge>
               <Button
                 variant="ghost"

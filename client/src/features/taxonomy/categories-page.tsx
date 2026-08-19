@@ -3,9 +3,9 @@ import { useLingui } from "@lingui/react/macro"
 import { Check, CornerDownRight, Pencil, Plus, Trash2, X } from "lucide-react"
 import { toast } from "sonner"
 
-import { api, every } from "@/lib/v1"
-import { said } from "@/lib/v1-said"
-import type { Term as Category } from "@api"
+import { nextApi, nextEvery } from "@/lib/server-next"
+import { serverNextMessage } from "@/lib/server-next-auth"
+import type { Term as Category } from "@api-next"
 import { useLanguages } from "@/lib/use-languages"
 import { descendantsOf, toCategoryTree } from "@/lib/category-tree"
 import { Button } from "@/components/ui/button"
@@ -53,12 +53,12 @@ export function CategoriesPage() {
 
   const load = React.useCallback(() => {
     if (!locale) return
-    every("terms.list", { query: { sort: "category", language: locale } })
-      .then((terms) =>
-        setCategories(terms.filter((t) => t.sort === "category"))
-      )
+    nextEvery("taxonomy.terms.list", {
+      query: { kind: "category", language: locale },
+    })
+      .then(setCategories)
       .catch((why: unknown) => {
-        toast.error(said(why))
+        toast.error(serverNextMessage(why))
         setCategories((held) => held ?? [])
       })
   }, [locale])
@@ -74,26 +74,26 @@ export function CategoriesPage() {
     const value = name.trim()
     if (!value) return
     try {
-      await api("terms.make", {
+      await nextApi("taxonomy.terms.create", {
         body: {
-          sort: "category",
+          kind: "category",
           language: locale,
           slug: value.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
           name: value,
-          parent: parentId === NO_PARENT ? null : parentId,
+          parent_id: parentId === NO_PARENT ? null : parentId,
         },
       })
       setName("")
       load()
     } catch (why) {
-      toast.error(said(why))
+      toast.error(serverNextMessage(why))
     }
   }
 
   const startEditing = (category: Category) => {
     setEditing(category)
     setEditName(category.name)
-    setEditParent(category.parent ?? NO_PARENT)
+    setEditParent(category.parent_id ?? NO_PARENT)
   }
 
   const saveEdit = async () => {
@@ -101,27 +101,27 @@ export function CategoriesPage() {
     const value = editName.trim()
     if (!value) return
     try {
-      await api("terms.change", {
+      await nextApi("taxonomy.terms.update", {
         path: { id: editing.id },
         body: {
           name: value,
-          parent: editParent === NO_PARENT ? null : editParent,
+          parent_id: editParent === NO_PARENT ? null : editParent,
         },
       })
       setEditing(null)
       load()
     } catch (why) {
-      toast.error(said(why))
+      toast.error(serverNextMessage(why))
     }
   }
 
   const confirmDelete = async () => {
     if (!pendingDelete) return
     try {
-      await api("terms.remove", { path: { id: pendingDelete.id } })
+      await nextApi("taxonomy.terms.trash", { path: { id: pendingDelete.id } })
       load()
     } catch (why) {
-      toast.error(said(why))
+      toast.error(serverNextMessage(why))
     } finally {
       setPendingDelete(null)
     }

@@ -3,14 +3,14 @@ import { useLingui } from "@lingui/react/macro"
 
 import { calledIn } from "@/lib/kind-name"
 
-import { ImageOff, Plus, Sparkles, Upload, X } from "lucide-react"
+import { Plus, Sparkles, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { cn } from "@/lib/utils"
 import { slugify } from "@/lib/editor-utils"
-import { api, every, Refused } from "@/lib/v1"
-import { said } from "@/lib/v1-said"
-import type { Term } from "@api"
+import { nextApi, nextEvery } from "@/lib/server-next"
+import { serverNextMessage } from "@/lib/server-next-auth"
+import type { Term } from "@api-next"
 import { toCategoryTree } from "@/lib/category-tree"
 import type { ContentType } from "@/lib/use-content-types"
 import { Badge } from "@/components/ui/badge"
@@ -36,9 +36,6 @@ import {
 
 interface PostSettingsProps {
   meta: PostMeta
-  /** Null until the post has been saved once: what is wrong with a post is
-      worked out when it is written, so there is nothing to read before then. */
-  postId: string | null
   onChange: (patch: Partial<PostMeta>) => void
   /** Categories and tags are offered only in the post's own language. */
   locale: string
@@ -66,7 +63,6 @@ function declared(kind: ContentType): Field[] {
 
 export function PostSettings({
   meta,
-  postId: _postId,
   onChange,
   locale,
   plainText,
@@ -80,18 +76,20 @@ export function PostSettings({
   )
   const [tags, setTags] = React.useState<Term[]>([])
   const [newCategory, setNewCategory] = React.useState("")
-  const coverInputRef = React.useRef<HTMLInputElement>(null)
-
   const STATUS_LABELS = useStatusLabels()
 
   React.useEffect(() => {
     if (!locale) return
-    every("terms.list", { query: { sort: "category", language: locale } })
-      .then((terms) => setCategories(terms.filter((t) => t.sort === "category")))
+    nextEvery("taxonomy.terms.list", {
+      query: { kind: "category", language: locale },
+    })
+      .then(setCategories)
       .catch(() => setCategories([]))
 
-    every("terms.list", { query: { sort: "tag", language: locale } })
-      .then((terms) => setTags(terms.filter((t) => t.sort === "tag")))
+    nextEvery("taxonomy.terms.list", {
+      query: { kind: "tag", language: locale },
+    })
+      .then(setTags)
       .catch(() => setTags([]))
   }, [locale])
 
@@ -99,9 +97,9 @@ export function PostSettings({
     const name = newCategory.trim()
     if (!name) return
     try {
-      const created = await api("terms.make", {
+      const created = await nextApi("taxonomy.terms.create", {
         body: {
-          sort: "category",
+          kind: "category",
           language: locale,
           slug: slugify(name),
           name,
@@ -111,24 +109,34 @@ export function PostSettings({
       setCategories((held) =>
         held.some((category) => category.id === created.id)
           ? held
-          : [...held, created],
+          : [...held, created]
       )
       onChange(withCategory(created.id, true))
       setNewCategory("")
     } catch (why) {
-      toast.error(said(why))
+      toast.error(serverNextMessage(why))
     }
   }
 
   const addTag = async () => {
     const value = tagDraft.trim()
-    if (!value || meta.tags.includes(value)) return
-    setTagDraft("")
-    onChange({ tags: [...meta.tags, value] })
+    if (!value) return
+
+    const existing = tags.find(
+      (tag) => tag.name.toLocaleLowerCase() === value.toLocaleLowerCase()
+    )
+    if (existing) {
+      if (!meta.tags.includes(existing.id)) {
+        onChange({ tags: [...meta.tags, existing.id] })
+      }
+      setTagDraft("")
+      return
+    }
+
     try {
-      const created = await api("terms.make", {
+      const created = await nextApi("taxonomy.terms.create", {
         body: {
-          sort: "tag",
+          kind: "tag",
           language: locale,
           slug: slugify(value),
           name: value,
@@ -136,10 +144,12 @@ export function PostSettings({
       })
 
       setTags((held) =>
-        held.some((tag) => tag.id === created.id) ? held : [...held, created],
+        held.some((tag) => tag.id === created.id) ? held : [...held, created]
       )
+      setTagDraft("")
+      onChange({ tags: [...meta.tags, created.id] })
     } catch (why) {
-      toast.error(said(why))
+      toast.error(serverNextMessage(why))
     }
   }
 
@@ -147,22 +157,19 @@ export function PostSettings({
   const { find } = useContentTypes()
   const of_kind = find(meta.kind)
 
-  /**
-   * The post's categories after one is put in or taken out.
-   *
-   * `category` is the name of one of them, kept because a front end has read
-   * it since before there were several. The first is the one it names.
-   */
+  /** The post's category ids after one is put in or taken out. */
   const withCategory = (id: string, wanted: boolean) => {
     const ids = wanted
       ? [...meta.categoryIds.filter((held) => held !== id), id]
       : meta.categoryIds.filter((held) => held !== id)
-    const first = categories.find((category) => category.id === ids[0])
-    return { categoryIds: ids, category: first?.name ?? "" }
+    return { categoryIds: ids }
   }
 
-  const seoTitle = meta.seoTitle || meta.title
-  const seoDescription = meta.seoDescription || meta.excerpt
+  const withTag = (id: string, wanted: boolean) => ({
+    tags: wanted
+      ? [...meta.tags.filter((held) => held !== id), id]
+      : meta.tags.filter((held) => held !== id),
+  })
 
   return (
     <div className="flex flex-col gap-5">
@@ -318,21 +325,24 @@ export function PostSettings({
         </div>
         {meta.tags.length > 0 && (
           <div className="flex flex-wrap gap-1.5 pt-2">
-            {meta.tags.map((tag) => (
-              <Badge key={tag} variant="secondary" className="gap-1 pr-1">
-                {tag}
-                <button
-                  type="button"
-                  aria-label={t`Remove ${tag} tag`}
-                  onClick={() =>
-                    onChange({ tags: meta.tags.filter((item) => item !== tag) })
-                  }
-                  className="rounded-full p-0.5 hover:bg-foreground/10"
-                >
-                  <X className="size-3" />
-                </button>
-              </Badge>
-            ))}
+            {meta.tags.map((tagId) => {
+              const tag = tags.find((item) => item.id === tagId)
+              const name = tag?.name ?? tagId
+
+              return (
+                <Badge key={tagId} variant="secondary" className="gap-1 pr-1">
+                  {name}
+                  <button
+                    type="button"
+                    aria-label={t`Remove ${name} tag`}
+                    onClick={() => onChange(withTag(tagId, false))}
+                    className="rounded-full p-0.5 hover:bg-foreground/10"
+                  >
+                    <X className="size-3" />
+                  </button>
+                </Badge>
+              )
+            })}
           </div>
         )}
       </Field>
@@ -362,128 +372,6 @@ export function PostSettings({
           <Sparkles /> {t`Generate from post`}
         </Button>
       </Field>
-
-      <Field label={t`Cover image`} htmlFor="meta-cover">
-        <div className="flex gap-1.5">
-          <Input
-            id="meta-cover"
-            value={meta.coverUrl}
-            placeholder="https://…/cover.jpg"
-            onChange={(event) => onChange({ coverUrl: event.target.value })}
-          />
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            aria-label={t`Upload cover image`}
-            onClick={() => coverInputRef.current?.click()}
-          >
-            <Upload />
-          </Button>
-          <input
-            ref={coverInputRef}
-            type="file"
-            accept="image/png,image/jpeg,image/gif,image/webp"
-            hidden
-            onChange={async (event) => {
-              const file = event.target.files?.[0]
-              event.target.value = ""
-              if (!file) return
-              const response = await fetch(
-                `/api/files?name=${encodeURIComponent(file.name)}`,
-                { method: "POST", body: file },
-              )
-
-              if (!response.ok) {
-                const why = await response.json().catch(() => null)
-
-                toast.error(
-                  said(
-                    new Refused(
-                      response.status,
-                      String(why?.error?.code ?? "internal"),
-                      why?.error?.key ?? null,
-                      why?.error?.named ?? {},
-                      String(why?.error?.message ?? response.statusText),
-                    ),
-                  ),
-                )
-
-                return
-              }
-
-              const media = (await response.json()) as { id: string }
-
-              onChange({ coverId: media.id, coverUrl: `/uploads/${media.id}` })
-            }}
-          />
-        </div>
-        <div className="mt-2 flex aspect-video items-center justify-center overflow-hidden rounded-lg border border-dashed border-border bg-muted/40">
-          {meta.coverUrl ? (
-            <img
-              src={meta.coverUrl}
-              alt={t`Cover preview`}
-              className="size-full object-cover"
-            />
-          ) : (
-            <ImageOff className="size-5 text-muted-foreground" />
-          )}
-        </div>
-      </Field>
-
-      <div className="flex flex-col gap-4 rounded-xl border border-border p-3">
-        <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-          {t`Search engine`}
-        </p>
-        <Field
-          label={t`SEO title`}
-          htmlFor="meta-seo-title"
-          hint={`${seoTitle.length}/60`}
-        >
-          <Input
-            id="meta-seo-title"
-            value={meta.seoTitle}
-            placeholder={meta.title}
-            onChange={(event) => onChange({ seoTitle: event.target.value })}
-          />
-        </Field>
-        <Field
-          label={t`SEO description`}
-          htmlFor="meta-seo-description"
-          hint={`${seoDescription.length}/160`}
-        >
-          <Textarea
-            id="meta-seo-description"
-            rows={3}
-            value={meta.seoDescription}
-            placeholder={meta.excerpt || t`Text shown in search results`}
-            onChange={(event) =>
-              onChange({ seoDescription: event.target.value })
-            }
-            className="resize-none"
-          />
-        </Field>
-        <Field label={t`Canonical URL`} htmlFor="meta-canonical">
-          <Input
-            id="meta-canonical"
-            value={meta.canonical}
-            placeholder="https://example.com/blog/…"
-            onChange={(event) => onChange({ canonical: event.target.value })}
-          />
-        </Field>
-
-        <div className="rounded-lg border border-border bg-muted/40 p-3">
-          <p className="truncate text-xs text-muted-foreground">
-            example.com › blog › {meta.slug || t`post`}
-          </p>
-          <p className="truncate text-sm font-medium text-primary">
-            {seoTitle || t`Post title`}
-          </p>
-          <p className="line-clamp-2 text-xs text-muted-foreground">
-            {seoDescription || t`Description text shown in search results.`}
-          </p>
-        </div>
-      </div>
     </div>
   )
 }
@@ -515,4 +403,3 @@ function Field({
     </div>
   )
 }
-

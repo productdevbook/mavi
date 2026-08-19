@@ -1,10 +1,10 @@
 import * as React from "react"
 import { useLingui } from "@lingui/react/macro"
 
-import { api } from "@/lib/v1"
-import type { AKind } from "@api"
+import { nextEvery } from "@/lib/server-next"
+import type { ContentType as ServerContentType } from "@api-next"
 
-export type ContentType = AKind & { key: string; plural?: string }
+export type ContentType = ServerContentType & { key: string; plural?: string }
 
 // Shared by every list of kinds on screen at once. Adding one is done on the
 // content-types page and read by the sidebar, which is a different mount: kept
@@ -36,7 +36,7 @@ function subscribe(tell: () => void) {
  */
 export function useContentTypes() {
   const { t } = useLingui()
-  const [loaded, setLoaded] = React.useState<AKind[]>([])
+  const [loaded, setLoaded] = React.useState<ServerContentType[]>([])
   const [loading, setLoading] = React.useState(true)
 
   // Bumped rather than calling the fetch again, so that reloading is a change
@@ -44,13 +44,13 @@ export function useContentTypes() {
   const asOf = React.useSyncExternalStore(
     subscribe,
     () => asOfAll,
-    () => asOfAll,
+    () => asOfAll
   )
 
   React.useEffect(() => {
     let cancelled = false
 
-    api("kinds.list")
+    nextEvery("content_types.list", { query: {} })
       .then((all) => {
         if (!cancelled) setLoaded(all)
       })
@@ -67,10 +67,11 @@ export function useContentTypes() {
   }, [asOf])
 
   const types: ContentType[] = React.useMemo(() => {
-    const ours: Record<string, { was: string; name: string; plural: string }> = {
-      post: { was: "Post", name: t`Post`, plural: t`Posts` },
-      page: { was: "Page", name: t`Page`, plural: t`Pages` },
-    }
+    const ours: Record<string, { was: string; name: string; plural: string }> =
+      {
+        post: { was: "Post", name: t`Post`, plural: t`Posts` },
+        page: { was: "Page", name: t`Page`, plural: t`Pages` },
+      }
 
     return loaded.map((kind) => {
       const seeded = ours[kind.kind]
@@ -82,8 +83,9 @@ export function useContentTypes() {
   }, [loaded, t])
 
   const find = React.useCallback(
-    (key: string) => types.find((kind) => kind.kind === key || kind.key === key),
-    [types],
+    (key: string) =>
+      types.find((kind) => kind.kind === key || kind.key === key),
+    [types]
   )
 
   const reload = React.useCallback(() => announce(), [])

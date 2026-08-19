@@ -821,7 +821,7 @@ msgstr "Yazılanların bir kopyası"
 #~ msgid "a course"
 #~ msgstr "bir eğitim"
 
-#: src/routes/dashboard.teaching.start.tsx:71
+#: src/features/learning/start-teaching-page.tsx:66
 msgid "A course holds modules and lessons, and people are put on it for as long as you say. Nothing is open to anybody until you say it is."
 msgstr "Bir eğitim modüller ve dersler tutar; kişiler ona sizin belirlediğiniz süre boyunca eklenir. Siz açmadan kimseye açık değildir."
 
@@ -872,7 +872,7 @@ msgstr "Sizin taşıdığınızı taşıyan, kendiliğinden süresi dolan ve ger
 msgid "A language is two letters, and a place after them where there is one: en, or en-GB."
 msgstr "Bir dil iki harftir, ardından varsa bir yer gelir: en, ya da en-GB."
 
-#: src/routes/dashboard.courses.$courseId.tsx:184
+#: src/features/learning/course-page.tsx:183
 msgid "A lesson"
 msgstr "Bir ders"
 
@@ -970,7 +970,7 @@ msgstr "Sayı"
 msgid "A paid plan is needed for this; developer mode is where custom connectors live."
 msgstr "Bunun için ücretli bir plan gerekiyor; özel bağlayıcılar geliştirici kipinde duruyor."
 
-#: src/routes/dashboard.courses.$courseId.tsx:210
+#: src/features/learning/course-page.tsx:209
 msgid "A part of the course"
 msgstr "Eğitimin bir bölümü"
 
@@ -1144,9 +1144,9 @@ msgstr "Sitenin kendi ödeme sağlayıcısı. Kart bilgileri bu makineye hiç ul
 #~ msgstr "Etkin"
 
 #: src/components/editor/dialogs.tsx:206
+#: src/features/learning/course-page.tsx:192
 #: src/features/taxonomy/tags-page.tsx:155
 #: src/routes/dashboard.boards_.$boardId.tsx:237
-#: src/routes/dashboard.courses.$courseId.tsx:193
 #: src/routes/dashboard.mail.tsx:213
 msgid "Add"
 msgstr "Ekle"
@@ -1175,7 +1175,7 @@ msgstr "Tür ekle"
 #~ msgid "Add a lesson"
 #~ msgstr "Ders ekle"
 
-#: src/routes/dashboard.courses.$courseId.tsx:215
+#: src/features/learning/course-page.tsx:214
 msgid "Add a part"
 msgstr "Bölüm ekle"
 
@@ -1191,6 +1191,10 @@ msgstr "Bölüm ekle"
 #: src/routes/dashboard.boards.tsx:446
 #~ msgid "Add a stage"
 #~ msgstr "Aşama ekle"
+
+#: src/features/learning/students-page.tsx:92
+msgid "Add a student to enroll them in one of your courses."
+msgstr ""
 
 #: src/components/editor/post-settings.tsx:304
 msgid "Add a tag and press Enter"
@@ -1264,8 +1268,9 @@ msgstr "Üste satır ekle"
 #~ msgid "Add site"
 #~ msgstr "Site ekle"
 
+#: src/features/learning/students-page.tsx:81
+#: src/features/learning/students-page.tsx:95
 #: src/routes/dashboard.mail.tsx:223
-#: src/routes/dashboard.students.tsx:82
 msgid "Add somebody"
 msgstr "Kişi ekle"
 
@@ -2014,7 +2019,7 @@ msgstr "Sepet"
 #~ msgid "being worked on"
 #~ msgstr "üzerinde çalışılıyor"
 
-#: src/routes/dashboard.courses.$courseId.tsx:116
+#: src/features/learning/course-page.tsx:114
 msgid "Being written"
 msgstr "Yazılıyor"
 
@@ -2166,6 +2171,10 @@ msgstr "Önizleme derle"
 #: src/components/publish-panel.tsx:228
 #~ msgid "Build command"
 #~ msgstr "Derleme komutu"
+
+#: src/features/learning/course-page.tsx:110
+msgid "Build modules and lessons for this course."
+msgstr ""
 
 #: src/routes/dashboard.api.tsx:269
 #~ msgid "Build this site's pages again."
@@ -2324,6 +2333,7 @@ msgstr "{0} alanın {summary} tanesini açabilir."
 #: src/features/content/content-list.tsx:316
 #: src/features/forms/forms-page.tsx:306
 #: src/features/forms/forms-page.tsx:328
+#: src/features/learning/students-page.tsx:246
 #: src/features/media/media-page.tsx:210
 #: src/features/people/people-page.tsx:353
 #: src/features/people/people-page.tsx:377
@@ -2342,7 +2352,6 @@ msgstr "{0} alanın {summary} tanesini açabilir."
 #: src/routes/dashboard.languages.tsx:183
 #: src/routes/dashboard.mail.tsx:268
 #: src/routes/dashboard.mail.tsx:332
-#: src/routes/dashboard.students.tsx:241
 msgid "Cancel"
 msgstr "Vazgeç"
 
@@ -2554,7 +2563,7 @@ msgstr "Biçimi temizle"
 msgid "Close"
 msgstr "Kapat"
 
-#: src/routes/dashboard.courses.$courseId.tsx:126
+#: src/features/learning/course-page.tsx:123
 msgid "Close it"
 msgstr "Kapat"
 
@@ -3278,7 +3287,7 @@ msgid "course"
 msgstr "eğitim"
 
 #: src/components/dashboard/content-type-editor.tsx:104
-#: src/routes/dashboard.students.tsx:221
+#: src/features/learning/students-page.tsx:226
 msgid "Course"
 msgstr "Eğitim"
 
@@ -3780,9 +3789,9 @@ msgid "Editor-in-chief"
 msgstr "Genel yayın yönetmeni"
 
 #: src/components/dashboard/content-type-editor.tsx:58
+#: src/features/learning/students-page.tsx:205
 #: src/features/people/people-page.tsx:311
 #: src/learn/app.tsx:159
-#: src/routes/dashboard.students.tsx:200
 #: src/routes/forgotten.tsx:216
 #: src/routes/login.tsx:110
 #: src/routes/setup.tsx:136
@@ -4265,9 +4274,9 @@ msgstr "Başlıktan üret"
 #~ msgid "GitHub username"
 #~ msgstr "GitHub kullanıcı adı"
 
-#: src/routes/dashboard.students.tsx:117
-#: src/routes/dashboard.students.tsx:192
-#: src/routes/dashboard.students.tsx:247
+#: src/features/learning/students-page.tsx:122
+#: src/features/learning/students-page.tsx:197
+#: src/features/learning/students-page.tsx:252
 msgid "Give access"
 msgstr "Erişim ver"
 
@@ -5364,7 +5373,7 @@ msgstr "Varsayılan yap"
 msgid "Make it"
 msgstr "Oluştur"
 
-#: src/routes/dashboard.teaching.start.tsx:107
+#: src/features/learning/start-teaching-page.tsx:101
 msgid "Make the course"
 msgstr "Eğitimi oluştur"
 
@@ -5587,9 +5596,9 @@ msgstr "Eğitimlerim"
 
 #: src/features/forms/forms-page.tsx:158
 #: src/features/forms/forms-page.tsx:243
+#: src/features/learning/students-page.tsx:216
 #: src/features/people/people-page.tsx:321
 #: src/routes/dashboard.languages.tsx:117
-#: src/routes/dashboard.students.tsx:211
 msgid "Name"
 msgstr "Ad"
 
@@ -5892,7 +5901,7 @@ msgstr "Henüz akış yok."
 msgid "No forms yet"
 msgstr "Henüz form yok"
 
-#: src/routes/dashboard.courses.$courseId.tsx:150
+#: src/features/learning/course-page.tsx:149
 msgid "No lessons in it yet."
 msgstr "İçinde henüz ders yok."
 
@@ -6047,7 +6056,7 @@ msgstr "Henüz kimse yok."
 #~ msgid "Nobody owes anything."
 #~ msgstr "Kimsenin borcu yok."
 
-#: src/routes/dashboard.students.tsx:92
+#: src/features/learning/students-page.tsx:91
 msgid "Nobody yet"
 msgstr "Henüz kimse yok"
 
@@ -6701,7 +6710,7 @@ msgstr "Adımlardan biri JSON olarak yazılmamış."
 #~ msgstr "Yalnızca siz bileceksiniz. En az on karakter — hatırlayacağınız birkaç kelime, kısa ve kurnaz bir şeyden iyidir."
 
 #: src/components/editor/bubble-menus.tsx:290
-#: src/routes/dashboard.courses.$courseId.tsx:116
+#: src/features/learning/course-page.tsx:114
 msgid "Open"
 msgstr "Aç"
 
@@ -6721,7 +6730,7 @@ msgstr "Aç"
 msgid "Open in new tab"
 msgstr "Yeni sekmede aç"
 
-#: src/routes/dashboard.courses.$courseId.tsx:126
+#: src/features/learning/course-page.tsx:123
 msgid "Open it"
 msgstr "Hesabı aç"
 
@@ -7049,7 +7058,7 @@ msgstr "Kalıcı bağlantı"
 #~ msgid "Photographed"
 #~ msgstr "Fotoğraflandı"
 
-#: src/routes/dashboard.teaching.start.tsx:84
+#: src/features/learning/start-teaching-page.tsx:78
 msgid "Photography, from the beginning"
 msgstr "Sıfırdan fotoğrafçılık"
 
@@ -7483,6 +7492,8 @@ msgstr "Düzenli ifade"
 #: src/features/forms/forms-page.tsx:216
 #: src/features/forms/forms-page.tsx:330
 #: src/features/forms/forms-page.tsx:466
+#: src/features/learning/course-page.tsx:139
+#: src/features/learning/course-page.tsx:164
 #: src/features/people/people-page.tsx:248
 #: src/features/people/people-page.tsx:379
 #: src/features/shop/coupons-page.tsx:122
@@ -7492,8 +7503,6 @@ msgstr "Düzenli ifade"
 #: src/routes/dashboard.boards.tsx:188
 #: src/routes/dashboard.boards.tsx:234
 #: src/routes/dashboard.content-types.tsx:106
-#: src/routes/dashboard.courses.$courseId.tsx:140
-#: src/routes/dashboard.courses.$courseId.tsx:165
 #: src/routes/dashboard.flows.tsx:180
 #: src/routes/dashboard.flows.tsx:299
 #: src/routes/dashboard.forms_.$formId.tsx:212
@@ -8552,7 +8561,7 @@ msgstr "Aşamalar"
 msgid "Start a course"
 msgstr "Bir eğitim başlatın"
 
-#: src/routes/dashboard.teaching.start.tsx:69
+#: src/features/learning/start-teaching-page.tsx:65
 msgid "Start teaching"
 msgstr "Öğretmeye başla"
 
@@ -8684,9 +8693,9 @@ msgstr "Üstü çizili"
 #~ msgstr "Güçlü"
 
 #: src/components/dashboard/dashboard-shell.tsx:103
-#: src/routes/dashboard.courses.$courseId.tsx:242
+#: src/features/learning/course-page.tsx:241
+#: src/features/learning/students-page.tsx:74
 #: src/routes/dashboard.index.tsx:100
-#: src/routes/dashboard.students.tsx:76
 msgid "Students"
 msgstr "Öğrenciler"
 
@@ -10330,19 +10339,19 @@ msgstr "Kaça satılıyor"
 msgid "What it is"
 msgstr "Ne olduğu"
 
-#: src/routes/dashboard.teaching.start.tsx:92
+#: src/features/learning/start-teaching-page.tsx:86
 msgid "What it is about"
 msgstr "Neyle ilgili"
 
 #: src/components/dashboard/content-type-editor.tsx:99
 #: src/components/dashboard/content-type-editor.tsx:146
 #: src/features/forms/forms-page.tsx:401
+#: src/features/learning/start-teaching-page.tsx:70
 #: src/features/settings/settings-page.tsx:64
 #: src/features/shop/products-page.tsx:212
 #: src/routes/dashboard.boards.tsx:162
 #: src/routes/dashboard.flows.tsx:215
 #: src/routes/dashboard.mail.tsx:258
-#: src/routes/dashboard.teaching.start.tsx:76
 msgid "What it is called"
 msgstr "Görünen adı"
 
@@ -10717,11 +10726,11 @@ msgstr "Makbuz nereye gönderilsin"
 msgid "Which browser you are using, which screen you were on and anything the panel has already recorded going wrong are sent with this. It goes to whoever runs this server, and nowhere else."
 msgstr "Hangi tarayıcıyı kullandığınız, hangi ekranda olduğunuz ve panelin ters gittiğini kaydettiği her şey bununla birlikte gönderilir. Bu sunucuyu çalıştıran kişiye gider, başka hiçbir yere."
 
-#: src/routes/dashboard.students.tsx:227
+#: src/features/learning/students-page.tsx:232
 msgid "Which course"
 msgstr "Hangi eğitim"
 
-#: src/routes/dashboard.students.tsx:194
+#: src/features/learning/students-page.tsx:199
 msgid "Which course to enroll the student in."
 msgstr ""
 
@@ -10781,7 +10790,7 @@ msgstr "Bu siteye kim ne yaptı, ne zaman."
 #~ msgid "Who is on it"
 #~ msgstr "Kimler kayıtlı"
 
-#: src/routes/dashboard.students.tsx:78
+#: src/features/learning/students-page.tsx:75
 msgid "Who may watch what, and until when."
 msgstr ""
 

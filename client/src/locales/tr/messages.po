@@ -446,7 +446,7 @@ msgstr ""
 #~ msgstr "{0} yanıt geldi, {1} tanesi henüz açılmadı."
 
 #. placeholder {0}: rows.length
-#: src/routes/dashboard.forms_.$formId.tsx:142
+#: src/features/forms/form-detail-page.tsx:131
 msgid "{0} received."
 msgstr ""
 
@@ -1184,9 +1184,14 @@ msgstr "Yatay çizgi ekle"
 msgid "Add a hyperlink to the selected text."
 msgstr "Seçili metne köprü ekle."
 
-#: src/routes/dashboard.content-types.tsx:67
+#: src/features/content/content-types-page.tsx:63
+#: src/features/content/content-types-page.tsx:76
 msgid "Add a kind"
 msgstr "Tür ekle"
+
+#: src/features/content/content-types-page.tsx:74
+msgid "Add a kind when your site publishes something with facts of its own."
+msgstr ""
 
 #: src/routes/dashboard.courses.$courseId.tsx:353
 #~ msgid "Add a lesson"
@@ -1258,7 +1263,7 @@ msgstr "Köprü metni ekle"
 msgid "Add image"
 msgstr "Görsel ekle"
 
-#: src/routes/dashboard.languages.tsx:121
+#: src/features/content/languages-page.tsx:118
 msgid "Add language"
 msgstr "Dil ekle"
 
@@ -1307,6 +1312,10 @@ msgstr "Tablo ekle"
 #: src/components/ses-account.tsx:915
 #~ msgid "Add the domain you send from. A domain covers every address on it, so it is worth doing before adding addresses one at a time."
 #~ msgstr "Gönderim yaptığınız alan adını ekleyin. Bir alan adı, üzerindeki her adresi kapsar; adresleri tek tek eklemeden önce bunu yapmaya değer."
+
+#: src/features/content/languages-page.tsx:128
+msgid "Add the first language your site's content can be written in."
+msgstr ""
 
 #: src/features/settings/settings-page.tsx:201
 msgid "Add this to your authenticator, then type what it shows."
@@ -2368,6 +2377,7 @@ msgstr "{0} alanın {summary} tanesini açabilir."
 #: src/features/boards/boards-page.tsx:212
 #: src/features/boards/boards-page.tsx:234
 #: src/features/content/content-list.tsx:316
+#: src/features/content/languages-page.tsx:186
 #: src/features/design/design-page.tsx:214
 #: src/features/forms/forms-page.tsx:306
 #: src/features/forms/forms-page.tsx:328
@@ -2384,7 +2394,6 @@ msgstr "{0} alanın {summary} tanesini açabilir."
 #: src/features/taxonomy/categories-page.tsx:332
 #: src/features/taxonomy/tags-page.tsx:189
 #: src/features/taxonomy/tags-page.tsx:241
-#: src/routes/dashboard.languages.tsx:183
 msgid "Cancel"
 msgstr "Vazgeç"
 
@@ -2628,7 +2637,7 @@ msgstr "Kapat"
 msgid "Code"
 msgstr "Kod"
 
-#: src/routes/dashboard.languages.tsx:111
+#: src/features/content/languages-page.tsx:108
 msgid "Code (en, de, pt-BR)"
 msgstr "Kod (tr, en, de)"
 
@@ -2758,7 +2767,7 @@ msgstr "Bunun yerine terminalden, jetonla bağlanmak"
 msgid "Content"
 msgstr "İçerik"
 
-#: src/routes/dashboard.languages.tsx:179
+#: src/features/content/languages-page.tsx:182
 msgid "Content already written in this language blocks removal — you'll be told how much there is."
 msgstr "Bu dilde yazılmış içerik varsa silme engellenir — ne kadar olduğu size bildirilir."
 
@@ -2819,7 +2828,7 @@ msgstr "{0} ile devam et"
 #: src/components/assistant-clients.tsx:119
 #: src/components/editor/bubble-menus.tsx:325
 #: src/components/editor/dialogs.tsx:468
-#: src/routes/dashboard.forms_.$formId.tsx:51
+#: src/features/forms/form-detail-page.tsx:47
 msgid "Copy"
 msgstr "Kopyala"
 
@@ -2973,8 +2982,8 @@ msgstr "Yazını farklı biçimlerde kopyala, indir veya Markdown yükle."
 
 #: src/components/assistant-clients.tsx:106
 #: src/components/mcp-connection.tsx:27
+#: src/features/forms/form-detail-page.tsx:35
 #: src/features/integrations/api-page.tsx:31
-#: src/routes/dashboard.forms_.$formId.tsx:39
 msgid "Could not copy it"
 msgstr "Kopyalanamadı"
 
@@ -3534,7 +3543,7 @@ msgstr "Girintiyi azalt"
 #: src/components/editor/palette.ts:48
 #: src/components/editor/toolbar.tsx:288
 #: src/components/editor/toolbar.tsx:650
-#: src/routes/dashboard.languages.tsx:142
+#: src/features/content/languages-page.tsx:145
 msgid "Default"
 msgstr "Varsayılan"
 
@@ -3542,13 +3551,13 @@ msgstr "Varsayılan"
 #: src/components/editor/bubble-menus.tsx:415
 #: src/features/content/content-list.tsx:294
 #: src/features/content/content-list.tsx:318
+#: src/features/content/languages-page.tsx:163
 #: src/features/media/media-page.tsx:187
 #: src/features/media/media-page.tsx:212
 #: src/features/people/roles-page.tsx:172
 #: src/features/taxonomy/categories-page.tsx:308
 #: src/features/taxonomy/categories-page.tsx:334
 #: src/features/taxonomy/tags-page.tsx:217
-#: src/routes/dashboard.languages.tsx:160
 msgid "Delete"
 msgstr "Sil"
 
@@ -4008,7 +4017,7 @@ msgstr "Her sayfa, Google ve diğer tarayıcılar için listeli."
 #~ msgid "Every site has its own, on its own address. The same server answers all of them and the address is what decides whose content you get — so this one returns this site's, and nobody else's."
 #~ msgstr "Her sitenin kendi adresinde kendi API'si var. Hepsine aynı sunucu yanıt veriyor ve kimin içeriğini alacağınızı adres belirliyor — bu adres bu sitenin içeriğini döner, başkasınınkini değil."
 
-#: src/routes/dashboard.content-types.tsx:63
+#: src/features/content/content-types-page.tsx:60
 msgid "Every site has posts and pages. Add a kind of your own when what you publish has facts of its own — a course with a price and a level, a property with rooms — so a page can lay them out instead of hunting for them in a paragraph."
 msgstr "Her sitede yazılar ve sayfalar var. Yayınladığınız şeyin kendine ait bilgileri varsa — fiyatı ve seviyesi olan bir eğitim, oda sayısı olan bir daire — kendi türünüzü ekleyin; böylece sayfa onları paragrafın içinde aramak yerine düzenleyerek gösterebilir."
 
@@ -4139,7 +4148,7 @@ msgstr "Dışa aktar"
 #~ msgid "Fetched {0}. Every picture is on this server now."
 #~ msgstr "{0} tanesi getirildi. Artık her resim bu sunucuda."
 
-#: src/routes/dashboard.content-types.tsx:101
+#: src/features/content/content-types-page.tsx:103
 msgid "Fields"
 msgstr "Alanlar"
 
@@ -4302,9 +4311,9 @@ msgid "Formatting"
 msgstr "Biçimlendirme"
 
 #: src/components/dashboard/dashboard-shell.tsx:91
+#: src/features/forms/form-detail-page.tsx:126
 #: src/features/forms/forms-page.tsx:146
 #: src/features/people/roles-page.tsx:156
-#: src/routes/dashboard.forms_.$formId.tsx:135
 #: src/routes/dashboard.index.tsx:78
 msgid "Forms"
 msgstr "Formlar"
@@ -4667,7 +4676,7 @@ msgstr "Ne kadar"
 #~ msgid "How to get these keys"
 #~ msgstr "Bu anahtarlar nasıl alınır"
 
-#: src/routes/dashboard.forms_.$formId.tsx:153
+#: src/features/forms/form-detail-page.tsx:140
 msgid "How to send to it"
 msgstr "Buraya nasıl gönderilir"
 
@@ -5162,8 +5171,8 @@ msgid "Language"
 msgstr "Dil"
 
 #: src/components/dashboard/dashboard-shell.tsx:109
+#: src/features/content/languages-page.tsx:94
 #: src/features/portability/portable-page.tsx:133
-#: src/routes/dashboard.languages.tsx:95
 msgid "Languages"
 msgstr "Diller"
 
@@ -5487,7 +5496,7 @@ msgstr "Bir rol oluşturun, sonra aşağıda neler yapabileceğini işaretleyin.
 #~ msgid "Make an IAM user in the AWS account that owns the sending domain."
 #~ msgstr "Gönderim alan adının sahibi olan AWS hesabında bir IAM kullanıcısı oluşturun."
 
-#: src/routes/dashboard.languages.tsx:155
+#: src/features/content/languages-page.tsx:158
 msgid "Make default"
 msgstr "Varsayılan yap"
 
@@ -5732,12 +5741,12 @@ msgstr "Eğitimlerim"
 #~ msgid "My orders"
 #~ msgstr "Siparişlerim"
 
+#: src/features/content/languages-page.tsx:114
 #: src/features/forms/forms-page.tsx:158
 #: src/features/forms/forms-page.tsx:243
 #: src/features/integrations/api-page.tsx:152
 #: src/features/learning/students-page.tsx:216
 #: src/features/people/people-page.tsx:321
-#: src/routes/dashboard.languages.tsx:117
 msgid "Name"
 msgstr "Ad"
 
@@ -6001,6 +6010,10 @@ msgstr "Henüz kategori yok."
 msgid "No codes yet."
 msgstr "Henüz kod yok."
 
+#: src/features/content/content-types-page.tsx:73
+msgid "No custom kinds yet"
+msgstr ""
+
 #: src/routes/dashboard.performance.tsx:118
 #~ msgid "no data"
 #~ msgstr "veri yok"
@@ -6026,7 +6039,7 @@ msgstr "Emoji bulunamadı"
 #~ msgid "No field by that name"
 #~ msgstr "Bu adda bir alan yok"
 
-#: src/routes/dashboard.content-types.tsx:90
+#: src/features/content/content-types-page.tsx:94
 msgid "no fields of its own"
 msgstr "kendine ait alanı yok"
 
@@ -6045,6 +6058,10 @@ msgstr "Henüz akış yok."
 #: src/features/forms/forms-page.tsx:180
 msgid "No forms yet"
 msgstr "Henüz form yok"
+
+#: src/features/content/languages-page.tsx:127
+msgid "No languages yet"
+msgstr ""
 
 #: src/features/learning/course-page.tsx:149
 msgid "No lessons in it yet."
@@ -6165,7 +6182,7 @@ msgstr "Henüz etiket yok."
 #~ msgid "No videos yet"
 #~ msgstr "Henüz video yok"
 
-#: src/routes/dashboard.videos.tsx:115
+#: src/features/media/videos-page.tsx:116
 msgid "No videos yet."
 msgstr "Henüz video yok."
 
@@ -6380,7 +6397,7 @@ msgstr "Henüz hiçbir şey yayınlanmadı."
 #~ msgid "Nothing has been written here yet."
 #~ msgstr "Buraya henüz bir şey yazılmadı."
 
-#: src/routes/dashboard.forms_.$formId.tsx:164
+#: src/features/forms/form-detail-page.tsx:150
 msgid "Nothing has come in yet"
 msgstr "Henüz bir şey gelmedi"
 
@@ -7283,7 +7300,7 @@ msgstr "yazı"
 msgid "Post"
 msgstr "Yazı"
 
-#: src/routes/dashboard.forms_.$formId.tsx:155
+#: src/features/forms/form-detail-page.tsx:142
 msgid "Post JSON to this address from your own pages or software. No account is needed, and only the fields above are accepted."
 msgstr "Kendi sayfalarınızdan ya da yazılımınızdan bu adrese JSON gönderin. Hesap gerekmez, yalnızca yukarıdaki alanlar kabul edilir."
 
@@ -7594,7 +7611,7 @@ msgstr "Kırmızı"
 msgid "Redo"
 msgstr "İleri al"
 
-#: src/routes/dashboard.forms_.$formId.tsx:147
+#: src/features/forms/form-detail-page.tsx:134
 msgid "Refresh"
 msgstr "Yenile"
 
@@ -7654,19 +7671,19 @@ msgstr "Düzenli ifade"
 #: src/features/boards/boards-page.tsx:143
 #: src/features/boards/boards-page.tsx:190
 #: src/features/boards/boards-page.tsx:236
+#: src/features/content/content-types-page.tsx:108
+#: src/features/content/languages-page.tsx:188
+#: src/features/forms/form-detail-page.tsx:197
 #: src/features/forms/forms-page.tsx:216
 #: src/features/forms/forms-page.tsx:330
 #: src/features/forms/forms-page.tsx:466
 #: src/features/learning/course-page.tsx:139
 #: src/features/learning/course-page.tsx:164
+#: src/features/media/videos-page.tsx:140
 #: src/features/people/people-page.tsx:248
 #: src/features/people/people-page.tsx:379
 #: src/features/shop/coupons-page.tsx:122
 #: src/features/taxonomy/tags-page.tsx:243
-#: src/routes/dashboard.content-types.tsx:106
-#: src/routes/dashboard.forms_.$formId.tsx:212
-#: src/routes/dashboard.languages.tsx:185
-#: src/routes/dashboard.videos.tsx:133
 msgid "Remove"
 msgstr "Kaldır"
 
@@ -7709,7 +7726,7 @@ msgstr "Bu pano kaldırılsın mı?"
 msgid "Remove this form?"
 msgstr "Bu form kaldırılsın mı?"
 
-#: src/routes/dashboard.languages.tsx:177
+#: src/features/content/languages-page.tsx:180
 msgid "Remove this language?"
 msgstr "Bu dil silinsin mi?"
 
@@ -9405,7 +9422,7 @@ msgstr ""
 #~ msgid "The languages this site writes in."
 #~ msgstr "Bu sitenin yazdığı diller."
 
-#: src/routes/dashboard.languages.tsx:97
+#: src/features/content/languages-page.tsx:95
 msgid "The languages your content can be written in. This is separate from the language of this admin panel."
 msgstr "İçeriğinizin yazılabileceği diller. Bu, yönetim panelinin dilinden bağımsızdır."
 
@@ -10143,7 +10160,8 @@ msgstr "Başlıksız yazı"
 
 #: src/features/media/media-page.tsx:128
 #: src/features/media/media-page.tsx:153
-#: src/routes/dashboard.videos.tsx:96
+#: src/features/media/videos-page.tsx:98
+#: src/features/media/videos-page.tsx:120
 msgid "Upload"
 msgstr "Yükle"
 
@@ -10154,6 +10172,10 @@ msgstr "Yükle"
 #: src/routes/dashboard.videos.tsx:167
 #~ msgid "Upload a video"
 #~ msgstr "Video yükle"
+
+#: src/features/media/videos-page.tsx:117
+msgid "Upload a video to use in a course lesson."
+msgstr ""
 
 #: src/features/media/media-page.tsx:149
 msgid "Upload an image or file to start building this site's library."
@@ -10278,7 +10300,7 @@ msgstr "Kullanım"
 #~ msgstr "Video ayarları"
 
 #: src/components/dashboard/dashboard-shell.tsx:101
-#: src/routes/dashboard.videos.tsx:85
+#: src/features/media/videos-page.tsx:89
 msgid "Videos"
 msgstr "Videolar"
 
@@ -10415,7 +10437,7 @@ msgstr "Hesaptaki adrese bir bağlantı göndereceğiz."
 #~ msgid "What a flow signs in with"
 #~ msgstr "Bir akışın neyle oturum açtığı"
 
-#: src/routes/dashboard.videos.tsx:87
+#: src/features/media/videos-page.tsx:90
 msgid "What a lesson plays. Nothing here is public: a video is watched by somebody the course lets in."
 msgstr "Bir dersin oynattığı şey. Buradakiler herkese açık değildir: videoyu yalnızca eğitimin içeri aldığı kişi izler."
 
@@ -10741,7 +10763,7 @@ msgstr "Bunun tuttukları"
 #~ msgid "What this site plugs into. Anything not here is not something it can be made to talk to."
 #~ msgstr "Bu sitenin bağlandığı şeyler. Burada olmayan bir şeyle konuşturulamaz."
 
-#: src/routes/dashboard.content-types.tsx:61
+#: src/features/content/content-types-page.tsx:59
 msgid "What this site publishes"
 msgstr "Bu site ne yayınlıyor"
 
@@ -10838,7 +10860,7 @@ msgstr "Ne yapıyordunuz ve bunun yerine ne bekliyordunuz. Zorunlu değil."
 #~ msgstr "Ne gönderildiyse, metin olarak"
 
 #: src/components/audit-record.tsx:21
-#: src/routes/dashboard.forms_.$formId.tsx:172
+#: src/features/forms/form-detail-page.tsx:157
 msgid "When"
 msgstr "Ne zaman"
 

@@ -8,10 +8,10 @@ already has an opinion about:
 | `Clock` | what time it is |
 | `Files` | where an uploaded file goes |
 | `Builds` | turning a design into what a visitor is served |
-| `Post` | where a letter goes |
+| `Mailer` | where a letter goes |
 | `Told` | what happened, said outward |
 
-A port is a decision, not a convenience. `server/mavi-core/src/ports.rs` says
+A port is a decision, not a convenience. `server-next/mavi-core/src/ports.rs` says
 so at the top: adding one is work for everybody embedding this, and one nobody
 implements differently is a parameter wearing a costume.
 
@@ -39,9 +39,16 @@ Every one of those is a port, done worse:
   written twice, with a branch between the two copies.
 
 So: **a host that wants a site to send through its own mail server implements
-`Post` that way.** What this software knows is that a letter should be sent
+`Mailer` that way.** What this software knows is that a letter should be sent
 and what it says. How mail leaves a machine is not its business, and a host
 that already sends mail should not gain a second way to.
+
+The worker hands the adapter a `MailDeliveryRequest`, not only rendered text.
+It contains the site-scoped delivery id, durable attempt number and optional
+idempotency key. The worker commits the lease before calling the adapter and
+records the provider receipt or retry afterwards. A provider can therefore
+deduplicate a retry without receiving a database handle or learning anything
+about another site.
 
 ## Why building is a port and not an option
 

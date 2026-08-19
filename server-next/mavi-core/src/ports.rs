@@ -1,6 +1,6 @@
 use std::{fmt::Debug, future::Future, pin::Pin};
 
-use crate::{Money, Result, SiteContext};
+use crate::{MailDeliveryId, Money, Result, SiteContext};
 use serde::{Deserialize, Serialize};
 
 pub type BoxFuture<'a, T> = Pin<Box<dyn Future<Output = T> + Send + 'a>>;
@@ -33,8 +33,24 @@ pub trait Mailer: Debug + Send + Sync {
     fn send<'a>(
         &'a self,
         context: &'a SiteContext,
-        message: MailMessage,
+        request: MailDeliveryRequest,
     ) -> BoxFuture<'a, Result<MailDeliveryReceipt>>;
+}
+
+/// The complete provider-facing contract for one outbox attempt.
+///
+/// Providers must use `delivery_id` and the optional idempotency key when the
+/// remote API supports deduplication. `attempt_number` is the durable attempt
+/// opened by the database before the provider call; it is not a local retry
+/// counter that an adapter may change. Keeping these fields outside
+/// [`MailMessage`] prevents transport metadata from leaking into template and
+/// rendering code.
+#[derive(Clone, Debug)]
+pub struct MailDeliveryRequest {
+    pub delivery_id: MailDeliveryId,
+    pub attempt_number: u16,
+    pub idempotency_key: Option<String>,
+    pub message: MailMessage,
 }
 
 #[derive(Clone, Debug)]

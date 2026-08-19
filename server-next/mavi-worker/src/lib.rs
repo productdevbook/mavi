@@ -5,16 +5,26 @@
 //! as the domain result. Every worker mutation uses the explicit `system`
 //! caller so background work never appears as anonymous public activity.
 
-use std::{sync::Arc, time::Duration};
+use std::{
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    },
+    time::Duration,
+};
 
-use chrono::Utc;
+use chrono::{Duration as ChronoDuration, Utc};
 use mavi_audit::{AuditEntry, AuditService};
 use mavi_content::{
     ContentService, SCHEDULED_PUBLISH_JOB, ScheduledPublishJob, ScheduledPublishOutcome,
 };
-use mavi_core::{MaviError, RequestId, Result, SiteContext, SiteId, ports::FileStore};
+use mavi_core::{
+    MaviError, RequestId, Result, SiteContext, SiteId,
+    ports::{FileStore, MailDeliveryRequest, Mailer, Seals},
+};
 use mavi_forms::{FORM_RETENTION_JOB, FormRetentionJob, FormService};
 use mavi_jobs::{DEFAULT_LEASE_SECONDS, JobClaim, JobsService, LeaseOutcome};
+use mavi_mail::{ClaimedDelivery, MAX_DELIVERY_ATTEMPTS, MailService};
 use mavi_media::{
     MEDIA_CLEANUP_JOB, MEDIA_ORPHAN_CLEANUP_JOB, MEDIA_VARIANT_JOB, MediaCleanupJob,
     MediaOrphanCleanupJob, MediaService, MediaVariantJob, is_generated_media_storage_key,
@@ -78,6 +88,10 @@ pub struct WorkerSupervisor {
     forms: FormService,
     media: MediaService,
     file_store: Arc<dyn FileStore>,
+    mail: MailService,
+    mailer: Option<Arc<dyn Mailer>>,
+    sealer: Option<Arc<dyn Seals>>,
+    mail_first: Arc<AtomicBool>,
     config: WorkerConfig,
     metrics: WorkerMetrics,
 }
@@ -105,6 +119,65 @@ impl WorkerSupervisor {
         file_store: Arc<dyn FileStore>,
         metrics: WorkerMetrics,
     ) -> Self {
+        Self::build(database, sites, config, file_store, None, None, metrics)
+    }
+
+    /// Creates a supervisor that also drains the site-scoped mail outbox.
+    ///
+    /// The provider and keyring are injected by the composition root. The
+    /// worker never discovers credentials, opens a provider transaction, or
+    /// embeds a cloud SDK; it only claims a delivery, calls the [`Mailer`]
+    /// port, and records the result.
+    pub fn new_with_mailer(
+        database: Database,
+        sites: impl IntoIterator<Item = SiteId>,
+        config: WorkerConfig,
+        file_store: Arc<dyn FileStore>,
+        mailer: Arc<dyn Mailer>,
+        sealer: Arc<dyn Seals>,
+    ) -> Self {
+        Self::new_with_metrics_and_mailer(
+            database,
+            sites,
+            config,
+            file_store,
+            mailer,
+            sealer,
+            WorkerMetrics::default(),
+        )
+    }
+
+    /// Variant of [`Self::new_with_mailer`] that uses an existing metrics
+    /// registry owned by the runtime composition root.
+    pub fn new_with_metrics_and_mailer(
+        database: Database,
+        sites: impl IntoIterator<Item = SiteId>,
+        config: WorkerConfig,
+        file_store: Arc<dyn FileStore>,
+        mailer: Arc<dyn Mailer>,
+        sealer: Arc<dyn Seals>,
+        metrics: WorkerMetrics,
+    ) -> Self {
+        Self::build(
+            database,
+            sites,
+            config,
+            file_store,
+            Some(mailer),
+            Some(sealer),
+            metrics,
+        )
+    }
+
+    fn build(
+        database: Database,
+        sites: impl IntoIterator<Item = SiteId>,
+        config: WorkerConfig,
+        file_store: Arc<dyn FileStore>,
+        mailer: Option<Arc<dyn Mailer>>,
+        sealer: Option<Arc<dyn Seals>>,
+        metrics: WorkerMetrics,
+    ) -> Self {
         Self {
             database,
             sites: Arc::new(RwLock::new(site_snapshot(sites))),
@@ -119,6 +192,10 @@ impl WorkerSupervisor {
             forms: FormService,
             media: MediaService,
             file_store,
+            mail: MailService,
+            mailer,
+            sealer,
+            mail_first: Arc::new(AtomicBool::new(true)),
             config,
             metrics,
         }
@@ -165,7 +242,7 @@ impl WorkerSupervisor {
         }
     }
 
-    /// Claims and executes at most one scheduled publication for a site.
+    /// Claims and executes at most one background item for a site.
     /// This method is intentionally public so self-host smoke tests and a
     /// future operator-managed supervisor can drive the exact same worker.
     pub async fn run_once(&self, site_id: SiteId) -> Result<bool> {
@@ -193,6 +270,66 @@ impl WorkerSupervisor {
         self.forms
             .enqueue_retention_job(&mut transaction, &claim_context, &self.jobs, Utc::now())
             .await?;
+        let (mail_claim, claim) = if self.mail_first.fetch_xor(true, Ordering::Relaxed) {
+            let mail_claim = self
+                .claim_mail_delivery(&mut transaction, &claim_context)
+                .await?;
+            if mail_claim.is_some() {
+                (mail_claim, None)
+            } else {
+                (None, self.claim_job(&mut transaction).await?)
+            }
+        } else {
+            let claim = self.claim_job(&mut transaction).await?;
+            if claim.is_some() {
+                (None, claim)
+            } else {
+                (
+                    self.claim_mail_delivery(&mut transaction, &claim_context)
+                        .await?,
+                    None,
+                )
+            }
+        };
+        transaction.commit().await?;
+
+        if let Some(claimed) = mail_claim {
+            self.metrics.record_claim();
+            self.execute_mail_delivery(site_id, claimed).await?;
+            return Ok(true);
+        }
+
+        let Some(claim) = claim else {
+            return Ok(false);
+        };
+        self.metrics.record_claim();
+        self.execute_claim(site_id, claim).await?;
+        Ok(true)
+    }
+
+    async fn claim_mail_delivery(
+        &self,
+        transaction: &mut SiteTx,
+        context: &SiteContext,
+    ) -> Result<Option<ClaimedDelivery>> {
+        let Some(sealer) = self.sealer.as_deref() else {
+            return Ok(None);
+        };
+        if self.mailer.is_none() {
+            return Ok(None);
+        }
+        self.mail
+            .claim_next_with_sealer(
+                transaction,
+                context,
+                &self.config.worker_id,
+                Utc::now() + ChronoDuration::seconds(self.config.lease_seconds),
+                sealer,
+            )
+            .await
+    }
+
+    async fn claim_job(&self, transaction: &mut SiteTx) -> Result<Option<JobClaim>> {
         let mut claim = None;
         for kind in [
             SCHEDULED_PUBLISH_JOB.name,
@@ -204,7 +341,7 @@ impl WorkerSupervisor {
             claim = self
                 .jobs
                 .claim(
-                    &mut transaction,
+                    transaction,
                     &self.config.worker_id,
                     &[kind],
                     self.config.lease_seconds,
@@ -214,14 +351,58 @@ impl WorkerSupervisor {
                 break;
             }
         }
-        transaction.commit().await?;
+        Ok(claim)
+    }
 
-        let Some(claim) = claim else {
-            return Ok(false);
+    async fn execute_mail_delivery(&self, site_id: SiteId, claimed: ClaimedDelivery) -> Result<()> {
+        let context = SiteContext::system(
+            site_id,
+            self.config.worker_id.clone(),
+            RequestId::from_uuid(claimed.delivery.id.into_uuid()),
+        );
+        let mailer = self.mailer.as_deref().ok_or(MaviError::Internal)?;
+        let attempt_number =
+            u16::try_from(claimed.attempt_number).map_err(|_| MaviError::Internal)?;
+        let request = MailDeliveryRequest {
+            delivery_id: claimed.delivery.id,
+            attempt_number,
+            idempotency_key: claimed.idempotency_key,
+            message: claimed.message,
         };
-        self.metrics.record_claim();
-        self.execute_claim(site_id, claim).await?;
-        Ok(true)
+        match mavi_mail::send_via(&context, mailer, request).await {
+            Ok(receipt) => {
+                let mut transaction = self.database.begin(&context).await?;
+                self.mail
+                    .mark_sent(
+                        &mut transaction,
+                        &context,
+                        claimed.delivery.id,
+                        &self.config.worker_id,
+                        &receipt,
+                    )
+                    .await?;
+                transaction.commit().await?;
+                self.metrics.record_completed();
+            }
+            Err(error) => {
+                let retry_at = mail_retry_at(claimed.delivery.attempts);
+                let error = format_mail_error(&error);
+                let mut transaction = self.database.begin(&context).await?;
+                self.mail
+                    .mark_failed(
+                        &mut transaction,
+                        &context,
+                        claimed.delivery.id,
+                        &self.config.worker_id,
+                        &error,
+                        retry_at,
+                    )
+                    .await?;
+                transaction.commit().await?;
+                self.metrics.record_failed();
+            }
+        }
+        Ok(())
     }
 
     async fn execute_claim(&self, site_id: SiteId, claim: JobClaim) -> Result<()> {
@@ -661,6 +842,30 @@ impl WorkerSupervisor {
             }
         }
         Ok(())
+    }
+}
+
+fn mail_retry_at(attempts: u16) -> Option<chrono::DateTime<Utc>> {
+    let max_attempts = u16::try_from(MAX_DELIVERY_ATTEMPTS).unwrap_or(u16::MAX);
+    if attempts >= max_attempts {
+        return None;
+    }
+    let exponent = u32::from(attempts.saturating_sub(1).min(6));
+    let seconds = 2_i64.pow(exponent).min(3_600);
+    Some(Utc::now() + ChronoDuration::seconds(seconds))
+}
+
+fn format_mail_error(error: &MaviError) -> String {
+    let message = format!("mail provider failed: {error:?}");
+    let sanitized = message
+        .chars()
+        .filter(|character| !character.is_control())
+        .take(1_900)
+        .collect::<String>();
+    if sanitized.is_empty() {
+        "mail provider failed".to_owned()
+    } else {
+        sanitized
     }
 }
 

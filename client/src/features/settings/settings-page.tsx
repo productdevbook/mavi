@@ -1,6 +1,6 @@
 import * as React from "react"
 import { useLingui } from "@lingui/react/macro"
-import { Download, KeyRound, Loader2, ShieldCheck, Upload } from "lucide-react"
+import { KeyRound, Loader2, ShieldCheck } from "lucide-react"
 import { toast } from "sonner"
 
 import { api } from "@/lib/v1"
@@ -88,10 +88,6 @@ export function SettingsPage() {
       <AddressHealth />
 
       <SecondFactor />
-
-      <Providers />
-
-      <ACopy />
     </div>
   )
 }
@@ -235,116 +231,6 @@ function SecondFactor() {
           <KeyRound /> {t`Set one up`}
         </Button>
       )}
-    </section>
-  )
-}
-
-/**
- * Ways in other than a password.
- *
- * A site says where to send somebody and what to ask for; this machine keeps
- * the secret sealed and never hands it back. What comes back has to be an
- * address the site already knows: signing in with somebody else's Google
- * account is not a way into an account here.
- */
-function Providers() {
-  return null
-}
-
-/**
- * A copy of what the site holds, and reading one back.
- *
- * Languages, what things are filed under, and what has been written. Not the
- * media itself, not the accounts, not what a site keeps sealed — a file that
- * carried those would be a file that must never be lost.
- */
-function ACopy() {
-  const { t } = useLingui()
-  const [busy, setBusy] = React.useState(false)
-  const chooser = React.useRef<HTMLInputElement>(null)
-
-  const take = async () => {
-    setBusy(true)
-
-    try {
-      const bundle = await api("GET /api/portable")
-
-      const url = URL.createObjectURL(
-        new Blob([JSON.stringify(bundle, null, 2)], {
-          type: "application/json",
-        })
-      )
-
-      const link = document.createElement("a")
-
-      link.href = url
-      link.download = `site-${new Date().toISOString().slice(0, 10)}.json`
-      link.click()
-
-      URL.revokeObjectURL(url)
-    } catch (why) {
-      toast.error(said(why))
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  const read = async (files: FileList | null) => {
-    const file = files?.[0]
-
-    if (!file) return
-
-    setBusy(true)
-
-    try {
-      const bundle = JSON.parse(await file.text())
-      await api("POST /api/portable", { body: bundle })
-
-      toast.success(t`Read in.`)
-    } catch (why) {
-      toast.error(
-        why instanceof SyntaxError
-          ? t`That is not a copy of a site.`
-          : said(why)
-      )
-    } finally {
-      setBusy(false)
-
-      if (chooser.current) {
-        chooser.current.value = ""
-      }
-    }
-  }
-
-  return (
-    <section className="flex flex-col gap-3 rounded-xl border border-border p-4">
-      <h2 className="text-sm font-medium">{t`A copy of what is written`}</h2>
-      <p className="text-sm text-muted-foreground">
-        {t`The languages, what things are filed under, and what has been written. Not the uploads, the accounts, or anything the site keeps sealed.`}
-      </p>
-
-      <div className="flex gap-2">
-        <Button variant="outline" disabled={busy} onClick={() => void take()}>
-          {busy ? <Loader2 className="animate-spin" /> : <Download />}
-          {t`Take a copy`}
-        </Button>
-
-        <Button
-          variant="outline"
-          disabled={busy}
-          onClick={() => chooser.current?.click()}
-        >
-          <Upload /> {t`Read one in`}
-        </Button>
-
-        <input
-          ref={chooser}
-          type="file"
-          accept="application/json"
-          className="hidden"
-          onChange={(event) => void read(event.target.files)}
-        />
-      </div>
     </section>
   )
 }

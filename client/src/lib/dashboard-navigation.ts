@@ -65,6 +65,7 @@ export interface DashboardNavLabels {
   api: string
   design: string
   settings: string
+  portability: string
   usage: string
   publish: string
 }
@@ -104,6 +105,7 @@ interface CreateNavigationInput {
     api: LucideIcon
     design: LucideIcon
     settings: LucideIcon
+    portability: LucideIcon
     usage: LucideIcon
     publish: LucideIcon
   }
@@ -328,6 +330,13 @@ export function createDashboardNavigation({
           "/dashboard/settings",
           labels.settings,
           icons.settings,
+          "settings"
+        ),
+        item(
+          "portability",
+          "/dashboard/portable",
+          labels.portability,
+          icons.portability,
           "settings"
         ),
         item(

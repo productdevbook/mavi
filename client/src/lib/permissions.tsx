@@ -134,6 +134,7 @@ export function capabilityOf(path: string): Capability | null {
     path === "/dashboard/languages" ||
     path === "/dashboard/api" ||
     path === "/dashboard/settings" ||
+    path === "/dashboard/portable" ||
     path === "/dashboard/visitors" ||
     path === "/dashboard/performance" ||
     path === "/dashboard/usage"

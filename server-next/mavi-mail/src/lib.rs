@@ -6,6 +6,7 @@
 //! record the provider result in a separate transaction.
 
 mod deliveries;
+mod events;
 mod lists;
 mod relocation;
 mod templates;
@@ -20,6 +21,9 @@ pub use deliveries::{
     ClaimedDelivery, DeliveryListFilter, EnqueueDelivery, MAX_DELIVERY_ATTEMPTS, MailDelivery,
     MailDeliveryStatus, MailPurpose, MailServiceError, PROTECTED_BODY_REDACTION, RetryDelivery,
     SendCampaign, SendCount,
+};
+pub use events::{
+    MailBounceClass, MailProviderEventKind, MailProviderEventReceipt, ReceiveMailProviderEvent,
 };
 pub use lists::{
     AddReader, CreateMailList, MailList, MailListListFilter, MailReader, MailReaderCreated,
@@ -65,6 +69,7 @@ pub fn api() -> mavi_contract::Api {
     api.extend(templates::api());
     api.extend(lists::api());
     api.extend(deliveries::api());
+    api.extend(events::api());
     api
 }
 

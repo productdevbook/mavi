@@ -7,8 +7,8 @@ use mavi_core::{
 };
 use mavi_mail::{
     AddReader, CreateMailList, CreateMailTemplate, DeliveryListFilter, EnqueueDelivery,
-    MailContentType, MailDeliveryStatus, MailService, MailTemplatePreview, ReaderListFilter,
-    SendCampaign, UpdateMailList,
+    MailBounceClass, MailContentType, MailDeliveryStatus, MailProviderEventKind, MailService,
+    MailTemplatePreview, ReaderListFilter, ReceiveMailProviderEvent, SendCampaign, UpdateMailList,
 };
 use mavi_sealing::KeyringSealer;
 use mavi_storage::Database;
@@ -581,4 +581,154 @@ async fn protected_transactional_mail_is_sealed_redacted_and_unsealed_by_workers
         Err(MaviError::Conflict { .. })
     ));
     cleanup_transaction.commit().await.expect("cleanup commit");
+}
+
+#[tokio::test]
+#[ignore = "requires TEST_DATABASE_URL and a non-superuser PostgreSQL role"]
+#[allow(clippy::too_many_lines)]
+async fn provider_events_are_idempotent_and_suppress_future_campaigns() {
+    let url = env::var("TEST_DATABASE_URL").expect("TEST_DATABASE_URL");
+    let database = Database::connect(&url, 2).await.expect("database");
+    database.migrate().await.expect("migrations");
+
+    let site_id = SiteId::new();
+    database.ensure_site(site_id).await.expect("site");
+    let context = SiteContext::public(site_id);
+    let service = MailService;
+    let sealer = KeyringSealer::from_key([23; 32]);
+
+    let mut transaction = database.begin(&context).await.expect("setup scope");
+    sqlx::query(
+        "insert into site_settings (site_id, name, canonical_url)
+         values ($1, $2, $3)",
+    )
+    .bind(site_id.into_uuid())
+    .bind("Provider event test")
+    .bind("https://provider-events.example.test")
+    .execute(transaction.conn())
+    .await
+    .expect("settings");
+    let list = service
+        .create_list(
+            &mut transaction,
+            &context,
+            &CreateMailList {
+                slug: "deliverability".to_owned(),
+                name: "Deliverability".to_owned(),
+            },
+        )
+        .await
+        .expect("list");
+    let reader = service
+        .add_reader(
+            &mut transaction,
+            &context,
+            list.id,
+            &AddReader {
+                email: "bounce@example.test".to_owned(),
+                name: None,
+                resubscribe: false,
+            },
+        )
+        .await
+        .expect("reader");
+    let template = service
+        .create_template(
+            &mut transaction,
+            &context,
+            &CreateMailTemplate {
+                key: "deliverability".to_owned(),
+                language: "en".to_owned(),
+                subject: "A campaign".to_owned(),
+                body: "A campaign body".to_owned(),
+                content_type: MailContentType::Plain,
+            },
+        )
+        .await
+        .expect("template");
+    let count = service
+        .send_campaign(
+            &mut transaction,
+            &context,
+            list.id,
+            &SendCampaign {
+                template_id: template.id,
+                variables: Map::new(),
+                idempotency_key: Some("provider-event-campaign".to_owned()),
+            },
+            &sealer,
+        )
+        .await
+        .expect("campaign");
+    assert_eq!(count.enqueued, 1);
+    let delivery_id = sqlx::query_scalar::<_, uuid::Uuid>(
+        "select id from mail_deliveries where site_id = $1 and recipient = $2",
+    )
+    .bind(site_id.into_uuid())
+    .bind("bounce@example.test")
+    .fetch_one(transaction.conn())
+    .await
+    .expect("delivery")
+    .into();
+
+    let event = ReceiveMailProviderEvent {
+        provider: "gateway".to_owned(),
+        event_id: "gateway-event-1".to_owned(),
+        delivery_id: Some(delivery_id),
+        recipient: "bounce@example.test".to_owned(),
+        kind: MailProviderEventKind::Bounced,
+        bounce_class: Some(MailBounceClass::Permanent),
+        provider_reference: Some("provider-message-1".to_owned()),
+        reason: Some("mailbox does not exist".to_owned()),
+        occurred_at: Utc::now(),
+    };
+    let receipt = service
+        .receive_provider_event(&mut transaction, &context, &event)
+        .await
+        .expect("provider event");
+    assert!(!receipt.duplicate);
+    assert!(receipt.suppressed);
+    assert_eq!(receipt.cancelled_deliveries, 1);
+
+    let standing: String =
+        sqlx::query_scalar("select standing from mail_readers where site_id = $1 and id = $2")
+            .bind(site_id.into_uuid())
+            .bind(reader.reader.id.into_uuid())
+            .fetch_one(transaction.conn())
+            .await
+            .expect("standing");
+    assert_eq!(standing, "bounced");
+    let status: String =
+        sqlx::query_scalar("select status from mail_deliveries where site_id = $1 and id = $2")
+            .bind(site_id.into_uuid())
+            .bind(delivery_id.into_uuid())
+            .fetch_one(transaction.conn())
+            .await
+            .expect("cancelled delivery");
+    assert_eq!(status, "cancelled");
+
+    assert!(matches!(
+        service
+            .add_reader(
+                &mut transaction,
+                &context,
+                list.id,
+                &AddReader {
+                    email: "bounce@example.test".to_owned(),
+                    name: None,
+                    resubscribe: true,
+                },
+            )
+            .await,
+        Err(MaviError::Conflict { code }) if code == "mail_reader_suppressed"
+    ));
+
+    let duplicate = service
+        .receive_provider_event(&mut transaction, &context, &event)
+        .await
+        .expect("duplicate event");
+    assert!(duplicate.duplicate);
+    assert!(!duplicate.suppressed);
+    assert_eq!(duplicate.cancelled_deliveries, 0);
+    transaction.commit().await.expect("event commit");
 }

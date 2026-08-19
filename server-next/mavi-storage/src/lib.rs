@@ -15,7 +15,7 @@ use uuid::Uuid;
 /// It is part of the runtime compatibility contract exposed to the operator.
 /// Keep it next to the migration runner so a release cannot advertise a
 /// storage version independently from the migrations it ships.
-pub const CURRENT_SCHEMA_VERSION: u32 = 35;
+pub const CURRENT_SCHEMA_VERSION: u32 = 36;
 
 /// The lifecycle state stored in the shared shard catalog.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -452,6 +452,11 @@ mod tests {
         assert!(mail_deliverability_migration.contains("mail_unsubscribe_tokens"));
         assert!(mail_deliverability_migration.contains("mail_delivery_links"));
         assert!(mail_deliverability_migration.contains("force row level security"));
-        assert_eq!(CURRENT_SCHEMA_VERSION, 35);
+        let mail_provider_events_migration =
+            include_str!("../migrations/0036_mail_provider_events.sql");
+        assert!(mail_provider_events_migration.contains("mail_provider_events"));
+        assert!(mail_provider_events_migration.contains("unique (site_id, provider, event_id)"));
+        assert!(mail_provider_events_migration.contains("force row level security"));
+        assert_eq!(CURRENT_SCHEMA_VERSION, 36);
     }
 }

@@ -81,9 +81,10 @@ use mavi_identity::{
 use mavi_jobs::{Job, JobListFilter, JobsService};
 use mavi_mail::{
     AddReader, CreateMailList, CreateMailTemplate, DeliveryListFilter, EnqueueDelivery,
-    MailDelivery, MailList, MailListListFilter, MailReader, MailReaderCreated, MailService,
-    MailTemplate, MailTemplateListFilter, MailTemplatePreview, ReaderListFilter, RenderedMail,
-    RetryDelivery, SendCampaign, SendCount, UnsubscribeReceipt, UpdateMailList, UpdateMailTemplate,
+    MailDelivery, MailList, MailListListFilter, MailProviderEventReceipt, MailReader,
+    MailReaderCreated, MailService, MailTemplate, MailTemplateListFilter, MailTemplatePreview,
+    ReaderListFilter, ReceiveMailProviderEvent, RenderedMail, RetryDelivery, SendCampaign,
+    SendCount, UnsubscribeReceipt, UpdateMailList, UpdateMailTemplate,
 };
 use mavi_media::{
     FileListFilter, FileRecord, FileVariant, FileVariantListFilter, MAX_FILE_BYTES,
@@ -126,6 +127,7 @@ const MCP_PROTOCOL_HEADER: &str = "MCP-Protocol-Version";
 const MCP_METHOD_HEADER: &str = "Mcp-Method";
 const MCP_NAME_HEADER: &str = "Mcp-Name";
 const MCP_SERVER_INFO_META: &str = "io.modelcontextprotocol/serverInfo";
+const MAIL_PROVIDER_EVENTS_PATH: &str = "/internal/v1/mail/provider-events";
 const MCP_TOOLS_PAGE_SIZE: usize = 64;
 const MCP_TOOLS_CACHE_TTL_MS: u64 = 60_000;
 
@@ -469,6 +471,27 @@ pub fn router_with_config_and_metrics<R>(
 where
     R: SiteResolver,
 {
+    router_with_config_and_metrics_and_mail_webhook(
+        runtime, file_store, builder, sealer, edge, metrics, None,
+    )
+}
+
+/// Builds the shared router and optionally admits a deployment-configured
+/// normalized mail provider webhook. The webhook credential is deliberately
+/// separate from account/API-key authentication: a provider callback is a
+/// site-scoped system event, not a human session.
+pub fn router_with_config_and_metrics_and_mail_webhook<R>(
+    runtime: Runtime<R>,
+    file_store: Arc<dyn FileStore>,
+    builder: Arc<dyn BuildEngine>,
+    sealer: Arc<dyn Seals>,
+    edge: EdgeSecurityConfig,
+    metrics: RuntimeMetrics,
+    mail_webhook_token: Option<Arc<str>>,
+) -> Result<Router, MaviError>
+where
+    R: SiteResolver,
+{
     let mcp_dispatcher = Arc::new(OnceLock::new());
     let state = HttpState {
         runtime: runtime.clone(),
@@ -501,6 +524,7 @@ where
         authorizer: CedarAuthorizer::new()?,
         mcp_dispatcher: Arc::clone(&mcp_dispatcher),
         metrics: metrics.clone(),
+        mail_webhook_token,
     };
     let routes = runtime.router::<HttpState<R>>().merge(api_routes::<R>());
     let api_only = routes
@@ -510,7 +534,7 @@ where
             write_fence::<R>,
         ))
         .layer(middleware::from_fn_with_state(
-            runtime.clone(),
+            state.clone(),
             authenticate::<R>,
         ))
         .layer(middleware::from_fn_with_state(
@@ -530,7 +554,7 @@ where
             write_fence::<R>,
         ))
         .layer(middleware::from_fn_with_state(
-            runtime.clone(),
+            state.clone(),
             authenticate::<R>,
         ))
         .layer(middleware::from_fn_with_state(
@@ -1413,6 +1437,10 @@ where
             "/public/v1/mail/unsubscribe/{token}",
             post(public_mail_unsubscribe::<R>),
         )
+        .route(
+            MAIL_PROVIDER_EVENTS_PATH,
+            post(receive_mail_provider_event::<R>),
+        )
 }
 
 fn course_routes<R>() -> Router<HttpState<R>>
@@ -2246,6 +2274,7 @@ struct HttpState<R> {
     edge: EdgeSecurityConfig,
     authorizer: CedarAuthorizer,
     mcp_dispatcher: Arc<OnceLock<Router>>,
+    mail_webhook_token: Option<Arc<str>>,
 }
 
 impl<R> Clone for HttpState<R> {
@@ -2277,6 +2306,7 @@ impl<R> Clone for HttpState<R> {
             edge: self.edge.clone(),
             authorizer: self.authorizer.clone(),
             mcp_dispatcher: Arc::clone(&self.mcp_dispatcher),
+            mail_webhook_token: self.mail_webhook_token.clone(),
         }
     }
 }
@@ -2321,7 +2351,7 @@ where
 }
 
 async fn authenticate<R>(
-    State(runtime): State<Runtime<R>>,
+    State(state): State<HttpState<R>>,
     mut request: Request<axum::body::Body>,
     next: Next,
 ) -> Response
@@ -2337,7 +2367,22 @@ where
         return HttpError(MaviError::Internal).into_response();
     };
 
-    let mut transaction = match runtime.begin(&public_context).await {
+    if request.uri().path() == MAIL_PROVIDER_EVENTS_PATH {
+        let Some(expected) = state.mail_webhook_token.as_deref() else {
+            return HttpError(MaviError::Unauthenticated).into_response();
+        };
+        if !secrets_equal(expected, token) {
+            return HttpError(MaviError::Unauthenticated).into_response();
+        }
+        request.extensions_mut().insert(SiteContext::system(
+            public_context.site_id,
+            "mail-webhook",
+            public_context.request_id,
+        ));
+        return next.run(request).await;
+    }
+
+    let mut transaction = match state.runtime.begin(&public_context).await {
         Ok(transaction) => transaction,
         Err(error) => return HttpError(error).into_response(),
     };
@@ -2365,6 +2410,19 @@ where
         public_context.request_id,
     ));
     next.run(request).await
+}
+
+fn secrets_equal(expected: &str, presented: &str) -> bool {
+    let expected = expected.as_bytes();
+    let presented = presented.as_bytes();
+    let mut difference = (expected.len() ^ presented.len()) as u64;
+    for index in 0..expected.len().max(presented.len()) {
+        difference |= u64::from(
+            expected.get(index).copied().unwrap_or_default()
+                ^ presented.get(index).copied().unwrap_or_default(),
+        );
+    }
+    difference == 0
 }
 
 async fn edge_throttle<R>(
@@ -5361,6 +5419,30 @@ where
     Ok(Json(receipt))
 }
 
+async fn receive_mail_provider_event<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Json(input): Json<ReceiveMailProviderEvent>,
+) -> Result<Json<MailProviderEventReceipt>, HttpError>
+where
+    R: SiteResolver,
+{
+    if !matches!(
+        &context.caller,
+        Caller::System { worker } if worker == "mail-webhook"
+    ) {
+        return Err(HttpError(MaviError::Unauthenticated));
+    }
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let receipt = state
+        .mail
+        .receive_provider_event(&mut transaction, &context, &input)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(receipt))
+}
+
 async fn list_mail_deliveries<R>(
     State(state): State<HttpState<R>>,
     Extension(context): Extension<SiteContext>,
@@ -6932,6 +7014,13 @@ mod tests {
     }
 
     #[test]
+    fn webhook_secret_comparison_requires_equal_bytes_and_length() {
+        assert!(secrets_equal("provider-secret", "provider-secret"));
+        assert!(!secrets_equal("provider-secret", "provider-secret-extra"));
+        assert!(!secrets_equal("provider-secret", "provider-secrex"));
+    }
+
+    #[test]
     fn application_api_catalog_combines_domain_contracts() {
         let catalog = api();
         catalog.validate().expect("application API contract");
@@ -6953,6 +7042,10 @@ mod tests {
                 .iter()
                 .any(|endpoint| endpoint.operation_id == "content_types.upsert")
         );
+        assert!(catalog.endpoints.iter().any(|endpoint| {
+            endpoint.operation_id == "mail.provider_events.receive"
+                && endpoint.authentication == mavi_contract::Authentication::Webhook
+        }));
     }
 
     #[tokio::test]

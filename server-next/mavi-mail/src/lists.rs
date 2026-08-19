@@ -20,6 +20,7 @@ pub const MAIL_LIST_SLUG_INVALID: &str = "mail_list_slug_invalid";
 pub const MAIL_LIST_NAME_INVALID: &str = "mail_list_name_invalid";
 pub const MAIL_READER_NAME_INVALID: &str = "mail_reader_name_invalid";
 pub const MAIL_READER_TAKEN: &str = "mail_reader_taken";
+pub const MAIL_READER_SUPPRESSED: &str = "mail_reader_suppressed";
 pub const MAIL_STANDING_INVALID: &str = "mail_standing_invalid";
 
 const MAX_LIST_SLUG_CHARS: usize = 64;
@@ -603,7 +604,7 @@ impl MailService {
             .transpose()?;
         let (token, token_hash) = mint_token();
         let existing = sqlx::query(
-            "select id from mail_readers where site_id = $1 and email = $2 and deleted_at is null",
+            "select id, standing from mail_readers where site_id = $1 and email = $2 and deleted_at is null",
         )
         .bind(context.site_id.into_uuid())
         .bind(email.as_str())
@@ -612,6 +613,10 @@ impl MailService {
         .map_err(|_| MaviError::Internal)?;
         let reader_id = if let Some(row) = existing {
             let id: uuid::Uuid = row.try_get("id").map_err(|_| MaviError::Internal)?;
+            let standing: String = row.try_get("standing").map_err(|_| MaviError::Internal)?;
+            if input.resubscribe && matches!(standing.as_str(), "bounced" | "complained") {
+                return Err(MaviError::conflict(MAIL_READER_SUPPRESSED));
+            }
             sqlx::query(
                 "update mail_readers
                     set name = coalesce($3, name),
@@ -878,7 +883,7 @@ fn from_reader_row(row: &sqlx::postgres::PgRow) -> Result<MailReader> {
     })
 }
 
-async fn audit(
+pub(crate) async fn audit(
     tx: &mut SiteTx,
     context: &SiteContext,
     action: &str,

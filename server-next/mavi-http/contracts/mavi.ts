@@ -1006,6 +1006,8 @@ export interface LoginInput {
   password: string;
 }
 
+export type MailBounceClass = "transient" | "permanent";
+
 export type MailContentType = "plain" | "html";
 
 export interface MailDelivery {
@@ -1053,6 +1055,14 @@ export interface MailListListFilter {
 export interface MailListPage {
   items: MailList[];
   next_cursor: string | null;
+}
+
+export type MailProviderEventKind = "delivered" | "bounced" | "complained";
+
+export interface MailProviderEventReceipt {
+  duplicate: boolean;
+  suppressed: boolean;
+  cancelled_deliveries: number;
 }
 
 export type MailPurpose = "transactional" | "campaign";
@@ -1424,6 +1434,18 @@ export interface ReaderListFilter {
   after?: string | null;
   limit?: number;
   standing?: MailStanding;
+}
+
+export interface ReceiveMailProviderEvent {
+  provider: string;
+  event_id: string;
+  delivery_id?: string | null;
+  recipient: string;
+  kind: MailProviderEventKind;
+  bounce_class?: MailBounceClass | unknown;
+  provider_reference?: string | null;
+  reason?: string | null;
+  occurred_at: string;
 }
 
 export interface RenderedMail {
@@ -1917,6 +1939,7 @@ export const operations = {
   "mail.deliveries.read": { method: "get", path: "/api/v1/mail/deliveries/{id}", input: null, query: null, output: "MailDelivery", status: 200, authentication: "account_or_assistant", permission: { capability: "mail", action: "view" } },
   "mail.deliveries.retry": { method: "post", path: "/api/v1/mail/deliveries/{id}/retry", input: { location: "json", shape: "RetryDelivery" }, query: null, output: "MailDelivery", status: 202, authentication: "account_or_assistant", permission: { capability: "mail", action: "write" } },
   "mail.deliveries.campaign": { method: "post", path: "/api/v1/mail/lists/{id}/deliveries", input: { location: "json", shape: "SendCampaign" }, query: null, output: "SendCount", status: 202, authentication: "account_or_assistant", permission: { capability: "mail", action: "write" } },
+  "mail.provider_events.receive": { method: "post", path: "/internal/v1/mail/provider-events", input: { location: "json", shape: "ReceiveMailProviderEvent" }, query: null, output: "MailProviderEventReceipt", status: 200, authentication: "webhook", permission: null },
   "shop.products.list": { method: "get", path: "/api/v1/shop/products", input: { location: "query", shape: "ProductListFilter" }, query: null, output: "ProductPage", status: 200, authentication: "account_or_assistant", permission: { capability: "shop", action: "view" } },
   "shop.products.create": { method: "post", path: "/api/v1/shop/products", input: { location: "json", shape: "CreateProduct" }, query: null, output: "Product", status: 201, authentication: "account_or_assistant", permission: { capability: "shop", action: "write" } },
   "shop.products.read": { method: "get", path: "/api/v1/shop/products/{id}", input: null, query: null, output: "Product", status: 200, authentication: "account_or_assistant", permission: { capability: "shop", action: "view" } },
@@ -2112,6 +2135,7 @@ export interface OperationArguments {
   "mail.deliveries.read": { path: { id: string }; query?: never; body?: never; }
   "mail.deliveries.retry": { path: { id: string }; query?: never; body: RetryDelivery; }
   "mail.deliveries.campaign": { path: { id: string }; query?: never; body: SendCampaign; }
+  "mail.provider_events.receive": { path?: never; query?: never; body: ReceiveMailProviderEvent; }
   "shop.products.list": { path?: never; query: ProductListFilter; body?: never; }
   "shop.products.create": { path?: never; query?: never; body: CreateProduct; }
   "shop.products.read": { path: { id: string }; query?: never; body?: never; }
@@ -2305,6 +2329,7 @@ export interface OperationResponses {
   "mail.deliveries.read": MailDelivery;
   "mail.deliveries.retry": MailDelivery;
   "mail.deliveries.campaign": SendCount;
+  "mail.provider_events.receive": MailProviderEventReceipt;
   "shop.products.list": ProductPage;
   "shop.products.create": Product;
   "shop.products.read": Product;

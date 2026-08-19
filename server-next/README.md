@@ -190,6 +190,16 @@ for that gateway. The webhook receives delivery/attempt/idempotency metadata
 plus campaign unsubscribe headers and must return `{"reference":"..."}`;
 provider credentials never enter site rows.
 
+Provider callbacks use a separate `MAVI_MAIL_WEBHOOK_INGEST_TOKEN` and the
+`POST /internal/v1/mail/provider-events` contract. The trusted gateway
+normalizes vendor-specific events into `delivered`, `bounced` (transient or
+permanent) and `complained` records. Event IDs are site-scoped and idempotent;
+permanent bounces and complaints move the reader to a suppression standing and
+cancel queued campaign deliveries for that address. Transactional messages
+are not suppressed by list standing, and transient bounces are recorded without
+permanent suppression. The inbound credential is separate from the outbound
+gateway credential so a provider cannot reuse the wrong trust direction.
+
 Provider credentials are a separate site-scoped domain. The API can create,
 rotate, list and revoke only credential metadata; values are sealed through the
 `Seals` port and are available only to trusted provider adapters. Self-host

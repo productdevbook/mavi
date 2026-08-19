@@ -116,6 +116,7 @@ pub enum Authentication {
     AccountOrAssistant,
     Student,
     Assistant,
+    Webhook,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -136,6 +137,9 @@ pub enum Mutation {
         idempotent: bool,
     },
     SelfOnly {
+        idempotent: bool,
+    },
+    Webhook {
         idempotent: bool,
     },
 }
@@ -233,6 +237,19 @@ impl Endpoint {
     #[must_use]
     pub const fn account_or_assistant(mut self) -> Self {
         self.authentication = Authentication::AccountOrAssistant;
+        self
+    }
+
+    #[must_use]
+    pub const fn webhook(mut self) -> Self {
+        self.authentication = Authentication::Webhook;
+        self
+    }
+
+    #[must_use]
+    pub const fn webhook_changes(mut self, idempotent: bool) -> Self {
+        self.authentication = Authentication::Webhook;
+        self.mutation = Mutation::Webhook { idempotent };
         self
     }
 
@@ -541,11 +558,15 @@ impl Api {
                 }
             }
 
-            if endpoint.authentication == Authentication::Public {
-                operation.insert("security".to_owned(), json!([{}]));
-            } else {
-                operation.insert("security".to_owned(), json!([{ "bearerAuth": [] }]));
-            }
+            let security = match endpoint.authentication {
+                Authentication::Public => json!([{}]),
+                Authentication::Webhook => json!([{ "webhookAuth": [] }]),
+                Authentication::Account
+                | Authentication::AccountOrAssistant
+                | Authentication::Student
+                | Authentication::Assistant => json!([{ "bearerAuth": [] }]),
+            };
+            operation.insert("security".to_owned(), security);
             operation.insert(
                 "x-mavi".to_owned(),
                 json!({
@@ -572,7 +593,10 @@ impl Api {
             "info": {"title": title.into(), "version": version.into()},
             "paths": paths,
             "components": {
-                "securitySchemes": {"bearerAuth": {"type": "http", "scheme": "bearer"}},
+                "securitySchemes": {
+                    "bearerAuth": {"type": "http", "scheme": "bearer"},
+                    "webhookAuth": {"type": "http", "scheme": "bearer", "description": "A deployment-configured provider webhook credential."}
+                },
                 "schemas": component_schemas,
             }
         }))
@@ -1083,6 +1107,7 @@ fn authentication_name(authentication: Authentication) -> &'static str {
         Authentication::AccountOrAssistant => "account_or_assistant",
         Authentication::Student => "student",
         Authentication::Assistant => "assistant",
+        Authentication::Webhook => "webhook",
     }
 }
 

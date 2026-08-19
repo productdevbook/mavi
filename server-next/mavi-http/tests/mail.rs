@@ -2,6 +2,7 @@ use axum::{
     Router,
     http::{Method, StatusCode},
 };
+use chrono::Utc;
 use serde_json::json;
 
 mod support;
@@ -221,6 +222,55 @@ async fn mail_routes_validate_templates_lists_unsubscribe_and_provider_neutral_o
     )
     .await;
     assert_eq!(reader_write.status(), StatusCode::FORBIDDEN);
+}
+
+#[tokio::test]
+#[ignore = "requires TEST_DATABASE_URL and a non-superuser PostgreSQL role"]
+async fn provider_event_webhook_requires_its_separate_credential_and_is_idempotent() {
+    let app = support::build_app_with_mail_webhook_token("provider-ingest-secret").await;
+    let event = json!({
+        "provider": "gateway",
+        "event_id": "gateway-delivered-1",
+        "delivery_id": null,
+        "recipient": "reader@example.test",
+        "kind": "delivered",
+        "bounce_class": null,
+        "provider_reference": "provider-message-1",
+        "reason": null,
+        "occurred_at": Utc::now().to_rfc3339()
+    });
+
+    let unauthorized = send(
+        &app,
+        Method::POST,
+        "/internal/v1/mail/provider-events",
+        Some("wrong-secret"),
+        Some(event.clone()),
+    )
+    .await;
+    assert_eq!(unauthorized.status(), StatusCode::UNAUTHORIZED);
+
+    let accepted = send(
+        &app,
+        Method::POST,
+        "/internal/v1/mail/provider-events",
+        Some("provider-ingest-secret"),
+        Some(event.clone()),
+    )
+    .await;
+    assert_eq!(accepted.status(), StatusCode::OK);
+    assert_eq!(response_json(accepted).await["duplicate"], false);
+
+    let duplicate = send(
+        &app,
+        Method::POST,
+        "/internal/v1/mail/provider-events",
+        Some("provider-ingest-secret"),
+        Some(event),
+    )
+    .await;
+    assert_eq!(duplicate.status(), StatusCode::OK);
+    assert_eq!(response_json(duplicate).await["duplicate"], true);
 }
 
 async fn add_reader(

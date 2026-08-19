@@ -1148,6 +1148,8 @@ pub struct LoginInput {
     pub password: String,
 }
 
+pub type MailBounceClass = String;
+
 pub type MailContentType = String;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -1200,6 +1202,15 @@ pub struct MailListListFilter {
 pub struct MailListPage {
     pub items: Vec<MailList>,
     pub next_cursor: Option<String>,
+}
+
+pub type MailProviderEventKind = String;
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct MailProviderEventReceipt {
+    pub duplicate: bool,
+    pub suppressed: bool,
+    pub cancelled_deliveries: i64,
 }
 
 pub type MailPurpose = String;
@@ -1622,6 +1633,19 @@ pub struct ReaderListFilter {
     pub after: Option<String>,
     pub limit: Option<i64>,
     pub standing: Option<MailStanding>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ReceiveMailProviderEvent {
+    pub provider: String,
+    pub event_id: String,
+    pub delivery_id: Option<String>,
+    pub recipient: String,
+    pub kind: MailProviderEventKind,
+    pub bounce_class: Option<Value>,
+    pub provider_reference: Option<String>,
+    pub reason: Option<String>,
+    pub occurred_at: String,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -2181,6 +2205,7 @@ pub const OPERATIONS: &[OperationDefinition] = &[
     OperationDefinition { name: "mail.deliveries.read", method: "get", path: "/api/v1/mail/deliveries/{id}", request: None, request_location: None, query: None, response: Some("MailDelivery"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("mail"), action: Some("view") },
     OperationDefinition { name: "mail.deliveries.retry", method: "post", path: "/api/v1/mail/deliveries/{id}/retry", request: Some("RetryDelivery"), request_location: Some("json"), query: None, response: Some("MailDelivery"), response_location: None, status: 202, authentication: "account_or_assistant", capability: Some("mail"), action: Some("write") },
     OperationDefinition { name: "mail.deliveries.campaign", method: "post", path: "/api/v1/mail/lists/{id}/deliveries", request: Some("SendCampaign"), request_location: Some("json"), query: None, response: Some("SendCount"), response_location: None, status: 202, authentication: "account_or_assistant", capability: Some("mail"), action: Some("write") },
+    OperationDefinition { name: "mail.provider_events.receive", method: "post", path: "/internal/v1/mail/provider-events", request: Some("ReceiveMailProviderEvent"), request_location: Some("json"), query: None, response: Some("MailProviderEventReceipt"), response_location: None, status: 200, authentication: "webhook", capability: None, action: None },
     OperationDefinition { name: "shop.products.list", method: "get", path: "/api/v1/shop/products", request: Some("ProductListFilter"), request_location: Some("query"), query: None, response: Some("ProductPage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("shop"), action: Some("view") },
     OperationDefinition { name: "shop.products.create", method: "post", path: "/api/v1/shop/products", request: Some("CreateProduct"), request_location: Some("json"), query: None, response: Some("Product"), response_location: None, status: 201, authentication: "account_or_assistant", capability: Some("shop"), action: Some("write") },
     OperationDefinition { name: "shop.products.read", method: "get", path: "/api/v1/shop/products/{id}", request: None, request_location: None, query: None, response: Some("Product"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("shop"), action: Some("view") },

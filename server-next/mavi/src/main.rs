@@ -26,6 +26,7 @@ struct RuntimeServices {
     file_store: Arc<dyn FileStore>,
     sealer: Arc<dyn Seals>,
     mailer: Arc<dyn Mailer>,
+    mail_webhook_token: Option<Arc<str>>,
 }
 
 mod mail;
@@ -52,6 +53,7 @@ async fn main() -> Result<()> {
     let file_store: Arc<dyn FileStore> = Arc::new(DirectoryFileStore::at(file_root));
     let sealer = Arc::new(KeyringSealer::from_spec(&required("MAVI_KEYS")?)?);
     let mailer = mail::from_env()?;
+    let mail_webhook_token = mail::ingest_token_from_env()?;
     let edge = EdgeSecurityConfig::from_trusted_proxy_spec(
         env::var("MAVI_TRUSTED_PROXY_CIDRS").ok().as_deref(),
     )?;
@@ -78,6 +80,7 @@ async fn main() -> Result<()> {
                     file_store,
                     sealer,
                     mailer,
+                    mail_webhook_token,
                 },
                 edge,
             )
@@ -100,6 +103,7 @@ async fn main() -> Result<()> {
                     file_store,
                     sealer,
                     mailer,
+                    mail_webhook_token,
                 },
                 edge,
             )
@@ -122,13 +126,14 @@ where
     let worker_database = database.clone();
     let runtime = Runtime::new(database, resolver);
     let metrics = RuntimeMetrics::default();
-    let router = mavi_http::router_with_config_and_metrics(
+    let router = mavi_http::router_with_config_and_metrics_and_mail_webhook(
         runtime,
         Arc::clone(&services.file_store),
         Arc::new(StaticBuildEngine),
         Arc::clone(&services.sealer),
         edge,
         metrics.clone(),
+        services.mail_webhook_token,
     )?
     .into_make_service_with_connect_info::<SocketAddr>();
     let worker = mavi_worker::WorkerSupervisor::new_with_metrics_and_mailer(

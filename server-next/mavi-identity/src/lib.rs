@@ -39,6 +39,8 @@ pub const SITE_NOT_FOUND: &str = "site_not_found";
 pub const PERSON_NOT_FOUND: &str = "person_not_found";
 pub const ROLE_NAME_INVALID: &str = "role_name_invalid";
 pub const ROLE_NOT_FOUND: &str = "role_not_found";
+pub const ROLE_ASSIGNED: &str = "role_assigned";
+pub const OWNER_ROLE_PROTECTED: &str = "owner_role_protected";
 
 /// Stable audit action names for account-security events.
 pub mod audit_action {
@@ -289,6 +291,25 @@ pub fn api() -> Api {
         .refuses([
             ErrorCode::Forbidden,
             ErrorCode::Validation,
+            ErrorCode::Conflict,
+            ErrorCode::Internal,
+        ]),
+        Endpoint::new(
+            Method::Delete,
+            "/api/v1/roles/{id}",
+            "roles.delete",
+            "Delete an unassigned site role",
+        )
+        .account_or_assistant()
+        .requires(Permission {
+            capability: Capability::People,
+            action: Action::Delete,
+        })
+        .returns(204, "Empty")
+        .changes(true)
+        .refuses([
+            ErrorCode::Forbidden,
+            ErrorCode::NotFound,
             ErrorCode::Conflict,
             ErrorCode::Internal,
         ]),
@@ -553,13 +574,14 @@ fn identity_shapes() -> Vec<Shape> {
             "Role",
             json!({
                 "type": "object",
-                "required": ["id", "site_id", "name", "grants", "created_at"],
+                "required": ["id", "site_id", "name", "grants", "created_at", "protected"],
                 "properties": {
                     "id": {"type": "string", "format": "uuid"},
                     "site_id": {"type": "string", "format": "uuid"},
                     "name": {"type": "string"},
                     "grants": {"type": "array", "items": {"$ref": "#/components/schemas/Grant"}},
                     "created_at": {"type": "string", "format": "date-time"},
+                    "protected": {"type": "boolean"},
                 },
             }),
         ),
@@ -893,6 +915,7 @@ pub struct Role {
     pub name: RoleName,
     pub grants: Grants,
     pub created_at: DateTime<Utc>,
+    pub protected: bool,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -1057,12 +1080,15 @@ impl IdentityService {
 
         let person_id = PersonId::new();
         let role_id = RoleId::new();
-        sqlx::query("insert into roles (site_id, id, name) values ($1, $2, 'owner')")
-            .bind(context.site_id.into_uuid())
-            .bind(role_id.into_uuid())
-            .execute(tx.conn())
-            .await
-            .map_err(|_| MaviError::Internal)?;
+        sqlx::query(
+            "insert into roles (site_id, id, name, system_role)
+             values ($1, $2, 'owner', true)",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(role_id.into_uuid())
+        .execute(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?;
 
         sqlx::query(
             "insert into people
@@ -1981,7 +2007,8 @@ impl IdentityService {
             .transpose()?;
         let limit = i64::from(filter.page.effective_limit());
         let mut query = sqlx::QueryBuilder::<sqlx::Postgres>::new(
-            "select id, site_id, name, created_at from roles where site_id = ",
+            "select id, site_id, name, created_at, system_role as protected
+               from roles where site_id = ",
         );
         query.push_bind(context.site_id.into_uuid());
         if let Some(after) = after {
@@ -2032,7 +2059,7 @@ impl IdentityService {
         let role_id = RoleId::new();
         let row = sqlx::query(
             "insert into roles (site_id, id, name) values ($1, $2, $3)
-             returning id, site_id, name, created_at",
+             returning id, site_id, name, created_at, system_role as protected",
         )
         .bind(context.site_id.into_uuid())
         .bind(role_id.into_uuid())
@@ -2057,6 +2084,80 @@ impl IdentityService {
         Ok(role)
     }
 
+    pub async fn delete_role(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        role_id: RoleId,
+    ) -> Result<()> {
+        require_context_grant(context, Grant::new(Capability::People, Action::Delete))?;
+
+        let row = sqlx::query(
+            "select name, system_role
+               from roles
+              where site_id = $1 and id = $2
+              for update",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(role_id.into_uuid())
+        .fetch_optional(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?
+        .ok_or(MaviError::NotFound {
+            resource: ROLE_NOT_FOUND,
+        })?;
+
+        let name: String = row.try_get("name").map_err(|_| MaviError::Internal)?;
+        let protected: bool = row
+            .try_get("system_role")
+            .map_err(|_| MaviError::Internal)?;
+        if protected || name == "owner" {
+            return Err(MaviError::conflict(OWNER_ROLE_PROTECTED));
+        }
+
+        let assigned: bool = sqlx::query_scalar(
+            "select exists(
+                 select 1 from person_roles
+                  where site_id = $1 and role_id = $2
+             )",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(role_id.into_uuid())
+        .fetch_one(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?;
+        if assigned {
+            return Err(MaviError::conflict(ROLE_ASSIGNED));
+        }
+
+        sqlx::query("delete from role_grants where site_id = $1 and role_id = $2")
+            .bind(context.site_id.into_uuid())
+            .bind(role_id.into_uuid())
+            .execute(tx.conn())
+            .await
+            .map_err(|_| MaviError::Internal)?;
+        sqlx::query("delete from roles where site_id = $1 and id = $2")
+            .bind(context.site_id.into_uuid())
+            .bind(role_id.into_uuid())
+            .execute(tx.conn())
+            .await
+            .map_err(|_| MaviError::Internal)?;
+
+        AuditService
+            .record(
+                tx,
+                context,
+                &AuditEntry {
+                    action: "people.role.deleted".to_owned(),
+                    resource_type: "Role".to_owned(),
+                    resource_id: Some(role_id.into_uuid()),
+                    payload: serde_json::json!({"name": name}),
+                },
+            )
+            .await?;
+        Ok(())
+    }
+
     pub async fn replace_role_grants(
         &self,
         tx: &mut SiteTx,
@@ -2066,17 +2167,26 @@ impl IdentityService {
     ) -> Result<Role> {
         require_context_grant(context, Grant::new(Capability::People, Action::Write))?;
         let grants = delegated_grants(context, &input.grants)?;
-        let exists: bool =
-            sqlx::query_scalar("select exists(select 1 from roles where site_id = $1 and id = $2)")
-                .bind(context.site_id.into_uuid())
-                .bind(role_id.into_uuid())
-                .fetch_one(tx.conn())
-                .await
-                .map_err(|_| MaviError::Internal)?;
-        if !exists {
-            return Err(MaviError::NotFound {
-                resource: ROLE_NOT_FOUND,
-            });
+        let row = sqlx::query(
+            "select name, system_role
+               from roles
+              where site_id = $1 and id = $2
+              for update",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(role_id.into_uuid())
+        .fetch_optional(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?
+        .ok_or(MaviError::NotFound {
+            resource: ROLE_NOT_FOUND,
+        })?;
+        let role_name: String = row.try_get("name").map_err(|_| MaviError::Internal)?;
+        let protected: bool = row
+            .try_get("system_role")
+            .map_err(|_| MaviError::Internal)?;
+        if protected || role_name == "owner" {
+            return Err(MaviError::conflict(OWNER_ROLE_PROTECTED));
         }
         sqlx::query("delete from role_grants where site_id = $1 and role_id = $2")
             .bind(context.site_id.into_uuid())
@@ -2302,12 +2412,14 @@ fn role_from_row(row: &sqlx::postgres::PgRow, grants: Grants) -> Result<Role> {
         name: RoleName::parse(&name).map_err(|_| MaviError::Internal)?,
         grants,
         created_at: row.try_get("created_at").map_err(|_| MaviError::Internal)?,
+        protected: row.try_get("protected").map_err(|_| MaviError::Internal)?,
     })
 }
 
 async fn get_role(tx: &mut SiteTx, site_id: SiteId, role_id: RoleId) -> Result<Role> {
     let row = sqlx::query(
-        "select id, site_id, name, created_at from roles
+        "select id, site_id, name, created_at, system_role as protected
+           from roles
           where site_id = $1 and id = $2",
     )
     .bind(site_id.into_uuid())
@@ -2354,15 +2466,18 @@ async fn ensure_roles_exist(tx: &mut SiteTx, site_id: SiteId, role_ids: &[RoleId
         return Ok(());
     }
     let role_uuids: Vec<Uuid> = role_ids.iter().map(|role_id| role_id.into_uuid()).collect();
-    let count: i64 = sqlx::query_scalar(
-        "select count(*) from roles where site_id = $1 and id = any($2::uuid[])",
+    let rows = sqlx::query(
+        "select id
+           from roles
+          where site_id = $1 and id = any($2::uuid[])
+          for share",
     )
     .bind(site_id.into_uuid())
     .bind(role_uuids)
-    .fetch_one(tx.conn())
+    .fetch_all(tx.conn())
     .await
     .map_err(|_| MaviError::Internal)?;
-    if count != i64::try_from(role_ids.len()).map_err(|_| MaviError::Internal)? {
+    if rows.len() != role_ids.len() {
         return Err(MaviError::NotFound {
             resource: ROLE_NOT_FOUND,
         });

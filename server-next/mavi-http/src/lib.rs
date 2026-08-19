@@ -1147,6 +1147,7 @@ where
             axum::routing::patch(update_person_status::<R>),
         )
         .route("/api/v1/roles", get(list_roles::<R>).post(create_role::<R>))
+        .route("/api/v1/roles/{id}", delete(delete_role::<R>))
         .route("/api/v1/roles/{id}/grants", put(replace_role_grants::<R>))
 }
 
@@ -2887,6 +2888,31 @@ where
         .map_err(HttpError)?;
     transaction.commit().await.map_err(HttpError)?;
     Ok(Json(role))
+}
+
+async fn delete_role<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<RoleId>,
+) -> Result<StatusCode, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::People, Action::Delete),
+        "Role",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    state
+        .identity
+        .delete_role(&mut transaction, &context, id)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(StatusCode::NO_CONTENT)
 }
 
 async fn read_settings<R>(

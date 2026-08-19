@@ -24,6 +24,125 @@ async fn identity_routes_enforce_authz_and_cursor_contracts() {
 
 #[tokio::test]
 #[ignore = "requires TEST_DATABASE_URL and a non-superuser PostgreSQL role"]
+#[allow(clippy::too_many_lines)]
+async fn role_lifecycle_protects_owner_and_assigned_roles() {
+    let (app, _database, _site_id) = support::build_app_with_database().await;
+    let owner_token = bootstrap(&app).await;
+
+    let roles = send(&app, Method::GET, "/api/v1/roles", Some(&owner_token), None).await;
+    assert_eq!(roles.status(), StatusCode::OK);
+    let owner_role_id = response_json(roles).await["items"]
+        .as_array()
+        .expect("role items")
+        .iter()
+        .find(|role| role["name"] == "owner")
+        .and_then(|role| role["id"].as_str())
+        .expect("owner role id")
+        .to_owned();
+
+    let unused = send(
+        &app,
+        Method::POST,
+        "/api/v1/roles",
+        Some(&owner_token),
+        Some(json!({
+            "name": "unused",
+            "grants": [{"capability": "content", "action": "view"}]
+        })),
+    )
+    .await;
+    assert_eq!(unused.status(), StatusCode::CREATED);
+    let unused_id = response_json(unused).await["id"]
+        .as_str()
+        .expect("unused role id")
+        .to_owned();
+
+    let deleted = send(
+        &app,
+        Method::DELETE,
+        &format!("/api/v1/roles/{unused_id}"),
+        Some(&owner_token),
+        None,
+    )
+    .await;
+    assert_eq!(deleted.status(), StatusCode::NO_CONTENT);
+
+    let assigned = send(
+        &app,
+        Method::POST,
+        "/api/v1/roles",
+        Some(&owner_token),
+        Some(json!({
+            "name": "assigned",
+            "grants": [{"capability": "content", "action": "view"}]
+        })),
+    )
+    .await;
+    assert_eq!(assigned.status(), StatusCode::CREATED);
+    let assigned_id = response_json(assigned).await["id"]
+        .as_str()
+        .expect("assigned role id")
+        .to_owned();
+    let person = send(
+        &app,
+        Method::POST,
+        "/api/v1/people",
+        Some(&owner_token),
+        Some(json!({
+            "email": "assigned@example.com",
+            "name": "Assigned",
+            "password": "long-enough-password",
+            "role_ids": [assigned_id]
+        })),
+    )
+    .await;
+    assert_eq!(person.status(), StatusCode::CREATED);
+
+    let assigned_delete = send(
+        &app,
+        Method::DELETE,
+        &format!("/api/v1/roles/{assigned_id}"),
+        Some(&owner_token),
+        None,
+    )
+    .await;
+    assert_eq!(assigned_delete.status(), StatusCode::CONFLICT);
+    assert_eq!(
+        response_json(assigned_delete).await["error"]["code"],
+        "role_assigned"
+    );
+
+    let owner_delete = send(
+        &app,
+        Method::DELETE,
+        &format!("/api/v1/roles/{owner_role_id}"),
+        Some(&owner_token),
+        None,
+    )
+    .await;
+    assert_eq!(owner_delete.status(), StatusCode::CONFLICT);
+    assert_eq!(
+        response_json(owner_delete).await["error"]["code"],
+        "owner_role_protected"
+    );
+
+    let owner_grants = send(
+        &app,
+        Method::PUT,
+        &format!("/api/v1/roles/{owner_role_id}/grants"),
+        Some(&owner_token),
+        Some(json!({"grants": []})),
+    )
+    .await;
+    assert_eq!(owner_grants.status(), StatusCode::CONFLICT);
+    assert_eq!(
+        response_json(owner_grants).await["error"]["code"],
+        "owner_role_protected"
+    );
+}
+
+#[tokio::test]
+#[ignore = "requires TEST_DATABASE_URL and a non-superuser PostgreSQL role"]
 async fn edge_auth_throttle_is_site_scoped_and_audited_without_raw_source_data() {
     let (app, database, site_id) = support::build_app_with_edge_policy(EdgeThrottlePolicy {
         ip_limit: 2,
@@ -217,6 +336,20 @@ async fn assert_permission_contract(app: &Router, reader_token: &str) {
     )
     .await;
     assert_eq!(content_list.status(), StatusCode::OK);
+
+    let role_delete = send(
+        app,
+        Method::DELETE,
+        "/api/v1/roles/00000000-0000-7000-8000-000000000001",
+        Some(reader_token),
+        None,
+    )
+    .await;
+    assert_eq!(role_delete.status(), StatusCode::FORBIDDEN);
+    assert_eq!(
+        response_json(role_delete).await["error"]["code"],
+        "forbidden"
+    );
 }
 
 #[tokio::test]

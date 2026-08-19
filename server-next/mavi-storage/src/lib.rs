@@ -15,7 +15,7 @@ use uuid::Uuid;
 /// It is part of the runtime compatibility contract exposed to the operator.
 /// Keep it next to the migration runner so a release cannot advertise a
 /// storage version independently from the migrations it ships.
-pub const CURRENT_SCHEMA_VERSION: u32 = 32;
+pub const CURRENT_SCHEMA_VERSION: u32 = 33;
 
 /// The lifecycle state stored in the shared shard catalog.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -438,6 +438,10 @@ mod tests {
         let job_claim_fencing_migration = include_str!("../migrations/0032_job_claim_fencing.sql");
         assert!(job_claim_fencing_migration.contains("add column claim_token uuid"));
         assert!(job_claim_fencing_migration.contains("jobs_running_has_lease"));
-        assert_eq!(CURRENT_SCHEMA_VERSION, 32);
+        let role_ownership_migration = include_str!("../migrations/0033_role_ownership.sql");
+        assert!(role_ownership_migration.contains("add column system_role boolean"));
+        assert!(role_ownership_migration.contains("roles_system_role_protected"));
+        assert!(role_ownership_migration.contains("role_grants_system_role_protected"));
+        assert_eq!(CURRENT_SCHEMA_VERSION, 33);
     }
 }

@@ -938,7 +938,7 @@ msgstr "A new flow"
 msgid "A new kind"
 msgstr "A new kind"
 
-#: src/routes/dashboard.mail.tsx:251
+#: src/features/mail/mail-page.tsx:259
 msgid "A new list"
 msgstr "A new list"
 
@@ -1163,8 +1163,8 @@ msgstr "Action"
 #: src/components/editor/dialogs.tsx:206
 #: src/features/boards/board-page.tsx:238
 #: src/features/learning/course-page.tsx:192
+#: src/features/mail/mail-page.tsx:221
 #: src/features/taxonomy/tags-page.tsx:155
-#: src/routes/dashboard.mail.tsx:213
 msgid "Add"
 msgstr "Add"
 
@@ -1287,7 +1287,7 @@ msgstr "Add row before"
 
 #: src/features/learning/students-page.tsx:81
 #: src/features/learning/students-page.tsx:95
-#: src/routes/dashboard.mail.tsx:223
+#: src/features/mail/mail-page.tsx:231
 msgid "Add somebody"
 msgstr "Add somebody"
 
@@ -1815,7 +1815,7 @@ msgstr "Area"
 #~ msgid "As {0}, since {1}"
 #~ msgstr "As {0}, since {1}"
 
-#: src/routes/dashboard.letters.tsx:154
+#: src/features/mail/letters-page.tsx:160
 msgid "As it comes"
 msgstr "As it comes"
 
@@ -1945,7 +1945,7 @@ msgstr "Back to editing"
 #~ msgid "Back to the default"
 #~ msgstr "Back to the default"
 
-#: src/routes/dashboard.letters.tsx:97
+#: src/features/mail/letters-page.tsx:100
 msgid "Back to the words this build ships with."
 msgstr "Back to the words this build ships with."
 
@@ -2330,8 +2330,12 @@ msgstr "Came in"
 #~ msgstr "campaign"
 
 #: src/routes/dashboard.mail_.campaigns.$campaignId.tsx:29
-msgid "Campaign"
-msgstr "Campaign"
+#~ msgid "Campaign"
+#~ msgstr "Campaign"
+
+#: src/features/mail/campaign-page.tsx:19
+msgid "Campaign #{campaignId}"
+msgstr "Campaign #{campaignId}"
 
 #: src/lib/audit-looks.ts:67
 #~ msgid "Campaign sent"
@@ -2364,6 +2368,8 @@ msgstr "Can open {summary} of {0} areas."
 #: src/features/forms/forms-page.tsx:306
 #: src/features/forms/forms-page.tsx:328
 #: src/features/learning/students-page.tsx:246
+#: src/features/mail/mail-page.tsx:276
+#: src/features/mail/mail-page.tsx:340
 #: src/features/media/media-page.tsx:210
 #: src/features/people/people-page.tsx:353
 #: src/features/people/people-page.tsx:377
@@ -2375,8 +2381,6 @@ msgstr "Can open {summary} of {0} areas."
 #: src/features/taxonomy/tags-page.tsx:189
 #: src/features/taxonomy/tags-page.tsx:241
 #: src/routes/dashboard.languages.tsx:183
-#: src/routes/dashboard.mail.tsx:268
-#: src/routes/dashboard.mail.tsx:332
 msgid "Cancel"
 msgstr "Cancel"
 
@@ -3381,6 +3385,10 @@ msgstr "Create a board to move work through stages."
 #: src/features/shop/coupons-page.tsx:88
 msgid "Create a code to offer a discount during checkout."
 msgstr "Create a code to offer a discount during checkout."
+
+#: src/features/mail/mail-page.tsx:178
+msgid "Create a list before sending a message to subscribers."
+msgstr "Create a list before sending a message to subscribers."
 
 #: src/features/shop/products-page.tsx:139
 msgid "Create a product before you start taking orders."
@@ -4885,7 +4893,7 @@ msgstr "issues found"
 #~ msgstr "It calls itself \"{0}\", which is its own word for itself and not something this site can check. If you did not just ask a program to connect, close this page."
 
 #. placeholder {0}: letter.names.map((name) => `{${name}}`).join(", ")
-#: src/routes/dashboard.letters.tsx:198
+#: src/features/mail/letters-page.tsx:204
 msgid "It can name: {0}"
 msgstr "It can name: {0}"
 
@@ -5267,7 +5275,7 @@ msgstr "Let back in"
 #~ msgstr "Letterhead"
 
 #: src/components/dashboard/dashboard-shell.tsx:98
-#: src/routes/dashboard.letters.tsx:109
+#: src/features/mail/letters-page.tsx:111
 msgid "Letters"
 msgstr "Letters"
 
@@ -5385,9 +5393,9 @@ msgstr "Lower-case, letters, digits and dashes. This is what a person's account 
 #~ msgstr "Made in the channel's own settings, under incoming webhooks. Anybody holding it can post to that channel, so it is treated as a password and kept out of the run record."
 
 #: src/components/dashboard/dashboard-shell.tsx:92
+#: src/features/mail/campaign-page.tsx:23
+#: src/features/mail/mail-page.tsx:147
 #: src/features/people/roles-page.tsx:157
-#: src/routes/dashboard.mail_.campaigns.$campaignId.tsx:25
-#: src/routes/dashboard.mail.tsx:145
 msgid "Mail"
 msgstr "Mail"
 
@@ -5408,7 +5416,7 @@ msgstr "Mail"
 #~ msgid "Mail from this site still leaves as {0}, which belongs to the mail service rather than to you. A newsletter has to come from the domain it is about — otherwise that shared domain answers for it, and every site using the service pays for anybody's complaints. Add your domain under Mail settings, publish the records it gives you, and set it as the sender. Notifications and form replies keep working meanwhile."
 #~ msgstr "Mail from this site still leaves as {0}, which belongs to the mail service rather than to you. A newsletter has to come from the domain it is about — otherwise that shared domain answers for it, and every site using the service pays for anybody's complaints. Add your domain under Mail settings, publish the records it gives you, and set it as the sender. Notifications and form replies keep working meanwhile."
 
-#: src/routes/dashboard.mail_.campaigns.$campaignId.tsx:33
+#: src/features/mail/campaign-page.tsx:20
 msgid "Mail sendings are processed in the background directly from your lists."
 msgstr "Mail sendings are processed in the background directly from your lists."
 
@@ -5454,9 +5462,9 @@ msgstr "Make default"
 
 #: src/features/automation/flows-page.tsx:333
 #: src/features/boards/boards-page.tsx:216
+#: src/features/mail/mail-page.tsx:283
 #: src/features/people/roles-page.tsx:461
 #: src/features/shop/products-page.tsx:277
-#: src/routes/dashboard.mail.tsx:275
 msgid "Make it"
 msgstr "Make it"
 
@@ -5806,7 +5814,7 @@ msgstr "New form"
 #~ msgid "New lesson"
 #~ msgstr "New lesson"
 
-#: src/routes/dashboard.mail.tsx:162
+#: src/features/mail/mail-page.tsx:162
 msgid "New list"
 msgstr "New list"
 
@@ -6007,6 +6015,10 @@ msgstr "No forms yet"
 msgid "No lessons in it yet."
 msgstr "No lessons in it yet."
 
+#: src/features/mail/letters-page.tsx:141
+msgid "No letters yet."
+msgstr "No letters yet."
+
 #: src/components/ses-account.tsx:229
 #~ msgid "no limit"
 #~ msgstr "no limit"
@@ -6019,7 +6031,7 @@ msgstr "No lessons in it yet."
 #~ msgid "No lists yet — make one first."
 #~ msgstr "No lists yet — make one first."
 
-#: src/routes/dashboard.mail.tsx:174
+#: src/features/mail/mail-page.tsx:177
 msgid "No lists yet."
 msgstr "No lists yet."
 
@@ -6150,7 +6162,7 @@ msgstr "No videos yet."
 #~ msgid "nobody invited yet"
 #~ msgstr "nobody invited yet"
 
-#: src/routes/dashboard.mail.tsx:229
+#: src/features/mail/mail-page.tsx:237
 msgid "Nobody on it yet."
 msgstr "Nobody on it yet."
 
@@ -7109,7 +7121,7 @@ msgstr "Paste the video link."
 msgid "People"
 msgstr "People"
 
-#: src/routes/dashboard.mail.tsx:253
+#: src/features/mail/mail-page.tsx:261
 msgid "People join it from your own pages, and leave it from any letter this site sends."
 msgstr "People join it from your own pages, and leave it from any letter this site sends."
 
@@ -7401,7 +7413,7 @@ msgstr "Put a token where the … is. It is shown once, when you make it."
 #~ msgstr "Put answers on a board"
 
 #: src/features/governance/trash-page.tsx:150
-#: src/routes/dashboard.letters.tsx:165
+#: src/features/mail/letters-page.tsx:171
 msgid "Put it back"
 msgstr "Put it back"
 
@@ -7887,11 +7899,12 @@ msgstr "Samples"
 #: src/features/design/design-page.tsx:211
 #: src/features/design/design-page.tsx:265
 #: src/features/forms/forms-page.tsx:310
+#: src/features/mail/letters-page.tsx:214
 #: src/features/settings/settings-page.tsx:82
 #: src/features/shop/coupons-page.tsx:247
 #: src/features/taxonomy/categories-page.tsx:281
 #: src/features/taxonomy/tags-page.tsx:181
-#: src/routes/dashboard.letters.tsx:208
+#: src/features/mail/letters-page.tsx:214
 msgid "Save"
 msgstr "Save"
 
@@ -7933,9 +7946,10 @@ msgstr "Save it"
 
 #: src/components/editor/status-bar.tsx:116
 #: src/features/forms/forms-page.tsx:106
+#: src/features/mail/letters-page.tsx:83
 #: src/features/settings/settings-page.tsx:47
 #: src/features/shop/coupons-page.tsx:165
-#: src/routes/dashboard.letters.tsx:80
+#: src/features/mail/letters-page.tsx:83
 msgid "Saved"
 msgstr "Saved"
 
@@ -8100,7 +8114,7 @@ msgstr "Select all"
 #~ msgstr "Select your language"
 
 #: src/components/report-a-problem.tsx:243
-#: src/routes/dashboard.mail.tsx:339
+#: src/features/mail/mail-page.tsx:347
 msgid "Send"
 msgstr "Send"
 
@@ -8138,8 +8152,8 @@ msgstr "Send"
 #~ msgid "Send mail through SES"
 #~ msgstr "Send mail through SES"
 
-#: src/routes/dashboard.mail.tsx:159
-#: src/routes/dashboard.mail.tsx:284
+#: src/features/mail/mail-page.tsx:159
+#: src/features/mail/mail-page.tsx:292
 msgid "Send message"
 msgstr "Send message"
 
@@ -8256,7 +8270,7 @@ msgstr "Sent"
 #~ msgid "Sent to {0}"
 #~ msgstr "Sent to {0}"
 
-#: src/routes/dashboard.mail.tsx:132
+#: src/features/mail/mail-page.tsx:135
 msgid "Sent to the list."
 msgstr "Sent to the list."
 
@@ -8595,8 +8609,8 @@ msgstr "Small section heading"
 #~ msgid "Somebody signing in with an account somewhere else. The address that comes back has to be one this site already knows: this adds a way in for an account, never an account."
 #~ msgstr "Somebody signing in with an account somewhere else. The address that comes back has to be one this site already knows: this adds a way in for an account, never an account."
 
+#: src/features/mail/mail-page.tsx:213
 #: src/features/people/people-page.tsx:454
-#: src/routes/dashboard.mail.tsx:209
 msgid "somebody@example.test"
 msgstr "somebody@example.test"
 
@@ -8813,8 +8827,8 @@ msgstr "Sub-heading"
 #~ msgid "Subdomain for bounces"
 #~ msgstr "Subdomain for bounces"
 
-#: src/routes/dashboard.letters.tsx:171
-#: src/routes/dashboard.mail.tsx:311
+#: src/features/mail/letters-page.tsx:177
+#: src/features/mail/mail-page.tsx:319
 msgid "Subject"
 msgstr "Subject"
 
@@ -9384,17 +9398,25 @@ msgstr "The last build did not work"
 msgid "The letterhead"
 msgstr "The letterhead"
 
+#: src/features/mail/letters-page.tsx:137
+msgid "The letters could not be read just now."
+msgstr "The letters could not be read just now."
+
 #: src/lib/board-words.ts:82
 #~ msgid "The line under it"
 #~ msgstr "The line under it"
 
-#: src/routes/dashboard.mail.tsx:147
+#: src/features/mail/mail-page.tsx:148
 msgid "The lists this site writes to, and messages sent to them."
 msgstr "The lists this site writes to, and messages sent to them."
 
 #: src/routes/dashboard.mail.tsx:182
 #~ msgid "The lists this site writes to, and what it has written to them."
 #~ msgstr "The lists this site writes to, and what it has written to them."
+
+#: src/features/mail/mail-page.tsx:172
+msgid "The mailing lists could not be read just now."
+msgstr "The mailing lists could not be read just now."
 
 #: src/components/dashboard/address-health.tsx:68
 #~ msgid "The main one"
@@ -9812,6 +9834,10 @@ msgstr "This site already writes in that."
 #~ msgid "This site cannot send yet. Ask an administrator to switch the mail service on for this server, or connect your own Amazon SES account above."
 #~ msgstr "This site cannot send yet. Ask an administrator to switch the mail service on for this server, or connect your own Amazon SES account above."
 
+#: src/features/mail/letters-page.tsx:142
+msgid "This site has no automatic messages to customize."
+msgstr "This site has no automatic messages to customize."
+
 #: src/components/flows/flow-canvas.tsx:337
 #~ msgid "this site has no forms yet"
 #~ msgstr "this site has no forms yet"
@@ -9896,7 +9922,7 @@ msgstr "Times in total"
 msgid "To watch the courses you have been given."
 msgstr "To watch the courses you have been given."
 
-#: src/routes/dashboard.mail.tsx:292
+#: src/features/mail/mail-page.tsx:300
 msgid "To which list"
 msgstr "To which list"
 
@@ -10486,9 +10512,9 @@ msgstr "What it is about"
 #: src/features/boards/boards-page.tsx:164
 #: src/features/forms/forms-page.tsx:401
 #: src/features/learning/start-teaching-page.tsx:70
+#: src/features/mail/mail-page.tsx:266
 #: src/features/settings/settings-page.tsx:64
 #: src/features/shop/products-page.tsx:212
-#: src/routes/dashboard.mail.tsx:258
 msgid "What it is called"
 msgstr "What it is called"
 
@@ -10520,8 +10546,8 @@ msgstr "What it is called, and the stages a card moves through. Both can be chan
 #~ msgid "What it said"
 #~ msgstr "What it said"
 
-#: src/routes/dashboard.letters.tsx:185
-#: src/routes/dashboard.mail.tsx:320
+#: src/features/mail/letters-page.tsx:191
+#: src/features/mail/mail-page.tsx:328
 msgid "What it says"
 msgstr "What it says"
 
@@ -10682,7 +10708,7 @@ msgstr "What this site sells. Stock is held while somebody pays and let go if th
 #~ msgid "What this site sends mail with. A form can name an address to tell, and this is how it gets there."
 #~ msgstr "What this site sends mail with. A form can name an address to tell, and this is how it gets there."
 
-#: src/routes/dashboard.letters.tsx:111
+#: src/features/mail/letters-page.tsx:112
 msgid "What this site writes to one person: an invitation, a password link, a receipt. Anything in braces is filled in when it is sent."
 msgstr "What this site writes to one person: an invitation, a password link, a receipt. Anything in braces is filled in when it is sent."
 
@@ -11161,7 +11187,7 @@ msgstr "Writings"
 #~ msgid "Written down beside the demo's number and never confused with it: the pages and the code that renders them move separately."
 #~ msgstr "Written down beside the demo's number and never confused with it: the pages and the code that renders them move separately."
 
-#: src/routes/dashboard.mail.tsx:286
+#: src/features/mail/mail-page.tsx:294
 msgid "Written now, sent to everyone on the list."
 msgstr "Written now, sent to everyone on the list."
 
@@ -11360,7 +11386,7 @@ msgstr "Your role does not reach this screen. Whoever runs the site can change t
 #~ msgid "Your sites are built from private repositories, and a build needs a token to read them with. Keep one here and every site you look after uses it — a site whose project lives somewhere else can still be given its own, and that one wins."
 #~ msgstr "Your sites are built from private repositories, and a build needs a token to read them with. Keep one here and every site you look after uses it — a site whose project lives somewhere else can still be given its own, and that one wins."
 
-#: src/routes/dashboard.letters.tsx:154
+#: src/features/mail/letters-page.tsx:160
 msgid "Yours"
 msgstr "Yours"
 

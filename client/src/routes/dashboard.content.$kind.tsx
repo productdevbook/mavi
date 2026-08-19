@@ -1,7 +1,7 @@
 /* eslint-disable react-refresh/only-export-components -- file-based route convention */
 import { createFileRoute } from "@tanstack/react-router"
 
-import { ContentList } from "@/components/dashboard/content-list"
+import { ContentList } from "@/features/content/content-list"
 
 export const Route = createFileRoute("/dashboard/content/$kind")({
   component: ContentRoute,

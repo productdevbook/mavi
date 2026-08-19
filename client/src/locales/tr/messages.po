@@ -29,7 +29,7 @@ msgstr ""
 #~ msgstr "\"{0}\" hem buradan hem de sunucudan gider ve çöp kutusuna düşmez. Onu kullanan her ders videosuz kalır."
 
 #. placeholder {0}: going?.title
-#: src/components/dashboard/content-list.tsx:312
+#: src/features/content/content-list.tsx:312
 msgid "\"{0}\" goes to the bin, and can be taken back out of it."
 msgstr "\"{0}\" çöp kutusuna gider, oradan geri alınabilir."
 
@@ -44,7 +44,7 @@ msgstr "\"{0}\" çöp kutusuna gider, oradan geri alınabilir."
 #~ msgstr "\"{0}\" hesabını, erişimini ve nereye kadar geldiğini kaybeder. Bu çöp kutusuna düşmez."
 
 #. placeholder {0}: pendingDelete?.name
-#: src/routes/dashboard.categories.tsx:333
+#: src/features/taxonomy/categories-page.tsx:328
 msgid "\"{0}\" will be permanently deleted. This cannot be undone."
 msgstr "\"{0}\" kalıcı olarak silinecek. Bu işlem geri alınamaz."
 
@@ -532,7 +532,7 @@ msgid "{0} things are written in that language."
 msgstr "O dilde yazılmış {0} şey var."
 
 #. placeholder {0}: chosen.size
-#: src/components/dashboard/content-list.tsx:176
+#: src/features/content/content-list.tsx:176
 msgid "{0} ticked"
 msgstr "{0} seçildi"
 
@@ -702,7 +702,7 @@ msgstr "{minutes, plural, one {# dk okuma} other {# dk okuma}}"
 #~ msgid "{one} days"
 #~ msgstr "{one} gün"
 
-#: src/components/dashboard/content-list.tsx:123
+#: src/features/content/content-list.tsx:123
 msgid "{one} deleted"
 msgstr "{one} silindi"
 
@@ -953,7 +953,7 @@ msgstr "Yeni bir ürün"
 #~ msgid "A new site"
 #~ msgstr "Yeni bir site"
 
-#: src/routes/dashboard.tags.tsx:150
+#: src/features/taxonomy/tags-page.tsx:152
 msgid "A new tag"
 msgstr "Yeni bir etiket"
 
@@ -1144,10 +1144,10 @@ msgstr "Sitenin kendi ödeme sağlayıcısı. Kart bilgileri bu makineye hiç ul
 #~ msgstr "Etkin"
 
 #: src/components/editor/dialogs.tsx:206
+#: src/features/taxonomy/tags-page.tsx:155
 #: src/routes/dashboard.boards_.$boardId.tsx:237
 #: src/routes/dashboard.courses.$courseId.tsx:193
 #: src/routes/dashboard.mail.tsx:213
-#: src/routes/dashboard.tags.tsx:153
 msgid "Add"
 msgstr "Ekle"
 
@@ -1196,6 +1196,10 @@ msgstr "Bölüm ekle"
 msgid "Add a tag and press Enter"
 msgstr "Etiket ekle ve Enter'a bas"
 
+#: src/features/taxonomy/categories-page.tsx:213
+msgid "Add a top-level category or place it below an existing one."
+msgstr ""
+
 #: src/components/editor/extensions/slash-command.tsx:189
 msgid "Add an image from a link"
 msgstr "Bağlantıdan görsel ekle"
@@ -1205,7 +1209,7 @@ msgstr "Bağlantıdan görsel ekle"
 #~ msgstr "Önce bir alan adı ekleyip doğrulatın; sonra ona ait her adres burada kullanılabilir."
 
 #: src/components/editor/post-settings.tsx:290
-#: src/routes/dashboard.categories.tsx:208
+#: src/features/taxonomy/categories-page.tsx:204
 msgid "Add category"
 msgstr "Kategori ekle"
 
@@ -1236,6 +1240,10 @@ msgstr "Görsel ekle"
 #: src/routes/dashboard.languages.tsx:121
 msgid "Add language"
 msgstr "Dil ekle"
+
+#: src/features/taxonomy/tags-page.tsx:120
+msgid "Add lightweight labels for filtering and finding content."
+msgstr ""
 
 #: src/components/editor/content-fields.tsx:444
 #~ msgid "Add one"
@@ -1660,7 +1668,7 @@ msgstr "Yanıt veriyor"
 #~ msgid "Anything"
 #~ msgstr "Herhangi biri"
 
-#: src/routes/dashboard.media.tsx:198
+#: src/features/media/media-page.tsx:206
 msgid "Anything already using it will stop showing it."
 msgstr "Bunu kullanan her yerde görünmeyi bırakır."
 
@@ -2308,33 +2316,33 @@ msgstr "{0} alanın {summary} tanesini açabilir."
 #~ msgid "can send"
 #~ msgstr "gönderebilir"
 
-#: src/components/dashboard/content-list.tsx:316
 #: src/components/dashboard/content-type-editor.tsx:227
 #: src/components/editor/dialogs.tsx:204
 #: src/components/editor/dialogs.tsx:244
 #: src/components/editor/dialogs.tsx:330
 #: src/components/report-a-problem.tsx:236
+#: src/features/content/content-list.tsx:316
 #: src/features/forms/forms-page.tsx:306
 #: src/features/forms/forms-page.tsx:328
+#: src/features/media/media-page.tsx:210
 #: src/features/people/people-page.tsx:353
 #: src/features/people/people-page.tsx:377
 #: src/features/people/roles-page.tsx:454
+#: src/features/taxonomy/categories-page.tsx:289
+#: src/features/taxonomy/categories-page.tsx:332
+#: src/features/taxonomy/tags-page.tsx:189
+#: src/features/taxonomy/tags-page.tsx:241
 #: src/routes/dashboard.boards_.$boardId.tsx:230
 #: src/routes/dashboard.boards.tsx:210
 #: src/routes/dashboard.boards.tsx:232
-#: src/routes/dashboard.categories.tsx:294
-#: src/routes/dashboard.categories.tsx:337
 #: src/routes/dashboard.coupons.tsx:251
 #: src/routes/dashboard.design.tsx:213
 #: src/routes/dashboard.flows.tsx:329
 #: src/routes/dashboard.languages.tsx:183
 #: src/routes/dashboard.mail.tsx:268
 #: src/routes/dashboard.mail.tsx:332
-#: src/routes/dashboard.media.tsx:202
 #: src/routes/dashboard.products.tsx:267
 #: src/routes/dashboard.students.tsx:241
-#: src/routes/dashboard.tags.tsx:191
-#: src/routes/dashboard.tags.tsx:243
 msgid "Cancel"
 msgstr "Vazgeç"
 
@@ -2372,7 +2380,7 @@ msgstr "Büyük/küçük harf duyarlı"
 
 #: src/components/dashboard/dashboard-shell.tsx:89
 #: src/components/editor/post-settings.tsx:246
-#: src/routes/dashboard.categories.tsx:155
+#: src/features/taxonomy/categories-page.tsx:148
 msgid "Categories"
 msgstr "Kategoriler"
 
@@ -3304,6 +3312,10 @@ msgstr "Kapak önizlemesi"
 msgid "Create"
 msgstr "Oluştur"
 
+#: src/features/taxonomy/tags-page.tsx:164
+msgid "Create a tag once and reuse it across content in this language."
+msgstr ""
+
 #: src/components/editor/extensions/slash-command.tsx:110
 msgid "Create an ordered list"
 msgstr "Sıralı liste oluştur"
@@ -3321,7 +3333,7 @@ msgstr "Sırasız liste oluştur"
 #~ msgstr "Yönetici hesabınızı oluşturun"
 
 #. placeholder {0}: many.toLocaleLowerCase()
-#: src/components/dashboard/content-list.tsx:135
+#: src/features/content/content-list.tsx:135
 msgid "Create, edit, and publish {0}."
 msgstr "{0} oluşturun, düzenleyin ve yayınlayın."
 
@@ -3428,17 +3440,17 @@ msgstr "Girintiyi azalt"
 msgid "Default"
 msgstr "Varsayılan"
 
-#: src/components/dashboard/content-list.tsx:294
-#: src/components/dashboard/content-list.tsx:318
 #: src/components/editor/block-handle.tsx:186
 #: src/components/editor/bubble-menus.tsx:415
+#: src/features/content/content-list.tsx:294
+#: src/features/content/content-list.tsx:318
+#: src/features/media/media-page.tsx:187
+#: src/features/media/media-page.tsx:212
 #: src/features/people/roles-page.tsx:172
-#: src/routes/dashboard.categories.tsx:313
-#: src/routes/dashboard.categories.tsx:339
+#: src/features/taxonomy/categories-page.tsx:308
+#: src/features/taxonomy/categories-page.tsx:334
+#: src/features/taxonomy/tags-page.tsx:217
 #: src/routes/dashboard.languages.tsx:160
-#: src/routes/dashboard.media.tsx:179
-#: src/routes/dashboard.media.tsx:204
-#: src/routes/dashboard.tags.tsx:219
 msgid "Delete"
 msgstr "Sil"
 
@@ -3477,7 +3489,7 @@ msgstr "Tabloyu sil"
 msgid "Delete the \"{0}\" role? Move its people to another role first — this only removes the role, not the accounts."
 msgstr "\"{0}\" rolü silinsin mi? Önce kişilerini başka bir role taşıyın — bu yalnızca rolü kaldırır, hesapları değil."
 
-#: src/components/dashboard/content-list.tsx:310
+#: src/features/content/content-list.tsx:310
 msgid "Delete this {one}?"
 msgstr "Bu {one} silinsin mi?"
 
@@ -3485,11 +3497,11 @@ msgstr "Bu {one} silinsin mi?"
 #~ msgid "Delete this backup?"
 #~ msgstr "Bu yedek silinsin mi?"
 
-#: src/routes/dashboard.categories.tsx:331
+#: src/features/taxonomy/categories-page.tsx:326
 msgid "Delete this category?"
 msgstr "Bu kategori silinsin mi?"
 
-#: src/routes/dashboard.media.tsx:196
+#: src/features/media/media-page.tsx:204
 msgid "Delete this file?"
 msgstr "Bu dosya silinsin mi?"
 
@@ -3660,7 +3672,7 @@ msgstr "Yapıldı"
 #~ msgid "Done, and it went the way you wanted"
 #~ msgstr "Bitti ve istediğiniz gibi sonuçlandı"
 
-#: src/components/dashboard/content-list.tsx:111
+#: src/features/content/content-list.tsx:111
 msgid "Done."
 msgstr ""
 
@@ -3718,12 +3730,12 @@ msgstr "Çoğalt"
 #~ msgid "Each language has its own tags. Link them so a post's tag can point at its counterpart in another language."
 #~ msgstr "Her dilin kendi etiketleri vardır. Bir yazının etiketinin başka dildeki karşılığına işaret etmesi için bunları bağlayın."
 
-#: src/components/dashboard/content-list.tsx:281
 #: src/components/editor/bubble-menus.tsx:331
 #: src/components/editor/mavi-editor.tsx:620
 #: src/components/editor/mavi-editor.tsx:879
+#: src/features/content/content-list.tsx:281
 #: src/features/forms/forms-page.tsx:211
-#: src/routes/dashboard.categories.tsx:305
+#: src/features/taxonomy/categories-page.tsx:300
 msgid "Edit"
 msgstr "Düzenle"
 
@@ -5009,9 +5021,9 @@ msgstr "Klavye kısayolları"
 #~ msgid "Label"
 #~ msgstr "Etiket"
 
-#: src/components/dashboard/content-list.tsx:140
 #: src/components/editor/mavi-editor.tsx:889
 #: src/components/locale-toggle.tsx:23
+#: src/features/content/content-list.tsx:140
 msgid "Language"
 msgstr "Dil"
 
@@ -5436,7 +5448,7 @@ msgid "Media"
 msgstr "Medya"
 
 #: src/components/editor/dialogs.tsx:150
-#: src/routes/dashboard.media.tsx:117
+#: src/features/media/media-page.tsx:119
 msgid "Media library"
 msgstr "Medya kütüphanesi"
 
@@ -5643,7 +5655,7 @@ msgstr "Yeni"
 msgid "New {0}"
 msgstr "Yeni {0}"
 
-#: src/components/dashboard/content-list.tsx:223
+#: src/features/content/content-list.tsx:223
 msgid "New {one}"
 msgstr "Yeni {one}"
 
@@ -5657,7 +5669,7 @@ msgstr "Yeni pano"
 #~ msgstr "Yeni kampanya"
 
 #: src/components/editor/post-settings.tsx:277
-#: src/routes/dashboard.categories.tsx:185
+#: src/features/taxonomy/categories-page.tsx:181
 msgid "New category"
 msgstr "Yeni kategori"
 
@@ -5760,7 +5772,7 @@ msgstr "Sonraki"
 #~ msgid "No"
 #~ msgstr "Hayır"
 
-#: src/components/dashboard/content-list.tsx:213
+#: src/features/content/content-list.tsx:213
 msgid "No {many} yet"
 msgstr "Henüz {many} yok"
 
@@ -5813,7 +5825,7 @@ msgstr "Henüz pano yok."
 #~ msgid "No campaigns yet"
 #~ msgstr "Henüz kampanya yok"
 
-#: src/routes/dashboard.categories.tsx:218
+#: src/features/taxonomy/categories-page.tsx:212
 msgid "No categories yet"
 msgstr "Henüz kategori yok"
 
@@ -5906,9 +5918,9 @@ msgstr "Henüz medya yüklenmedi"
 msgid "No pages counted yet."
 msgstr "Henüz sayfa sayılmadı."
 
-#: src/routes/dashboard.categories.tsx:140
-#: src/routes/dashboard.categories.tsx:198
-#: src/routes/dashboard.categories.tsx:256
+#: src/features/taxonomy/categories-page.tsx:133
+#: src/features/taxonomy/categories-page.tsx:194
+#: src/features/taxonomy/categories-page.tsx:251
 msgid "No parent (top level)"
 msgstr "Üst kategori yok (en üst düzey)"
 
@@ -5953,7 +5965,7 @@ msgstr "Sonuç bulunamadı"
 #~ msgid "No tags yet"
 #~ msgstr "Henüz etiket yok"
 
-#: src/routes/dashboard.tags.tsx:163
+#: src/features/taxonomy/tags-page.tsx:163
 msgid "No tags yet."
 msgstr "Henüz etiket yok."
 
@@ -6321,7 +6333,7 @@ msgstr "Henüz satış yok."
 #~ msgid "Nothing to show"
 #~ msgstr "Gösterilecek bir şey yok"
 
-#: src/routes/dashboard.media.tsx:145
+#: src/features/media/media-page.tsx:148
 msgid "Nothing uploaded yet."
 msgstr "Henüz bir şey yüklenmedi."
 
@@ -6794,6 +6806,10 @@ msgstr ""
 msgid "Organize"
 msgstr "Düzenle"
 
+#: src/features/taxonomy/categories-page.tsx:149
+msgid "Organize content into a hierarchy that is easy to browse."
+msgstr ""
+
 #: src/components/plugin-forms.tsx:394
 #~ msgid "Other addresses you send as"
 #~ msgstr "Gönderdiğiniz diğer adresler"
@@ -7201,7 +7217,7 @@ msgstr "Yayın tarihi"
 #~ msgid "Publish demo"
 #~ msgstr "Demoyu yayımla"
 
-#: src/components/dashboard/content-list.tsx:182
+#: src/features/content/content-list.tsx:182
 msgid "Publish them"
 msgstr "Yayınla"
 
@@ -7455,6 +7471,7 @@ msgstr "Düzenli ifade"
 #: src/features/forms/forms-page.tsx:466
 #: src/features/people/people-page.tsx:248
 #: src/features/people/people-page.tsx:379
+#: src/features/taxonomy/tags-page.tsx:243
 #: src/routes/dashboard.boards_.$boardId.tsx:156
 #: src/routes/dashboard.boards.tsx:141
 #: src/routes/dashboard.boards.tsx:188
@@ -7467,7 +7484,6 @@ msgstr "Düzenli ifade"
 #: src/routes/dashboard.flows.tsx:299
 #: src/routes/dashboard.forms_.$formId.tsx:212
 #: src/routes/dashboard.languages.tsx:185
-#: src/routes/dashboard.tags.tsx:245
 #: src/routes/dashboard.videos.tsx:133
 msgid "Remove"
 msgstr "Kaldır"
@@ -7523,7 +7539,7 @@ msgstr "Bu dil silinsin mi?"
 #~ msgid "Remove this site?"
 #~ msgstr "Bu site kaldırılsın mı?"
 
-#: src/routes/dashboard.tags.tsx:237
+#: src/features/taxonomy/tags-page.tsx:235
 msgid "Remove this tag?"
 msgstr "Bu etiket kaldırılsın mı?"
 
@@ -7539,7 +7555,7 @@ msgstr "Kaldırıldı"
 #~ msgid "Removing your keys keeps the address you send from and where replies go. It does not move your verified domains: those were verified in your own Amazon account, so you add the domain again here and publish the new records you are given."
 #~ msgstr "Anahtarlarınızı silmek, gönderdiğiniz adresi ve yanıtların gittiği yeri korur. Doğrulanmış alan adlarınızı taşımaz: onlar sizin kendi Amazon hesabınızda doğrulanmıştı, bu yüzden alan adını burada yeniden ekleyip size verilen yeni kayıtları yayınlarsınız."
 
-#: src/routes/dashboard.tags.tsx:208
+#: src/features/taxonomy/tags-page.tsx:206
 msgid "Rename"
 msgstr "Adını değiştir"
 
@@ -7743,13 +7759,13 @@ msgstr ""
 #: src/components/editor/mavi-editor.tsx:681
 #: src/features/forms/forms-page.tsx:310
 #: src/features/settings/settings-page.tsx:82
-#: src/routes/dashboard.categories.tsx:286
+#: src/features/taxonomy/categories-page.tsx:281
+#: src/features/taxonomy/tags-page.tsx:181
 #: src/routes/dashboard.coupons.tsx:248
 #: src/routes/dashboard.design.tsx:210
 #: src/routes/dashboard.design.tsx:252
 #: src/routes/dashboard.letters.tsx:208
 #: src/routes/dashboard.plugins.tsx:171
-#: src/routes/dashboard.tags.tsx:183
 msgid "Save"
 msgstr "Kaydet"
 
@@ -8798,7 +8814,7 @@ msgstr "İçindekiler"
 
 #: src/components/dashboard/dashboard-shell.tsx:90
 #: src/components/editor/post-settings.tsx:298
-#: src/routes/dashboard.tags.tsx:120
+#: src/features/taxonomy/tags-page.tsx:119
 msgid "Tags"
 msgstr "Etiketler"
 
@@ -8851,7 +8867,7 @@ msgstr "Sepetten çıkar"
 #~ msgid "Take the database, and the uploaded files if you want them, into a single archive — on a schedule, to the disk or to your S3 bucket."
 #~ msgstr "Veritabanını, istersen yüklenen dosyalarla birlikte, tek bir arşive alır — zamanlanmış olarak, diske ya da S3 kovana."
 
-#: src/components/dashboard/content-list.tsx:189
+#: src/features/content/content-list.tsx:189
 msgid "Take them down"
 msgstr "Yayından kaldır"
 
@@ -9688,11 +9704,11 @@ msgstr "Bunlar uygulamanın gösterdiği basamaklar değil."
 msgid "Throw it away now"
 msgstr "Şimdi kalıcı olarak sil"
 
-#: src/components/dashboard/content-list.tsx:196
+#: src/features/content/content-list.tsx:196
 msgid "Throw them away"
 msgstr "Çöpe at"
 
-#: src/components/dashboard/content-list.tsx:239
+#: src/features/content/content-list.tsx:239
 msgid "Tick it"
 msgstr "Seç"
 
@@ -9860,7 +9876,7 @@ msgstr "Geri al"
 msgid "Unsaved changes"
 msgstr "Değişiklik bekleniyor"
 
-#: src/components/dashboard/content-list.tsx:204
+#: src/features/content/content-list.tsx:204
 msgid "Untick"
 msgstr "Seçimi bırak"
 
@@ -9880,8 +9896,8 @@ msgstr "{0} tarihine kadar"
 #~ msgid "Until this is on, a checkout says so rather than failing."
 #~ msgstr "Bu açılana kadar ödeme adımı hata vermek yerine durumu söyler."
 
-#: src/components/dashboard/content-list.tsx:261
 #: src/components/editor/toc-panel.tsx:62
+#: src/features/content/content-list.tsx:261
 msgid "Untitled"
 msgstr "Başlıksız"
 
@@ -9894,7 +9910,8 @@ msgstr "Başlıksız"
 msgid "Untitled post"
 msgstr "Başlıksız yazı"
 
-#: src/routes/dashboard.media.tsx:125
+#: src/features/media/media-page.tsx:128
+#: src/features/media/media-page.tsx:153
 #: src/routes/dashboard.videos.tsx:96
 msgid "Upload"
 msgstr "Yükle"
@@ -9906,6 +9923,14 @@ msgstr "Yükle"
 #: src/routes/dashboard.videos.tsx:167
 #~ msgid "Upload a video"
 #~ msgstr "Video yükle"
+
+#: src/features/media/media-page.tsx:149
+msgid "Upload an image or file to start building this site's library."
+msgstr ""
+
+#: src/features/media/media-page.tsx:120
+msgid "Upload and manage the files used by this site."
+msgstr ""
 
 #: src/components/editor/post-settings.tsx:378
 msgid "Upload cover image"
@@ -10255,7 +10280,7 @@ msgstr ""
 #~ msgid "What hosting costs"
 #~ msgstr "Barındırmanın maliyeti"
 
-#: src/routes/dashboard.tags.tsx:239
+#: src/features/taxonomy/tags-page.tsx:237
 msgid "What is filed under it stays; it stops being filed under this."
 msgstr "Altındaki içerik kalır; yalnızca bu etiketle ilişkisi biter."
 

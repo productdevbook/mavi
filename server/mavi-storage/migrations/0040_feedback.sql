@@ -1,3 +1,17 @@
+-- Feedback is a first-class capability. The original identity migration
+-- predates it, so extend the capability allow-lists in the same migration
+-- that introduces the domain. Keeping this change transactional makes a
+-- partially-applied release impossible.
+alter table role_grants drop constraint role_grants_capability_check;
+alter table role_grants add constraint role_grants_capability_check check (
+    capability in ('analytics', 'automation', 'audit', 'boards', 'content', 'courses', 'credentials', 'design', 'feedback', 'forms', 'mail', 'media', 'people', 'portable', 'publish', 'settings', 'shop', 'taxonomy', 'trash')
+);
+
+alter table api_key_grants drop constraint api_key_grants_capability_check;
+alter table api_key_grants add constraint api_key_grants_capability_check check (
+    capability in ('analytics', 'automation', 'audit', 'boards', 'content', 'courses', 'credentials', 'design', 'feedback', 'forms', 'mail', 'media', 'people', 'portable', 'publish', 'settings', 'shop', 'taxonomy', 'trash')
+);
+
 create table feedback_reports (
     site_id       uuid not null references site_catalog(site_id) on delete cascade,
     id            uuid not null,

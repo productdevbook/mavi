@@ -32,7 +32,8 @@ MIT. Run it, change it, sell it.
 curl -O https://raw.githubusercontent.com/productdevbook/mavi/main/docker-compose.yml
 curl -O https://raw.githubusercontent.com/productdevbook/mavi/main/Caddyfile
 {
-  echo "POSTGRES_PASSWORD=$(openssl rand -base64 24)"
+  # The bundled compose file embeds this in DATABASE_URL; hex is URI-safe.
+  echo "POSTGRES_PASSWORD=$(openssl rand -hex 24)"
   echo "MAVI_KEYS=1:$(openssl rand -base64 32)"
   echo "MAVI_SITE_ID=$(uuidgen)"
 } > .env
@@ -70,6 +71,9 @@ being asked for:
 ```bash
 DATABASE_URL=postgres://user:password@your-host:5432/mavi docker compose up -d
 ```
+
+When constructing `DATABASE_URL` yourself, percent-encode the username and
+password if they contain reserved URI characters.
 
 ### Images
 

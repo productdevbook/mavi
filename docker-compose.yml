@@ -6,7 +6,9 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-mavi}
-      # Asked for rather than defaulted. A default here is not a placeholder:
+      # Asked for rather than defaulted. Use a URI-safe value (hex is a good
+      # choice), because compose embeds it in the default DATABASE_URL. A
+      # default here is not a placeholder:
       # `:-` makes it the password the database actually runs with, so every
       # installation that followed the README shared one known credential to
       # the database holding every site on it.

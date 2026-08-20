@@ -154,6 +154,13 @@ Audit managers can download a chronological, filtered `/api/v1/audit/export`
 envelope. It is site-scoped, capped at 10,000 events per request, and records
 the export access as `audit.events.exported`; retention policy remains an
 explicit operations decision rather than an implicit destructive default.
+Core content, media files and taxonomy terms use the site setting
+`trash_retention.days` (1–3,650 days) and an idempotent daily
+`trash.retention` worker. Permanent deletion and its system audit receipt are
+transactional; media bytes and generated variants continue through the
+durable `FileStore` cleanup job. Domain-specific trash for forms, shop,
+courses, boards and flows remains an explicit follow-up rather than being
+silently treated as core content trash.
 Site settings store an optional normalized canonical HTTP(S) URL; query strings,
 fragments and userinfo are refused, and PATCH can explicitly set or clear the
 value. Public content resolution first tries the requested language, then its

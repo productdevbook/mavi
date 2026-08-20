@@ -1705,6 +1705,7 @@ export interface SiteSettings {
   canonical_url: string | null;
   mail_sender: MailSender;
   analytics_retention: AnalyticsRetention;
+  trash_retention: TrashRetention;
   updated_at: string;
 }
 
@@ -1833,6 +1834,12 @@ export interface TrashPage {
   next_cursor: string | null;
 }
 
+export interface TrashRetention {
+  days: number;
+}
+
+export type TrashRetentionUpdate = Record<string, unknown> | null;
+
 export type Trigger = "content_published" | "form_submitted" | "order_paid" | "order_sent" | "course_enrollment_created" | "course_lesson_completed";
 
 export interface TriggerDescription {
@@ -1933,6 +1940,7 @@ export interface UpdateSiteSettings {
   canonical_url?: string | null;
   mail_sender?: MailSenderUpdate;
   analytics_retention?: AnalyticsRetentionUpdate;
+  trash_retention?: TrashRetentionUpdate;
 }
 
 export interface UpdateStudent {

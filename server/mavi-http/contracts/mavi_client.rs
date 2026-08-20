@@ -1944,6 +1944,7 @@ pub struct SiteSettings {
     pub canonical_url: Option<String>,
     pub mail_sender: MailSender,
     pub analytics_retention: AnalyticsRetention,
+    pub trash_retention: TrashRetention,
     pub updated_at: String,
 }
 
@@ -2091,6 +2092,13 @@ pub struct TrashPage {
     pub next_cursor: Option<String>,
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct TrashRetention {
+    pub days: i64,
+}
+
+pub type TrashRetentionUpdate = Option<Value>;
+
 pub type Trigger = String;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -2208,6 +2216,7 @@ pub struct UpdateSiteSettings {
     pub canonical_url: Option<String>,
     pub mail_sender: Option<MailSenderUpdate>,
     pub analytics_retention: Option<AnalyticsRetentionUpdate>,
+    pub trash_retention: Option<TrashRetentionUpdate>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

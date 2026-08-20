@@ -12,7 +12,7 @@ use mavi_audit::{AuditEntry, AuditService};
 use mavi_contract::{Api, Endpoint, Method, Permission, Shape};
 use mavi_core::{
     Action, AnalyticsRetentionPolicy, Capability, Cursor, ErrorCode, MailSender, MaviError, Page,
-    PageRequest, Result, SiteContext, SiteId,
+    PageRequest, Result, SiteContext, SiteId, TrashRetentionPolicy,
 };
 use mavi_storage::SiteTx;
 use serde::{Deserialize, Deserializer, Serialize};
@@ -162,7 +162,7 @@ fn settings_shapes() -> Vec<Shape> {
             "SiteSettings",
             json!({
                 "type": "object",
-                "required": ["site_id", "name", "timezone", "canonical_url", "mail_sender", "analytics_retention", "updated_at"],
+                "required": ["site_id", "name", "timezone", "canonical_url", "mail_sender", "analytics_retention", "trash_retention", "updated_at"],
                 "properties": {
                     "site_id": {"type": "string", "format": "uuid"},
                     "name": {"type": "string", "maxLength": 200},
@@ -170,6 +170,7 @@ fn settings_shapes() -> Vec<Shape> {
                     "canonical_url": {"type": ["string", "null"], "maxLength": 2048, "format": "uri"},
                     "mail_sender": {"$ref": "#/components/schemas/MailSender"},
                     "analytics_retention": {"$ref": "#/components/schemas/AnalyticsRetention"},
+                    "trash_retention": {"$ref": "#/components/schemas/TrashRetention"},
                     "updated_at": {"type": "string", "format": "date-time"},
                 },
             }),
@@ -184,6 +185,7 @@ fn settings_shapes() -> Vec<Shape> {
                     "canonical_url": {"type": ["string", "null"], "maxLength": 2048, "format": "uri"},
                     "mail_sender": {"$ref": "#/components/schemas/MailSenderUpdate"},
                     "analytics_retention": {"$ref": "#/components/schemas/AnalyticsRetentionUpdate"},
+                    "trash_retention": {"$ref": "#/components/schemas/TrashRetentionUpdate"},
                 },
             }),
         ),
@@ -207,6 +209,28 @@ fn settings_shapes() -> Vec<Shape> {
                 "properties": {
                     "raw_days": {"type": "integer", "minimum": 1, "maximum": 3650},
                     "aggregate_days": {"type": "integer", "minimum": 1, "maximum": 3650},
+                },
+                "additionalProperties": false,
+            }),
+        ),
+        Shape::new(
+            "TrashRetention",
+            json!({
+                "type": "object",
+                "required": ["days"],
+                "properties": {
+                    "days": {"type": "integer", "minimum": 1, "maximum": 3650},
+                },
+                "additionalProperties": false,
+            }),
+        ),
+        Shape::new(
+            "TrashRetentionUpdate",
+            json!({
+                "type": ["object", "null"],
+                "required": ["days"],
+                "properties": {
+                    "days": {"type": "integer", "minimum": 1, "maximum": 3650},
                 },
                 "additionalProperties": false,
             }),
@@ -454,6 +478,7 @@ pub struct SiteSettings {
     pub canonical_url: Option<CanonicalSiteUrl>,
     pub mail_sender: Option<MailSender>,
     pub analytics_retention: AnalyticsRetentionPolicy,
+    pub trash_retention: TrashRetentionPolicy,
     pub updated_at: DateTime<Utc>,
 }
 
@@ -467,12 +492,19 @@ pub struct UpdateSiteSettings {
     pub mail_sender: MailSenderUpdate,
     #[serde(default)]
     pub analytics_retention: Option<AnalyticsRetentionInput>,
+    #[serde(default)]
+    pub trash_retention: Option<TrashRetentionInput>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
 pub struct AnalyticsRetentionInput {
     pub raw_days: u16,
     pub aggregate_days: u16,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+pub struct TrashRetentionInput {
+    pub days: u16,
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
@@ -581,8 +613,81 @@ fn decode_cursor(cursor: &Cursor) -> Result<LanguageCursor> {
     serde_json::from_slice(&bytes).map_err(|_| MaviError::validation("invalid_cursor"))
 }
 
+struct SettingsUpdateValues {
+    name: Option<String>,
+    timezone: Option<String>,
+    canonical_url_changed: bool,
+    canonical_url: Option<String>,
+    mail_sender_changed: bool,
+    mail_sender: Option<MailSender>,
+    analytics_retention: Option<AnalyticsRetentionPolicy>,
+    trash_retention: Option<TrashRetentionPolicy>,
+}
+
+async fn update_settings_row(
+    tx: &mut SiteTx,
+    context: &SiteContext,
+    values: &SettingsUpdateValues,
+) -> Result<sqlx::postgres::PgRow> {
+    sqlx::query(
+        "update site_settings
+            set name = coalesce($2, name),
+                timezone = coalesce($3, timezone),
+                canonical_url = case when $4 then $5 else canonical_url end,
+                mail_sender_address = case when $6 then $7 else mail_sender_address end,
+                mail_sender_name = case when $6 then $8 else mail_sender_name end,
+                analytics_raw_retention_days = coalesce($9, analytics_raw_retention_days),
+                analytics_aggregate_retention_days = coalesce($10, analytics_aggregate_retention_days),
+                trash_retention_days = coalesce($11, trash_retention_days),
+                updated_at = now()
+          where site_id = $1
+         returning site_id, name, timezone, canonical_url, mail_sender_address,
+                   mail_sender_name, analytics_raw_retention_days,
+                   analytics_aggregate_retention_days, trash_retention_days,
+                   updated_at",
+    )
+    .bind(context.site_id.into_uuid())
+    .bind(&values.name)
+    .bind(&values.timezone)
+    .bind(values.canonical_url_changed)
+    .bind(&values.canonical_url)
+    .bind(values.mail_sender_changed)
+    .bind(values.mail_sender.as_ref().map(|sender| sender.address.as_str()))
+    .bind(
+        values
+            .mail_sender
+            .as_ref()
+            .and_then(|sender| sender.name.as_deref()),
+    )
+    .bind(
+        values
+            .analytics_retention
+            .map(|policy| i16::try_from(policy.raw_days).map_err(|_| MaviError::Internal))
+            .transpose()?,
+    )
+    .bind(
+        values
+            .analytics_retention
+            .map(|policy| i16::try_from(policy.aggregate_days).map_err(|_| MaviError::Internal))
+            .transpose()?,
+    )
+    .bind(
+        values
+            .trash_retention
+            .map(|policy| i16::try_from(policy.days).map_err(|_| MaviError::Internal))
+            .transpose()?,
+    )
+    .fetch_optional(tx.conn())
+    .await
+    .map_err(|_| MaviError::Internal)?
+    .ok_or(MaviError::NotFound {
+        resource: SETTINGS_NOT_FOUND,
+    })
+}
+
 fn settings_from_row(row: &sqlx::postgres::PgRow) -> Result<SiteSettings> {
     let analytics_retention = analytics_retention_from_row(row)?;
+    let trash_retention = trash_retention_from_row(row)?;
     let mail_sender_address: Option<String> = row
         .try_get("mail_sender_address")
         .map_err(|_| MaviError::Internal)?;
@@ -608,8 +713,20 @@ fn settings_from_row(row: &sqlx::postgres::PgRow) -> Result<SiteSettings> {
             .transpose()?,
         mail_sender,
         analytics_retention,
+        trash_retention,
         updated_at: row.try_get("updated_at").map_err(|_| MaviError::Internal)?,
     })
+}
+
+fn trash_retention_from_row(row: &sqlx::postgres::PgRow) -> Result<TrashRetentionPolicy> {
+    TrashRetentionPolicy::new(
+        u16::try_from(
+            row.try_get::<i16, _>("trash_retention_days")
+                .map_err(|_| MaviError::Internal)?,
+        )
+        .map_err(|_| MaviError::Internal)?,
+    )
+    .map_err(|_| MaviError::Internal)
 }
 
 fn analytics_retention_from_row(row: &sqlx::postgres::PgRow) -> Result<AnalyticsRetentionPolicy> {
@@ -691,7 +808,8 @@ impl SettingsService {
         let row = sqlx::query(
             "select site_id, name, timezone, canonical_url, mail_sender_address,
                     mail_sender_name, analytics_raw_retention_days,
-                    analytics_aggregate_retention_days, updated_at
+                    analytics_aggregate_retention_days, trash_retention_days,
+                    updated_at
                from site_settings where site_id = $1",
         )
         .bind(context.site_id.into_uuid())
@@ -725,6 +843,26 @@ impl SettingsService {
         })
     }
 
+    /// Reads only the retention policy needed by the background worker.
+    /// Sites that are still being initialized use the explicit safe default.
+    pub async fn trash_retention(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+    ) -> Result<TrashRetentionPolicy> {
+        let row = sqlx::query(
+            "select trash_retention_days
+               from site_settings where site_id = $1",
+        )
+        .bind(context.site_id.into_uuid())
+        .fetch_optional(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?;
+        row.map_or(Ok(TrashRetentionPolicy::default()), |row| {
+            trash_retention_from_row(&row)
+        })
+    }
+
     pub async fn update_settings(
         &self,
         tx: &mut SiteTx,
@@ -736,6 +874,7 @@ impl SettingsService {
             && matches!(&input.canonical_url, CanonicalUrlUpdate::Unchanged)
             && matches!(&input.mail_sender, MailSenderUpdate::Unchanged)
             && input.analytics_retention.is_none()
+            && input.trash_retention.is_none()
         {
             return Err(MaviError::validation(SETTINGS_PATCH_EMPTY));
         }
@@ -761,54 +900,22 @@ impl SettingsService {
             .as_ref()
             .map(|input| AnalyticsRetentionPolicy::new(input.raw_days, input.aggregate_days))
             .transpose()?;
-
-        let row = sqlx::query(
-            "update site_settings
-                set name = coalesce($2, name),
-                    timezone = coalesce($3, timezone),
-                    canonical_url = case when $4 then $5 else canonical_url end,
-                    mail_sender_address = case when $6 then $7 else mail_sender_address end,
-                    mail_sender_name = case when $6 then $8 else mail_sender_name end,
-                    analytics_raw_retention_days = coalesce($9, analytics_raw_retention_days),
-                    analytics_aggregate_retention_days = coalesce($10, analytics_aggregate_retention_days),
-                    updated_at = now()
-              where site_id = $1
-             returning site_id, name, timezone, canonical_url, mail_sender_address,
-                       mail_sender_name, analytics_raw_retention_days,
-                       analytics_aggregate_retention_days, updated_at",
-        )
-        .bind(context.site_id.into_uuid())
-        .bind(name)
-        .bind(timezone)
-        .bind(canonical_url_changed)
-        .bind(canonical_url)
-        .bind(mail_sender_changed)
-        .bind(mail_sender.as_ref().map(|sender| sender.address.as_str()))
-        .bind(
-            mail_sender
-                .as_ref()
-                .and_then(|sender| sender.name.as_deref()),
-        )
-        .bind(
-            analytics_retention
-                .as_ref()
-                .map(|policy| i16::try_from(policy.raw_days).map_err(|_| MaviError::Internal))
-                .transpose()?,
-        )
-        .bind(
-            analytics_retention
-                .as_ref()
-                .map(|policy| {
-                    i16::try_from(policy.aggregate_days).map_err(|_| MaviError::Internal)
-                })
-                .transpose()?,
-        )
-        .fetch_optional(tx.conn())
-        .await
-        .map_err(|_| MaviError::Internal)?
-        .ok_or(MaviError::NotFound {
-            resource: SETTINGS_NOT_FOUND,
-        })?;
+        let trash_retention = input
+            .trash_retention
+            .as_ref()
+            .map(|input| TrashRetentionPolicy::new(input.days))
+            .transpose()?;
+        let values = SettingsUpdateValues {
+            name,
+            timezone,
+            canonical_url_changed,
+            canonical_url,
+            mail_sender_changed,
+            mail_sender,
+            analytics_retention,
+            trash_retention,
+        };
+        let row = update_settings_row(tx, context, &values).await?;
         let settings = settings_from_row(&row)?;
         AuditService
             .record(
@@ -821,9 +928,10 @@ impl SettingsService {
                     payload: json!({
                         "name_changed": input.name.is_some(),
                         "timezone_changed": input.timezone.is_some(),
-                        "canonical_url_changed": canonical_url_changed,
-                        "mail_sender_changed": mail_sender_changed,
-                        "analytics_retention_changed": input.analytics_retention.is_some()
+                        "canonical_url_changed": values.canonical_url_changed,
+                        "mail_sender_changed": values.mail_sender_changed,
+                        "analytics_retention_changed": input.analytics_retention.is_some(),
+                        "trash_retention_changed": input.trash_retention.is_some()
                     }),
                 },
             )

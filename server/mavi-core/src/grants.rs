@@ -11,6 +11,7 @@ pub enum Capability {
     Courses,
     Credentials,
     Design,
+    Feedback,
     Forms,
     Mail,
     Media,
@@ -24,7 +25,7 @@ pub enum Capability {
 }
 
 impl Capability {
-    pub const ALL: [Self; 18] = [
+    pub const ALL: [Self; 19] = [
         Self::Audit,
         Self::Analytics,
         Self::Automation,
@@ -33,6 +34,7 @@ impl Capability {
         Self::Courses,
         Self::Credentials,
         Self::Design,
+        Self::Feedback,
         Self::Forms,
         Self::Mail,
         Self::Media,
@@ -56,6 +58,7 @@ impl Capability {
             Self::Courses => "courses",
             Self::Credentials => "credentials",
             Self::Design => "design",
+            Self::Feedback => "feedback",
             Self::Forms => "forms",
             Self::Mail => "mail",
             Self::Media => "media",

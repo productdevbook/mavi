@@ -20,6 +20,7 @@ members = [
   "mavi-trash",
   "mavi-design",
   "mavi-forms",
+  "mavi-feedback",
   "mavi-mail",
   "mavi-shop",
   "mavi-courses",

@@ -25,11 +25,11 @@ pub use grants::{Action, Capability, Grant, Grants};
 pub use ids::{
     AnalyticsEventId, ApiKeyId, AuditEventId, BoardCardId, BoardCommentId, BoardId, BoardListId,
     ContentId, CouponId, CouponUseId, CourseId, CredentialId, DesignBuildId, DesignChangeId,
-    EmailVerificationTokenId, EnrollmentId, FileId, FlowId, FlowRunId, FlowRunStepId, FlowStepId,
-    FormId, FormSubmissionId, JobId, LessonId, MailAttemptId, MailDeliveryId, MailListId,
-    MailReaderId, MailTemplateId, MediaVariantId, ModuleId, OrderId, OrderLineId,
-    PasswordResetTokenId, PersonId, ProductId, RequestId, RoleId, SessionId, SiteId, StockHoldId,
-    StudentId, StudentSessionId, TermId,
+    EmailVerificationTokenId, EnrollmentId, FeedbackReportId, FileId, FlowId, FlowRunId,
+    FlowRunStepId, FlowStepId, FormId, FormSubmissionId, JobId, LessonId, MailAttemptId,
+    MailDeliveryId, MailListId, MailReaderId, MailTemplateId, MediaVariantId, ModuleId, OrderId,
+    OrderLineId, PasswordResetTokenId, PersonId, ProductId, RequestId, RoleId, SessionId, SiteId,
+    StockHoldId, StudentId, StudentSessionId, TermId,
 };
 pub use mail_policy::{MailSender, MailSenderPolicy};
 pub use money::{Currency, Money};

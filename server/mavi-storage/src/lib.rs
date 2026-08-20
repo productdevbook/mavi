@@ -15,7 +15,7 @@ use uuid::Uuid;
 /// It is part of the runtime compatibility contract exposed to the operator.
 /// Keep it next to the migration runner so a release cannot advertise a
 /// storage version independently from the migrations it ships.
-pub const CURRENT_SCHEMA_VERSION: u32 = 39;
+pub const CURRENT_SCHEMA_VERSION: u32 = 40;
 
 /// The lifecycle state stored in the shared shard catalog.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -216,6 +216,7 @@ impl SiteTx {
 #[cfg(test)]
 mod tests {
     use crate::{CURRENT_SCHEMA_VERSION, SiteStatus};
+    use mavi_core::Capability;
 
     #[test]
     fn site_statuses_match_the_catalog_contract() {
@@ -470,6 +471,14 @@ mod tests {
         assert!(course_instructors_migration.contains("course_instructors"));
         assert!(course_instructors_migration.contains("foreign key (site_id, course_id)"));
         assert!(course_instructors_migration.contains("force row level security"));
-        assert_eq!(CURRENT_SCHEMA_VERSION, 39);
+        assert_eq!(CURRENT_SCHEMA_VERSION, 40);
+    }
+
+    #[test]
+    fn identity_grant_constraints_cover_the_core_capability_registry() {
+        let migration = include_str!("../migrations/0040_feedback.sql");
+        for capability in Capability::ALL {
+            assert!(migration.contains(&format!("'{}'", capability.as_str())));
+        }
     }
 }

@@ -121,6 +121,7 @@ jobs:
       - run: cargo nextest run -p mavi-http --test design --run-ignored all
       - run: cargo nextest run -p mavi-forms --test postgres --run-ignored all
       - run: cargo nextest run -p mavi-http --test forms --run-ignored all
+      - run: cargo nextest run -p mavi-http --test feedback --run-ignored all
       - run: cargo nextest run -p mavi-mail --test postgres --run-ignored all
       - run: cargo nextest run -p mavi-http --test mail --run-ignored all
       - run: cargo nextest run -p mavi-shop --test postgres --run-ignored all

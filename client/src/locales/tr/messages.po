@@ -993,8 +993,8 @@ msgid "A percentage"
 msgstr "Yüzde"
 
 #: src/components/report-a-problem.tsx:187
-msgid "A picture of it"
-msgstr "Bir ekran görüntüsü"
+#~ msgid "A picture of it"
+#~ msgstr "Bir ekran görüntüsü"
 
 #: src/components/pricing-plans.tsx:70
 #~ msgid "A platform plan covers your agency account and the included sites. Additional sites start at $29/month."
@@ -1723,7 +1723,7 @@ msgstr "Bunu kullanan her yerde görünmeyi bırakır."
 msgid "Anything done"
 msgstr "Yapılan her şey"
 
-#: src/components/report-a-problem.tsx:176
+#: src/components/report-a-problem.tsx:161
 #: src/features/boards/board-page.tsx:228
 msgid "Anything else"
 msgstr "Başka bir şey"
@@ -2383,7 +2383,7 @@ msgstr "{0} alanın {summary} tanesini açabilir."
 #: src/components/editor/dialogs.tsx:223
 #: src/components/editor/dialogs.tsx:267
 #: src/components/editor/dialogs.tsx:357
-#: src/components/report-a-problem.tsx:229
+#: src/components/report-a-problem.tsx:178
 #: src/features/automation/flows-page.tsx:328
 #: src/features/boards/board-page.tsx:240
 #: src/features/boards/boards-page.tsx:223
@@ -2591,8 +2591,8 @@ msgstr ""
 #~ msgstr "Başlamak için yukarıdaki ikisinden birini seçin. Gerisi — alan adınız, yayınlanacak kayıtlar, gönderdiğiniz adres — ondan sonra geliyor."
 
 #: src/components/report-a-problem.tsx:208
-msgid "Choose one, or paste it"
-msgstr "Bir dosya seçin ya da yapıştırın"
+#~ msgid "Choose one, or paste it"
+#~ msgstr "Bir dosya seçin ya da yapıştırın"
 
 #: src/components/pricing-plans.tsx:99
 #~ msgid "Choose plan"
@@ -4751,7 +4751,7 @@ msgstr "Buraya nasıl gönderilir"
 msgid "I have forgotten my password"
 msgstr "Parolamı unuttum"
 
-#: src/components/report-a-problem.tsx:62
+#: src/components/report-a-problem.tsx:42
 msgid "I would like something"
 msgstr "Bir şey istiyorum"
 
@@ -4822,7 +4822,7 @@ msgstr ""
 msgid "In"
 msgstr "Para birimi"
 
-#: src/components/report-a-problem.tsx:165
+#: src/components/report-a-problem.tsx:150
 msgid "In a line"
 msgstr "Tek satırda"
 
@@ -4987,7 +4987,7 @@ msgstr ""
 msgid "It can use: {0}"
 msgstr ""
 
-#: src/components/report-a-problem.tsx:61
+#: src/components/report-a-problem.tsx:41
 msgid "It cannot do something I need"
 msgstr "İhtiyacım olan bir şeyi yapamıyor"
 
@@ -7788,8 +7788,8 @@ msgstr "Bağlantıyı kaldır"
 #~ msgstr "Aşamayı kaldır"
 
 #: src/components/report-a-problem.tsx:198
-msgid "Remove the picture"
-msgstr "Görüntüyü kaldır"
+#~ msgid "Remove the picture"
+#~ msgstr "Görüntüyü kaldır"
 
 #: src/features/people/people-page.tsx:358
 msgid "Remove this account?"
@@ -7866,7 +7866,7 @@ msgstr "Değiştir…"
 
 #: src/components/dashboard/dashboard-header.tsx:67
 #: src/components/dashboard/dashboard-header.tsx:68
-#: src/components/report-a-problem.tsx:112
+#: src/components/report-a-problem.tsx:99
 msgid "Report a problem"
 msgstr "Bir sorun bildir"
 
@@ -8034,8 +8034,8 @@ msgstr ""
 #~ msgstr "İletildi"
 
 #: src/components/report-a-problem.tsx:102
-msgid "Said. Whoever runs this machine can see it."
-msgstr "İletildi. Bu makineyi işleten görebilir."
+#~ msgid "Said. Whoever runs this machine can see it."
+#~ msgstr "İletildi. Bu makineyi işleten görebilir."
 
 #: src/components/report-a-problem.tsx:108
 #~ msgid "Said. Whoever runs this server can see it."
@@ -8148,7 +8148,7 @@ msgstr "Bu siparişin ödemesinin geldiğini söylüyor musunuz? Kayıtta bunu s
 msgid "Say what a form accepts here, then have your own pages post to it. What it does not accept is refused rather than kept."
 msgstr "Formun neyi kabul ettiğini burada tanımlayın, sonra kendi sayfalarınız buraya göndersin. Kabul etmediği şey saklanmaz, reddedilir."
 
-#: src/components/report-a-problem.tsx:120
+#: src/components/report-a-problem.tsx:107
 msgid "Say what happened"
 msgstr "Ne olduğunu anlatın"
 
@@ -8270,7 +8270,7 @@ msgstr "Tümünü seç"
 #~ msgid "Select your language"
 #~ msgstr "Dilinizi seçin"
 
-#: src/components/report-a-problem.tsx:236
+#: src/components/report-a-problem.tsx:185
 #: src/features/mail/mail-page.tsx:366
 msgid "Send"
 msgstr "Gönder"
@@ -8797,7 +8797,7 @@ msgstr "Bir şey ters gitti"
 #~ msgid "Something is affected right now. Work you do here is saved as usual."
 #~ msgstr "Şu anda etkilenen bir şey var. Burada yaptığınız işler her zamanki gibi kaydediliyor."
 
-#: src/components/report-a-problem.tsx:60
+#: src/components/report-a-problem.tsx:40
 msgid "Something is broken"
 msgstr "Bir şey bozuk"
 
@@ -9311,8 +9311,8 @@ msgid "That is not a copy of a site."
 msgstr "Bu bir site kopyası değil."
 
 #: src/components/report-a-problem.tsx:68
-msgid "That is not a picture"
-msgstr "Bu bir görsel değil"
+#~ msgid "That is not a picture"
+#~ msgstr "Bu bir görsel değil"
 
 #: src/lib/v1-said.ts:28
 #~ msgid "That is not a sign-in we know."
@@ -9332,8 +9332,8 @@ msgstr "Bu bir görsel değil"
 #~ msgstr "O anahtar artık çalışmıyor"
 
 #: src/components/report-a-problem.tsx:72
-msgid "That picture is larger than four megabytes"
-msgstr "Bu görsel dört megabayttan büyük"
+#~ msgid "That picture is larger than four megabytes"
+#~ msgstr "Bu görsel dört megabayttan büyük"
 
 #: src/routes/oauth.tsx:53
 #~ msgid "That request could not be read"
@@ -9502,7 +9502,7 @@ msgstr "İlk hesap"
 #~ msgid "The first one most sites want: a contact form that emails whoever answers it."
 #~ msgstr "Çoğu sitenin ilk istediği: iletişim formunun, cevaplayan kişiye e-posta atması."
 
-#: src/components/report-a-problem.tsx:171
+#: src/components/report-a-problem.tsx:156
 msgid "The forms screen is empty"
 msgstr "Formlar ekranı boş"
 
@@ -9678,9 +9678,13 @@ msgstr "Aynı bağlayıcı sonrasında web'de, masaüstünde ve telefonda Claude
 #~ msgid "The same, with each body included."
 #~ msgstr "Aynısı, gövdeler dahil."
 
+#: src/components/report-a-problem.tsx:172
+msgid "The screen, browser and language are sent with this to whoever runs this server, and nowhere else."
+msgstr ""
+
 #: src/components/report-a-problem.tsx:192
-msgid "The screenshot you attached"
-msgstr "Eklediğiniz ekran görüntüsü"
+#~ msgid "The screenshot you attached"
+#~ msgstr "Eklediğiniz ekran görüntüsü"
 
 #: src/routes/dashboard.flows.tsx:551
 #~ msgid "The secret"
@@ -10789,7 +10793,7 @@ msgstr "Nasıl görüneceği"
 #~ msgid "What it will write"
 #~ msgstr "Neleri yazacak"
 
-#: src/components/report-a-problem.tsx:142
+#: src/components/report-a-problem.tsx:129
 msgid "What kind of thing"
 msgstr "Ne tür bir şey"
 
@@ -10998,11 +11002,11 @@ msgstr ""
 #~ msgid "What you have asked for"
 #~ msgstr "Başvurularınız"
 
-#: src/components/report-a-problem.tsx:126
+#: src/components/report-a-problem.tsx:113
 msgid "What you have said before"
 msgstr "Daha önce söylediklerin"
 
-#: src/components/report-a-problem.tsx:182
+#: src/components/report-a-problem.tsx:167
 msgid "What you were doing, and what you expected instead. Not required."
 msgstr "Ne yapıyordunuz ve bunun yerine ne bekliyordunuz. Zorunlu değil."
 
@@ -11105,8 +11109,8 @@ msgstr "Makbuz nereye gönderilsin"
 #~ msgstr "Kod nerede takas edilecek"
 
 #: src/components/report-a-problem.tsx:223
-msgid "Which browser you are using, which screen you were on and anything the panel has already recorded going wrong are sent with this. It goes to whoever runs this server, and nowhere else."
-msgstr "Hangi tarayıcıyı kullandığınız, hangi ekranda olduğunuz ve panelin ters gittiğini kaydettiği her şey bununla birlikte gönderilir. Bu sunucuyu çalıştıran kişiye gider, başka hiçbir yere."
+#~ msgid "Which browser you are using, which screen you were on and anything the panel has already recorded going wrong are sent with this. It goes to whoever runs this server, and nowhere else."
+#~ msgstr "Hangi tarayıcıyı kullandığınız, hangi ekranda olduğunuz ve panelin ters gittiğini kaydettiği her şey bununla birlikte gönderilir. Bu sunucuyu çalıştıran kişiye gider, başka hiçbir yere."
 
 #: src/features/learning/students-page.tsx:230
 msgid "Which course"
@@ -11578,6 +11582,10 @@ msgstr "Adınız"
 #: src/routes/dashboard.settings.tsx:207
 #~ msgid "Your password, to turn it off"
 #~ msgstr "Kapatmak için parolanız"
+
+#: src/components/report-a-problem.tsx:85
+msgid "Your report was sent to whoever runs this server."
+msgstr ""
 
 #: src/components/dashboard/allowed.tsx:37
 msgid "Your role does not reach this screen. Whoever runs the site can change that under People."

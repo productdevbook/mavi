@@ -1844,6 +1844,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "mavi-feedback"
+version = "0.1.0"
+dependencies = [
+ "base64 0.23.1",
+ "chrono",
+ "mavi-audit",
+ "mavi-contract",
+ "mavi-core",
+ "mavi-storage",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
 name = "mavi-files"
 version = "0.1.0"
 dependencies = [
@@ -1905,6 +1922,7 @@ dependencies = [
  "mavi-core",
  "mavi-courses",
  "mavi-design",
+ "mavi-feedback",
  "mavi-files",
  "mavi-flows",
  "mavi-forms",

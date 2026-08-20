@@ -54,6 +54,10 @@ curl -sS -X POST http://localhost/api/v1/setup \
   -d '{"site_name":"Example","email":"owner@example.com","name":"Owner","password":"change-this-password"}'
 ```
 
+For upgrades, verified backups and recovery, follow the
+[self-host operations runbook](docs/self-host-operations.md). It keeps the
+database, binary files, site ID and sealing key on one explicit lifecycle.
+
 On a public machine set `MAVI_DOMAIN=example.com`, point DNS at the machine and
 let Caddy terminate TLS. Any trusted reverse proxy may be used instead; pass
 the `Host` header through and configure `MAVI_TRUSTED_PROXY_CIDRS` when it

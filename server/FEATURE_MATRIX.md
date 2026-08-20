@@ -222,7 +222,9 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
 - [x] Global `/healthz` liveness and database-backed `/readyz` readiness stay outside site admission middleware.
 - [x] Outer HTTP telemetry assigns one request ID to every request, returns it as `x-request-id` and emits structured completion fields for JSON logs — productdevbook/mavi#221.
 - [x] Clean self-host image builds only `server`, runs non-root, persists `/data/files` and exposes the fixed-site runtime.
-- [ ] Self-host configuration and upgrade path.
+- [x] Self-host configuration and upgrade path.
+  - [x] Pinned compose image tags, stable site/key/data requirements and a documented forward-only migration policy.
+  - [x] Checksum-verified PostgreSQL plus `/data/files` backup/restore tools with explicit site-ID matching and restore confirmation.
 - [-] Cloud/operator provisioning contract without direct database coupling.
   - [x] Mavi publishes a versioned runtime manifest for post-provision compatibility checks.
   - [ ] Operator consumes only a tagged Mavi release and verifies the manifest before activation.
@@ -254,5 +256,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Credential sealing unit, PostgreSQL scope/audit/version and metadata-only HTTP acceptance tests.
   - [x] Runtime manifest HTTP contract and cursor-only compatibility assertions.
   - [ ] Remaining domain HTTP suites.
-- [ ] Release smoke test, migration rollback policy, backups and upgrade docs.
+- [x] Release smoke test, migration rollback policy, backups and upgrade docs.
+  - [x] 'scripts/mavi-smoke.sh' checks health, readiness, OpenAPI, panel delivery and one-time setup behavior.
+  - [x] Self-host runbook defines backup/restore, pinned-tag recovery and forward-only migration policy.
 - [ ] Operator consumes only a tagged Mavi release/API contract.

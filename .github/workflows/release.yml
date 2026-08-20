@@ -21,21 +21,40 @@ permissions:
   packages: write
 
 jobs:
-  images:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 90
+  image:
+    timeout-minutes: 60
     strategy:
-      # The API and panel are separate images with one release/tag boundary.
-      # The panel is never baked into the Rust runtime image, and the API never
-      # serves an unversioned browser bundle.
+      # Build every image on the architecture it will run on. Compiling the
+      # Rust API for arm64 through QEMU makes a cold release take 30+ minutes;
+      # native runners keep the multi-architecture contract without making
+      # emulation part of the release path.
       matrix:
         include:
           - name: mavi
             context: server
             file: server/Dockerfile
+            arch: amd64
+            platform: linux/amd64
+            runner: ubuntu-24.04
+          - name: mavi
+            context: server
+            file: server/Dockerfile
+            arch: arm64
+            platform: linux/arm64
+            runner: ubuntu-24.04-arm
           - name: mavi-panel
             context: client
             file: client/Dockerfile
+            arch: amd64
+            platform: linux/amd64
+            runner: ubuntu-24.04
+          - name: mavi-panel
+            context: client
+            file: client/Dockerfile
+            arch: arm64
+            platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
     steps:
       # What is asked for by hand is checked before it is used as a ref or
       # baked into an image name: a version is three numbers after a v, and
@@ -56,10 +75,6 @@ jobs:
         with:
           ref: refs/tags/${{ steps.version.outputs.tag }}
 
-      # arm64 as well as amd64: a machine somebody runs this on themselves is
-      # as likely to be an Arm box as not, and an amd64-only image on one runs
-      # under emulation slowly enough to look broken.
-      - uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf # v3.2.0
       - uses: docker/setup-buildx-action@c47758b77c9736f4b2ef4073d4d51994fabfe349 # v3.7.1
 
       - uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
@@ -77,23 +92,67 @@ jobs:
         with:
           context: ${{ matrix.context }}
           file: ${{ matrix.file }}
-          platforms: linux/amd64,linux/arm64
+          platforms: ${{ matrix.platform }}
           push: true
-          # The tag itself and `latest`. No `main`: an image that moves under
+          # Architecture tags are assembled into the public release tags by
+          # the manifest job below. No `main`: an image that moves under
           # somebody who pinned nothing is how an installation changes version
           # without anybody deciding to.
           tags: |
-            ghcr.io/${{ github.repository_owner }}/${{ matrix.name }}:${{ steps.version.outputs.tag }}
-            ghcr.io/${{ github.repository_owner }}/${{ matrix.name }}:latest
-          cache-from: type=gha,scope=${{ matrix.name }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
+            ghcr.io/${{ github.repository_owner }}/${{ matrix.name }}:${{ steps.version.outputs.tag }}-${{ matrix.arch }}
+          cache-from: type=gha,scope=${{ matrix.name }}-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}-${{ matrix.arch }}
           # BuildKit mounts this environment secret at /run/secrets/sccache-env,
           # which is the file consumed by the Dockerfile wrapper.
           secret-envs: |
             sccache-env=SCCACHE_ENV
 
+  manifests:
+    needs: image
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - id: version
+        env:
+          ASKED: ${{ inputs.tag }}
+          PUSHED: ${{ github.ref_name }}
+        run: |
+          version="${ASKED:-$PUSHED}"
+          case "$version" in
+            v[0-9]*.[0-9]*.[0-9]*) ;;
+            *) echo "not a version: $version" >&2; exit 1 ;;
+          esac
+          echo "tag=$version" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@c47758b77c9736f4b2ef4073d4d51994fabfe349 # v3.7.1
+
+      - uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Assemble multi-architecture release tags
+        env:
+          OWNER: ${{ github.repository_owner }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          set -eu
+          for image in mavi mavi-panel; do
+            source="ghcr.io/${OWNER}/${image}"
+            docker buildx imagetools create \
+              --tag "${source}:${TAG}" \
+              "${source}:${TAG}-amd64" \
+              "${source}:${TAG}-arm64"
+            docker buildx imagetools create \
+              --tag "${source}:latest" \
+              "${source}:${TAG}-amd64" \
+              "${source}:${TAG}-arm64"
+            docker buildx imagetools inspect "${source}:${TAG}"
+          done
+
   smoke:
-    needs: images
+    needs: manifests
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:

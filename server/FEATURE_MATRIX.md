@@ -113,6 +113,10 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Immutable site-scoped receipts with typed actor/resource fields and atomic writes.
   - [x] Cursor-filtered audit list/read API with Cedar grants and generated contracts.
   - [ ] Export/download retention policy and security-event coverage for future domains.
+- [x] Panel feedback reports.
+  - [x] Site-scoped `feedback_reports` storage uses forced RLS and bounded report fields.
+  - [x] `feedback.reports.create` and `feedback.reports.list` use generated cursor contracts, Cedar grants and unknown-field rejection.
+  - [x] Creation and audit receipt commit in one scoped transaction; panel submission no longer presents an unpersisted success state.
 - [-] Trash, restore and permanent deletion policy.
   - [x] Shared cursor list, typed content/file/term restore and permanent-delete API.
   - [x] Media trash retains bytes; permanent deletion queues and confirms adapter cleanup.

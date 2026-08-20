@@ -96,6 +96,7 @@ exposes process-local HTTP and worker counters in Prometheus text format.
 | `mavi-trash` | shared trash listing, restore, permanent deletion and media cleanup policy |
 | `mavi-design` | site-owned source files, immutable preview builds, publish/rollback and public asset metadata |
 | `mavi-forms` | validated site form declarations, public submissions, cursor-based inbox management and versioned bounded export |
+| `mavi-feedback` | bounded site-scoped panel reports with cursor reads and transactional audit receipts |
 | `mavi-mail` | strict templates, subscriber lists, unsubscribe tokens and a provider-neutral outbox with sealed security messages |
 | `mavi-shop` | site-scoped products, money, stock holds, coupons, checkout and order state transitions |
 | `mavi-courses` | course authoring, ordered modules/lessons, isolated student sessions, enrollment, progress and protected lesson media |

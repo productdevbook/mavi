@@ -414,6 +414,21 @@ pub fn api() -> mavi_contract::Api {
             ErrorCode::Internal,
         ]),
         Endpoint::new(
+            Method::Delete,
+            "/api/v1/boards/cards/{id}",
+            "boards.cards.delete",
+            "Archive a card and its visible comments",
+        )
+        .account_or_assistant()
+        .requires(delete)
+        .returns(204, "Empty")
+        .changes(false)
+        .refuses([
+            ErrorCode::Forbidden,
+            ErrorCode::NotFound,
+            ErrorCode::Internal,
+        ]),
+        Endpoint::new(
             Method::Post,
             "/api/v1/boards/cards/{id}/move",
             "boards.cards.move",
@@ -1108,6 +1123,39 @@ impl BoardService {
         rewrite_card_positions(tx, target.id, &target_ids).await?;
         self.mutate(tx, context, current.board_id, Some(id), "board.card.moved", json!({"from_list_id": current.list_id, "to_list_id": target.id, "before_card_id": input.before_card_id})).await?;
         self.get_card(tx, id).await
+    }
+
+    pub async fn delete_card(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        id: BoardCardId,
+    ) -> Result<()> {
+        let current = self.get_card(tx, id).await?;
+        sqlx::query(
+            "update board_cards set archived_at = now(), updated_at = now() where id = $1 and archived_at is null",
+        )
+        .bind(id.into_uuid())
+        .execute(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?;
+        let remaining: Vec<Uuid> = sqlx::query_scalar(
+            "select id from board_cards where list_id = $1 and archived_at is null order by position, id",
+        )
+        .bind(current.list_id.into_uuid())
+        .fetch_all(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?;
+        rewrite_card_positions(tx, current.list_id, &remaining).await?;
+        self.mutate(
+            tx,
+            context,
+            current.board_id,
+            Some(id),
+            "board.card.deleted",
+            json!({}),
+        )
+        .await
     }
 
     pub async fn assign_card(

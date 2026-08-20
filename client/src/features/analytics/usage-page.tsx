@@ -3,10 +3,9 @@ import { useLingui } from "@lingui/react/macro"
 import { Clock, HardDrive, ListOrdered, Mail } from "lucide-react"
 import { toast } from "sonner"
 
-import { api } from "@/lib/v1"
-import { said } from "@/lib/v1-said"
+import { every } from "@/lib/api"
+import { apiMessage } from "@/lib/auth"
 import { formatBytes } from "@/lib/editor-utils"
-import type { Overview } from "@legacy-api"
 import { Figure } from "@/components/charts"
 import {
   DashboardError,
@@ -19,16 +18,33 @@ import {
  */
 export function UsagePage() {
   const { t } = useLingui()
-  const [answer, setAnswer] = React.useState<Overview | "failed" | null>(null)
+  const [answer, setAnswer] = React.useState<Usage | "failed" | null>(null)
 
   React.useEffect(() => {
     let current = true
 
-    api("site.overview")
-      .then((found) => current && setAnswer(found))
+    Promise.all([
+      every("media.files.list", { query: {} }),
+      every("content.list", { query: {} }),
+      every("mail.lists.list", { query: {} }),
+      every("jobs.list", { query: {} }),
+    ])
+      .then(([files, content, lists, jobs]) =>
+        current &&
+        setAnswer({
+          bytes: files.reduce((sum, file) => sum + file.bytes, 0),
+          files: files.length,
+          writings: content.length,
+          published: content.filter((one) =>
+            JSON.stringify(one.publication).includes("published")
+          ).length,
+          readers: lists.reduce((sum, list) => sum + list.subscriber_count, 0),
+          work_given_up_on: jobs.filter((job) => job.state === "dead").length,
+        })
+      )
       .catch((why: unknown) => {
         if (!current) return
-        toast.error(said(why))
+        toast.error(apiMessage(why))
         setAnswer("failed")
       })
 
@@ -78,4 +94,13 @@ export function UsagePage() {
       </div>
     </div>
   )
+}
+
+interface Usage {
+  bytes: number
+  files: number
+  writings: number
+  published: number
+  readers: number
+  work_given_up_on: number
 }

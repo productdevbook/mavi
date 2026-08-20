@@ -3,8 +3,9 @@ import { useLingui } from "@lingui/react/macro"
 import { Download, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 
-import { record, RECORD_AS_A_FILE, type Entry } from "@/lib/v1-audit"
-import { said } from "@/lib/v1-said"
+import { api } from "@/lib/api"
+import { apiMessage } from "@/lib/auth"
+import type { AuditEvent } from "@api"
 import { AuditTable } from "@/components/audit-record"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -29,7 +30,7 @@ const PAGE = 50
 export function AuditPage() {
   const { t } = useLingui()
 
-  const [entries, setEntries] = React.useState<Entry[] | null>(null)
+  const [entries, setEntries] = React.useState<AuditEvent[] | null>(null)
   const [action, setAction] = React.useState("")
   const [subject, setSubject] = React.useState("")
   const [next, setNext] = React.useState<string | null>(null)
@@ -47,22 +48,24 @@ export function AuditPage() {
         setNext(null)
       }
 
-      record({
-        did: action || undefined,
-        about: subject || undefined,
-        after,
-        limit: PAGE,
+      api("audit.events.list", {
+        query: {
+          action: action || undefined,
+          resource_type: subject || undefined,
+          after,
+          limit: PAGE,
+        },
       })
         .then((page) => {
           if (current !== request.current) return
-          setNext(page.next ?? null)
+          setNext(page.next_cursor ?? null)
           setEntries((held) =>
             after ? [...(held ?? []), ...page.items] : page.items
           )
         })
         .catch((why: unknown) => {
           if (current !== request.current) return
-          toast.error(said(why))
+          toast.error(apiMessage(why))
           if (after) return
           setError(true)
           setEntries([])
@@ -91,7 +94,15 @@ export function AuditPage() {
             variant="outline"
             size="sm"
             onClick={() => {
-              window.location.href = RECORD_AS_A_FILE
+              const file = new Blob([JSON.stringify(entries ?? [], null, 2)], {
+                type: "application/json",
+              })
+              const url = URL.createObjectURL(file)
+              const link = document.createElement("a")
+              link.href = url
+              link.download = `audit-${new Date().toISOString().slice(0, 10)}.json`
+              link.click()
+              URL.revokeObjectURL(url)
             }}
           >
             <Download /> {t`Download`}

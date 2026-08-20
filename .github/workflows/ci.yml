@@ -54,7 +54,10 @@ jobs:
     needs: what
     if: needs.what.outputs.skip != 'true' && !fromJSON(needs.what.outputs.paths)['server'].should_skip
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    # The acceptance suite intentionally runs each domain against a fresh
+    # PostgreSQL process and compiles the integration test binaries separately.
+    # Twenty minutes expires while the tests are still green on a cold cache.
+    timeout-minutes: 45
     defaults:
       run:
         working-directory: server

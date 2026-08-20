@@ -7359,6 +7359,41 @@
       }
     },
     {
+      "name": "boards.cards.delete",
+      "description": "Archive a card and its visible comments",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ]
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false
+      },
+      "x-mavi": {
+        "authentication": "account_or_assistant",
+        "scope": "site",
+        "permission": {
+          "capability": "boards",
+          "action": "delete"
+        }
+      }
+    },
+    {
       "name": "boards.cards.move",
       "description": "Move a card atomically between columns",
       "inputSchema": {

@@ -94,7 +94,6 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
       // The canonical API contract and the explicitly temporary legacy one.
       "@api": path.resolve(__dirname, "./src/api/server.ts"),
-      "@legacy-api": path.resolve(__dirname, "./src/api/legacy.ts"),
     },
   },
   server: {
@@ -103,7 +102,14 @@ export default defineConfig({
       "/api": {
         target: process.env.VITE_API_PROXY_TARGET ?? "http://localhost:8080",
         changeOrigin: true,
-        rewrite: (requestPath) => requestPath.replace(/^\/api/, ""),
+      },
+      "/public": {
+        target: process.env.VITE_API_PROXY_TARGET ?? "http://localhost:8080",
+        changeOrigin: true,
+      },
+      "/student": {
+        target: process.env.VITE_API_PROXY_TARGET ?? "http://localhost:8080",
+        changeOrigin: true,
       },
     },
   },

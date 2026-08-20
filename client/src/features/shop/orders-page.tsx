@@ -3,10 +3,10 @@ import { useLingui } from "@lingui/react/macro"
 import { Loader2, PackageCheck, Receipt } from "lucide-react"
 import { toast } from "sonner"
 
-import { api, every } from "@/lib/v1"
-import { said } from "@/lib/v1-said"
+import { api, every } from "@/lib/api"
+import { apiMessage } from "@/lib/auth"
 import { money } from "@/lib/money"
-import type { Order } from "@legacy-api"
+import type { OrderSummary } from "@api"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -25,16 +25,16 @@ import {
  */
 export function OrdersPage() {
   const { t, i18n } = useLingui()
-  const [rows, setRows] = React.useState<Order[] | null>(null)
+  const [rows, setRows] = React.useState<OrderSummary[] | null>(null)
   const [busy, setBusy] = React.useState<string | null>(null)
   const [open, setOpen] = React.useState<string | null>(null)
   const [items, setItems] = React.useState<Record<string, string>>({})
 
   const load = React.useCallback(() => {
-    every("orders.list")
+    every("shop.orders.list")
       .then(setRows)
       .catch((why: unknown) => {
-        toast.error(said(why))
+        toast.error(apiMessage(why))
         setRows((held) => held ?? [])
       })
   }, [])
@@ -61,13 +61,13 @@ export function OrdersPage() {
     setBusy(id)
 
     try {
-      await api("orders.move", {
+      await api("shop.orders.transition", {
         path: { id },
         body: { to: "paid" },
       })
       load()
     } catch (why) {
-      toast.error(said(why))
+      toast.error(apiMessage(why))
     } finally {
       setBusy(null)
     }
@@ -77,14 +77,14 @@ export function OrdersPage() {
     setBusy(id)
 
     try {
-      await api("orders.move", {
+      await api("shop.orders.transition", {
         path: { id },
         body: { to: "given_back" },
       })
       load()
       toast.success(t`Refunded. What the provider does with it is theirs.`)
     } catch (why) {
-      toast.error(said(why))
+      toast.error(apiMessage(why))
     } finally {
       setBusy(null)
     }
@@ -94,14 +94,14 @@ export function OrdersPage() {
     setBusy(id)
 
     try {
-      await api("orders.move", {
+      await api("shop.orders.transition", {
         path: { id },
         body: { to: "sent" },
       })
       load()
       toast.success(t`Marked as sent`)
     } catch (why) {
-      toast.error(said(why))
+      toast.error(apiMessage(why))
     } finally {
       setBusy(null)
     }
@@ -117,16 +117,16 @@ export function OrdersPage() {
     }
 
     try {
-      const whole = await api("orders.read", { path: { id } })
+      const whole = await api("shop.orders.read", { path: { id } })
 
       setItems((held) => ({
         ...held,
         [id]: whole.lines
-          .map((line) => `${line.how_many}× ${line.name}`)
+          .map((line) => `${line.quantity}× ${line.name}`)
           .join(", "),
       }))
     } catch (why) {
-      toast.error(said(why))
+      toast.error(apiMessage(why))
     }
   }
 

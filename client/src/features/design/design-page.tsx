@@ -1,11 +1,11 @@
 import * as React from "react"
 import { useLingui } from "@lingui/react/macro"
-import { ExternalLink, Loader2 } from "lucide-react"
+import { Loader2 } from "lucide-react"
 import { toast } from "sonner"
 
-import { api, every } from "@/lib/v1"
-import { said } from "@/lib/v1-said"
-import type { Change, ProjectFile } from "@legacy-api"
+import { api, every } from "@/lib/api"
+import { apiMessage } from "@/lib/auth"
+import type { DesignChange, DesignFileSummary } from "@api"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import {
@@ -16,14 +16,14 @@ import {
 
 export function DesignPage() {
   const { t } = useLingui()
-  const [changes, setChanges] = React.useState<Change[] | null>(null)
+  const [changes, setChanges] = React.useState<DesignChange[] | null>(null)
   const [previewing, setPreviewing] = React.useState(false)
   const [publishing, setPublishing] = React.useState(false)
 
   const load = React.useCallback(() => {
-    every("changes.list")
+    every("design.changes.list")
       .then(setChanges)
-      .catch((why: unknown) => toast.error(said(why)))
+      .catch((why: unknown) => toast.error(apiMessage(why)))
   }, [])
 
   React.useEffect(load, [load])
@@ -34,12 +34,12 @@ export function DesignPage() {
     if (!latest) return
     setPreviewing(true)
 
-    api("changes.build", { path: { id: latest.id } })
+    api("design.builds.create", { path: { id: latest.id } })
       .then(() => {
         toast.success(t`Building preview.`)
         load()
       })
-      .catch((why: unknown) => toast.error(said(why)))
+      .catch((why: unknown) => toast.error(apiMessage(why)))
       .finally(() => setPreviewing(false))
   }
 
@@ -47,12 +47,12 @@ export function DesignPage() {
     if (!latest) return
     setPublishing(true)
 
-    api("changes.publish", { path: { id: latest.id } })
+    api("design.changes.publish", { path: { id: latest.id } })
       .then(() => {
         toast.success(t`Publishing.`)
         load()
       })
-      .catch((why: unknown) => toast.error(said(why)))
+      .catch((why: unknown) => toast.error(apiMessage(why)))
       .finally(() => setPublishing(false))
   }
 
@@ -63,17 +63,6 @@ export function DesignPage() {
         description={t`Edit site templates and static files.`}
         actions={
           <div className="flex items-center gap-2">
-            {latest?.look_at && (
-              <a
-                href={latest.look_at}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex h-9 items-center gap-2 rounded-md border border-input bg-background px-4 text-sm font-medium hover:bg-accent"
-              >
-                {t`Look at it`}
-                <ExternalLink className="size-4" />
-              </a>
-            )}
             {latest && (
               <>
                 <Button
@@ -94,11 +83,11 @@ export function DesignPage() {
         }
       />
 
-      {latest?.went_wrong && (
+      {latest?.last_error && (
         <section className="rounded-lg border border-destructive/40 bg-destructive/5 p-4">
           <h2 className="text-sm font-medium text-destructive">{t`The last build did not work`}</h2>
           <pre className="mt-2 max-h-64 overflow-auto text-xs text-muted-foreground">
-            {latest.went_wrong}
+            {latest.last_error}
           </pre>
         </section>
       )}
@@ -117,7 +106,7 @@ function Files({
 }) {
   const { t } = useLingui()
 
-  const [files, setFiles] = React.useState<ProjectFile[] | null>(null)
+  const [files, setFiles] = React.useState<DesignFileSummary[] | null>(null)
   const [open, setOpen] = React.useState<string | null>(null)
   const [body, setBody] = React.useState("")
   const [busy, setBusy] = React.useState(false)
@@ -125,13 +114,18 @@ function Files({
   const [path, setPath] = React.useState("src/")
 
   const load = React.useCallback(() => {
-    api("design.files")
+    if (!changeId) {
+      setFiles([])
+      return
+    }
+
+    every("design.files.list", { path: { id: changeId }, query: {} })
       .then(setFiles)
       .catch((why: unknown) => {
-        toast.error(said(why))
+        toast.error(apiMessage(why))
         setFiles([])
       })
-  }, [])
+  }, [changeId])
 
   React.useEffect(load, [load])
 
@@ -140,13 +134,14 @@ function Files({
     setBody("")
 
     try {
-      const read = await api("design.read", {
-        path: { path: at },
+      const read = await api("design.files.read", {
+        path: { id: changeId ?? "" },
+        query: { path: at },
       })
 
       setBody(read.contents)
     } catch (why) {
-      toast.error(said(why))
+      toast.error(apiMessage(why))
     }
   }
 
@@ -154,15 +149,15 @@ function Files({
     setBusy(true)
 
     try {
-      await api("design.write", {
-        path: { path: at },
-        body: { change: changeId ?? "", contents: body },
+      await api("design.files.write", {
+        path: { id: changeId ?? "" },
+        body: { path: at, contents: body },
       })
       load()
       onWritten()
       toast.success(t`Saved.`)
     } catch (why) {
-      toast.error(said(why))
+      toast.error(apiMessage(why))
     } finally {
       setBusy(false)
     }

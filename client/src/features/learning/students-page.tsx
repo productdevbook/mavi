@@ -3,9 +3,9 @@ import { useLingui } from "@lingui/react/macro"
 import { Loader2, Plus, UserPlus } from "lucide-react"
 import { toast } from "sonner"
 
-import { api, every } from "@/lib/v1"
-import { said } from "@/lib/v1-said"
-import type { Course, Student } from "@legacy-api"
+import { api, every } from "@/lib/api"
+import { apiMessage } from "@/lib/auth"
+import type { CourseSummary, Student } from "@api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -40,16 +40,16 @@ import {
 export function StudentsPage() {
   const { t, i18n } = useLingui()
   const [students, setStudents] = React.useState<Student[] | null>(null)
-  const [courses, setCourses] = React.useState<Course[]>([])
+  const [courses, setCourses] = React.useState<CourseSummary[]>([])
   const [giving, setGiving] = React.useState<Student | "somebody new" | null>(
     null
   )
 
   const load = React.useCallback(() => {
-    every("students.list")
+    every("courses.students.list", { query: {} })
       .then(setStudents)
       .catch((why: unknown) => {
-        toast.error(said(why))
+        toast.error(apiMessage(why))
         setStudents((held) => held ?? [])
       })
   }, [])
@@ -57,10 +57,10 @@ export function StudentsPage() {
   React.useEffect(load, [load])
 
   React.useEffect(() => {
-    every("courses.list")
+    every("courses.list", { query: {} })
       .then(setCourses)
       .catch((why: unknown) => {
-        toast.error(said(why))
+        toast.error(apiMessage(why))
         setCourses((held) => held ?? [])
       })
   }, [])
@@ -148,7 +148,7 @@ function GiveAccess({
   onDone,
 }: {
   student: Student | "somebody new" | null
-  courses: Course[]
+  courses: CourseSummary[]
   onClose: () => void
   onDone: () => void
 }) {
@@ -166,25 +166,23 @@ function GiveAccess({
     try {
       let studentId = known ? student.id : ""
       if (!known) {
-        const created = await api("students.ask", {
+        const created = await api("courses.students.create", {
           body: {
             email,
             name: name.trim() || email,
           },
         })
-        studentId = created.id
+        studentId = created.student.id
       }
 
-      await api("enrolments.add", {
-        path: { id: course },
-        body: {
-          student: studentId,
-        },
+      await api("courses.enrollments.create", {
+        path: { course_id: course },
+        body: { student_id: studentId },
       })
 
       onDone()
     } catch (why) {
-      toast.error(said(why))
+      toast.error(apiMessage(why))
     } finally {
       setBusy(false)
     }

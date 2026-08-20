@@ -4,9 +4,9 @@ import { useLingui } from "@lingui/react/macro"
 import { Inbox, Loader2, Plus, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
-import { api, every } from "@/lib/v1"
-import { said } from "@/lib/v1-said"
-import type { Form, FormField } from "@legacy-api"
+import { api, every } from "@/lib/api"
+import { apiMessage } from "@/lib/auth"
+import type { Form, FormField } from "@api"
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -67,7 +67,7 @@ export function FormsPage() {
     every("forms.list")
       .then(setForms)
       .catch((why: unknown) => {
-        toast.error(said(why))
+        toast.error(apiMessage(why))
         setForms((held) => held ?? [])
       })
   }, [])
@@ -81,7 +81,7 @@ export function FormsPage() {
 
     try {
       if (draft.id) {
-        await api("forms.change", {
+        await api("forms.update", {
           path: { id: draft.id },
           body: {
             name: draft.name.trim(),
@@ -91,7 +91,7 @@ export function FormsPage() {
           },
         })
       } else {
-        await api("forms.make", {
+        await api("forms.create", {
           body: {
             slug: draft.slug.trim() || keyed(draft.name),
             name: draft.name.trim(),
@@ -105,7 +105,7 @@ export function FormsPage() {
       load()
       toast.success(t`Saved`)
     } catch (why) {
-      toast.error(said(why))
+      toast.error(apiMessage(why))
     } finally {
       setSaving(false)
     }
@@ -115,10 +115,10 @@ export function FormsPage() {
     if (!removing) return
 
     try {
-      await api("forms.remove", { path: { id: removing.id } })
+      await api("forms.delete", { path: { id: removing.id } })
       load()
     } catch (why) {
-      toast.error(said(why))
+      toast.error(apiMessage(why))
     } finally {
       setRemoving(null)
     }
@@ -195,7 +195,7 @@ export function FormsPage() {
                   )}
                 </p>
                 <p className="truncate font-mono text-xs text-muted-foreground">
-                  /api/forms/{form.slug}/filled
+                  /public/v1/forms/{form.slug}/submissions
                 </p>
               </div>
 
@@ -257,7 +257,7 @@ export function FormsPage() {
                   }}
                 />
                 <p className="font-mono text-xs text-muted-foreground">
-                  /api/forms/{draft.slug || keyed(draft.name)}/filled
+                  /public/v1/forms/{draft.slug || keyed(draft.name)}/submissions
                 </p>
               </div>
 

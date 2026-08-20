@@ -2059,6 +2059,7 @@ export const operations = {
   "boards.cards.create": { method: "post", path: "/api/v1/boards/lists/{id}/cards", input: { location: "json", shape: "CreateCard" }, query: null, output: "Card", status: 201, authentication: "account_or_assistant", permission: { capability: "boards", action: "write" } },
   "boards.cards.read": { method: "get", path: "/api/v1/boards/cards/{id}", input: null, query: null, output: "Card", status: 200, authentication: "account_or_assistant", permission: { capability: "boards", action: "view" } },
   "boards.cards.update": { method: "patch", path: "/api/v1/boards/cards/{id}", input: { location: "json", shape: "UpdateCard" }, query: null, output: "Card", status: 200, authentication: "account_or_assistant", permission: { capability: "boards", action: "write" } },
+  "boards.cards.delete": { method: "delete", path: "/api/v1/boards/cards/{id}", input: null, query: null, output: "Empty", status: 204, authentication: "account_or_assistant", permission: { capability: "boards", action: "delete" } },
   "boards.cards.move": { method: "post", path: "/api/v1/boards/cards/{id}/move", input: { location: "json", shape: "MoveCard" }, query: null, output: "Card", status: 200, authentication: "account_or_assistant", permission: { capability: "boards", action: "write" } },
   "boards.cards.assign": { method: "post", path: "/api/v1/boards/cards/{id}/assign", input: { location: "json", shape: "AssignCard" }, query: null, output: "Card", status: 200, authentication: "account_or_assistant", permission: { capability: "boards", action: "write" } },
   "boards.comments.list": { method: "get", path: "/api/v1/boards/cards/{id}/comments", input: { location: "query", shape: "CommentPageFilter" }, query: null, output: "CommentPage", status: 200, authentication: "account_or_assistant", permission: { capability: "boards", action: "view" } },
@@ -2260,6 +2261,7 @@ export interface OperationArguments {
   "boards.cards.create": { path: { id: string }; query?: never; body: CreateCard; }
   "boards.cards.read": { path: { id: string }; query?: never; body?: never; }
   "boards.cards.update": { path: { id: string }; query?: never; body: UpdateCard; }
+  "boards.cards.delete": { path: { id: string }; query?: never; body?: never; }
   "boards.cards.move": { path: { id: string }; query?: never; body: MoveCard; }
   "boards.cards.assign": { path: { id: string }; query?: never; body: AssignCard; }
   "boards.comments.list": { path: { id: string }; query: CommentPageFilter; body?: never; }
@@ -2459,6 +2461,7 @@ export interface OperationResponses {
   "boards.cards.create": Card;
   "boards.cards.read": Card;
   "boards.cards.update": Card;
+  "boards.cards.delete": void;
   "boards.cards.move": Card;
   "boards.cards.assign": Card;
   "boards.comments.list": CommentPage;

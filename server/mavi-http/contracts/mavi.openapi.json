@@ -16765,6 +16765,82 @@
             "internal"
           ]
         }
+      },
+      "delete": {
+        "operationId": "boards.cards.delete",
+        "summary": "Archive a card and its visible comments",
+        "tags": [
+          "boards"
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-mavi": {
+          "scope": "site",
+          "authentication": "account_or_assistant",
+          "mutation": {
+            "permissioned": {
+              "idempotent": false
+            }
+          },
+          "permission": {
+            "capability": "boards",
+            "action": "delete"
+          },
+          "errors": [
+            "forbidden",
+            "not_found",
+            "internal"
+          ]
+        }
       }
     },
     "/api/v1/boards/cards/{id}/move": {

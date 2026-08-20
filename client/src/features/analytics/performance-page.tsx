@@ -2,8 +2,8 @@ import * as React from "react"
 import { useLingui } from "@lingui/react/macro"
 import { Activity, Gauge } from "lucide-react"
 
-import { api } from "@/lib/v1"
-import type { Felt } from "@legacy-api"
+import { every } from "@/lib/api"
+import type { AnalyticsEvent } from "@api"
 import { Figure, Panel } from "@/components/charts"
 import {
   DashboardLoading,
@@ -12,21 +12,28 @@ import {
 
 export function PerformancePage() {
   const { t } = useLingui()
-  const [felts, setFelts] = React.useState<Felt[] | null>(null)
+  const [events, setEvents] = React.useState<AnalyticsEvent[] | null>(null)
 
   React.useEffect(() => {
     let current = true
 
-    api("analytics.felt")
-      .then((found) => current && setFelts(found))
-      .catch(() => current && setFelts([]))
+    every("analytics.events.list", { query: {} })
+      .then((found) =>
+        current &&
+        setEvents(
+          found.filter((event) =>
+            ["lcp", "cls", "inp", "ttfb"].includes(event.event_name)
+          )
+        )
+      )
+      .catch(() => current && setEvents([]))
 
     return () => {
       current = false
     }
   }, [])
 
-  if (felts === null) {
+  if (events === null) {
     return <DashboardLoading />
   }
 
@@ -37,8 +44,9 @@ export function PerformancePage() {
     ttfb: t`First byte`,
   }
 
-  const measured = felts.reduce((all, f) => all + f.how_many, 0)
-  const uniquePages = new Set(felts.map((f) => f.path)).size
+  const felts = measurements(events)
+  const measured = events.length
+  const uniquePages = new Set(events.map((event) => event.path)).size
 
   return (
     <div className="flex flex-col gap-5">
@@ -75,9 +83,9 @@ export function PerformancePage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {felts.map((f, idx) => (
+                  {felts.map((f) => (
                     <tr
-                      key={`${f.path}-${f.kind}-${idx}`}
+                      key={`${f.path}-${f.kind}`}
                       className="border-b last:border-0"
                     >
                       <td className="max-w-[22rem] truncate py-2 pr-3 font-mono text-xs">
@@ -103,6 +111,39 @@ export function PerformancePage() {
       )}
     </div>
   )
+}
+
+type Measurement = {
+  path: string
+  kind: string
+  middle: number
+  bad_end: number
+  how_many: number
+}
+
+function measurements(events: AnalyticsEvent[]): Measurement[] {
+  const groups = new Map<string, number[]>()
+
+  for (const event of events) {
+    const key = `${event.path}\u0000${event.event_name}`
+    groups.set(key, [...(groups.get(key) ?? []), event.value])
+  }
+
+  return Array.from(groups.entries()).map(([key, values]) => {
+    const [path, kind] = key.split("\u0000")
+    const sorted = values.sort((a, b) => a - b)
+    return {
+      path,
+      kind,
+      middle: percentile(sorted, 0.5),
+      bad_end: percentile(sorted, 0.95),
+      how_many: sorted.length,
+    }
+  })
+}
+
+function percentile(values: number[], position: number): number {
+  return values[Math.min(values.length - 1, Math.floor(values.length * position))]
 }
 
 /**

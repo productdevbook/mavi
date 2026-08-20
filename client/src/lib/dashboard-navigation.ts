@@ -2,7 +2,7 @@ import type { LucideIcon } from "lucide-react"
 
 import type { Capability } from "@/lib/permissions"
 import type { ContentType } from "@/lib/use-content-types"
-import type { Board } from "@legacy-api"
+import type { Board } from "@api"
 
 /** A single destination in the site panel. */
 export interface DashboardNavItem {

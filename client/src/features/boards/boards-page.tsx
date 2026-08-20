@@ -4,9 +4,9 @@ import { useLingui } from "@lingui/react/macro"
 import { KanbanSquare, Loader2, Plus, Trash2, X } from "lucide-react"
 import { toast } from "sonner"
 
-import { api } from "@/lib/v1"
-import { said } from "@/lib/v1-said"
-import type { Board } from "@legacy-api"
+import { api, every } from "@/lib/api"
+import { apiMessage } from "@/lib/auth"
+import type { Board } from "@api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -57,10 +57,10 @@ export function BoardsPage() {
   const [going, setGoing] = React.useState<Board | null>(null)
 
   const load = React.useCallback(() => {
-    api("boards.list")
+    every("boards.list")
       .then(setBoards)
       .catch((why: unknown) => {
-        toast.error(said(why))
+        toast.error(apiMessage(why))
         setBoards((held) => held ?? [])
       })
   }, [])
@@ -71,17 +71,28 @@ export function BoardsPage() {
     setBusy(true)
 
     try {
-      await api("boards.make", {
+      const board = await api("boards.create", {
         body: {
           name: name.trim(),
-          stages: stages.map((stage) => stage.trim()).filter(Boolean),
+          description: null,
         },
       })
+      await Promise.all(
+        stages
+          .map((stage) => stage.trim())
+          .filter(Boolean)
+          .map((stage) =>
+            api("boards.lists.create", {
+              path: { id: board.id },
+              body: { name: stage },
+            })
+          )
+      )
       setMaking(false)
       setName("")
       load()
     } catch (why) {
-      toast.error(said(why))
+      toast.error(apiMessage(why))
     } finally {
       setBusy(false)
     }
@@ -91,10 +102,10 @@ export function BoardsPage() {
     if (!going) return
 
     try {
-      await api("boards.remove", { path: { id: going.id } })
+      await api("boards.delete", { path: { id: going.id } })
       load()
     } catch (why) {
-      toast.error(said(why))
+      toast.error(apiMessage(why))
     } finally {
       setGoing(null)
     }

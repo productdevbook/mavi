@@ -215,7 +215,7 @@ msgstr "{0} connects from its own servers, not from this computer, so it cannot 
 #~ msgstr "{0} enrolments"
 
 #. placeholder {0}: answer.files
-#: src/features/analytics/usage-page.tsx:61
+#: src/features/analytics/usage-page.tsx:77
 msgid "{0} files"
 msgstr "{0} files"
 
@@ -257,8 +257,8 @@ msgstr "{0} files"
 #~ msgid "{0} in {days} days"
 #~ msgstr "{0} in {days} days"
 
-#. placeholder {0}: entry.called
-#: src/features/governance/trash-page.tsx:91
+#. placeholder {0}: entry.label
+#: src/features/governance/trash-page.tsx:84
 msgid "{0} is back"
 msgstr "{0} is back"
 
@@ -275,8 +275,8 @@ msgstr "{0} is back"
 
 #. placeholder {0}: named.field
 #: src/lib/v1-said.ts:40
-msgid "{0} is wanted."
-msgstr "{0} is wanted."
+#~ msgid "{0} is wanted."
+#~ msgstr "{0} is wanted."
 
 #. placeholder {0}: row.unsubscribed
 #: src/routes/dashboard.mail.tsx:306
@@ -429,8 +429,8 @@ msgstr "{0} of {1}"
 
 #. placeholder {0}: answer.published
 #. placeholder {0}: stats.published
-#: src/features/analytics/usage-page.tsx:67
-#: src/features/dashboard/home-page.tsx:64
+#: src/features/analytics/usage-page.tsx:83
+#: src/features/dashboard/home-page.tsx:94
 msgid "{0} published"
 msgstr "{0} published"
 
@@ -528,8 +528,8 @@ msgstr "{0} rows × {1} columns"
 
 #. placeholder {0}: named.posts
 #: src/lib/v1-said.ts:61
-msgid "{0} things are written in that language."
-msgstr "{0} things are written in that language."
+#~ msgid "{0} things are written in that language."
+#~ msgstr "{0} things are written in that language."
 
 #. placeholder {0}: chosen.size
 #: src/features/content/content-list.tsx:180
@@ -548,7 +548,7 @@ msgstr "{0} ticked"
 #~ msgstr "{0} unbilled. Set an hourly rate under Payments to bill it."
 
 #. placeholder {0}: stats.unread
-#: src/features/dashboard/home-page.tsx:70
+#: src/features/dashboard/home-page.tsx:100
 msgid "{0} unread"
 msgstr "{0} unread"
 
@@ -764,7 +764,7 @@ msgstr "0 results"
 #~ msgid "4. If a site is archived"
 #~ msgstr "4. If a site is archived"
 
-#: src/features/analytics/performance-page.tsx:73
+#: src/features/analytics/performance-page.tsx:81
 msgid "95th percentile"
 msgstr "95th percentile"
 
@@ -793,7 +793,7 @@ msgstr "95th percentile"
 #~ msgid "A campaign can go out as any of these. Each one has to be verified in SES too — an address is not a sender until Amazon says so."
 #~ msgstr "A campaign can go out as any of these. Each one has to be verified in SES too — an address is not a sender until Amazon says so."
 
-#: src/features/boards/board-page.tsx:192
+#: src/features/boards/board-page.tsx:201
 msgid "A card"
 msgstr "A card"
 
@@ -860,7 +860,7 @@ msgstr "A front end asks for these with ?kind={0}"
 #~ msgid "A key cannot reach the accounts on this site or the invitations to it, cannot make another key of any kind, cannot read the storage and mail settings or the backups, and cannot empty the bin or send a mail campaign."
 #~ msgstr "A key cannot reach the accounts on this site or the invitations to it, cannot make another key of any kind, cannot read the storage and mail settings or the backups, and cannot empty the bin or send a mail campaign."
 
-#: src/features/integrations/api-page.tsx:142
+#: src/features/integrations/api-page.tsx:151
 msgid "A key carries the grants of the person who made it. Name each one so it can be identified and revoked later."
 msgstr "A key carries the grants of the person who made it. Name each one so it can be identified and revoked later."
 
@@ -873,8 +873,8 @@ msgstr "A key carries the grants of the person who made it. Name each one so it 
 #~ msgstr "A key went with it, until {until}"
 
 #: src/lib/v1-said.ts:56
-msgid "A language is two letters, and a place after them where there is one: en, or en-GB."
-msgstr "A language is two letters, and a place after them where there is one: en, or en-GB."
+#~ msgid "A language is two letters, and a place after them where there is one: en, or en-GB."
+#~ msgstr "A language is two letters, and a place after them where there is one: en, or en-GB."
 
 #: src/features/learning/course-page.tsx:183
 msgid "A lesson"
@@ -909,15 +909,15 @@ msgstr "A line of text"
 #~ msgid "A message that bounced hard, or that somebody reported as spam. Amazon keeps this list itself and honours it whatever this panel does — a bounce costs money and complaints close accounts."
 #~ msgstr "A message that bounced hard, or that somebody reported as spam. Amazon keeps this list itself and honours it whatever this panel does — a bounce costs money and complaints close accounts."
 
-#: src/features/boards/boards-page.tsx:156
+#: src/features/boards/boards-page.tsx:167
 msgid "A new board"
 msgstr "A new board"
 
-#: src/features/boards/board-page.tsx:205
+#: src/features/boards/board-page.tsx:214
 msgid "A new card"
 msgstr "A new card"
 
-#: src/features/shop/coupons-page.tsx:176
+#: src/features/shop/coupons-page.tsx:173
 msgid "A new code"
 msgstr "A new code"
 
@@ -925,8 +925,8 @@ msgstr "A new code"
 #~ msgid "A new course"
 #~ msgstr "A new course"
 
-#: src/features/design/design-page.tsx:184
-#: src/features/design/design-page.tsx:234
+#: src/features/design/design-page.tsx:179
+#: src/features/design/design-page.tsx:229
 msgid "A new file"
 msgstr "A new file"
 
@@ -938,7 +938,7 @@ msgstr "A new flow"
 msgid "A new kind"
 msgstr "A new kind"
 
-#: src/features/mail/mail-page.tsx:259
+#: src/features/mail/mail-page.tsx:278
 msgid "A new list"
 msgstr "A new list"
 
@@ -946,7 +946,7 @@ msgstr "A new list"
 msgid "A new password"
 msgstr "A new password"
 
-#: src/features/shop/products-page.tsx:204
+#: src/features/shop/products-page.tsx:203
 msgid "A new product"
 msgstr "A new product"
 
@@ -985,14 +985,14 @@ msgstr "A part of the course"
 #~ msgstr "A password for {0}"
 
 #: src/lib/v1-said.ts:33
-msgid "A password is at least twelve characters."
-msgstr "A password is at least twelve characters."
+#~ msgid "A password is at least twelve characters."
+#~ msgstr "A password is at least twelve characters."
 
-#: src/features/shop/coupons-page.tsx:203
+#: src/features/shop/coupons-page.tsx:200
 msgid "A percentage"
 msgstr "A percentage"
 
-#: src/components/report-a-problem.tsx:194
+#: src/components/report-a-problem.tsx:187
 msgid "A picture of it"
 msgstr "A picture of it"
 
@@ -1030,8 +1030,8 @@ msgstr "A scheduled post needs a publish date"
 #~ msgstr "a second, at most"
 
 #: src/lib/v1-said.ts:54
-msgid "A site already answers to that name."
-msgstr "A site already answers to that name."
+#~ msgid "A site already answers to that name."
+#~ msgstr "A site already answers to that name."
 
 #: src/routes/dashboard.themes.tsx:679
 #~ msgid "A site seeded from this demo will have those pictures missing."
@@ -1041,13 +1041,13 @@ msgstr "A site already answers to that name."
 #~ msgid "A site starts at 200 a day — a contact form and some notifications, not a mailing list. Nought stops it without taking anything away: the lists and the history stay, and raising the number starts it again."
 #~ msgstr "A site starts at 200 a day — a contact form and some notifications, not a mailing list. Nought stops it without taking anything away: the lists and the history stay, and raising the number starts it again."
 
-#: src/features/design/design-page.tsx:225
+#: src/features/design/design-page.tsx:220
 msgid "A site with no files of its own is served whatever its build makes from nothing."
 msgstr "A site with no files of its own is served whatever its build makes from nothing."
 
 #: src/lib/v1-said.ts:59
-msgid "A site writes in one language unless a post says otherwise, so there has to be one."
-msgstr "A site writes in one language unless a post says otherwise, so there has to be one."
+#~ msgid "A site writes in one language unless a post says otherwise, so there has to be one."
+#~ msgstr "A site writes in one language unless a post says otherwise, so there has to be one."
 
 #: src/routes/dashboard.plugins.tsx:56
 #~ msgid "A site's own mail server, so what it sends comes from it rather than from whoever runs the machine."
@@ -1164,18 +1164,18 @@ msgstr "Accounts that can sign in to this site and the roles that shape their ac
 #~ msgid "across {0} kinds"
 #~ msgstr "across {0} kinds"
 
-#: src/components/audit-record.tsx:19
+#: src/components/audit-record.tsx:26
 msgid "Action"
 msgstr "Action"
 
-#: src/routes/dashboard.languages.tsx:151
-#~ msgid "Active"
-#~ msgstr "Active"
+#: src/features/integrations/api-page.tsx:209
+msgid "Active"
+msgstr "Active"
 
 #: src/components/editor/dialogs.tsx:225
-#: src/features/boards/board-page.tsx:238
+#: src/features/boards/board-page.tsx:247
 #: src/features/learning/course-page.tsx:192
-#: src/features/mail/mail-page.tsx:221
+#: src/features/mail/mail-page.tsx:240
 #: src/features/taxonomy/tags-page.tsx:155
 msgid "Add"
 msgstr "Add"
@@ -1304,7 +1304,7 @@ msgstr "Add row before"
 
 #: src/features/learning/students-page.tsx:81
 #: src/features/learning/students-page.tsx:95
-#: src/features/mail/mail-page.tsx:231
+#: src/features/mail/mail-page.tsx:250
 msgid "Add somebody"
 msgstr "Add somebody"
 
@@ -1482,7 +1482,7 @@ msgstr "Alignment"
 #~ msgid "All {0} pictures ({1}) have a copy in storage this server controls."
 #~ msgstr "All {0} pictures ({1}) have a copy in storage this server controls."
 
-#: src/features/dashboard/home-page.tsx:70
+#: src/features/dashboard/home-page.tsx:100
 msgid "all read"
 msgstr "all read"
 
@@ -1499,8 +1499,8 @@ msgstr "all read"
 #~ msgstr "Already have an account? Sign in"
 
 #: src/features/portability/portable-page.tsx:136
-msgid "Already present"
-msgstr "Already present"
+#~ msgid "Already present"
+#~ msgstr "Already present"
 
 #: src/components/editor/bubble-menus.tsx:390
 #: src/components/editor/bubble-menus.tsx:393
@@ -1587,7 +1587,7 @@ msgstr "Altogether"
 #~ msgid "An agency can only be opened from a link you make here. Send it however you like — it works once, and stops working after a fortnight."
 #~ msgstr "An agency can only be opened from a link you make here. Send it however you like — it works once, and stops working after a fortnight."
 
-#: src/features/shop/coupons-page.tsx:204
+#: src/features/shop/coupons-page.tsx:201
 msgid "An amount"
 msgstr "An amount"
 
@@ -1631,7 +1631,7 @@ msgstr "An email address"
 #~ msgid "An IAM user with ses:SendEmail. That is all sending needs. The account page below asks Amazon rather more, and says which permission is missing when one is."
 #~ msgstr "An IAM user with ses:SendEmail. That is all sending needs. The account page below asks Amazon rather more, and says which permission is missing when one is."
 
-#: src/features/governance/trash-page.tsx:117
+#: src/features/governance/trash-page.tsx:112
 msgid "An image keeps its file while it is here, so a restored post still has its pictures. The file goes when the entry does."
 msgstr "An image keeps its file while it is here, so a restored post still has its pictures. The file goes when the entry does."
 
@@ -1652,7 +1652,7 @@ msgstr "Another"
 #~ msgid "Another service posts to an address only it knows"
 #~ msgstr "Another service posts to an address only it knows"
 
-#: src/features/boards/boards-page.tsx:205
+#: src/features/boards/boards-page.tsx:216
 msgid "Another stage"
 msgstr "Another stage"
 
@@ -1719,16 +1719,16 @@ msgstr "Another step"
 msgid "Anything already using it will stop showing it."
 msgstr "Anything already using it will stop showing it."
 
-#: src/features/governance/audit-page.tsx:107
+#: src/features/governance/audit-page.tsx:118
 msgid "Anything done"
 msgstr "Anything done"
 
-#: src/components/report-a-problem.tsx:183
-#: src/features/boards/board-page.tsx:219
+#: src/components/report-a-problem.tsx:176
+#: src/features/boards/board-page.tsx:228
 msgid "Anything else"
 msgstr "Anything else"
 
-#: src/features/governance/audit-page.tsx:114
+#: src/features/governance/audit-page.tsx:125
 msgid "Anything it was done to"
 msgstr "Anything it was done to"
 
@@ -1741,7 +1741,7 @@ msgstr "Anything it was done to"
 #~ msgid "Anything this site publishes, or one kind of it"
 #~ msgstr "Anything this site publishes, or one kind of it"
 
-#: src/features/boards/boards-page.tsx:107
+#: src/features/boards/boards-page.tsx:118
 msgid "Anything this site works through in order: enquiries, repairs, applications. You name the stages."
 msgstr "Anything this site works through in order: enquiries, repairs, applications. You name the stages."
 
@@ -1750,7 +1750,7 @@ msgstr "Anything this site works through in order: enquiries, repairs, applicati
 #~ msgstr "Anything this site works through in stages: applications, enquiries, jobs. You decide what the stages are and what they are called."
 
 #: src/components/dashboard/dashboard-shell.tsx:112
-#: src/features/integrations/api-page.tsx:111
+#: src/features/integrations/api-page.tsx:120
 msgid "API"
 msgstr "API"
 
@@ -1841,8 +1841,8 @@ msgstr "Area"
 #~ msgstr "As {0}, since {1}"
 
 #: src/features/mail/letters-page.tsx:160
-msgid "As it comes"
-msgstr "As it comes"
+#~ msgid "As it comes"
+#~ msgstr "As it comes"
 
 #: src/routes/dashboard.letters.tsx:236
 #: src/routes/dashboard.letters.tsx:244
@@ -1853,7 +1853,7 @@ msgstr "As it comes"
 #~ msgid "as many as they like"
 #~ msgstr "as many as they like"
 
-#: src/features/shop/coupons-page.tsx:227
+#: src/features/shop/coupons-page.tsx:224
 msgid "as often as they like"
 msgstr "as often as they like"
 
@@ -1917,7 +1917,7 @@ msgstr "As on a phone"
 #~ msgid "Asking for a bigger quota"
 #~ msgstr "Asking for a bigger quota"
 
-#: src/features/integrations/api-page.tsx:140
+#: src/features/integrations/api-page.tsx:149
 msgid "Assistant keys"
 msgstr "Assistant keys"
 
@@ -1971,8 +1971,8 @@ msgstr "Back to editing"
 #~ msgstr "Back to the default"
 
 #: src/features/mail/letters-page.tsx:100
-msgid "Back to the words this build ships with."
-msgstr "Back to the words this build ships with."
+#~ msgid "Back to the words this build ships with."
+#~ msgstr "Back to the words this build ships with."
 
 #: src/routes/dashboard.plugins_.backup.tsx:479
 #~ msgid "Back up now"
@@ -2119,7 +2119,7 @@ msgstr "Being written"
 #~ msgstr "Bills"
 
 #: src/components/dashboard/dashboard-shell.tsx:106
-#: src/features/governance/trash-page.tsx:109
+#: src/features/governance/trash-page.tsx:104
 msgid "Bin"
 msgstr "Bin"
 
@@ -2153,12 +2153,12 @@ msgid "Blue"
 msgstr "Blue"
 
 #: src/features/governance/trash-page.tsx:68
-msgid "board"
-msgstr "board"
+#~ msgid "board"
+#~ msgstr "board"
 
 #: src/components/dashboard/dashboard-shell.tsx:104
-#: src/features/boards/board-page.tsx:120
-#: src/features/boards/boards-page.tsx:106
+#: src/features/boards/board-page.tsx:129
+#: src/features/boards/boards-page.tsx:117
 #: src/features/people/roles-page.tsx:169
 msgid "Boards"
 msgstr "Boards"
@@ -2198,7 +2198,7 @@ msgstr "Bold"
 #~ msgid "Branch"
 #~ msgstr "Branch"
 
-#: src/features/design/publish-page.tsx:37
+#: src/features/design/publish-page.tsx:38
 msgid "Broken"
 msgstr "Broken"
 
@@ -2210,11 +2210,11 @@ msgstr "Brown"
 #~ msgid "Bucket"
 #~ msgstr "Bucket"
 
-#: src/features/design/design-page.tsx:85
+#: src/features/design/design-page.tsx:74
 msgid "Build a preview"
 msgstr "Build a preview"
 
-#: src/features/design/publish-page.tsx:54
+#: src/features/design/publish-page.tsx:55
 msgid "Build and publish a design change to put a version live."
 msgstr "Build and publish a design change to put a version live."
 
@@ -2238,9 +2238,9 @@ msgstr "Build modules and lessons for this course."
 #~ msgid "Build variables"
 #~ msgstr "Build variables"
 
-#: src/routes/dashboard.publish.tsx:70
-#~ msgid "Building"
-#~ msgstr "Building"
+#: src/features/design/publish-page.tsx:36
+msgid "Building"
+msgstr "Building"
 
 #: src/routes/dashboard.api.tsx:298
 #~ msgid "Building a front end"
@@ -2312,7 +2312,7 @@ msgstr "Buy"
 #~ msgid "By metric"
 #~ msgstr "By metric"
 
-#: src/features/analytics/performance-page.tsx:65
+#: src/features/analytics/performance-page.tsx:73
 msgid "By page and metric"
 msgstr "By page and metric"
 
@@ -2383,25 +2383,25 @@ msgstr "Can open {summary} of {0} areas."
 #: src/components/editor/dialogs.tsx:223
 #: src/components/editor/dialogs.tsx:267
 #: src/components/editor/dialogs.tsx:357
-#: src/components/report-a-problem.tsx:236
-#: src/features/automation/flows-page.tsx:329
-#: src/features/boards/board-page.tsx:231
-#: src/features/boards/boards-page.tsx:212
-#: src/features/boards/boards-page.tsx:234
+#: src/components/report-a-problem.tsx:229
+#: src/features/automation/flows-page.tsx:328
+#: src/features/boards/board-page.tsx:240
+#: src/features/boards/boards-page.tsx:223
+#: src/features/boards/boards-page.tsx:245
 #: src/features/content/content-list.tsx:323
 #: src/features/content/languages-page.tsx:187
-#: src/features/design/design-page.tsx:214
+#: src/features/design/design-page.tsx:209
 #: src/features/forms/forms-page.tsx:306
 #: src/features/forms/forms-page.tsx:328
-#: src/features/learning/students-page.tsx:246
-#: src/features/mail/mail-page.tsx:276
-#: src/features/mail/mail-page.tsx:340
+#: src/features/learning/students-page.tsx:244
+#: src/features/mail/mail-page.tsx:295
+#: src/features/mail/mail-page.tsx:359
 #: src/features/media/media-page.tsx:192
 #: src/features/people/people-page.tsx:334
 #: src/features/people/people-page.tsx:364
 #: src/features/people/roles-page.tsx:448
-#: src/features/shop/coupons-page.tsx:250
-#: src/features/shop/products-page.tsx:270
+#: src/features/shop/coupons-page.tsx:247
+#: src/features/shop/products-page.tsx:269
 #: src/features/taxonomy/categories-page.tsx:289
 #: src/features/taxonomy/categories-page.tsx:332
 #: src/features/taxonomy/tags-page.tsx:189
@@ -2419,8 +2419,8 @@ msgid "Canonical URL"
 msgstr "Canonical URL"
 
 #: src/features/governance/trash-page.tsx:69
-msgid "card"
-msgstr "card"
+#~ msgid "card"
+#~ msgstr "card"
 
 #: src/routes/dashboard.usage.tsx:97
 #~ msgid "Cards"
@@ -2451,7 +2451,7 @@ msgstr "Categories"
 msgid "Categories & tags"
 msgstr "Categories & tags"
 
-#: src/features/portability/portable-page.tsx:134
+#: src/features/portability/portable-page.tsx:136
 msgid "Categories and tags"
 msgstr "Categories and tags"
 
@@ -2467,7 +2467,7 @@ msgstr "Categories and tags"
 #~ msgid "Category"
 #~ msgstr "Category"
 
-#: src/features/governance/trash-page.tsx:65
+#: src/features/governance/trash-page.tsx:63
 msgid "category or tag"
 msgstr "category or tag"
 
@@ -2492,7 +2492,7 @@ msgstr "Change {0}"
 #~ msgid "Changed"
 #~ msgstr "Changed"
 
-#: src/features/governance/audit-page.tsx:125
+#: src/features/governance/audit-page.tsx:136
 msgid "Changes made to this site will appear here."
 msgstr "Changes made to this site will appear here."
 
@@ -2537,7 +2537,7 @@ msgstr "Checkbox to-do list"
 #~ msgid "Checked twice: once when somebody types it into the basket, and again when the order is made — because a code with one use left can be used by somebody else in the minute in between."
 #~ msgstr "Checked twice: once when somebody types it into the basket, and again when the order is made — because a code with one use left can be used by somebody else in the minute in between."
 
-#: src/features/shop/coupons-page.tsx:74
+#: src/features/shop/coupons-page.tsx:72
 msgid "Checked twice: once when somebody types it into the basket, and again when the order is made."
 msgstr "Checked twice: once when somebody types it into the basket, and again when the order is made."
 
@@ -2561,7 +2561,7 @@ msgstr "Checked twice: once when somebody types it into the basket, and again wh
 #~ msgid "Choose a form above and its own fields are listed here"
 #~ msgstr "Choose a form above and its own fields are listed here"
 
-#: src/features/portability/portable-page.tsx:113
+#: src/features/portability/portable-page.tsx:115
 msgid "Choose a JSON copy"
 msgstr "Choose a JSON copy"
 
@@ -2590,7 +2590,7 @@ msgstr "Choose a role"
 #~ msgid "Choose one of the two above to begin. Everything else — your domain, the records to publish, the address you send from — comes after."
 #~ msgstr "Choose one of the two above to begin. Everything else — your domain, the records to publish, the address you send from — comes after."
 
-#: src/components/report-a-problem.tsx:215
+#: src/components/report-a-problem.tsx:208
 msgid "Choose one, or paste it"
 msgstr "Choose one, or paste it"
 
@@ -2606,8 +2606,8 @@ msgstr "Choose one, or paste it"
 #~ msgid "City"
 #~ msgstr "City"
 
-#: src/features/analytics/usage-page.tsx:74
-#: src/features/dashboard/home-page.tsx:110
+#: src/features/analytics/usage-page.tsx:90
+#: src/features/dashboard/home-page.tsx:140
 msgid "clean"
 msgstr "clean"
 
@@ -2638,7 +2638,7 @@ msgstr "Clear formatting"
 #~ msgstr "Clocked work, bills and server use, one site at a time."
 
 #: src/components/editor/find-replace.tsx:75
-#: src/features/design/design-page.tsx:272
+#: src/features/design/design-page.tsx:267
 msgid "Close"
 msgstr "Close"
 
@@ -2897,15 +2897,15 @@ msgstr "Copy the configuration"
 #~ msgid "Copy the content types command"
 #~ msgstr "Copy the content types command"
 
-#: src/features/integrations/api-page.tsx:172
+#: src/features/integrations/api-page.tsx:181
 msgid "Copy the new key"
 msgstr "Copy the new key"
 
-#: src/features/integrations/api-page.tsx:125
+#: src/features/integrations/api-page.tsx:134
 msgid "Copy the products command"
 msgstr "Copy the products command"
 
-#: src/features/integrations/api-page.tsx:121
+#: src/features/integrations/api-page.tsx:130
 msgid "Copy the public site command"
 msgstr "Copy the public site command"
 
@@ -2917,7 +2917,7 @@ msgstr "Copy the public site command"
 #~ msgid "Copy them now"
 #~ msgstr "Copy them now"
 
-#: src/features/integrations/api-page.tsx:168
+#: src/features/integrations/api-page.tsx:177
 msgid "Copy this key now. It is shown once."
 msgstr "Copy this key now. It is shown once."
 
@@ -3386,11 +3386,11 @@ msgstr "Could not upload {0}"
 #~ msgstr "Countries"
 
 #: src/features/governance/trash-page.tsx:67
-msgid "course"
-msgstr "course"
+#~ msgid "course"
+#~ msgstr "course"
 
 #: src/components/dashboard/content-type-editor.tsx:104
-#: src/features/learning/students-page.tsx:226
+#: src/features/learning/students-page.tsx:224
 msgid "Course"
 msgstr "Course"
 
@@ -3424,19 +3424,19 @@ msgstr "Course"
 msgid "Create"
 msgstr "Create"
 
-#: src/features/boards/boards-page.tsx:121
+#: src/features/boards/boards-page.tsx:132
 msgid "Create a board to move work through stages."
 msgstr "Create a board to move work through stages."
 
-#: src/features/shop/coupons-page.tsx:88
+#: src/features/shop/coupons-page.tsx:86
 msgid "Create a code to offer a discount during checkout."
 msgstr "Create a code to offer a discount during checkout."
 
-#: src/features/mail/mail-page.tsx:178
+#: src/features/mail/mail-page.tsx:197
 msgid "Create a list before sending a message to subscribers."
 msgstr "Create a list before sending a message to subscribers."
 
-#: src/features/shop/products-page.tsx:139
+#: src/features/shop/products-page.tsx:138
 msgid "Create a product before you start taking orders."
 msgstr "Create a product before you start taking orders."
 
@@ -3666,7 +3666,7 @@ msgstr "Delete this file?"
 #~ msgid "deleted by {0}"
 #~ msgstr "deleted by {0}"
 
-#: src/features/governance/trash-page.tsx:110
+#: src/features/governance/trash-page.tsx:105
 msgid "Deleted content waits thirty days before it is removed permanently, and can be restored in the meantime."
 msgstr "Deleted content waits thirty days before it is removed permanently, and can be restored in the meantime."
 
@@ -3765,7 +3765,7 @@ msgstr "Design"
 #~ msgstr "Discount code"
 
 #: src/components/dashboard/dashboard-shell.tsx:97
-#: src/features/shop/coupons-page.tsx:73
+#: src/features/shop/coupons-page.tsx:71
 msgid "Discount codes"
 msgstr "Discount codes"
 
@@ -3821,15 +3821,15 @@ msgid "Done."
 msgstr "Done."
 
 #: src/components/editor/dialogs.tsx:510
-#: src/features/governance/audit-page.tsx:97
+#: src/features/governance/audit-page.tsx:108
 msgid "Download"
 msgstr "Download"
 
-#: src/features/portability/portable-page.tsx:94
+#: src/features/portability/portable-page.tsx:96
 msgid "Download a copy"
 msgstr "Download a copy"
 
-#: src/features/portability/portable-page.tsx:85
+#: src/features/portability/portable-page.tsx:87
 msgid "Download languages, content types, taxonomy, and writings with their revisions and assignments."
 msgstr "Download languages, content types, taxonomy, and writings with their revisions and assignments."
 
@@ -3927,7 +3927,7 @@ msgstr "Editing"
 #: src/features/auth/forgotten-page.tsx:146
 #: src/features/auth/login-page.tsx:69
 #: src/features/auth/setup-page.tsx:112
-#: src/features/learning/students-page.tsx:205
+#: src/features/learning/students-page.tsx:203
 #: src/features/people/people-page.tsx:280
 #: src/learn/app.tsx:159
 msgid "Email"
@@ -3967,7 +3967,7 @@ msgstr "Emoji"
 #~ msgid "Endpoint"
 #~ msgstr "Endpoint"
 
-#: src/features/boards/boards-page.tsx:169
+#: src/features/boards/boards-page.tsx:180
 msgid "Enquiries"
 msgstr "Enquiries"
 
@@ -3984,8 +3984,8 @@ msgstr "Enquiries"
 #~ msgstr "Enter details"
 
 #: src/lib/v1-said.ts:29
-msgid "Enter the six digits from your authenticator."
-msgstr "Enter the six digits from your authenticator."
+#~ msgid "Enter the six digits from your authenticator."
+#~ msgstr "Enter the six digits from your authenticator."
 
 #: src/routes/dashboard.usage.tsx:164
 #~ msgid "Estimated, not counted"
@@ -4107,7 +4107,7 @@ msgstr "Every site has posts and pages. Add a kind of your own when what you pub
 #~ msgid "Everything this panel does, something else can do. The address is the one you reached this site on — the same program serves every site, and the address is the whole of the difference."
 #~ msgstr "Everything this panel does, something else can do. The address is the one you reached this site on — the same program serves every site, and the address is the whole of the difference."
 
-#: src/features/integrations/api-page.tsx:112
+#: src/features/integrations/api-page.tsx:121
 msgid "Everything this panel does, something else can do. The address is the one you reached this site on."
 msgstr "Everything this panel does, something else can do. The address is the one you reached this site on."
 
@@ -4115,7 +4115,7 @@ msgstr "Everything this panel does, something else can do. The address is the on
 #~ msgid "Everything this site adds up to, and how the last {days} days went."
 #~ msgstr "Everything this site adds up to, and how the last {days} days went."
 
-#: src/features/dashboard/home-page.tsx:57
+#: src/features/dashboard/home-page.tsx:87
 msgid "Everything this site adds up to."
 msgstr "Everything this site adds up to."
 
@@ -4136,7 +4136,12 @@ msgstr "Everything this site adds up to."
 msgid "Excerpt"
 msgstr "Excerpt"
 
-#: src/features/portability/portable-page.tsx:82
+#. placeholder {0}: new Date(key.expires_at).toLocaleString()
+#: src/features/integrations/api-page.tsx:208
+msgid "Expires {0}"
+msgstr "Expires {0}"
+
+#: src/features/portability/portable-page.tsx:84
 msgid "Export"
 msgstr "Export"
 
@@ -4185,7 +4190,7 @@ msgstr "Export"
 msgid "Fields"
 msgstr "Fields"
 
-#: src/features/governance/trash-page.tsx:63
+#: src/features/governance/trash-page.tsx:62
 msgid "file"
 msgstr "file"
 
@@ -4201,11 +4206,11 @@ msgstr "file"
 #~ msgid "Fill in the region and the keys above and save them. Everything Amazon knows about this account then appears here: how much sending is left today, whether it is still in the sandbox, which senders are verified, and how the last two weeks went."
 #~ msgstr "Fill in the region and the keys above and save them. Everything Amazon knows about this account then appears here: how much sending is left today, whether it is still in the sandbox, which senders are verified, and how the last two weeks went."
 
-#: src/features/governance/audit-page.tsx:104
+#: src/features/governance/audit-page.tsx:115
 msgid "Filter by action"
 msgstr "Filter by action"
 
-#: src/features/governance/audit-page.tsx:111
+#: src/features/governance/audit-page.tsx:122
 msgid "Filter by subject"
 msgstr "Filter by subject"
 
@@ -4231,7 +4236,7 @@ msgstr "Finished"
 #~ msgid "Finished, and it did not"
 #~ msgstr "Finished, and it did not"
 
-#: src/features/analytics/performance-page.tsx:37
+#: src/features/analytics/performance-page.tsx:44
 msgid "First byte"
 msgstr "First byte"
 
@@ -4240,8 +4245,8 @@ msgstr "First byte"
 #~ msgstr "Flood refused"
 
 #: src/features/governance/trash-page.tsx:70
-msgid "flow"
-msgstr "flow"
+#~ msgid "flow"
+#~ msgstr "flow"
 
 #: src/lib/audit-looks.ts:70
 #~ msgid "Flow removed"
@@ -4253,7 +4258,7 @@ msgstr "flow"
 
 #: src/components/dashboard/dashboard-shell.tsx:93
 #: src/features/automation/flows-page.tsx:135
-#: src/features/dashboard/home-page.tsx:102
+#: src/features/dashboard/home-page.tsx:132
 #: src/features/people/roles-page.tsx:166
 msgid "Flows"
 msgstr "Flows"
@@ -4276,7 +4281,7 @@ msgstr "Foldable details block"
 msgid "Font"
 msgstr "Font"
 
-#: src/features/integrations/api-page.tsx:156
+#: src/features/integrations/api-page.tsx:165
 msgid "For example, website assistant"
 msgstr "For example, website assistant"
 
@@ -4292,7 +4297,7 @@ msgstr "For example, website assistant"
 #~ msgid "for sale"
 #~ msgstr "for sale"
 
-#: src/features/shop/products-page.tsx:187
+#: src/features/shop/products-page.tsx:186
 msgid "For sale"
 msgstr "For sale"
 
@@ -4325,8 +4330,8 @@ msgstr "Forget it"
 #~ msgstr "Forgotten."
 
 #: src/features/governance/trash-page.tsx:64
-msgid "form"
-msgstr "form"
+#~ msgid "form"
+#~ msgstr "form"
 
 #: src/routes/dashboard.index.tsx:151
 #: src/routes/dashboard.usage.tsx:94
@@ -4344,7 +4349,7 @@ msgid "Formatting"
 msgstr "Formatting"
 
 #: src/components/dashboard/dashboard-shell.tsx:91
-#: src/features/dashboard/home-page.tsx:68
+#: src/features/dashboard/home-page.tsx:98
 #: src/features/forms/form-detail-page.tsx:126
 #: src/features/forms/forms-page.tsx:146
 #: src/features/people/roles-page.tsx:164
@@ -4424,8 +4429,8 @@ msgstr "Generate from title"
 #~ msgstr "GitHub username"
 
 #: src/features/learning/students-page.tsx:122
-#: src/features/learning/students-page.tsx:197
-#: src/features/learning/students-page.tsx:252
+#: src/features/learning/students-page.tsx:195
+#: src/features/learning/students-page.tsx:250
 msgid "Give access"
 msgstr "Give access"
 
@@ -4589,11 +4594,11 @@ msgstr "Heading 6"
 msgid "Headings you add will show up here."
 msgstr "Headings you add will show up here."
 
-#: src/components/dashboard/address-health.tsx:40
+#: src/components/dashboard/address-health.tsx:36
 msgid "Health"
 msgstr "Health"
 
-#: src/components/dashboard/address-health.tsx:48
+#: src/components/dashboard/address-health.tsx:42
 msgid "Healthy"
 msgstr "Healthy"
 
@@ -4667,11 +4672,11 @@ msgstr "Home"
 #~ msgid "How many left"
 #~ msgstr "How many left"
 
-#: src/features/shop/coupons-page.tsx:210
+#: src/features/shop/coupons-page.tsx:207
 msgid "How many percent"
 msgstr "How many percent"
 
-#: src/features/shop/products-page.tsx:258
+#: src/features/shop/products-page.tsx:257
 msgid "How many there are"
 msgstr "How many there are"
 
@@ -4680,7 +4685,7 @@ msgstr "How many there are"
 #~ msgid "How many to keep"
 #~ msgstr "How many to keep"
 
-#: src/features/shop/coupons-page.tsx:210
+#: src/features/shop/coupons-page.tsx:207
 msgid "How much"
 msgstr "How much"
 
@@ -4746,7 +4751,7 @@ msgstr "How to send to it"
 msgid "I have forgotten my password"
 msgstr "I have forgotten my password"
 
-#: src/components/report-a-problem.tsx:63
+#: src/components/report-a-problem.tsx:62
 msgid "I would like something"
 msgstr "I would like something"
 
@@ -4783,7 +4788,7 @@ msgid "Image address"
 msgstr "Image address"
 
 #: src/components/editor/dialogs.tsx:483
-#: src/features/portability/portable-page.tsx:101
+#: src/features/portability/portable-page.tsx:103
 msgid "Import"
 msgstr "Import"
 
@@ -4797,11 +4802,11 @@ msgstr "Import / export"
 #~ msgstr "Import an archive"
 
 #: src/components/dashboard/dashboard-shell.tsx:115
-#: src/features/portability/portable-page.tsx:74
+#: src/features/portability/portable-page.tsx:76
 msgid "Import and export"
 msgstr "Import and export"
 
-#: src/features/portability/portable-page.tsx:129
+#: src/features/portability/portable-page.tsx:131
 msgid "Import complete"
 msgstr "Import complete"
 
@@ -4813,11 +4818,11 @@ msgstr "Import complete"
 #~ msgid "Import this archive?"
 #~ msgstr "Import this archive?"
 
-#: src/features/shop/products-page.tsx:236
+#: src/features/shop/products-page.tsx:235
 msgid "In"
 msgstr "In"
 
-#: src/components/report-a-problem.tsx:172
+#: src/components/report-a-problem.tsx:165
 msgid "In a line"
 msgstr "In a line"
 
@@ -4947,11 +4952,11 @@ msgstr "Insights"
 #~ msgstr "is exactly"
 
 #: src/components/dashboard/address-health.tsx:48
-msgid "Issue"
-msgstr "Issue"
+#~ msgid "Issue"
+#~ msgstr "Issue"
 
-#: src/features/analytics/usage-page.tsx:74
-#: src/features/dashboard/home-page.tsx:110
+#: src/features/analytics/usage-page.tsx:90
+#: src/features/dashboard/home-page.tsx:140
 msgid "issues found"
 msgstr "issues found"
 
@@ -4970,14 +4975,19 @@ msgstr "issues found"
 
 #. placeholder {0}: letter.names.map((name) => `{${name}}`).join(", ")
 #: src/features/mail/letters-page.tsx:204
-msgid "It can name: {0}"
-msgstr "It can name: {0}"
+#~ msgid "It can name: {0}"
+#~ msgstr "It can name: {0}"
 
 #: src/components/assistant-connection.tsx:150
 #~ msgid "It can then do what you can"
 #~ msgstr "It can then do what you can"
 
-#: src/components/report-a-problem.tsx:62
+#. placeholder {0}: letter.variables.map((name) => `{${name}}`).join(", ")
+#: src/features/mail/letters-page.tsx:173
+msgid "It can use: {0}"
+msgstr "It can use: {0}"
+
+#: src/components/report-a-problem.tsx:61
 msgid "It cannot do something I need"
 msgstr "It cannot do something I need"
 
@@ -5096,7 +5106,7 @@ msgstr "Italic"
 #~ msgid "Its address"
 #~ msgstr "Its address"
 
-#: src/features/boards/boards-page.tsx:230
+#: src/features/boards/boards-page.tsx:241
 msgid "Its cards go with it."
 msgstr "Its cards go with it."
 
@@ -5209,7 +5219,7 @@ msgstr "Language"
 
 #: src/components/dashboard/dashboard-shell.tsx:109
 #: src/features/content/languages-page.tsx:95
-#: src/features/portability/portable-page.tsx:133
+#: src/features/portability/portable-page.tsx:135
 msgid "Languages"
 msgstr "Languages"
 
@@ -5221,7 +5231,7 @@ msgstr "Large section heading"
 #~ msgid "Larger comes first"
 #~ msgstr "Larger comes first"
 
-#: src/features/analytics/performance-page.tsx:34
+#: src/features/analytics/performance-page.tsx:41
 msgid "Largest paint"
 msgstr "Largest paint"
 
@@ -5251,14 +5261,14 @@ msgstr "Largest paint"
 
 #. placeholder {0}: new Date(key.last_seen_at).toLocaleString()
 #: src/features/integrations/api-page.tsx:197
-msgid "Last used {0}"
-msgstr "Last used {0}"
+#~ msgid "Last used {0}"
+#~ msgstr "Last used {0}"
 
 #: src/routes/dashboard.flows.tsx:228
 #~ msgid "Lately"
 #~ msgstr "Lately"
 
-#: src/features/analytics/performance-page.tsx:35
+#: src/features/analytics/performance-page.tsx:42
 msgid "Layout shift"
 msgstr "Layout shift"
 
@@ -5266,7 +5276,7 @@ msgstr "Layout shift"
 msgid "Learning"
 msgstr "Learning"
 
-#: src/features/dashboard/home-page.tsx:92
+#: src/features/dashboard/home-page.tsx:122
 msgid "learning here"
 msgstr "learning here"
 
@@ -5311,7 +5321,7 @@ msgstr "Leave empty to clear it. This is the public origin used in generated lin
 #~ msgid "Leaving the sandbox is the first increase. This is the one after it — Amazon treats it as a support request, and this opens one in the same words its console would."
 #~ msgstr "Leaving the sandbox is the first increase. This is the one after it — Amazon treats it as a support request, and this opens one in the same words its console would."
 
-#: src/features/shop/products-page.tsx:169
+#: src/features/shop/products-page.tsx:168
 msgid "Left"
 msgstr "Left"
 
@@ -5356,7 +5366,7 @@ msgstr "Let back in"
 #~ msgstr "Letterhead"
 
 #: src/components/dashboard/dashboard-shell.tsx:98
-#: src/features/mail/letters-page.tsx:111
+#: src/features/mail/letters-page.tsx:94
 msgid "Letters"
 msgstr "Letters"
 
@@ -5412,7 +5422,7 @@ msgid "Lists"
 msgstr "Lists"
 
 #: src/components/dashboard/discoverability.tsx:87
-#: src/features/design/publish-page.tsx:38
+#: src/features/design/publish-page.tsx:39
 msgid "Live"
 msgstr "Live"
 
@@ -5437,8 +5447,8 @@ msgstr "Long text"
 #~ msgstr "Look"
 
 #: src/features/design/design-page.tsx:73
-msgid "Look at it"
-msgstr "Look at it"
+#~ msgid "Look at it"
+#~ msgstr "Look at it"
 
 #: src/components/editor/post-settings.tsx:188
 #~ msgid "Look at it first"
@@ -5475,7 +5485,7 @@ msgstr "Look in your email"
 
 #: src/components/dashboard/dashboard-shell.tsx:92
 #: src/features/mail/campaign-page.tsx:23
-#: src/features/mail/mail-page.tsx:147
+#: src/features/mail/mail-page.tsx:166
 #: src/features/people/roles-page.tsx:165
 msgid "Mail"
 msgstr "Mail"
@@ -5509,11 +5519,11 @@ msgstr "Mail sendings are processed in the background directly from your lists."
 #~ msgid "mailing list"
 #~ msgstr "mailing list"
 
-#: src/features/dashboard/home-page.tsx:75
+#: src/features/dashboard/home-page.tsx:105
 msgid "Mailing list"
 msgstr "Mailing list"
 
-#: src/features/integrations/api-page.tsx:162
+#: src/features/integrations/api-page.tsx:171
 msgid "Make a key"
 msgstr "Make a key"
 
@@ -5541,15 +5551,15 @@ msgstr "Make a role, then tick what it may do below."
 msgid "Make default"
 msgstr "Make default"
 
-#: src/features/automation/flows-page.tsx:333
-#: src/features/boards/boards-page.tsx:216
-#: src/features/mail/mail-page.tsx:283
+#: src/features/automation/flows-page.tsx:332
+#: src/features/boards/boards-page.tsx:227
+#: src/features/mail/mail-page.tsx:302
 #: src/features/people/roles-page.tsx:455
-#: src/features/shop/products-page.tsx:277
+#: src/features/shop/products-page.tsx:276
 msgid "Make it"
 msgstr "Make it"
 
-#: src/features/integrations/api-page.tsx:184
+#: src/features/integrations/api-page.tsx:193
 msgid "Make one when a terminal or deployment needs a non-browser connection."
 msgstr "Make one when a terminal or deployment needs a non-browser connection."
 
@@ -5614,8 +5624,8 @@ msgstr "Mavi CMS"
 #~ msgid "Mavi CMS needs a database to store your site."
 #~ msgstr "Mavi CMS needs a database to store your site."
 
-#. placeholder {0}: row.at_most_uses
-#: src/features/shop/coupons-page.tsx:108
+#. placeholder {0}: row.max_uses
+#: src/features/shop/coupons-page.tsx:105
 msgid "max {0} uses"
 msgstr "max {0} uses"
 
@@ -5635,7 +5645,7 @@ msgstr "max {0} uses"
 #~ msgid "Measured months"
 #~ msgstr "Measured months"
 
-#: src/features/analytics/performance-page.tsx:57
+#: src/features/analytics/performance-page.tsx:65
 msgid "Measurements"
 msgstr "Measurements"
 
@@ -5649,7 +5659,7 @@ msgstr "Media"
 msgid "Media library"
 msgstr "Media library"
 
-#: src/features/analytics/performance-page.tsx:72
+#: src/features/analytics/performance-page.tsx:80
 msgid "Median"
 msgstr "Median"
 
@@ -5691,7 +5701,7 @@ msgstr "Merge cells"
 #~ msgid "Method"
 #~ msgstr "Method"
 
-#: src/features/analytics/performance-page.tsx:71
+#: src/features/analytics/performance-page.tsx:79
 msgid "Metric"
 msgstr "Metric"
 
@@ -5727,7 +5737,7 @@ msgstr "More than a line"
 #~ msgid "More than one"
 #~ msgstr "More than one"
 
-#: src/features/boards/board-page.tsx:117
+#: src/features/boards/board-page.tsx:126
 msgid "Move cards through the stages of this board."
 msgstr "Move cards through the stages of this board."
 
@@ -5740,7 +5750,7 @@ msgstr "Move cards through the stages of this board."
 #~ msgid "Move it"
 #~ msgstr "Move it"
 
-#: src/features/portability/portable-page.tsx:75
+#: src/features/portability/portable-page.tsx:77
 msgid "Move the supported site content as a versioned JSON bundle. Accounts, uploads, orders, and secrets stay out of the file."
 msgstr "Move the supported site content as a versioned JSON bundle. Accounts, uploads, orders, and secrets stay out of the file."
 
@@ -5785,8 +5795,8 @@ msgstr "My courses"
 #: src/features/content/languages-page.tsx:115
 #: src/features/forms/forms-page.tsx:158
 #: src/features/forms/forms-page.tsx:243
-#: src/features/integrations/api-page.tsx:152
-#: src/features/learning/students-page.tsx:216
+#: src/features/integrations/api-page.tsx:161
+#: src/features/learning/students-page.tsx:214
 #: src/features/people/people-page.tsx:290
 msgid "Name"
 msgstr "Name"
@@ -5865,8 +5875,8 @@ msgstr "New {0}"
 msgid "New {one}"
 msgstr "New {one}"
 
-#: src/features/boards/boards-page.tsx:110
-#: src/features/boards/boards-page.tsx:124
+#: src/features/boards/boards-page.tsx:121
+#: src/features/boards/boards-page.tsx:135
 msgid "New board"
 msgstr "New board"
 
@@ -5880,8 +5890,8 @@ msgstr "New board"
 msgid "New category"
 msgstr "New category"
 
-#: src/features/shop/coupons-page.tsx:77
-#: src/features/shop/coupons-page.tsx:91
+#: src/features/shop/coupons-page.tsx:75
+#: src/features/shop/coupons-page.tsx:89
 msgid "New code"
 msgstr "New code"
 
@@ -5899,7 +5909,7 @@ msgstr "New form"
 #~ msgid "New lesson"
 #~ msgstr "New lesson"
 
-#: src/features/mail/mail-page.tsx:162
+#: src/features/mail/mail-page.tsx:181
 msgid "New list"
 msgstr "New list"
 
@@ -5907,8 +5917,8 @@ msgstr "New list"
 #~ msgid "New password"
 #~ msgstr "New password"
 
-#: src/features/shop/products-page.tsx:128
-#: src/features/shop/products-page.tsx:142
+#: src/features/shop/products-page.tsx:127
+#: src/features/shop/products-page.tsx:141
 msgid "New product"
 msgstr "New product"
 
@@ -6015,7 +6025,7 @@ msgstr "No accounts yet."
 #~ msgid "No Amazon account needed. Up to {aDay} messages a day, from your own domain."
 #~ msgstr "No Amazon account needed. Up to {aDay} messages a day, from your own domain."
 
-#: src/features/integrations/api-page.tsx:183
+#: src/features/integrations/api-page.tsx:192
 msgid "No assistant keys yet."
 msgstr "No assistant keys yet."
 
@@ -6031,7 +6041,7 @@ msgstr "No assistant keys yet."
 #~ msgid "No boards yet — which is right for most sites. Make one when something that arrives needs more than reading."
 #~ msgstr "No boards yet — which is right for most sites. Make one when something that arrives needs more than reading."
 
-#: src/features/boards/boards-page.tsx:120
+#: src/features/boards/boards-page.tsx:131
 msgid "No boards yet."
 msgstr "No boards yet."
 
@@ -6051,7 +6061,7 @@ msgstr "No categories yet"
 msgid "No categories yet."
 msgstr "No categories yet."
 
-#: src/features/shop/coupons-page.tsx:87
+#: src/features/shop/coupons-page.tsx:85
 msgid "No codes yet."
 msgstr "No codes yet."
 
@@ -6112,7 +6122,7 @@ msgstr "No languages yet"
 msgid "No lessons in it yet."
 msgstr "No lessons in it yet."
 
-#: src/features/mail/letters-page.tsx:141
+#: src/features/mail/letters-page.tsx:124
 msgid "No letters yet."
 msgstr "No letters yet."
 
@@ -6128,7 +6138,7 @@ msgstr "No letters yet."
 #~ msgid "No lists yet — make one first."
 #~ msgstr "No lists yet — make one first."
 
-#: src/features/mail/mail-page.tsx:177
+#: src/features/mail/mail-page.tsx:196
 msgid "No lists yet."
 msgstr "No lists yet."
 
@@ -6263,7 +6273,7 @@ msgstr "No videos yet."
 #~ msgid "nobody invited yet"
 #~ msgstr "nobody invited yet"
 
-#: src/features/mail/mail-page.tsx:237
+#: src/features/mail/mail-page.tsx:256
 msgid "Nobody on it yet."
 msgstr "Nobody on it yet."
 
@@ -6311,7 +6321,7 @@ msgstr "Not chosen"
 #~ msgid "Not everything"
 #~ msgstr "Not everything"
 
-#: src/features/shop/products-page.tsx:187
+#: src/features/shop/products-page.tsx:186
 msgid "Not for sale"
 msgstr "Not for sale"
 
@@ -6357,8 +6367,8 @@ msgstr "Not for sale"
 #~ msgstr "Not started yet"
 
 #: src/features/integrations/api-page.tsx:198
-msgid "Not used yet"
-msgstr "Not used yet"
+#~ msgid "Not used yet"
+#~ msgstr "Not used yet"
 
 #: src/routes/dashboard.platform-mail.tsx:207
 #~ msgid "Not using the service"
@@ -6408,7 +6418,7 @@ msgstr "Nothing counted yet. Numbers appear as soon as the published site has a 
 #~ msgid "Nothing else. Accounts, credentials, backups, how the site is built and sending a mailing are deliberately not here — nor is deleting a post or a file. Those stay things a person does in this panel."
 #~ msgstr "Nothing else. Accounts, credentials, backups, how the site is built and sending a mailing are deliberately not here — nor is deleting a post or a file. Those stay things a person does in this panel."
 
-#: src/features/shop/products-page.tsx:138
+#: src/features/shop/products-page.tsx:137
 msgid "Nothing for sale yet."
 msgstr "Nothing for sale yet."
 
@@ -6422,7 +6432,7 @@ msgstr "Nothing for sale yet."
 #~ msgid "Nothing has been charged yet."
 #~ msgstr "Nothing has been charged yet."
 
-#: src/features/governance/trash-page.tsx:128
+#: src/features/governance/trash-page.tsx:123
 msgid "Nothing has been deleted"
 msgstr "Nothing has been deleted"
 
@@ -6438,7 +6448,7 @@ msgstr "Nothing has been deleted"
 #~ msgid "Nothing has been moved yet."
 #~ msgstr "Nothing has been moved yet."
 
-#: src/features/design/publish-page.tsx:53
+#: src/features/design/publish-page.tsx:54
 msgid "Nothing has been published yet."
 msgstr "Nothing has been published yet."
 
@@ -6458,7 +6468,7 @@ msgstr "Nothing has come in yet"
 #~ msgid "Nothing has happened yet."
 #~ msgstr "Nothing has happened yet."
 
-#: src/features/governance/audit-page.tsx:124
+#: src/features/governance/audit-page.tsx:135
 msgid "Nothing here yet."
 msgstr "Nothing here yet."
 
@@ -6506,7 +6516,7 @@ msgstr "Nothing in it yet."
 #~ msgid "Nothing measured yet. Months are measured and billed automatically; your margin from Payments goes on top."
 #~ msgstr "Nothing measured yet. Months are measured and billed automatically; your margin from Payments goes on top."
 
-#: src/features/analytics/performance-page.tsx:52
+#: src/features/analytics/performance-page.tsx:60
 msgid "Nothing measured yet. Numbers appear once real visitors reach the published site."
 msgstr "Nothing measured yet. Numbers appear once real visitors reach the published site."
 
@@ -6584,16 +6594,16 @@ msgstr "Nothing uploaded yet."
 
 #. placeholder {0}: named.field
 #: src/lib/v1-said.ts:44
-msgid "Nothing was declared called {0}, so nothing can be asked about it."
-msgstr "Nothing was declared called {0}, so nothing can be asked about it."
+#~ msgid "Nothing was declared called {0}, so nothing can be asked about it."
+#~ msgstr "Nothing was declared called {0}, so nothing can be asked about it."
 
 #: src/routes/dashboard.boards_.$boardId.tsx:400
 #~ msgid "Nothing was marked as a name or an address on the form this came from."
 #~ msgstr "Nothing was marked as a name or an address on the form this came from."
 
 #: src/features/portability/portable-page.tsx:130
-msgid "Nothing was overwritten"
-msgstr "Nothing was overwritten"
+#~ msgid "Nothing was overwritten"
+#~ msgstr "Nothing was overwritten"
 
 #: src/components/dashboard/server-home.tsx:189
 #~ msgid "Nothing written on any site yet"
@@ -6604,7 +6614,7 @@ msgstr "Nothing was overwritten"
 #~ msgid "Nothing written yet"
 #~ msgstr "Nothing written yet"
 
-#: src/features/design/design-page.tsx:224
+#: src/features/design/design-page.tsx:219
 msgid "Nothing written yet."
 msgstr "Nothing written yet."
 
@@ -6688,7 +6698,7 @@ msgstr "Numbered list"
 #~ msgid "Off while you are testing. A test key and a live key look alike, and this is the field that says which one you meant."
 #~ msgstr "Off while you are testing. A test key and a live key look alike, and this is the field that says which one you meant."
 
-#: src/features/governance/audit-page.tsx:143
+#: src/features/governance/audit-page.tsx:154
 msgid "Older"
 msgstr "Older"
 
@@ -7033,12 +7043,12 @@ msgstr "Order #{0}"
 #~ msgstr "Order received"
 
 #: src/components/dashboard/dashboard-shell.tsx:96
-#: src/features/dashboard/home-page.tsx:96
+#: src/features/dashboard/home-page.tsx:126
 #: src/features/shop/orders-page.tsx:136
 msgid "Orders"
 msgstr "Orders"
 
-#: src/features/dashboard/home-page.tsx:98
+#: src/features/dashboard/home-page.tsx:128
 msgid "orders placed"
 msgstr "orders placed"
 
@@ -7076,7 +7086,7 @@ msgstr "Organize content into a hierarchy that is easy to browse."
 #~ msgstr "over {0} days"
 
 #: src/components/dashboard/dashboard-shell.tsx:79
-#: src/features/dashboard/home-page.tsx:56
+#: src/features/dashboard/home-page.tsx:86
 msgid "Overview"
 msgstr "Overview"
 
@@ -7100,7 +7110,7 @@ msgstr "Owner"
 #~ msgid "page"
 #~ msgstr "page"
 
-#: src/features/analytics/performance-page.tsx:70
+#: src/features/analytics/performance-page.tsx:78
 #: src/lib/use-content-types.ts:73
 msgid "Page"
 msgstr "Page"
@@ -7114,7 +7124,7 @@ msgstr "Page views"
 msgid "Pages"
 msgstr "Pages"
 
-#: src/features/analytics/performance-page.tsx:59
+#: src/features/analytics/performance-page.tsx:67
 msgid "Pages measured"
 msgstr "Pages measured"
 
@@ -7156,7 +7166,7 @@ msgstr "Password"
 #~ msgid "Password link"
 #~ msgstr "Password link"
 
-#: src/features/governance/audit-page.tsx:150
+#: src/features/governance/audit-page.tsx:161
 msgid "Passwords, keys and tokens are never written here — an entry says a key was replaced, not what it was replaced with."
 msgstr "Passwords, keys and tokens are never written here — an entry says a key was replaced, not what it was replaced with."
 
@@ -7226,7 +7236,7 @@ msgstr "Paste the video link."
 msgid "People"
 msgstr "People"
 
-#: src/features/mail/mail-page.tsx:261
+#: src/features/mail/mail-page.tsx:280
 msgid "People join it from your own pages, and leave it from any letter this site sends."
 msgstr "People join it from your own pages, and leave it from any letter this site sends."
 
@@ -7243,7 +7253,7 @@ msgstr "People join it from your own pages, and leave it from any letter this si
 #~ msgstr "Per GB stored, monthly"
 
 #: src/components/dashboard/dashboard-shell.tsx:82
-#: src/features/analytics/performance-page.tsx:46
+#: src/features/analytics/performance-page.tsx:54
 msgid "Performance"
 msgstr "Performance"
 
@@ -7340,7 +7350,7 @@ msgstr "Plain text block"
 #~ msgstr "Port"
 
 #: src/components/dashboard/dashboard-shell.tsx:74
-#: src/features/governance/trash-page.tsx:62
+#: src/features/governance/trash-page.tsx:61
 msgid "post"
 msgstr "post"
 
@@ -7430,11 +7440,11 @@ msgid "Private"
 msgstr "Private"
 
 #: src/features/governance/trash-page.tsx:66
-msgid "product"
-msgstr "product"
+#~ msgid "product"
+#~ msgstr "product"
 
 #: src/components/dashboard/dashboard-shell.tsx:95
-#: src/features/shop/products-page.tsx:124
+#: src/features/shop/products-page.tsx:123
 msgid "Products"
 msgstr "Products"
 
@@ -7452,8 +7462,8 @@ msgstr "Public identity"
 
 #: src/components/dashboard/dashboard-shell.tsx:117
 #: src/components/editor/mavi-editor.tsx:726
-#: src/features/design/design-page.tsx:89
-#: src/features/design/publish-page.tsx:44
+#: src/features/design/design-page.tsx:78
+#: src/features/design/publish-page.tsx:45
 #: src/features/people/roles-page.tsx:171
 msgid "Publish"
 msgstr "Publish"
@@ -7527,8 +7537,7 @@ msgstr "Put a token where the … is. It is shown once, when you make it."
 #~ msgid "Put answers on a board"
 #~ msgstr "Put answers on a board"
 
-#: src/features/governance/trash-page.tsx:150
-#: src/features/mail/letters-page.tsx:171
+#: src/features/governance/trash-page.tsx:145
 msgid "Put it back"
 msgstr "Put it back"
 
@@ -7540,7 +7549,7 @@ msgstr "Put it back"
 #~ msgid "Queue"
 #~ msgstr "Queue"
 
-#: src/features/analytics/usage-page.tsx:72
+#: src/features/analytics/usage-page.tsx:88
 msgid "Queue issues"
 msgstr "Queue issues"
 
@@ -7572,7 +7581,7 @@ msgstr "Reaches nothing"
 msgid "Read"
 msgstr "Read"
 
-#: src/features/portability/portable-page.tsx:104
+#: src/features/portability/portable-page.tsx:106
 msgid "Read a bundle from another site. Existing content is left alone; only valid, new records are added."
 msgstr "Read a bundle from another site. Existing content is left alone; only valid, new records are added."
 
@@ -7598,7 +7607,7 @@ msgstr "Read a bundle from another site. Existing content is left alone; only va
 #~ msgid "Read this before offering the theme. A package that quietly left half a site behind looks exactly like one that did not."
 #~ msgstr "Read this before offering the theme. A package that quietly left half a site behind looks exactly like one that did not."
 
-#: src/features/integrations/api-page.tsx:118
+#: src/features/integrations/api-page.tsx:127
 msgid "Read without an account: what is published, and nothing else."
 msgstr "Read without an account: what is published, and nothing else."
 
@@ -7606,7 +7615,7 @@ msgstr "Read without an account: what is published, and nothing else."
 #~ msgid "Read-only access to the contents of the repositories you build, and nothing else. It is stored encrypted and never shown again."
 #~ msgstr "Read-only access to the contents of the repositories you build, and nothing else. It is stored encrypted and never shown again."
 
-#: src/features/analytics/usage-page.tsx:70
+#: src/features/analytics/usage-page.tsx:86
 msgid "Readers"
 msgstr "Readers"
 
@@ -7614,7 +7623,7 @@ msgstr "Readers"
 #~ msgid "Readers can leave comments"
 #~ msgstr "Readers can leave comments"
 
-#: src/features/dashboard/home-page.tsx:77
+#: src/features/dashboard/home-page.tsx:107
 msgid "readers reached"
 msgstr "readers reached"
 
@@ -7638,7 +7647,7 @@ msgstr "readers reached"
 #~ msgid "Ready to be fetched"
 #~ msgstr "Ready to be fetched"
 
-#: src/features/design/publish-page.tsx:36
+#: src/features/design/publish-page.tsx:37
 msgid "Ready to preview"
 msgstr "Ready to preview"
 
@@ -7655,7 +7664,7 @@ msgstr "Ready to preview"
 #~ msgstr "Recommended"
 
 #: src/components/dashboard/dashboard-shell.tsx:105
-#: src/features/governance/audit-page.tsx:87
+#: src/features/governance/audit-page.tsx:90
 #: src/features/people/roles-page.tsx:174
 msgid "Record"
 msgstr "Record"
@@ -7721,15 +7730,20 @@ msgstr "Regular expression"
 #~ msgid "Rehearsed — nothing was sent"
 #~ msgstr "Rehearsed — nothing was sent"
 
+#. placeholder {0}: manifest.release
+#: src/components/dashboard/address-health.tsx:45
+msgid "Release {0}"
+msgstr "Release {0}"
+
 #: src/components/dashboard/content-type-editor.tsx:211
 #: src/components/editor/bubble-menus.tsx:201
 #: src/components/editor/bubble-menus.tsx:282
 #: src/features/automation/flows-page.tsx:181
-#: src/features/automation/flows-page.tsx:299
-#: src/features/boards/board-page.tsx:153
-#: src/features/boards/boards-page.tsx:143
-#: src/features/boards/boards-page.tsx:190
-#: src/features/boards/boards-page.tsx:236
+#: src/features/automation/flows-page.tsx:298
+#: src/features/boards/board-page.tsx:162
+#: src/features/boards/boards-page.tsx:154
+#: src/features/boards/boards-page.tsx:201
+#: src/features/boards/boards-page.tsx:247
 #: src/features/content/content-types-page.tsx:108
 #: src/features/content/languages-page.tsx:189
 #: src/features/forms/form-detail-page.tsx:197
@@ -7741,7 +7755,7 @@ msgstr "Regular expression"
 #: src/features/media/videos-page.tsx:122
 #: src/features/people/people-page.tsx:256
 #: src/features/people/people-page.tsx:366
-#: src/features/shop/coupons-page.tsx:122
+#: src/features/shop/coupons-page.tsx:119
 #: src/features/taxonomy/tags-page.tsx:243
 msgid "Remove"
 msgstr "Remove"
@@ -7773,7 +7787,7 @@ msgstr "Remove link"
 #~ msgid "Remove stage"
 #~ msgstr "Remove stage"
 
-#: src/components/report-a-problem.tsx:205
+#: src/components/report-a-problem.tsx:198
 msgid "Remove the picture"
 msgstr "Remove the picture"
 
@@ -7781,7 +7795,7 @@ msgstr "Remove the picture"
 msgid "Remove this account?"
 msgstr "Remove this account?"
 
-#: src/features/boards/boards-page.tsx:228
+#: src/features/boards/boards-page.tsx:239
 msgid "Remove this board?"
 msgstr "Remove this board?"
 
@@ -7852,7 +7866,7 @@ msgstr "Replace…"
 
 #: src/components/dashboard/dashboard-header.tsx:67
 #: src/components/dashboard/dashboard-header.tsx:68
-#: src/components/report-a-problem.tsx:119
+#: src/components/report-a-problem.tsx:112
 msgid "Report a problem"
 msgstr "Report a problem"
 
@@ -7897,7 +7911,7 @@ msgstr "Report a problem"
 #~ msgid "Reset a password"
 #~ msgstr "Reset a password"
 
-#: src/features/analytics/performance-page.tsx:36
+#: src/features/analytics/performance-page.tsx:43
 msgid "Responds to input"
 msgstr "Responds to input"
 
@@ -7926,6 +7940,15 @@ msgstr "Responds to input"
 #: src/routes/dashboard.themes.tsx:411
 #~ msgid "Retired"
 #~ msgstr "Retired"
+
+#: src/features/portability/portable-page.tsx:138
+msgid "Revisions"
+msgstr "Revisions"
+
+#. placeholder {0}: new Date(key.revoked_at).toLocaleString()
+#: src/features/integrations/api-page.tsx:206
+msgid "Revoked {0}"
+msgstr "Revoked {0}"
 
 #: src/routes/dashboard.visitors.tsx:94
 #~ msgid "Right now"
@@ -7981,6 +8004,11 @@ msgstr "Run this. It notices that the address asks for a sign-in and opens one."
 #~ msgid "Running since {0}."
 #~ msgstr "Running since {0}."
 
+#. placeholder {0}: manifest.runtime_mode
+#: src/components/dashboard/address-health.tsx:41
+msgid "Runtime {0}"
+msgstr "Runtime {0}"
+
 #: src/components/plugin-forms.tsx:195
 #: src/components/plugin-forms.tsx:208
 #: src/routes/dashboard.plugins_.backup.tsx:365
@@ -8005,7 +8033,7 @@ msgstr "Run this. It notices that the address asks for a sign-in and opens one."
 #~ msgid "Said"
 #~ msgstr "Said"
 
-#: src/components/report-a-problem.tsx:105
+#: src/components/report-a-problem.tsx:102
 msgid "Said. Whoever runs this machine can see it."
 msgstr "Said. Whoever runs this machine can see it."
 
@@ -8013,7 +8041,7 @@ msgstr "Said. Whoever runs this machine can see it."
 #~ msgid "Said. Whoever runs this server can see it."
 #~ msgstr "Said. Whoever runs this server can see it."
 
-#: src/features/analytics/performance-page.tsx:74
+#: src/features/analytics/performance-page.tsx:82
 msgid "Samples"
 msgstr "Samples"
 
@@ -8024,11 +8052,11 @@ msgstr "Samples"
 #: src/components/dashboard/content-type-editor.tsx:226
 #: src/components/editor/mavi-editor.tsx:719
 #: src/components/editor/mavi-editor.tsx:723
-#: src/features/design/design-page.tsx:211
-#: src/features/design/design-page.tsx:265
+#: src/features/design/design-page.tsx:206
+#: src/features/design/design-page.tsx:260
 #: src/features/forms/forms-page.tsx:310
-#: src/features/mail/letters-page.tsx:214
-#: src/features/shop/coupons-page.tsx:247
+#: src/features/mail/letters-page.tsx:183
+#: src/features/shop/coupons-page.tsx:244
 #: src/features/taxonomy/categories-page.tsx:281
 #: src/features/taxonomy/tags-page.tsx:181
 msgid "Save"
@@ -8078,7 +8106,7 @@ msgstr "Save settings"
 #: src/features/forms/forms-page.tsx:106
 #: src/features/mail/letters-page.tsx:83
 #: src/features/settings/settings-page.tsx:54
-#: src/features/shop/coupons-page.tsx:165
+#: src/features/shop/coupons-page.tsx:162
 msgid "Saved"
 msgstr "Saved"
 
@@ -8091,7 +8119,7 @@ msgstr "Saved at {0}"
 #~ msgid "Saved to the draft."
 #~ msgstr "Saved to the draft."
 
-#: src/features/design/design-page.tsx:163
+#: src/features/design/design-page.tsx:158
 msgid "Saved."
 msgstr "Saved."
 
@@ -8120,7 +8148,7 @@ msgstr "Say the money for this order has arrived? The record will say you said s
 msgid "Say what a form accepts here, then have your own pages post to it. What it does not accept is refused rather than kept."
 msgstr "Say what a form accepts here, then have your own pages post to it. What it does not accept is refused rather than kept."
 
-#: src/components/report-a-problem.tsx:127
+#: src/components/report-a-problem.tsx:120
 msgid "Say what happened"
 msgstr "Say what happened"
 
@@ -8214,7 +8242,7 @@ msgstr "Section title"
 msgid "See {0}"
 msgstr "See {0}"
 
-#: src/features/analytics/performance-page.tsx:47
+#: src/features/analytics/performance-page.tsx:55
 msgid "See how quickly the published site responds for real visitors."
 msgstr "See how quickly the published site responds for real visitors."
 
@@ -8242,8 +8270,8 @@ msgstr "Select all"
 #~ msgid "Select your language"
 #~ msgstr "Select your language"
 
-#: src/components/report-a-problem.tsx:243
-#: src/features/mail/mail-page.tsx:347
+#: src/components/report-a-problem.tsx:236
+#: src/features/mail/mail-page.tsx:366
 msgid "Send"
 msgstr "Send"
 
@@ -8281,8 +8309,8 @@ msgstr "Send"
 #~ msgid "Send mail through SES"
 #~ msgstr "Send mail through SES"
 
-#: src/features/mail/mail-page.tsx:159
-#: src/features/mail/mail-page.tsx:292
+#: src/features/mail/mail-page.tsx:178
+#: src/features/mail/mail-page.tsx:311
 msgid "Send message"
 msgstr "Send message"
 
@@ -8399,7 +8427,7 @@ msgstr "Sent"
 #~ msgid "Sent to {0}"
 #~ msgstr "Sent to {0}"
 
-#: src/features/mail/mail-page.tsx:135
+#: src/features/mail/mail-page.tsx:154
 msgid "Sent to the list."
 msgstr "Sent to the list."
 
@@ -8739,7 +8767,7 @@ msgstr "Small section heading"
 #~ msgid "Somebody signing in with an account somewhere else. The address that comes back has to be one this site already knows: this adds a way in for an account, never an account."
 #~ msgstr "Somebody signing in with an account somewhere else. The address that comes back has to be one this site already knows: this adds a way in for an account, never an account."
 
-#: src/features/mail/mail-page.tsx:213
+#: src/features/mail/mail-page.tsx:232
 msgid "somebody@example.test"
 msgstr "somebody@example.test"
 
@@ -8769,7 +8797,7 @@ msgstr "Something failed"
 #~ msgid "Something is affected right now. Work you do here is saved as usual."
 #~ msgstr "Something is affected right now. Work you do here is saved as usual."
 
-#: src/components/report-a-problem.tsx:61
+#: src/components/report-a-problem.tsx:60
 msgid "Something is broken"
 msgstr "Something is broken"
 
@@ -8778,12 +8806,11 @@ msgstr "Something is broken"
 #~ msgstr "Something is posted"
 
 #: src/lib/v1-said.ts:67
-msgid "Something went wrong."
-msgstr "Something went wrong."
+#~ msgid "Something went wrong."
+#~ msgstr "Something went wrong."
 
 #: src/lib/auth.ts:62
 #: src/lib/auth.ts:66
-#: src/lib/v1-said.ts:73
 msgid "Something went wrong. It has been written down."
 msgstr "Something went wrong. It has been written down."
 
@@ -8799,7 +8826,7 @@ msgstr "Split cell"
 #~ msgid "Stage name"
 #~ msgstr "Stage name"
 
-#: src/features/boards/boards-page.tsx:174
+#: src/features/boards/boards-page.tsx:185
 msgid "Stages"
 msgstr "Stages"
 
@@ -8896,7 +8923,7 @@ msgstr "Steps"
 #~ msgid "Storage by kind"
 #~ msgstr "Storage by kind"
 
-#: src/features/analytics/usage-page.tsx:59
+#: src/features/analytics/usage-page.tsx:75
 msgid "Storage used"
 msgstr "Storage used"
 
@@ -8904,7 +8931,7 @@ msgstr "Storage used"
 #~ msgid "Storage, mail, builds and the queue — no price anywhere on it."
 #~ msgstr "Storage, mail, builds and the queue — no price anywhere on it."
 
-#: src/features/analytics/usage-page.tsx:54
+#: src/features/analytics/usage-page.tsx:70
 msgid "Storage, writings, readers and the queue — no price anywhere on it."
 msgstr "Storage, writings, readers and the queue — no price anywhere on it."
 
@@ -8944,7 +8971,7 @@ msgstr "Strikethrough"
 #~ msgstr "Strong"
 
 #: src/components/dashboard/dashboard-shell.tsx:102
-#: src/features/dashboard/home-page.tsx:90
+#: src/features/dashboard/home-page.tsx:120
 #: src/features/learning/course-page.tsx:241
 #: src/features/learning/students-page.tsx:74
 msgid "Students"
@@ -8958,8 +8985,8 @@ msgstr "Sub-heading"
 #~ msgid "Subdomain for bounces"
 #~ msgstr "Subdomain for bounces"
 
-#: src/features/mail/letters-page.tsx:177
-#: src/features/mail/mail-page.tsx:319
+#: src/features/mail/letters-page.tsx:146
+#: src/features/mail/mail-page.tsx:338
 msgid "Subject"
 msgstr "Subject"
 
@@ -9037,7 +9064,7 @@ msgstr "switched off"
 msgid "Switched off, the form refuses what is sent to it."
 msgstr "Switched off, the form refuses what is sent to it."
 
-#: src/features/dashboard/home-page.tsx:104
+#: src/features/dashboard/home-page.tsx:134
 msgid "switched on"
 msgstr "switched on"
 
@@ -9153,8 +9180,8 @@ msgstr "Take it out"
 msgid "Take them down"
 msgstr "Take them down"
 
-#: src/features/integrations/api-page.tsx:204
-#: src/features/integrations/api-page.tsx:205
+#: src/features/integrations/api-page.tsx:215
+#: src/features/integrations/api-page.tsx:216
 msgid "Take this key back"
 msgstr "Take this key back"
 
@@ -9279,17 +9306,17 @@ msgstr "Text color"
 msgid "That email or password is not correct."
 msgstr "That email or password is not correct."
 
-#: src/features/portability/portable-page.tsx:60
+#: src/features/portability/portable-page.tsx:62
 msgid "That is not a copy of a site."
 msgstr "That is not a copy of a site."
 
-#: src/components/report-a-problem.tsx:69
+#: src/components/report-a-problem.tsx:68
 msgid "That is not a picture"
 msgstr "That is not a picture"
 
 #: src/lib/v1-said.ts:28
-msgid "That is not a sign-in we know."
-msgstr "That is not a sign-in we know."
+#~ msgid "That is not a sign-in we know."
+#~ msgstr "That is not a sign-in we know."
 
 #: src/routes/dashboard.plugins_.backup.tsx:246
 #~ msgid "That is not an archive"
@@ -9297,14 +9324,14 @@ msgstr "That is not a sign-in we know."
 
 #. placeholder {0}: named.field
 #: src/lib/v1-said.ts:42
-msgid "That is not what {0} holds."
-msgstr "That is not what {0} holds."
+#~ msgid "That is not what {0} holds."
+#~ msgstr "That is not what {0} holds."
 
 #: src/components/assistant-keys.tsx:37
 #~ msgid "That key stopped working"
 #~ msgstr "That key stopped working"
 
-#: src/components/report-a-problem.tsx:73
+#: src/components/report-a-problem.tsx:72
 msgid "That picture is larger than four megabytes"
 msgstr "That picture is larger than four megabytes"
 
@@ -9313,8 +9340,8 @@ msgstr "That picture is larger than four megabytes"
 #~ msgstr "That request could not be read"
 
 #: src/lib/v1-said.ts:35
-msgid "That request did not come from this site. Reload the page and try again."
-msgstr "That request did not come from this site. Reload the page and try again."
+#~ msgid "That request did not come from this site. Reload the page and try again."
+#~ msgstr "That request did not come from this site. Reload the page and try again."
 
 #: src/routes/dashboard.flows.tsx:950
 #~ msgid "That run"
@@ -9356,7 +9383,7 @@ msgstr "The account will no longer be able to sign in. Its content and audit his
 #~ msgid "The address it answers on"
 #~ msgstr "The address it answers on"
 
-#: src/features/shop/products-page.tsx:206
+#: src/features/shop/products-page.tsx:205
 msgid "The address it answers on is made from the name and never changes, because a front end will be asking for it."
 msgstr "The address it answers on is made from the name and never changes, because a front end will be asking for it."
 
@@ -9376,7 +9403,7 @@ msgstr "The address it answers on is made from the name and never changes, becau
 #~ msgid "The backup failed"
 #~ msgstr "The backup failed"
 
-#: src/features/governance/trash-page.tsx:124
+#: src/features/governance/trash-page.tsx:119
 msgid "The bin could not be read just now."
 msgstr "The bin could not be read just now."
 
@@ -9418,7 +9445,7 @@ msgstr "The choices, separated by commas"
 #~ msgid "The clock"
 #~ msgstr "The clock"
 
-#: src/features/shop/coupons-page.tsx:182
+#: src/features/shop/coupons-page.tsx:179
 msgid "The code"
 msgstr "The code"
 
@@ -9426,7 +9453,7 @@ msgstr "The code"
 #~ msgid "the content is on its way — within the minute"
 #~ msgstr "the content is on its way — within the minute"
 
-#: src/features/portability/portable-page.tsx:56
+#: src/features/portability/portable-page.tsx:58
 msgid "The copy was read in."
 msgstr "The copy was read in."
 
@@ -9459,7 +9486,7 @@ msgstr "The curve draws itself from the first visit on."
 #~ msgid "The faded ones need something set up first, and say what underneath."
 #~ msgstr "The faded ones need something set up first, and say what underneath."
 
-#: src/features/design/design-page.tsx:174
+#: src/features/design/design-page.tsx:169
 msgid "The files"
 msgstr "The files"
 
@@ -9475,7 +9502,7 @@ msgstr "The first account"
 #~ msgid "The first one most sites want: a contact form that emails whoever answers it."
 #~ msgstr "The first one most sites want: a contact form that emails whoever answers it."
 
-#: src/components/report-a-problem.tsx:178
+#: src/components/report-a-problem.tsx:171
 msgid "The forms screen is empty"
 msgstr "The forms screen is empty"
 
@@ -9495,15 +9522,15 @@ msgstr "The forms screen is empty"
 #~ msgid "The host is still preparing this one. It can be saved now and will play when it is done."
 #~ msgstr "The host is still preparing this one. It can be saved now and will play when it is done."
 
-#: src/features/integrations/api-page.tsx:86
+#: src/features/integrations/api-page.tsx:95
 msgid "The key was made."
 msgstr "The key was made."
 
-#: src/features/integrations/api-page.tsx:100
+#: src/features/integrations/api-page.tsx:109
 msgid "The key was taken back."
 msgstr "The key was taken back."
 
-#: src/features/integrations/api-page.tsx:179
+#: src/features/integrations/api-page.tsx:188
 msgid "The keys could not be read just now."
 msgstr "The keys could not be read just now."
 
@@ -9524,7 +9551,7 @@ msgstr "The languages your content can be written in. This is separate from the 
 #~ msgid "The last backup failed: {0}"
 #~ msgstr "The last backup failed: {0}"
 
-#: src/features/design/design-page.tsx:99
+#: src/features/design/design-page.tsx:88
 msgid "The last build did not work"
 msgstr "The last build did not work"
 
@@ -9549,7 +9576,7 @@ msgstr "The last build did not work"
 msgid "The letterhead"
 msgstr "The letterhead"
 
-#: src/features/mail/letters-page.tsx:137
+#: src/features/mail/letters-page.tsx:120
 msgid "The letters could not be read just now."
 msgstr "The letters could not be read just now."
 
@@ -9557,7 +9584,7 @@ msgstr "The letters could not be read just now."
 #~ msgid "The line under it"
 #~ msgstr "The line under it"
 
-#: src/features/mail/mail-page.tsx:148
+#: src/features/mail/mail-page.tsx:167
 msgid "The lists this site writes to, and messages sent to them."
 msgstr "The lists this site writes to, and messages sent to them."
 
@@ -9565,7 +9592,7 @@ msgstr "The lists this site writes to, and messages sent to them."
 #~ msgid "The lists this site writes to, and what it has written to them."
 #~ msgstr "The lists this site writes to, and what it has written to them."
 
-#: src/features/mail/mail-page.tsx:172
+#: src/features/mail/mail-page.tsx:191
 msgid "The mailing lists could not be read just now."
 msgstr "The mailing lists could not be read just now."
 
@@ -9593,8 +9620,8 @@ msgstr "The most common shortcuts in the editor."
 #~ msgid "The new one"
 #~ msgstr "The new one"
 
-#: src/features/analytics/usage-page.tsx:42
-#: src/features/dashboard/home-page.tsx:45
+#: src/features/analytics/usage-page.tsx:58
+#: src/features/dashboard/home-page.tsx:75
 msgid "The numbers could not be read just now."
 msgstr "The numbers could not be read just now."
 
@@ -9622,7 +9649,7 @@ msgstr "The public identity and URL settings used by this site."
 #~ msgid "The pull zone hostname is on the same tab — it looks like vz-… .b-cdn.net"
 #~ msgstr "The pull zone hostname is on the same tab — it looks like vz-… .b-cdn.net"
 
-#: src/features/governance/audit-page.tsx:121
+#: src/features/governance/audit-page.tsx:132
 msgid "The record could not be read just now."
 msgstr "The record could not be read just now."
 
@@ -9651,7 +9678,7 @@ msgstr "The same connector then works in Claude on the web, on the desktop and o
 #~ msgid "The same, with each body included."
 #~ msgstr "The same, with each body included."
 
-#: src/components/report-a-problem.tsx:199
+#: src/components/report-a-problem.tsx:192
 msgid "The screenshot you attached"
 msgstr "The screenshot you attached"
 
@@ -9663,7 +9690,7 @@ msgstr "The screenshot you attached"
 #~ msgid "The server is taking longer than expected to restart. Reload this page in a moment."
 #~ msgstr "The server is taking longer than expected to restart. Reload this page in a moment."
 
-#: src/features/integrations/api-page.tsx:170
+#: src/features/integrations/api-page.tsx:179
 msgid "The server stores only a hash. If this value is lost, revoke the key and make another."
 msgstr "The server stores only a hash. If this value is lost, revoke the key and make another."
 
@@ -9856,8 +9883,8 @@ msgstr "This address answers the Model Context Protocol, so an assistant can be 
 #~ msgstr "This course opens on {when}."
 
 #: src/lib/v1-said.ts:52
-msgid "This database holds more than one site and this version serves one. It has to be split before this version can serve it."
-msgstr "This database holds more than one site and this version serves one. It has to be split before this version can serve it."
+#~ msgid "This database holds more than one site and this version serves one. It has to be split before this version can serve it."
+#~ msgstr "This database holds more than one site and this version serves one. It has to be split before this version can serve it."
 
 #. placeholder {0}: holds.format_version
 #: src/routes/dashboard.plugins_.backup.tsx:820
@@ -9898,8 +9925,8 @@ msgstr "This is the account that runs the machine. Everybody else is invited fro
 
 #. placeholder {0}: named.field
 #: src/lib/v1-said.ts:39
-msgid "This kind of thing has no field called {0}."
-msgstr "This kind of thing has no field called {0}."
+#~ msgid "This kind of thing has no field called {0}."
+#~ msgstr "This kind of thing has no field called {0}."
 
 #: src/learn/app.tsx:308
 #~ msgid "This lesson is not open yet."
@@ -9911,8 +9938,8 @@ msgstr "This kind of thing has no field called {0}."
 
 #. placeholder {0}: named.name
 #: src/lib/v1-said.ts:46
-msgid "This letter has nothing to put where it says {{0}}."
-msgstr "This letter has nothing to put where it says {{0}}."
+#~ msgid "This letter has nothing to put where it says {{0}}."
+#~ msgstr "This letter has nothing to put where it says {{0}}."
 
 #: src/components/console/console-shell.tsx:55
 #: src/components/console/console-shell.tsx:76
@@ -9921,12 +9948,12 @@ msgstr "This letter has nothing to put where it says {{0}}."
 #~ msgstr "This machine"
 
 #: src/lib/v1-said.ts:48
-msgid "This machine already has somebody running it."
-msgstr "This machine already has somebody running it."
+#~ msgid "This machine already has somebody running it."
+#~ msgstr "This machine already has somebody running it."
 
 #: src/lib/v1-said.ts:50
-msgid "This machine has nobody running it yet. Set it up first."
-msgstr "This machine has nobody running it yet. Set it up first."
+#~ msgid "This machine has nobody running it yet. Set it up first."
+#~ msgstr "This machine has nobody running it yet. Set it up first."
 
 #: src/routes/dashboard.billing.tsx:193
 #~ msgid "This month so far"
@@ -9982,8 +10009,8 @@ msgstr "This site"
 #~ msgstr "This site already builds from a repository. Point it at the new theme instead? Its next publish will deploy the new theme."
 
 #: src/lib/v1-said.ts:57
-msgid "This site already writes in that."
-msgstr "This site already writes in that."
+#~ msgid "This site already writes in that."
+#~ msgstr "This site already writes in that."
 
 #: src/components/flows/flow-canvas.tsx:335
 #~ msgid "this site cannot send mail yet — Plugins, Amazon SES"
@@ -9993,7 +10020,7 @@ msgstr "This site already writes in that."
 #~ msgid "This site cannot send yet. Ask an administrator to switch the mail service on for this server, or connect your own Amazon SES account above."
 #~ msgstr "This site cannot send yet. Ask an administrator to switch the mail service on for this server, or connect your own Amazon SES account above."
 
-#: src/features/mail/letters-page.tsx:142
+#: src/features/mail/letters-page.tsx:125
 msgid "This site has no automatic messages to customize."
 msgstr "This site has no automatic messages to customize."
 
@@ -10012,8 +10039,8 @@ msgstr "This site has no automatic messages to customize."
 #. placeholder {0}: bytes(named.used)
 #. placeholder {1}: bytes(named.limit)
 #: src/lib/v1-said.ts:37
-msgid "This site has no room left: it is using {0} of {1}."
-msgstr "This site has no room left: it is using {0} of {1}."
+#~ msgid "This site has no room left: it is using {0} of {1}."
+#~ msgstr "This site has no room left: it is using {0} of {1}."
 
 #: src/components/flows/flow-canvas.tsx:336
 #~ msgid "this site has no Telegram bot — Plugins, Telegram"
@@ -10040,10 +10067,10 @@ msgstr "This site has no room left: it is using {0} of {1}."
 #~ msgstr "This video is still being prepared. Try again in a few minutes."
 
 #: src/lib/v1-said.ts:31
-msgid "Those are not the digits the app is showing."
-msgstr "Those are not the digits the app is showing."
+#~ msgid "Those are not the digits the app is showing."
+#~ msgstr "Those are not the digits the app is showing."
 
-#: src/features/governance/trash-page.tsx:155
+#: src/features/governance/trash-page.tsx:150
 msgid "Throw it away now"
 msgstr "Throw it away now"
 
@@ -10059,7 +10086,7 @@ msgstr "Tick it"
 msgid "Time"
 msgstr "Time"
 
-#: src/features/shop/coupons-page.tsx:221
+#: src/features/shop/coupons-page.tsx:218
 msgid "Times in total"
 msgstr "Times in total"
 
@@ -10089,7 +10116,7 @@ msgstr "Timezone"
 msgid "To watch the courses you have been given."
 msgstr "To watch the courses you have been given."
 
-#: src/features/mail/mail-page.tsx:300
+#: src/features/mail/mail-page.tsx:319
 msgid "To which list"
 msgstr "To which list"
 
@@ -10187,7 +10214,7 @@ msgstr "Turn into"
 #~ msgid "Type"
 #~ msgstr "Type"
 
-#: src/features/shop/coupons-page.tsx:177
+#: src/features/shop/coupons-page.tsx:174
 msgid "Typed without case: launch2026 and LAUNCH2026 are one code."
 msgstr "Typed without case: launch2026 and LAUNCH2026 are one code."
 
@@ -10240,7 +10267,7 @@ msgid "Untick"
 msgstr "Untick"
 
 #. placeholder {0}: new Date(row.expires_at).toLocaleDateString()
-#: src/features/shop/coupons-page.tsx:113
+#: src/features/shop/coupons-page.tsx:110
 msgid "until {0}"
 msgstr "until {0}"
 
@@ -10314,7 +10341,7 @@ msgstr "Upload image"
 #~ msgid "Uploading"
 #~ msgstr "Uploading"
 
-#: src/features/dashboard/home-page.tsx:81
+#: src/features/dashboard/home-page.tsx:111
 msgid "Uploads"
 msgstr "Uploads"
 
@@ -10499,7 +10526,7 @@ msgstr "Waiting for payment"
 #~ msgid "Waiting to be paid"
 #~ msgstr "Waiting to be paid"
 
-#: src/features/governance/trash-page.tsx:115
+#: src/features/governance/trash-page.tsx:110
 msgid "Waiting to be thrown away"
 msgstr "Waiting to be thrown away"
 
@@ -10646,7 +10673,7 @@ msgstr "What has already come in goes with it."
 #~ msgid "What has been published, and what it cost in seconds. A build that fails leaves what is live alone."
 #~ msgstr "What has been published, and what it cost in seconds. A build that fails leaves what is live alone."
 
-#: src/features/design/publish-page.tsx:45
+#: src/features/design/publish-page.tsx:46
 msgid "What has been published. A set of changes leaves what is live alone until published."
 msgstr "What has been published. A set of changes leaves what is live alone until published."
 
@@ -10674,7 +10701,7 @@ msgstr "What is filed under it stays; it stops being filed under this."
 #~ msgid "What is live"
 #~ msgstr "What is live"
 
-#: src/features/integrations/api-page.tsx:116
+#: src/features/integrations/api-page.tsx:125
 msgid "What is published"
 msgstr "What is published"
 
@@ -10686,11 +10713,11 @@ msgstr "What is published"
 msgid "What it asks for"
 msgstr "What it asks for"
 
-#: src/features/shop/products-page.tsx:225
+#: src/features/shop/products-page.tsx:224
 msgid "What it costs"
 msgstr "What it costs"
 
-#: src/features/boards/board-page.tsx:210
+#: src/features/boards/board-page.tsx:219
 msgid "What it is"
 msgstr "What it is"
 
@@ -10701,11 +10728,11 @@ msgstr "What it is about"
 #: src/components/dashboard/content-type-editor.tsx:99
 #: src/components/dashboard/content-type-editor.tsx:146
 #: src/features/automation/flows-page.tsx:216
-#: src/features/boards/boards-page.tsx:164
+#: src/features/boards/boards-page.tsx:175
 #: src/features/forms/forms-page.tsx:401
 #: src/features/learning/start-teaching-page.tsx:70
-#: src/features/mail/mail-page.tsx:266
-#: src/features/shop/products-page.tsx:212
+#: src/features/mail/mail-page.tsx:285
+#: src/features/shop/products-page.tsx:211
 msgid "What it is called"
 msgstr "What it is called"
 
@@ -10713,7 +10740,7 @@ msgstr "What it is called"
 #~ msgid "What it is called and where it answers."
 #~ msgstr "What it is called and where it answers."
 
-#: src/features/boards/boards-page.tsx:158
+#: src/features/boards/boards-page.tsx:169
 msgid "What it is called, and the stages a card moves through. Both can be changed afterwards."
 msgstr "What it is called, and the stages a card moves through. Both can be changed afterwards."
 
@@ -10737,8 +10764,8 @@ msgstr "What it is called, and the stages a card moves through. Both can be chan
 #~ msgid "What it said"
 #~ msgstr "What it said"
 
-#: src/features/mail/letters-page.tsx:191
-#: src/features/mail/mail-page.tsx:328
+#: src/features/mail/letters-page.tsx:160
+#: src/features/mail/mail-page.tsx:347
 msgid "What it says"
 msgstr "What it says"
 
@@ -10746,7 +10773,7 @@ msgstr "What it says"
 #~ msgid "What it says nothing about"
 #~ msgstr "What it says nothing about"
 
-#: src/features/shop/coupons-page.tsx:192
+#: src/features/shop/coupons-page.tsx:189
 msgid "What it takes off"
 msgstr "What it takes off"
 
@@ -10762,7 +10789,7 @@ msgstr "What it will look like"
 #~ msgid "What it will write"
 #~ msgstr "What it will write"
 
-#: src/components/report-a-problem.tsx:149
+#: src/components/report-a-problem.tsx:142
 msgid "What kind of thing"
 msgstr "What kind of thing"
 
@@ -10867,7 +10894,7 @@ msgstr "What starts it, and what it does. Each step's settings are written as JS
 #~ msgid "What this form is for — only you see this"
 #~ msgstr "What this form is for — only you see this"
 
-#: src/features/analytics/usage-page.tsx:53
+#: src/features/analytics/usage-page.tsx:69
 msgid "What this is holding"
 msgstr "What this is holding"
 
@@ -10891,7 +10918,7 @@ msgstr "What this is holding"
 msgid "What this site publishes"
 msgstr "What this site publishes"
 
-#: src/features/shop/products-page.tsx:125
+#: src/features/shop/products-page.tsx:124
 msgid "What this site sells. Stock is held while somebody pays and let go if they do not, so two people cannot buy the last one."
 msgstr "What this site sells. Stock is held while somebody pays and let go if they do not, so two people cannot buy the last one."
 
@@ -10899,7 +10926,7 @@ msgstr "What this site sells. Stock is held while somebody pays and let go if th
 #~ msgid "What this site sends mail with. A form can name an address to tell, and this is how it gets there."
 #~ msgstr "What this site sends mail with. A form can name an address to tell, and this is how it gets there."
 
-#: src/features/mail/letters-page.tsx:112
+#: src/features/mail/letters-page.tsx:95
 msgid "What this site writes to one person: an invitation, a password link, a receipt. Anything in braces is filled in when it is sent."
 msgstr "What this site writes to one person: an invitation, a password link, a receipt. Anything in braces is filled in when it is sent."
 
@@ -10943,7 +10970,7 @@ msgstr "What this site writes to one person: an invitation, a password link, a r
 #~ msgid "What went in"
 #~ msgstr "What went in"
 
-#: src/features/design/publish-page.tsx:82
+#: src/features/design/publish-page.tsx:83
 msgid "What went wrong"
 msgstr "What went wrong"
 
@@ -10971,11 +10998,11 @@ msgstr "What went wrong"
 #~ msgid "What you have asked for"
 #~ msgstr "What you have asked for"
 
-#: src/components/report-a-problem.tsx:133
+#: src/components/report-a-problem.tsx:126
 msgid "What you have said before"
 msgstr "What you have said before"
 
-#: src/components/report-a-problem.tsx:189
+#: src/components/report-a-problem.tsx:182
 msgid "What you were doing, and what you expected instead. Not required."
 msgstr "What you were doing, and what you expected instead. Not required."
 
@@ -10983,7 +11010,7 @@ msgstr "What you were doing, and what you expected instead. Not required."
 #~ msgid "Whatever was sent, as text"
 #~ msgstr "Whatever was sent, as text"
 
-#: src/components/audit-record.tsx:21
+#: src/components/audit-record.tsx:28
 #: src/features/forms/form-detail-page.tsx:157
 msgid "When"
 msgstr "When"
@@ -11012,7 +11039,7 @@ msgstr "When"
 #~ msgid "When something calls in"
 #~ msgstr "When something calls in"
 
-#: src/features/governance/trash-page.tsx:129
+#: src/features/governance/trash-page.tsx:124
 msgid "When something is, it appears here first."
 msgstr "When something is, it appears here first."
 
@@ -11077,15 +11104,15 @@ msgstr "Where to send the receipt"
 #~ msgid "Where to trade the code"
 #~ msgstr "Where to trade the code"
 
-#: src/components/report-a-problem.tsx:230
+#: src/components/report-a-problem.tsx:223
 msgid "Which browser you are using, which screen you were on and anything the panel has already recorded going wrong are sent with this. It goes to whoever runs this server, and nowhere else."
 msgstr "Which browser you are using, which screen you were on and anything the panel has already recorded going wrong are sent with this. It goes to whoever runs this server, and nowhere else."
 
-#: src/features/learning/students-page.tsx:232
+#: src/features/learning/students-page.tsx:230
 msgid "Which course"
 msgstr "Which course"
 
-#: src/features/learning/students-page.tsx:199
+#: src/features/learning/students-page.tsx:197
 msgid "Which course to enroll the student in."
 msgstr "Which course to enroll the student in."
 
@@ -11121,7 +11148,7 @@ msgstr "Which course to enroll the student in."
 #~ msgid "Which service"
 #~ msgstr "Which service"
 
-#: src/components/audit-record.tsx:20
+#: src/components/audit-record.tsx:27
 msgid "Who"
 msgstr "Who"
 
@@ -11133,7 +11160,7 @@ msgstr "Who"
 #~ msgid "Who did what to this site, and from where. Kept for six months."
 #~ msgstr "Who did what to this site, and from where. Kept for six months."
 
-#: src/features/governance/audit-page.tsx:88
+#: src/features/governance/audit-page.tsx:91
 msgid "Who did what to this site, and when."
 msgstr "Who did what to this site, and when."
 
@@ -11242,7 +11269,7 @@ msgstr "Whole word"
 #~ msgid "Won"
 #~ msgstr "Won"
 
-#: src/features/dashboard/home-page.tsx:108
+#: src/features/dashboard/home-page.tsx:138
 msgid "Work backlog"
 msgstr "Work backlog"
 
@@ -11288,7 +11315,7 @@ msgstr "Working on it"
 #~ msgid "Working through"
 #~ msgstr "Working through"
 
-#: src/features/shop/coupons-page.tsx:231
+#: src/features/shop/coupons-page.tsx:228
 msgid "Works until"
 msgstr "Works until"
 
@@ -11355,9 +11382,9 @@ msgstr "Writing"
 #~ msgid "writing the content — {0} parts done"
 #~ msgstr "writing the content — {0} parts done"
 
-#: src/features/analytics/usage-page.tsx:65
-#: src/features/dashboard/home-page.tsx:62
-#: src/features/portability/portable-page.tsx:135
+#: src/features/analytics/usage-page.tsx:81
+#: src/features/dashboard/home-page.tsx:92
+#: src/features/portability/portable-page.tsx:137
 msgid "Writings"
 msgstr "Writings"
 
@@ -11379,7 +11406,7 @@ msgstr "Writings"
 #~ msgid "Written down beside the demo's number and never confused with it: the pages and the code that renders them move separately."
 #~ msgstr "Written down beside the demo's number and never confused with it: the pages and the code that renders them move separately."
 
-#: src/features/mail/mail-page.tsx:294
+#: src/features/mail/mail-page.tsx:313
 msgid "Written now, sent to everyone on the list."
 msgstr "Written now, sent to everyone on the list."
 
@@ -11579,8 +11606,8 @@ msgstr "Your role does not reach this screen. Whoever runs the site can change t
 #~ msgstr "Your sites are built from private repositories, and a build needs a token to read them with. Keep one here and every site you look after uses it — a site whose project lives somewhere else can still be given its own, and that one wins."
 
 #: src/features/mail/letters-page.tsx:160
-msgid "Yours"
-msgstr "Yours"
+#~ msgid "Yours"
+#~ msgstr "Yours"
 
 #: src/components/editor/toolbar.tsx:616
 msgid "YouTube"

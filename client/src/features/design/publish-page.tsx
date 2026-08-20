@@ -3,9 +3,9 @@ import { useLingui } from "@lingui/react/macro"
 import { Rocket } from "lucide-react"
 import { toast } from "sonner"
 
-import { every } from "@/lib/v1"
-import { said } from "@/lib/v1-said"
-import type { Change } from "@legacy-api"
+import { every } from "@/lib/api"
+import { apiMessage } from "@/lib/auth"
+import type { DesignChange } from "@api"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -17,14 +17,14 @@ import {
 export function PublishPage() {
   const { t } = useLingui()
 
-  const [changes, setChanges] = React.useState<Change[] | null>(null)
+  const [changes, setChanges] = React.useState<DesignChange[] | null>(null)
   const [showing, setShowing] = React.useState<string | null>(null)
 
   const load = React.useCallback(() => {
-    every("changes.list")
+    every("design.changes.list")
       .then(setChanges)
       .catch((why: unknown) => {
-        toast.error(said(why))
+        toast.error(apiMessage(why))
         setChanges([])
       })
   }, [])
@@ -33,8 +33,9 @@ export function PublishPage() {
 
   const states: Record<string, string> = {
     writing: t`Writing`,
-    to_look_at: t`Ready to preview`,
-    broken: t`Broken`,
+    building: t`Building`,
+    ready: t`Ready to preview`,
+    failed: t`Broken`,
     published: t`Live`,
   }
 
@@ -66,12 +67,12 @@ export function PublishPage() {
                 </div>
 
                 <Badge
-                  variant={change.at === "published" ? "default" : "secondary"}
+                  variant={change.state === "published" ? "default" : "secondary"}
                 >
-                  {states[change.at] ?? change.at}
+                  {states[change.state] ?? change.state}
                 </Badge>
 
-                {change.went_wrong && (
+                {change.last_error && (
                   <Button
                     variant="outline"
                     size="sm"
@@ -84,9 +85,9 @@ export function PublishPage() {
                 )}
               </div>
 
-              {showing === change.id && change.went_wrong && (
+              {showing === change.id && change.last_error && (
                 <pre className="mt-2 max-h-64 overflow-auto rounded-lg bg-muted px-3 py-2 text-xs">
-                  {change.went_wrong}
+                  {change.last_error}
                 </pre>
               )}
             </div>

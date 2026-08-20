@@ -3,9 +3,9 @@ import { useLingui } from "@lingui/react/macro"
 import { ArrowLeft, Loader2, Plus, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
-import { api, every } from "@/lib/v1"
-import { said } from "@/lib/v1-said"
-import type { Board, Card as OneCard } from "@legacy-api"
+import { api, every } from "@/lib/api"
+import { apiMessage } from "@/lib/auth"
+import type { Board, BoardList, Card as OneCard } from "@api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -39,6 +39,7 @@ export function BoardPage({
   const { t } = useLingui()
 
   const [board, setBoard] = React.useState<Board | null>(null)
+  const [lists, setLists] = React.useState<BoardList[]>([])
   const [cards, setCards] = React.useState<OneCard[]>([])
   const [adding, setAdding] = React.useState<string | null>(null)
   const [title, setTitle] = React.useState("")
@@ -48,30 +49,38 @@ export function BoardPage({
   const load = React.useCallback(() => {
     Promise.all([
       api("boards.read", { path: { id: boardId } }),
-      every("cards.list", { path: { id: boardId } }),
+      every("boards.lists.list", { path: { id: boardId }, query: {} }),
     ])
-      .then(([b, c]) => {
+      .then(async ([b, nextLists]) => {
+        const nextCards = (
+          await Promise.all(
+            nextLists.map((list) =>
+              every("boards.cards.list", { path: { id: list.id }, query: {} })
+            )
+          )
+        ).flat()
         setBoard(b)
-        setCards(c)
+        setLists(nextLists)
+        setCards(nextCards)
       })
       .catch((why: unknown) => {
-        toast.error(said(why))
+        toast.error(apiMessage(why))
         setBoard(null)
       })
   }, [boardId])
 
   React.useEffect(load, [load])
 
-  const add = async (stageId: string) => {
+  const add = async (listId: string) => {
     setBusy(true)
 
     try {
-      await api("cards.make", {
-        path: { id: boardId },
+      await api("boards.cards.create", {
+        path: { id: listId },
         body: {
-          stage: stageId,
           title: title.trim(),
-          detail: detail.trim() || null,
+          description: detail.trim() || null,
+          assignee_id: null,
         },
       })
       setAdding(null)
@@ -79,30 +88,30 @@ export function BoardPage({
       setDetail("")
       load()
     } catch (why) {
-      toast.error(said(why))
+      toast.error(apiMessage(why))
     } finally {
       setBusy(false)
     }
   }
 
-  const move = async (card: OneCard, stageId: string) => {
+  const move = async (card: OneCard, listId: string) => {
     try {
-      await api("cards.move", {
+      await api("boards.cards.move", {
         path: { id: card.id },
-        body: { stage: stageId },
+        body: { list_id: listId, before_card_id: null },
       })
       load()
     } catch (why) {
-      toast.error(said(why))
+      toast.error(apiMessage(why))
     }
   }
 
   const remove = async (card: OneCard) => {
     try {
-      await api("cards.remove", { path: { id: card.id } })
+      await api("boards.cards.delete", { path: { id: card.id } })
       load()
     } catch (why) {
-      toast.error(said(why))
+      toast.error(apiMessage(why))
     }
   }
 
@@ -123,16 +132,16 @@ export function BoardPage({
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {board.stages.map((stage) => {
-          const stageCards = cards.filter((c) => c.stage_id === stage.id)
+        {lists.map((list) => {
+          const stageCards = cards.filter((c) => c.list_id === list.id)
 
           return (
             <section
-              key={stage.id}
+              key={list.id}
               className="flex flex-col gap-2 rounded-xl border border-border p-3"
             >
               <div className="flex items-center justify-between">
-                <h2 className="text-sm font-medium">{stage.name}</h2>
+                <h2 className="text-sm font-medium">{list.name}</h2>
                 <span className="text-xs text-muted-foreground">
                   {stageCards.length}
                 </span>
@@ -157,23 +166,23 @@ export function BoardPage({
                     </Button>
                   </div>
 
-                  {card.detail && (
+                  {card.description && (
                     <p className="text-xs text-muted-foreground">
-                      {card.detail}
+                      {card.description}
                     </p>
                   )}
 
                   <Select
-                    value={card.stage_id}
+                    value={card.list_id}
                     onValueChange={(value) =>
-                      void move(card, value ?? card.stage_id)
+                      void move(card, value ?? card.list_id)
                     }
                   >
                     <SelectTrigger size="sm">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {board.stages.map((one) => (
+                      {lists.map((one) => (
                         <SelectItem key={one.id} value={one.id}>
                           {one.name}
                         </SelectItem>
@@ -187,7 +196,7 @@ export function BoardPage({
                 variant="ghost"
                 size="sm"
                 className="self-start"
-                onClick={() => setAdding(stage.id)}
+                onClick={() => setAdding(list.id)}
               >
                 <Plus /> {t`A card`}
               </Button>

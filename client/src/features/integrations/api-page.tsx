@@ -3,9 +3,9 @@ import { useLingui } from "@lingui/react/macro"
 import { Check, Copy, KeyRound, Loader2, Plus, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
-import { api } from "@/lib/v1"
-import { said } from "@/lib/v1-said"
-import type { Key } from "@legacy-api"
+import { api, every } from "@/lib/api"
+import { apiMessage } from "@/lib/auth"
+import type { ApiKeyRecord, Grant } from "@api"
 import { AssistantClients } from "@/components/assistant-clients"
 import { McpConnection } from "@/components/mcp-connection"
 import {
@@ -52,21 +52,22 @@ function Copyable({ text, label }: { text: string; label: string }) {
 
 export function ApiPage() {
   const { t } = useLingui()
-  const [keys, setKeys] = React.useState<Key[] | null>(null)
+  const [keys, setKeys] = React.useState<ApiKeyRecord[] | null>(null)
   const [error, setError] = React.useState(false)
   const [name, setName] = React.useState("")
   const [creating, setCreating] = React.useState(false)
   const [issued, setIssued] = React.useState<string | null>(null)
   const [revoking, setRevoking] = React.useState<string | null>(null)
+  const [grants, setGrants] = React.useState<Grant[]>([])
 
   const origin = window.location.origin
 
   const load = React.useCallback(() => {
     setError(false)
-    api("keys.list")
+    every("auth.api_key.list", { query: {} })
       .then(setKeys)
       .catch((why: unknown) => {
-        toast.error(said(why))
+        toast.error(apiMessage(why))
         setError(true)
         setKeys([])
       })
@@ -74,32 +75,40 @@ export function ApiPage() {
 
   React.useEffect(load, [load])
 
+  React.useEffect(() => {
+    api("auth.session.current")
+      .then((session) => setGrants(session.grants))
+      .catch((why: unknown) => toast.error(apiMessage(why)))
+  }, [])
+
   const createKey = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setCreating(true)
 
     try {
-      const made = await api("keys.make", { body: { name: name.trim() } })
+      const made = await api("auth.api_key.create", {
+        body: { name: name.trim(), grants },
+      })
       setIssued(made.token)
       setName("")
       load()
       toast.success(t`The key was made.`)
     } catch (why) {
-      toast.error(said(why))
+      toast.error(apiMessage(why))
     } finally {
       setCreating(false)
     }
   }
 
-  const revoke = async (key: Key) => {
+  const revoke = async (key: ApiKeyRecord) => {
     setRevoking(key.id)
 
     try {
-      await api("keys.end", { path: { id: key.id } })
+      await api("auth.api_key.revoke", { path: { id: key.id } })
       load()
       toast.success(t`The key was taken back.`)
     } catch (why) {
-      toast.error(said(why))
+      toast.error(apiMessage(why))
     } finally {
       setRevoking(null)
     }
@@ -119,11 +128,11 @@ export function ApiPage() {
         </p>
         <Copyable
           label={t`Copy the public site command`}
-          text={`curl ${origin}/api/open/site`}
+          text={`curl ${origin}/public/v1/content`}
         />
         <Copyable
           label={t`Copy the products command`}
-          text={`curl ${origin}/api/open/products`}
+          text={`curl ${origin}/public/v1/shop/products`}
         />
       </section>
 
@@ -193,9 +202,11 @@ export function ApiPage() {
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{key.name}</p>
                   <p className="text-xs text-muted-foreground">
-                    {key.last_seen_at
-                      ? t`Last used ${new Date(key.last_seen_at).toLocaleString()}`
-                      : t`Not used yet`}
+                    {key.revoked_at
+                      ? t`Revoked ${new Date(key.revoked_at).toLocaleString()}`
+                      : key.expires_at
+                        ? t`Expires ${new Date(key.expires_at).toLocaleString()}`
+                        : t`Active`}
                   </p>
                 </div>
                 <Button

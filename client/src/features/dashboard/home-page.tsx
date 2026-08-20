@@ -12,8 +12,7 @@ import {
   Workflow,
 } from "lucide-react"
 
-import { api } from "@/lib/v1"
-import type { Overview } from "@legacy-api"
+import { every } from "@/lib/api"
 import { Figure } from "@/components/charts"
 import { inBytes } from "@/lib/bytes"
 import { AddressHealth } from "@/components/dashboard/address-health"
@@ -28,13 +27,44 @@ import {
  */
 export function HomePage() {
   const { t } = useLingui()
-  const [stats, setStats] = React.useState<Overview | "failed" | null>(null)
+  const [stats, setStats] = React.useState<Stats | "failed" | null>(null)
 
   React.useEffect(() => {
     let current = true
-    api("site.overview")
-      .then((found) => current && setStats(found))
-      .catch(() => current && setStats("failed"))
+    Promise.all([
+      every("content.list", { query: {} }),
+      every("forms.list", { query: {} }),
+      every("mail.lists.list", { query: {} }),
+      every("media.files.list", { query: {} }),
+      every("courses.students.list", { query: {} }),
+      every("shop.orders.list", { query: {} }),
+      every("automation.flows.list", { query: {} }),
+      every("jobs.list", { query: {} }),
+    ])
+      .then(
+        ([content, forms, lists, files, students, orders, flows, jobs]) =>
+          current &&
+          setStats({
+            writings: content.length,
+            published: content.filter((one) =>
+              JSON.stringify(one.publication).includes("published")
+            ).length,
+            forms: forms.length,
+            unread: 0,
+            readers: lists.reduce((sum, one) => sum + one.subscriber_count, 0),
+            files: files.length,
+            bytes: files.reduce((sum, one) => sum + one.bytes, 0),
+            students: students.length,
+            orders: orders.length,
+            flows_on: flows.filter((one) => one.enabled).length,
+            work_given_up_on: jobs.filter((one) => one.state === "dead").length,
+          })
+      )
+      .catch(() => {
+        if (current) {
+          setStats("failed")
+        }
+      })
     return () => {
       current = false
     }
@@ -116,4 +146,18 @@ export function HomePage() {
       <AddressHealth />
     </div>
   )
+}
+
+interface Stats {
+  writings: number
+  published: number
+  forms: number
+  unread: number
+  readers: number
+  files: number
+  bytes: number
+  students: number
+  orders: number
+  flows_on: number
+  work_given_up_on: number
 }

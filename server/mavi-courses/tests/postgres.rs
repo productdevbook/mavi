@@ -276,8 +276,9 @@ async fn courses_learning_and_progress_are_site_scoped() {
             .expect("learning course detail");
         assert_eq!(detail.course.course_id, course.id);
         assert_eq!(detail.modules.len(), 2);
-        assert_eq!(detail.modules[0].lessons.len(), 1);
-        assert!(detail.modules[0].lessons[0].completed_at.is_none());
+        assert!(detail.modules[0].lessons.is_empty());
+        assert_eq!(detail.modules[1].lessons.len(), 2);
+        assert!(detail.modules[1].lessons[0].completed_at.is_none());
         let lesson = service
             .get_learning_lesson(&mut transaction, &student_context, lesson_one.id)
             .await

@@ -121,7 +121,7 @@ jobs:
             echo "POSTGRES_PASSWORD=$(openssl rand -base64 32 | tr -d '\n')"
             echo "MAVI_KEYS=1:$(openssl rand -base64 32 | tr -d '\n')"
             echo "MAVI_SITE_ID=$(cat /proc/sys/kernel/random/uuid)"
-            echo "MAVI_DOMAIN=localhost"
+            echo "MAVI_DOMAIN=http://localhost"
             echo "MAVI_VERSION=${{ steps.version.outputs.tag }}"
           } > .env
           docker compose pull

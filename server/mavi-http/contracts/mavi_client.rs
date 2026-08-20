@@ -1666,6 +1666,7 @@ pub struct PublicForm {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct PublicProduct {
+    pub id: String,
     pub slug: String,
     pub name: String,
     pub description: Option<String>,

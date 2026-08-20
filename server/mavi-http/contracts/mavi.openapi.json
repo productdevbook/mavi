@@ -25096,6 +25096,7 @@
       "PublicProduct": {
         "type": "object",
         "required": [
+          "id",
           "slug",
           "name",
           "description",
@@ -25103,6 +25104,10 @@
           "can_be_bought"
         ],
         "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
           "slug": {
             "type": "string"
           },

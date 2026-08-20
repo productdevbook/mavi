@@ -132,13 +132,8 @@ function Basket() {
       shop.empty()
       shop.forgetAttempt()
 
-      // Somewhere to pay, where the site has somewhere; otherwise the order
-      // itself, which says what is owed and how it stands.
-      if (placed.pay_at) {
-        window.location.href = placed.pay_at
-      } else {
-        go(`/orders/${placed.order.id}`)
-      }
+      shop.saveReceipt(placed)
+      go(`/orders/${placed.id}`)
     } catch (why) {
       setRefused(
         why instanceof shop.ShopError ? why.message : t`Something failed`,
@@ -250,44 +245,39 @@ function Basket() {
 
 function Order({ id }: { id: string }) {
   const { t } = useLingui()
-  const [order, setOrder] = React.useState<shop.Order | null>(null)
+  const [receipt, setReceipt] = React.useState(() => shop.receipt(id))
 
   React.useEffect(() => {
-    shop
-      .order(id)
-      .then(setOrder)
-      .catch(() => setOrder(null))
+    setReceipt(shop.receipt(id))
   }, [id])
 
-  if (!order) {
-    return (
-      <div className="flex justify-center py-16">
-        <Loader2 className="size-6 animate-spin text-muted-foreground" />
-      </div>
-    )
+  if (!receipt) {
+    return <p className="py-16 text-center text-sm text-muted-foreground">
+      {t`This receipt is only available in the browser that placed the order.`}
+    </p>
   }
 
   const states: Record<string, string> = {
-    pending: t`Waiting for payment`,
+    waiting: t`Waiting for payment`,
     paid: t`Paid`,
-    fulfilled: t`Sent`,
-    cancelled: t`Cancelled`,
-    refunded: t`Refunded`,
+    sent: t`Sent`,
+    called_off: t`Cancelled`,
+    given_back: t`Refunded`,
   }
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center gap-2">
         <CheckCircle2 className="size-5 text-emerald-600" />
-        <h1 className="text-lg font-semibold">{t`Order #${order.number}`}</h1>
+        <h1 className="text-lg font-semibold">{t`Order #${receipt.number}`}</h1>
       </div>
 
       <p className="text-sm text-muted-foreground">
-        {states[order.state] ?? order.state} · {shop.money(order.total)}
+        {states[receipt.state] ?? receipt.state} · {shop.money(receipt.total)}
       </p>
 
       <p className="text-xs text-muted-foreground">
-        {t`Keep this address: it is how you look this order up again.`}
+        {t`Keep this receipt in this browser. The public API never exposes another customer's order by ID.`}
       </p>
     </div>
   )

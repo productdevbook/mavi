@@ -526,7 +526,7 @@ impl ShopService {
     ) -> Result<()> {
         let changed = sqlx::query(
             "update shop_products
-                set deleted_at = clock_timestamp(), on_sale = false, updated_at = clock_timestamp()
+                set deleted_at = clock_timestamp(), updated_at = clock_timestamp()
               where site_id = $1 and id = $2 and deleted_at is null",
         )
         .bind(context.site_id.into_uuid())

@@ -258,7 +258,7 @@ msgstr "{0} files"
 #~ msgstr "{0} in {days} days"
 
 #. placeholder {0}: entry.label
-#: src/features/governance/trash-page.tsx:85
+#: src/features/governance/trash-page.tsx:93
 msgid "{0} is back"
 msgstr "{0} is back"
 
@@ -1394,8 +1394,12 @@ msgstr "Address"
 #~ msgstr "Adjustment"
 
 #: src/features/settings/settings-page.tsx:126
-msgid "After this period, deleted resources such as content, forms, files and taxonomy terms are permanently removed. Use 1 to 3,650 days."
-msgstr "After this period, deleted resources such as content, forms, files and taxonomy terms are permanently removed. Use 1 to 3,650 days."
+#~ msgid "After this period, deleted resources such as content, forms, files and taxonomy terms are permanently removed. Use 1 to 3,650 days."
+#~ msgstr "After this period, deleted resources such as content, forms, files and taxonomy terms are permanently removed. Use 1 to 3,650 days."
+
+#: src/features/settings/settings-page.tsx:128
+msgid "After this period, deleted resources such as content, forms, products, coupons, files and taxonomy terms are permanently removed. Use 1 to 3,650 days."
+msgstr "After this period, deleted resources such as content, forms, products, coupons, files and taxonomy terms are permanently removed. Use 1 to 3,650 days."
 
 #: src/features/forms/forms-page.tsx:298
 msgid "After this, what came in is deleted by the machine itself."
@@ -1641,7 +1645,7 @@ msgstr "An email address"
 #~ msgid "An IAM user with ses:SendEmail. That is all sending needs. The account page below asks Amazon rather more, and says which permission is missing when one is."
 #~ msgstr "An IAM user with ses:SendEmail. That is all sending needs. The account page below asks Amazon rather more, and says which permission is missing when one is."
 
-#: src/features/governance/trash-page.tsx:113
+#: src/features/governance/trash-page.tsx:121
 msgid "An image keeps its file while it is here, so a restored post still has its pictures. The file goes when the entry does."
 msgstr "An image keeps its file while it is here, so a restored post still has its pictures. The file goes when the entry does."
 
@@ -2129,7 +2133,7 @@ msgstr "Being written"
 #~ msgstr "Bills"
 
 #: src/components/dashboard/dashboard-shell.tsx:106
-#: src/features/governance/trash-page.tsx:105
+#: src/features/governance/trash-page.tsx:113
 msgid "Bin"
 msgstr "Bin"
 
@@ -2424,7 +2428,7 @@ msgstr "Cancel"
 msgid "Cancelled"
 msgstr "Cancelled"
 
-#: src/features/settings/settings-page.tsx:94
+#: src/features/settings/settings-page.tsx:96
 msgid "Canonical URL"
 msgstr "Canonical URL"
 
@@ -2477,7 +2481,7 @@ msgstr "Categories and tags"
 #~ msgid "Category"
 #~ msgstr "Category"
 
-#: src/features/governance/trash-page.tsx:64
+#: src/features/governance/trash-page.tsx:68
 msgid "category or tag"
 msgstr "category or tag"
 
@@ -3395,6 +3399,10 @@ msgstr "Could not upload {0}"
 #~ msgid "Countries"
 #~ msgstr "Countries"
 
+#: src/features/governance/trash-page.tsx:65
+msgid "coupon"
+msgstr "coupon"
+
 #: src/features/governance/trash-page.tsx:67
 #~ msgid "course"
 #~ msgstr "course"
@@ -3680,7 +3688,7 @@ msgstr "Delete this file?"
 #~ msgid "Deleted content waits thirty days before it is removed permanently, and can be restored in the meantime."
 #~ msgstr "Deleted content waits thirty days before it is removed permanently, and can be restored in the meantime."
 
-#: src/features/governance/trash-page.tsx:106
+#: src/features/governance/trash-page.tsx:114
 msgid "Deleted resources wait thirty days before they are removed permanently, and can be restored in the meantime."
 msgstr "Deleted resources wait thirty days before they are removed permanently, and can be restored in the meantime."
 
@@ -4204,7 +4212,7 @@ msgstr "Export"
 msgid "Fields"
 msgstr "Fields"
 
-#: src/features/governance/trash-page.tsx:63
+#: src/features/governance/trash-page.tsx:67
 msgid "file"
 msgstr "file"
 
@@ -4343,7 +4351,7 @@ msgstr "Forget it"
 #~ msgid "Forgotten."
 #~ msgstr "Forgotten."
 
-#: src/features/governance/trash-page.tsx:61
+#: src/features/governance/trash-page.tsx:63
 msgid "form"
 msgstr "form"
 
@@ -5177,7 +5185,7 @@ msgstr "Its key"
 msgid "Justify"
 msgstr "Justify"
 
-#: src/features/settings/settings-page.tsx:115
+#: src/features/settings/settings-page.tsx:117
 msgid "Keep deleted items (days)"
 msgstr "Keep deleted items (days)"
 
@@ -5306,7 +5314,7 @@ msgstr "learning here"
 #~ msgid "Leave empty for AWS S3"
 #~ msgstr "Leave empty for AWS S3"
 
-#: src/features/settings/settings-page.tsx:103
+#: src/features/settings/settings-page.tsx:105
 msgid "Leave empty to clear it. This is the public origin used in generated links."
 msgstr "Leave empty to clear it. This is the public origin used in generated links."
 
@@ -6454,7 +6462,7 @@ msgstr "Nothing for sale yet."
 #~ msgid "Nothing has been charged yet."
 #~ msgstr "Nothing has been charged yet."
 
-#: src/features/governance/trash-page.tsx:124
+#: src/features/governance/trash-page.tsx:132
 msgid "Nothing has been deleted"
 msgstr "Nothing has been deleted"
 
@@ -7372,7 +7380,7 @@ msgstr "Plain text block"
 #~ msgstr "Port"
 
 #: src/components/dashboard/dashboard-shell.tsx:74
-#: src/features/governance/trash-page.tsx:62
+#: src/features/governance/trash-page.tsx:66
 msgid "post"
 msgstr "post"
 
@@ -7461,9 +7469,9 @@ msgstr "Previous"
 msgid "Private"
 msgstr "Private"
 
-#: src/features/governance/trash-page.tsx:66
-#~ msgid "product"
-#~ msgstr "product"
+#: src/features/governance/trash-page.tsx:64
+msgid "product"
+msgstr "product"
 
 #: src/components/dashboard/dashboard-shell.tsx:95
 #: src/features/shop/products-page.tsx:123
@@ -7478,7 +7486,7 @@ msgstr "Public"
 #~ msgid "Public base URL"
 #~ msgstr "Public base URL"
 
-#: src/features/settings/settings-page.tsx:81
+#: src/features/settings/settings-page.tsx:83
 msgid "Public identity"
 msgstr "Public identity"
 
@@ -7559,7 +7567,7 @@ msgstr "Put a token where the … is. It is shown once, when you make it."
 #~ msgid "Put answers on a board"
 #~ msgstr "Put answers on a board"
 
-#: src/features/governance/trash-page.tsx:146
+#: src/features/governance/trash-page.tsx:154
 msgid "Put it back"
 msgstr "Put it back"
 
@@ -8100,7 +8108,7 @@ msgstr "Save it"
 #~ msgid "Save it first"
 #~ msgstr "Save it first"
 
-#: src/features/settings/settings-page.tsx:162
+#: src/features/settings/settings-page.tsx:164
 msgid "Save settings"
 msgstr "Save settings"
 
@@ -8701,7 +8709,7 @@ msgstr "Signed in"
 #~ msgstr "Site limit"
 
 #: src/features/auth/setup-page.tsx:88
-#: src/features/settings/settings-page.tsx:85
+#: src/features/settings/settings-page.tsx:87
 msgid "Site name"
 msgstr "Site name"
 
@@ -9425,7 +9433,7 @@ msgstr "The address it answers on is made from the name and never changes, becau
 #~ msgid "The backup failed"
 #~ msgstr "The backup failed"
 
-#: src/features/governance/trash-page.tsx:120
+#: src/features/governance/trash-page.tsx:128
 msgid "The bin could not be read just now."
 msgstr "The bin could not be read just now."
 
@@ -9667,7 +9675,7 @@ msgstr "The numbers could not be read just now."
 #~ msgid "The only honest check. A key without permission, an address SES has not verified and an account still in the sandbox all look the same until something is actually sent."
 #~ msgstr "The only honest check. A key without permission, an address SES has not verified and an account still in the sandbox all look the same until something is actually sent."
 
-#: src/features/settings/settings-page.tsx:75
+#: src/features/settings/settings-page.tsx:77
 msgid "The public identity and URL settings used by this site."
 msgstr "The public identity and URL settings used by this site."
 
@@ -10034,7 +10042,7 @@ msgstr "This role came with the build and is not a site's to change."
 #~ msgid "This signs you in to the server itself. Everyone else signs in somewhere else:"
 #~ msgstr "This signs you in to the server itself. Everyone else signs in somewhere else:"
 
-#: src/features/settings/settings-page.tsx:74
+#: src/features/settings/settings-page.tsx:76
 msgid "This site"
 msgstr "This site"
 
@@ -10104,7 +10112,7 @@ msgstr "This site has no automatic messages to customize."
 #~ msgid "Those are not the digits the app is showing."
 #~ msgstr "Those are not the digits the app is showing."
 
-#: src/features/governance/trash-page.tsx:151
+#: src/features/governance/trash-page.tsx:159
 msgid "Throw it away now"
 msgstr "Throw it away now"
 
@@ -10116,7 +10124,7 @@ msgstr "Throw them away"
 msgid "Tick it"
 msgstr "Tick it"
 
-#: src/features/settings/settings-page.tsx:134
+#: src/features/settings/settings-page.tsx:136
 msgid "Time"
 msgstr "Time"
 
@@ -10128,7 +10136,7 @@ msgstr "Times in total"
 #~ msgid "Times per person"
 #~ msgstr "Times per person"
 
-#: src/features/settings/settings-page.tsx:138
+#: src/features/settings/settings-page.tsx:140
 msgid "Timezone"
 msgstr "Timezone"
 
@@ -10211,7 +10219,7 @@ msgstr "Too many attempts. Wait a little and try again."
 msgid "Translations"
 msgstr "Translations"
 
-#: src/features/settings/settings-page.tsx:111
+#: src/features/settings/settings-page.tsx:113
 msgid "Trash retention"
 msgstr "Trash retention"
 
@@ -10401,7 +10409,7 @@ msgstr "Usage"
 #~ msgid "Use {0} — {1} off your balance"
 #~ msgstr "Use {0} — {1} off your balance"
 
-#: src/features/settings/settings-page.tsx:146
+#: src/features/settings/settings-page.tsx:148
 msgid "Use an IANA timezone such as Europe/Berlin or UTC."
 msgstr "Use an IANA timezone such as Europe/Berlin or UTC."
 
@@ -10564,7 +10572,7 @@ msgstr "Waiting for payment"
 #~ msgid "Waiting to be paid"
 #~ msgstr "Waiting to be paid"
 
-#: src/features/governance/trash-page.tsx:111
+#: src/features/governance/trash-page.tsx:119
 msgid "Waiting to be thrown away"
 msgstr "Waiting to be thrown away"
 
@@ -11077,7 +11085,7 @@ msgstr "When"
 #~ msgid "When something calls in"
 #~ msgstr "When something calls in"
 
-#: src/features/governance/trash-page.tsx:125
+#: src/features/governance/trash-page.tsx:133
 msgid "When something is, it appears here first."
 msgstr "When something is, it appears here first."
 

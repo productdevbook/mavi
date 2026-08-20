@@ -4,6 +4,8 @@ import {
   FileText,
   Image as ImageIcon,
   Inbox,
+  ShoppingBag,
+  Tag,
   RotateCcw,
   Tags,
   Trash2,
@@ -59,6 +61,8 @@ export function TrashPage() {
 
   const named: Record<string, string> = {
     form: t`form`,
+    product: t`product`,
+    coupon: t`coupon`,
     content: t`post`,
     file: t`file`,
     term: t`category or tag`,
@@ -68,11 +72,15 @@ export function TrashPage() {
     const glyph =
       kind === "file"
         ? ImageIcon
-        : kind === "content"
-          ? Inbox
-          : kind === "term"
-            ? Tags
-            : FileText
+        : kind === "product"
+          ? ShoppingBag
+          : kind === "coupon"
+            ? Tag
+            : kind === "content"
+              ? Inbox
+              : kind === "term"
+                ? Tags
+                : FileText
     return React.createElement(glyph, {
       className: "size-4 text-muted-foreground",
     })
@@ -132,8 +140,8 @@ export function TrashPage() {
                   <ItemContent>
                     <ItemTitle>{entry.label}</ItemTitle>
                     <ItemDescription>
-                        {named[entry.kind] ?? entry.kind} ·{" "}
-                        {new Date(entry.deleted_at).toLocaleString()}
+                      {named[entry.kind] ?? entry.kind} ·{" "}
+                      {new Date(entry.deleted_at).toLocaleString()}
                     </ItemDescription>
                   </ItemContent>
                   <ItemActions>

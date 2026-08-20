@@ -679,6 +679,117 @@ async fn trash_retention_worker_removes_expired_forms_and_cascades_submissions()
 
 #[tokio::test]
 #[ignore = "requires TEST_DATABASE_URL and a non-superuser PostgreSQL role"]
+#[allow(clippy::too_many_lines)]
+async fn trash_retention_worker_removes_expired_shop_catalog_items() {
+    let database_url = env::var("TEST_DATABASE_URL").expect("TEST_DATABASE_URL");
+    let database = Database::connect(&database_url, 4)
+        .await
+        .expect("database connection");
+    database.migrate().await.expect("migrations");
+    let site_id = SiteId::new();
+    database.ensure_site(site_id).await.expect("site");
+
+    let context = SiteContext::public(site_id);
+    let (product_id, coupon_id) = {
+        let mut transaction = database.begin(&context).await.expect("shop scope");
+        sqlx::query(
+            "insert into site_settings (site_id, name) values ($1, 'Shop trash retention')",
+        )
+        .bind(site_id.into_uuid())
+        .execute(transaction.conn())
+        .await
+        .expect("site settings");
+        sqlx::query("update site_settings set trash_retention_days = 1 where site_id = $1")
+            .bind(site_id.into_uuid())
+            .execute(transaction.conn())
+            .await
+            .expect("trash policy");
+        let product_id = Uuid::now_v7();
+        let coupon_id = Uuid::now_v7();
+        let deleted_at = Utc::now() - Duration::days(2);
+        sqlx::query(
+            "insert into shop_products
+                (site_id, id, slug, name, price_minor, currency, stock_on_hand, on_sale, deleted_at)
+             values ($1, $2, 'expired-shop-product', 'Expired shop product', 100, 'TRY', 1, false, $3)",
+        )
+        .bind(site_id.into_uuid())
+        .bind(product_id)
+        .bind(deleted_at)
+        .execute(transaction.conn())
+        .await
+        .expect("product");
+        sqlx::query(
+            "insert into shop_coupons
+                (site_id, id, code, kind, percent, max_uses, deleted_at)
+             values ($1, $2, 'EXPIRED10', 'percent', 10, 10, $3)",
+        )
+        .bind(site_id.into_uuid())
+        .bind(coupon_id)
+        .bind(deleted_at)
+        .execute(transaction.conn())
+        .await
+        .expect("coupon");
+        transaction.commit().await.expect("seed commit");
+        (product_id, coupon_id)
+    };
+
+    let supervisor = WorkerSupervisor::new(
+        database.clone(),
+        [site_id],
+        WorkerConfig::new(
+            "test-shop-trash-retention-worker",
+            30,
+            std::time::Duration::from_millis(10),
+        )
+        .expect("worker config"),
+        Arc::new(InMemoryFileStore::default()),
+    );
+    assert!(
+        run_until_job_done(
+            &supervisor,
+            &database,
+            site_id,
+            &context,
+            TRASH_RETENTION_JOB.name,
+        )
+        .await,
+        "shop trash retention job should complete"
+    );
+
+    let mut transaction = database.begin(&context).await.expect("assert scope");
+    let product_exists: bool = sqlx::query_scalar(
+        "select exists(select 1 from shop_products where site_id = $1 and id = $2)",
+    )
+    .bind(site_id.into_uuid())
+    .bind(product_id)
+    .fetch_one(transaction.conn())
+    .await
+    .expect("product state");
+    let coupon_exists: bool = sqlx::query_scalar(
+        "select exists(select 1 from shop_coupons where site_id = $1 and id = $2)",
+    )
+    .bind(site_id.into_uuid())
+    .bind(coupon_id)
+    .fetch_one(transaction.conn())
+    .await
+    .expect("coupon state");
+    assert!(!product_exists);
+    assert!(!coupon_exists);
+    let shop_audits: i64 = sqlx::query_scalar(
+        "select count(*) from audit_events
+          where site_id = $1 and action = 'trash.item.permanently_deleted'
+            and resource_type in ('ShopProduct', 'ShopCoupon')",
+    )
+    .bind(site_id.into_uuid())
+    .fetch_one(transaction.conn())
+    .await
+    .expect("shop retention audits");
+    assert_eq!(shop_audits, 2);
+    transaction.commit().await.expect("assert commit");
+}
+
+#[tokio::test]
+#[ignore = "requires TEST_DATABASE_URL and a non-superuser PostgreSQL role"]
 async fn trash_retention_worker_continues_after_a_full_batch() {
     let database_url = env::var("TEST_DATABASE_URL").expect("TEST_DATABASE_URL");
     let database = Database::connect(&database_url, 4)

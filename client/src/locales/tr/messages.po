@@ -258,7 +258,7 @@ msgstr "{0} dosya"
 #~ msgstr "{days} günde {0}"
 
 #. placeholder {0}: entry.label
-#: src/features/governance/trash-page.tsx:85
+#: src/features/governance/trash-page.tsx:93
 msgid "{0} is back"
 msgstr "{0} geri geldi"
 
@@ -1394,8 +1394,12 @@ msgstr "Adres"
 #~ msgstr "Düzeltme"
 
 #: src/features/settings/settings-page.tsx:126
-msgid "After this period, deleted resources such as content, forms, files and taxonomy terms are permanently removed. Use 1 to 3,650 days."
-msgstr "Bu süreden sonra içerik, formlar, dosyalar ve taksonomi terimleri gibi silinen kaynaklar kalıcı olarak kaldırılır. 1 ile 3.650 gün arasında bir değer kullanın."
+#~ msgid "After this period, deleted resources such as content, forms, files and taxonomy terms are permanently removed. Use 1 to 3,650 days."
+#~ msgstr "Bu süreden sonra içerik, formlar, dosyalar ve taksonomi terimleri gibi silinen kaynaklar kalıcı olarak kaldırılır. 1 ile 3.650 gün arasında bir değer kullanın."
+
+#: src/features/settings/settings-page.tsx:128
+msgid "After this period, deleted resources such as content, forms, products, coupons, files and taxonomy terms are permanently removed. Use 1 to 3,650 days."
+msgstr "Bu süreden sonra içerik, formlar, ürünler, kuponlar, dosyalar ve taksonomi terimleri gibi silinen kaynaklar kalıcı olarak kaldırılır. 1 ile 3.650 gün arasında bir değer kullanın."
 
 #: src/features/forms/forms-page.tsx:298
 msgid "After this, what came in is deleted by the machine itself."
@@ -1641,7 +1645,7 @@ msgstr "E-posta adresi"
 #~ msgid "An IAM user with ses:SendEmail. That is all sending needs. The account page below asks Amazon rather more, and says which permission is missing when one is."
 #~ msgstr "ses:SendEmail yetkisi olan bir IAM kullanıcısı. Göndermek için gereken bu kadar. Aşağıdaki hesap sayfası Amazon'a daha fazlasını sorar ve eksik olan yetkiyi söyler."
 
-#: src/features/governance/trash-page.tsx:113
+#: src/features/governance/trash-page.tsx:121
 msgid "An image keeps its file while it is here, so a restored post still has its pictures. The file goes when the entry does."
 msgstr "Bir görsel burada durduğu sürece dosyasını korur; böylece geri alınan bir yazının resimleri de yerinde olur. Dosya, kayıt silindiğinde gider."
 
@@ -2129,7 +2133,7 @@ msgstr "Yazılıyor"
 #~ msgstr "Faturalar"
 
 #: src/components/dashboard/dashboard-shell.tsx:106
-#: src/features/governance/trash-page.tsx:105
+#: src/features/governance/trash-page.tsx:113
 msgid "Bin"
 msgstr "Çöp kutusu"
 
@@ -2424,7 +2428,7 @@ msgstr "Vazgeç"
 msgid "Cancelled"
 msgstr "İptal edildi"
 
-#: src/features/settings/settings-page.tsx:94
+#: src/features/settings/settings-page.tsx:96
 msgid "Canonical URL"
 msgstr "Canonical URL"
 
@@ -2477,7 +2481,7 @@ msgstr ""
 #~ msgid "Category"
 #~ msgstr "Kategori"
 
-#: src/features/governance/trash-page.tsx:64
+#: src/features/governance/trash-page.tsx:68
 msgid "category or tag"
 msgstr "kategori veya etiket"
 
@@ -3395,6 +3399,10 @@ msgstr "{0} yüklenemedi"
 #~ msgid "Countries"
 #~ msgstr "Ülkeler"
 
+#: src/features/governance/trash-page.tsx:65
+msgid "coupon"
+msgstr "kupon"
+
 #: src/features/governance/trash-page.tsx:67
 #~ msgid "course"
 #~ msgstr "eğitim"
@@ -3680,7 +3688,7 @@ msgstr "Bu dosya silinsin mi?"
 #~ msgid "Deleted content waits thirty days before it is removed permanently, and can be restored in the meantime."
 #~ msgstr ""
 
-#: src/features/governance/trash-page.tsx:106
+#: src/features/governance/trash-page.tsx:114
 msgid "Deleted resources wait thirty days before they are removed permanently, and can be restored in the meantime."
 msgstr "Silinen kaynaklar kalıcı olarak kaldırılmadan önce otuz gün bekletilir ve bu süre içinde geri yüklenebilir."
 
@@ -4204,7 +4212,7 @@ msgstr "Dışa aktar"
 msgid "Fields"
 msgstr "Alanlar"
 
-#: src/features/governance/trash-page.tsx:63
+#: src/features/governance/trash-page.tsx:67
 msgid "file"
 msgstr ""
 
@@ -4343,7 +4351,7 @@ msgstr "Unut"
 #~ msgid "Forgotten."
 #~ msgstr "Unutuldu."
 
-#: src/features/governance/trash-page.tsx:61
+#: src/features/governance/trash-page.tsx:63
 msgid "form"
 msgstr "form"
 
@@ -5177,7 +5185,7 @@ msgstr "Anahtarı"
 msgid "Justify"
 msgstr "İki yana yasla"
 
-#: src/features/settings/settings-page.tsx:115
+#: src/features/settings/settings-page.tsx:117
 msgid "Keep deleted items (days)"
 msgstr "Silinen öğeleri saklama (gün)"
 
@@ -5306,7 +5314,7 @@ msgstr ""
 #~ msgid "Leave empty for AWS S3"
 #~ msgstr "AWS S3 için boş bırakın"
 
-#: src/features/settings/settings-page.tsx:103
+#: src/features/settings/settings-page.tsx:105
 msgid "Leave empty to clear it. This is the public origin used in generated links."
 msgstr ""
 
@@ -6454,7 +6462,7 @@ msgstr "Henüz satışta bir şey yok."
 #~ msgid "Nothing has been charged yet."
 #~ msgstr "Henüz bir ücret işlenmedi."
 
-#: src/features/governance/trash-page.tsx:124
+#: src/features/governance/trash-page.tsx:132
 msgid "Nothing has been deleted"
 msgstr "Hiçbir şey silinmedi"
 
@@ -7372,7 +7380,7 @@ msgstr "Düz metin bloğu"
 #~ msgstr "Port"
 
 #: src/components/dashboard/dashboard-shell.tsx:74
-#: src/features/governance/trash-page.tsx:62
+#: src/features/governance/trash-page.tsx:66
 msgid "post"
 msgstr "yazı"
 
@@ -7461,9 +7469,9 @@ msgstr "Önceki"
 msgid "Private"
 msgstr ""
 
-#: src/features/governance/trash-page.tsx:66
-#~ msgid "product"
-#~ msgstr "ürün"
+#: src/features/governance/trash-page.tsx:64
+msgid "product"
+msgstr "ürün"
 
 #: src/components/dashboard/dashboard-shell.tsx:95
 #: src/features/shop/products-page.tsx:123
@@ -7478,7 +7486,7 @@ msgstr ""
 #~ msgid "Public base URL"
 #~ msgstr "Genel URL tabanı"
 
-#: src/features/settings/settings-page.tsx:81
+#: src/features/settings/settings-page.tsx:83
 msgid "Public identity"
 msgstr ""
 
@@ -7559,7 +7567,7 @@ msgstr "… yerine bir jeton koyun. Jeton yalnızca üretildiği anda gösterili
 #~ msgid "Put answers on a board"
 #~ msgstr "Cevapları bir panoya koy"
 
-#: src/features/governance/trash-page.tsx:146
+#: src/features/governance/trash-page.tsx:154
 msgid "Put it back"
 msgstr "Geri al"
 
@@ -8100,7 +8108,7 @@ msgstr "Kaydet"
 #~ msgid "Save it first"
 #~ msgstr "Önce kaydedin"
 
-#: src/features/settings/settings-page.tsx:162
+#: src/features/settings/settings-page.tsx:164
 msgid "Save settings"
 msgstr ""
 
@@ -8701,7 +8709,7 @@ msgstr "Giriş yapıldı"
 #~ msgstr "Site sınırı"
 
 #: src/features/auth/setup-page.tsx:88
-#: src/features/settings/settings-page.tsx:85
+#: src/features/settings/settings-page.tsx:87
 msgid "Site name"
 msgstr ""
 
@@ -9425,7 +9433,7 @@ msgstr "Yanıt verdiği adres addan üretilir ve hiç değişmez; çünkü bir �
 #~ msgid "The backup failed"
 #~ msgstr "Yedekleme başarısız oldu"
 
-#: src/features/governance/trash-page.tsx:120
+#: src/features/governance/trash-page.tsx:128
 msgid "The bin could not be read just now."
 msgstr ""
 
@@ -9667,7 +9675,7 @@ msgstr "Sayılar şu anda okunamadı."
 #~ msgid "The only honest check. A key without permission, an address SES has not verified and an account still in the sandbox all look the same until something is actually sent."
 #~ msgstr "Tek dürüst kontrol. Yetkisi olmayan bir anahtar, SES'in doğrulamadığı bir adres ve hâlâ kum havuzundaki bir hesap — gerçekten bir şey gönderilene kadar üçü de aynı görünür."
 
-#: src/features/settings/settings-page.tsx:75
+#: src/features/settings/settings-page.tsx:77
 msgid "The public identity and URL settings used by this site."
 msgstr ""
 
@@ -10034,7 +10042,7 @@ msgstr "Bu rol yazılımla birlikte gelir; site tarafından değiştirilemez."
 #~ msgid "This signs you in to the server itself. Everyone else signs in somewhere else:"
 #~ msgstr "Bu giriş sunucunun kendisine. Diğer herkes başka bir yerden giriyor:"
 
-#: src/features/settings/settings-page.tsx:74
+#: src/features/settings/settings-page.tsx:76
 msgid "This site"
 msgstr "Bu site"
 
@@ -10104,7 +10112,7 @@ msgstr ""
 #~ msgid "Those are not the digits the app is showing."
 #~ msgstr "Bunlar uygulamanın gösterdiği basamaklar değil."
 
-#: src/features/governance/trash-page.tsx:151
+#: src/features/governance/trash-page.tsx:159
 msgid "Throw it away now"
 msgstr "Şimdi kalıcı olarak sil"
 
@@ -10116,7 +10124,7 @@ msgstr "Çöpe at"
 msgid "Tick it"
 msgstr "Seç"
 
-#: src/features/settings/settings-page.tsx:134
+#: src/features/settings/settings-page.tsx:136
 msgid "Time"
 msgstr ""
 
@@ -10128,7 +10136,7 @@ msgstr "Toplam kaç kez"
 #~ msgid "Times per person"
 #~ msgstr "Kişi başı kaç kez"
 
-#: src/features/settings/settings-page.tsx:138
+#: src/features/settings/settings-page.tsx:140
 msgid "Timezone"
 msgstr ""
 
@@ -10211,7 +10219,7 @@ msgstr ""
 msgid "Translations"
 msgstr "Çeviriler"
 
-#: src/features/settings/settings-page.tsx:111
+#: src/features/settings/settings-page.tsx:113
 msgid "Trash retention"
 msgstr "Çöp kutusu saklama süresi"
 
@@ -10401,7 +10409,7 @@ msgstr "Kullanım"
 #~ msgid "Use {0} — {1} off your balance"
 #~ msgstr "{0} kullan — bakiyenizden {1} düşer"
 
-#: src/features/settings/settings-page.tsx:146
+#: src/features/settings/settings-page.tsx:148
 msgid "Use an IANA timezone such as Europe/Berlin or UTC."
 msgstr ""
 
@@ -10564,7 +10572,7 @@ msgstr "Ödeme bekleniyor"
 #~ msgid "Waiting to be paid"
 #~ msgstr "Ödeme bekliyor"
 
-#: src/features/governance/trash-page.tsx:111
+#: src/features/governance/trash-page.tsx:119
 msgid "Waiting to be thrown away"
 msgstr "Silinmeyi bekleyenler"
 
@@ -11077,7 +11085,7 @@ msgstr "Ne zaman"
 #~ msgid "When something calls in"
 #~ msgstr "Dışarıdan bir çağrı geldiğinde"
 
-#: src/features/governance/trash-page.tsx:125
+#: src/features/governance/trash-page.tsx:133
 msgid "When something is, it appears here first."
 msgstr "Bir şey silindiğinde önce burada görünür."
 

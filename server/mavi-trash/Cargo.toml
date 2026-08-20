@@ -14,6 +14,7 @@ mavi-contract = { path = "../mavi-contract" }
 mavi-core = { path = "../mavi-core" }
 mavi-media = { path = "../mavi-media" }
 mavi-jobs = { path = "../mavi-jobs" }
+mavi-shop = { path = "../mavi-shop" }
 mavi-storage = { path = "../mavi-storage" }
 serde.workspace = true
 serde_json.workspace = true
@@ -28,5 +29,6 @@ workspace = true
 mavi-content = { path = "../mavi-content" }
 mavi-files = { path = "../mavi-files" }
 mavi-forms = { path = "../mavi-forms" }
+mavi-shop = { path = "../mavi-shop" }
 mavi-taxonomy = { path = "../mavi-taxonomy" }
 tokio.workspace = true

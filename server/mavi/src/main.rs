@@ -17,6 +17,9 @@ use mavi_worker::WorkerConfig;
 use tokio::net::TcpListener;
 use tracing_subscriber::EnvFilter;
 
+const DATABASE_STARTUP_ATTEMPTS: u32 = 30;
+const DATABASE_STARTUP_RETRY_DELAY: Duration = Duration::from_secs(2);
+
 enum StartupConfig {
     FixedSite(SiteId),
     Shard(Vec<(String, SiteId)>),
@@ -61,8 +64,7 @@ async fn main() -> Result<()> {
         .parse()
         .map_err(|_| MaviError::validation("invalid_listen_address"))?;
 
-    let database = Database::connect(&database_url, connections).await?;
-    database.migrate().await?;
+    let database = connect_database(&database_url, connections).await?;
     let listener = TcpListener::bind(address)
         .await
         .map_err(|_| MaviError::Internal)?;
@@ -110,6 +112,36 @@ async fn main() -> Result<()> {
             .await
         }
     }
+}
+
+/// A container orchestrator can report `PostgreSQL` healthy while the server is
+/// still finishing its first database startup. Keep that transient boundary
+/// inside the application startup contract instead of relying on every
+/// compose, Kubernetes, or operator probe to get the ordering exactly right.
+async fn connect_database(database_url: &str, connections: u32) -> Result<Database> {
+    let mut last_error = None;
+
+    for attempt in 1..=DATABASE_STARTUP_ATTEMPTS {
+        match Database::connect(database_url, connections).await {
+            Ok(database) => match database.migrate().await {
+                Ok(()) => return Ok(database),
+                Err(error) => last_error = Some(error),
+            },
+            Err(error) => last_error = Some(error),
+        }
+
+        if attempt < DATABASE_STARTUP_ATTEMPTS {
+            tracing::warn!(
+                attempt,
+                max_attempts = DATABASE_STARTUP_ATTEMPTS,
+                retry_in_seconds = DATABASE_STARTUP_RETRY_DELAY.as_secs(),
+                "database is not ready during startup; retrying"
+            );
+            tokio::time::sleep(DATABASE_STARTUP_RETRY_DELAY).await;
+        }
+    }
+
+    Err(last_error.unwrap_or(MaviError::Internal))
 }
 
 async fn serve<R>(

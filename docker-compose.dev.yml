@@ -50,6 +50,16 @@ services:
     ports:
       - "${API_PORT:-8080}:8080"
 
+  panel:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "${PANEL_PORT:-8090}:80"
+
 volumes:
   postgres-data:
   api-data:

@@ -412,7 +412,7 @@ fn runtime_api() -> Api {
 
 async fn openapi_document() -> Result<Json<Value>, HttpError> {
     api()
-        .openapi("Mavi", "0.1.0")
+        .openapi("Mavi", mavi_contract::API_VERSION)
         .map(Json)
         .map_err(|_| HttpError(MaviError::Internal))
 }

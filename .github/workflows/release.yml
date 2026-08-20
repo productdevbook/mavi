@@ -32,10 +32,10 @@ jobs:
         include:
           - name: mavi
             context: server
-            file: Dockerfile
+            file: server/Dockerfile
           - name: mavi-panel
             context: client
-            file: Dockerfile
+            file: client/Dockerfile
     steps:
       # What is asked for by hand is checked before it is used as a ref or
       # baked into an image name: a version is three numbers after a v, and

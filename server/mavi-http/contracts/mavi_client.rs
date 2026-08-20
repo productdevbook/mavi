@@ -143,6 +143,28 @@ pub struct AuditEventPage {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct AuditExport {
+    pub format: String,
+    pub version: i64,
+    pub site_id: String,
+    pub generated_at: String,
+    pub items: Vec<AuditEvent>,
+    pub truncated: bool,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct AuditExportFilter {
+    pub action: Option<String>,
+    pub resource_type: Option<String>,
+    pub resource_id: Option<String>,
+    pub actor_kind: Option<AuditActorKind>,
+    pub actor_id: Option<String>,
+    pub created_after: Option<String>,
+    pub created_before: Option<String>,
+    pub limit: Option<i64>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct AuditListFilter {
     pub after: Option<String>,
     pub limit: Option<i64>,
@@ -2286,6 +2308,7 @@ pub const OPERATIONS: &[OperationDefinition] = &[
     OperationDefinition { name: "media.files.variants.public_download", method: "get", path: "/public/v1/files/{id}/variants/{preset}", request: None, request_location: None, query: None, response: Some("FileBytes"), response_location: Some("raw"), status: 200, authentication: "public", capability: None, action: None },
     OperationDefinition { name: "media.files.trash", method: "delete", path: "/api/v1/files/{id}", request: None, request_location: None, query: None, response: Some("Empty"), response_location: None, status: 204, authentication: "account_or_assistant", capability: Some("media"), action: Some("delete") },
     OperationDefinition { name: "audit.events.list", method: "get", path: "/api/v1/audit", request: Some("AuditListFilter"), request_location: Some("query"), query: None, response: Some("AuditEventPage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("audit"), action: Some("view") },
+    OperationDefinition { name: "audit.events.export", method: "get", path: "/api/v1/audit/export", request: Some("AuditExportFilter"), request_location: Some("query"), query: None, response: Some("AuditExport"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("audit"), action: Some("view") },
     OperationDefinition { name: "audit.events.read", method: "get", path: "/api/v1/audit/{id}", request: None, request_location: None, query: None, response: Some("AuditEvent"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("audit"), action: Some("view") },
     OperationDefinition { name: "trash.items.list", method: "get", path: "/api/v1/trash", request: Some("TrashListFilter"), request_location: Some("query"), query: None, response: Some("TrashPage"), response_location: None, status: 200, authentication: "account_or_assistant", capability: Some("trash"), action: Some("view") },
     OperationDefinition { name: "trash.items.restore", method: "post", path: "/api/v1/trash/{kind}/{id}/restore", request: None, request_location: None, query: None, response: Some("Empty"), response_location: None, status: 204, authentication: "account_or_assistant", capability: Some("trash"), action: Some("write") },

@@ -112,7 +112,8 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
 - [-] Audit receipts for every mutation and auditable actor attribution.
   - [x] Immutable site-scoped receipts with typed actor/resource fields and atomic writes.
   - [x] Cursor-filtered audit list/read API with Cedar grants and generated contracts.
-  - [ ] Export/download retention policy and security-event coverage for future domains.
+  - [-] Export/download retention policy and security-event coverage for future domains.
+    - [x] Bounded chronological audit export uses site scope, Cedar audit-view grants, explicit filters, a 10,000-event cap and an immutable `audit.events.exported` access receipt; retention policy and future-domain security events remain open.
 - [x] Panel feedback reports.
   - [x] Site-scoped `feedback_reports` storage uses forced RLS and bounded report fields.
   - [x] `feedback.reports.create` and `feedback.reports.list` use generated cursor contracts, Cedar grants and unknown-field rejection.

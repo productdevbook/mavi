@@ -15,6 +15,8 @@ async fn audit_and_trash_routes_use_cursors_restore_and_cleanup_boundaries() {
 
     let unauthenticated_audit = send(&app, Method::GET, "/api/v1/audit", None, None).await;
     assert_eq!(unauthenticated_audit.status(), StatusCode::UNAUTHORIZED);
+    let unauthenticated_export = send(&app, Method::GET, "/api/v1/audit/export", None, None).await;
+    assert_eq!(unauthenticated_export.status(), StatusCode::UNAUTHORIZED);
     let unauthenticated_trash = send(&app, Method::GET, "/api/v1/trash", None, None).await;
     assert_eq!(unauthenticated_trash.status(), StatusCode::UNAUTHORIZED);
 
@@ -74,6 +76,41 @@ async fn audit_and_trash_routes_use_cursors_restore_and_cleanup_boundaries() {
             .expect("audit items")
             .len(),
         1
+    );
+
+    let audit_export = send(
+        &app,
+        Method::GET,
+        "/api/v1/audit/export?action=content.created&limit=1",
+        Some(&owner_token),
+        None,
+    )
+    .await;
+    assert_eq!(audit_export.status(), StatusCode::OK);
+    let audit_export = response_json(audit_export).await;
+    assert_eq!(audit_export["format"], "mavi.audit.export");
+    assert_eq!(audit_export["version"], 1);
+    assert_eq!(
+        audit_export["items"]
+            .as_array()
+            .expect("export items")
+            .len(),
+        1
+    );
+    assert_eq!(audit_export["truncated"], true);
+
+    let export_audit = send(
+        &app,
+        Method::GET,
+        "/api/v1/audit?action=audit.events.exported&limit=1",
+        Some(&owner_token),
+        None,
+    )
+    .await;
+    assert_eq!(export_audit.status(), StatusCode::OK);
+    assert_eq!(
+        response_json(export_audit).await["items"][0]["action"],
+        "audit.events.exported"
     );
 
     let trashed = send(

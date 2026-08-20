@@ -6,6 +6,7 @@
 
 use std::{
     fmt::Write as _,
+    future::{Future, ready},
     sync::{Arc, OnceLock},
     time::Instant,
 };
@@ -28,7 +29,9 @@ use mavi_analytics::{
     AnalyticsEvent, AnalyticsEventBatch, AnalyticsReceipt, AnalyticsService, DailyAggregate,
     DailyListFilter, EventListFilter, PruneAnalytics, PruneReceipt,
 };
-use mavi_audit::{AuditEntry, AuditEvent, AuditListFilter, AuditService};
+use mavi_audit::{
+    AuditEntry, AuditEvent, AuditExport, AuditExportFilter, AuditListFilter, AuditService,
+};
 use mavi_authz::CedarAuthorizer;
 use mavi_boards::{
     Activity, ActivityPageFilter, AssignCard, Board, BoardList, BoardListFilter, BoardService,
@@ -264,34 +267,35 @@ pub struct Query<T>(pub T);
 
 impl<T, S> FromRequestParts<S> for Query<T>
 where
-    T: DeserializeOwned,
+    T: DeserializeOwned + Send,
     S: Send + Sync,
 {
     type Rejection = Response;
 
-    async fn from_request_parts(
+    fn from_request_parts(
         parts: &mut axum::http::request::Parts,
         _state: &S,
-    ) -> std::result::Result<Self, Self::Rejection> {
+    ) -> impl Future<Output = std::result::Result<Self, Self::Rejection>> + Send {
         let query = parts.uri.query().unwrap_or_default();
         let deserializer =
             serde_urlencoded::Deserializer::new(form_urlencoded::parse(query.as_bytes()));
         let mut unknown_field = None;
-        let value = serde_ignored::deserialize(deserializer, |path| {
+        let Ok(value) = serde_ignored::deserialize(deserializer, |path| {
             if unknown_field.is_none() {
                 unknown_field = Some(path.to_string());
             }
-        })
-        .map_err(|_| input_rejection(MaviError::validation("invalid_query")))?;
+        }) else {
+            return ready(Err(input_rejection(MaviError::validation("invalid_query"))));
+        };
 
         if let Some(field) = unknown_field {
-            return Err(input_rejection(MaviError::validation_field(
+            return ready(Err(input_rejection(MaviError::validation_field(
                 "unknown_field",
                 field,
-            )));
+            ))));
         }
 
-        Ok(Self(value))
+        ready(Ok(Self(value)))
     }
 }
 
@@ -1314,6 +1318,7 @@ where
 {
     Router::new()
         .route("/api/v1/audit", get(list_audit::<R>))
+        .route("/api/v1/audit/export", get(export_audit::<R>))
         .route("/api/v1/audit/{id}", get(read_audit::<R>))
         .route("/api/v1/trash", get(list_trash::<R>))
         .route(
@@ -3929,6 +3934,50 @@ where
         .map_err(HttpError)?;
     transaction.commit().await.map_err(HttpError)?;
     Ok(Json(events))
+}
+
+async fn export_audit<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Query(filter): Query<AuditExportFilter>,
+) -> Result<Json<AuditExport>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Audit, Action::View),
+        "AuditExport",
+        "audit_export",
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let export = state
+        .audit
+        .export(&mut transaction, &context, &filter)
+        .await
+        .map_err(HttpError)?;
+    state
+        .audit
+        .record(
+            &mut transaction,
+            &context,
+            &AuditEntry {
+                action: "audit.events.exported".to_owned(),
+                resource_type: "AuditExport".to_owned(),
+                resource_id: None,
+                payload: json!({
+                    "format": &export.format,
+                    "version": export.version,
+                    "count": export.items.len(),
+                    "truncated": export.truncated,
+                }),
+            },
+        )
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(export))
 }
 
 async fn read_audit<R>(

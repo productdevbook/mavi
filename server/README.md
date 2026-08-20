@@ -150,6 +150,10 @@ submissions through `/api/v1/forms/{id}/submissions/export`; the response is a
 bounded `mavi.forms.submissions` version 1 JSON envelope with an opaque cursor,
 the form declaration and an auditable read. Deleted or retention-redacted rows
 never appear in this export.
+Audit managers can download a chronological, filtered `/api/v1/audit/export`
+envelope. It is site-scoped, capped at 10,000 events per request, and records
+the export access as `audit.events.exported`; retention policy remains an
+explicit operations decision rather than an implicit destructive default.
 Site settings store an optional normalized canonical HTTP(S) URL; query strings,
 fragments and userinfo are refused, and PATCH can explicitly set or clear the
 value. Public content resolution first tries the requested language, then its

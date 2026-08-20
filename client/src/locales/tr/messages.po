@@ -258,7 +258,7 @@ msgstr "{0} dosya"
 #~ msgstr "{days} günde {0}"
 
 #. placeholder {0}: entry.label
-#: src/features/governance/trash-page.tsx:84
+#: src/features/governance/trash-page.tsx:85
 msgid "{0} is back"
 msgstr "{0} geri geldi"
 
@@ -843,7 +843,7 @@ msgstr "Bir eğitim modüller ve dersler tutar; kişiler ona sizin belirlediğin
 #~ msgid "A different key from the one above, in the library's own settings. Without it every video address works for ever and for anybody who has it."
 #~ msgstr "Yukarıdakinden farklı bir anahtar; kütüphanenin kendi ayarlarında. O olmadan her video adresi sonsuza kadar ve eline geçen herkes için çalışır."
 
-#: src/shop/app.tsx:228
+#: src/shop/app.tsx:223
 msgid "A discount code, if you have one"
 msgstr "Varsa indirim kodu"
 
@@ -1393,6 +1393,10 @@ msgstr "Adres"
 #~ msgid "Adjustment"
 #~ msgstr "Düzeltme"
 
+#: src/features/settings/settings-page.tsx:126
+msgid "After this period, deleted resources such as content, forms, files and taxonomy terms are permanently removed. Use 1 to 3,650 days."
+msgstr "Bu süreden sonra içerik, formlar, dosyalar ve taksonomi terimleri gibi silinen kaynaklar kalıcı olarak kaldırılır. 1 ile 3.650 gün arasında bir değer kullanın."
+
 #: src/features/forms/forms-page.tsx:298
 msgid "After this, what came in is deleted by the machine itself."
 msgstr "Bu süre sonunda gelenler sunucu tarafından silinir."
@@ -1514,7 +1518,7 @@ msgstr "hepsi okundu"
 msgid "Alt text"
 msgstr "Alternatif metin"
 
-#: src/shop/app.tsx:210
+#: src/shop/app.tsx:205
 msgid "Altogether"
 msgstr "Toplam"
 
@@ -1637,7 +1641,7 @@ msgstr "E-posta adresi"
 #~ msgid "An IAM user with ses:SendEmail. That is all sending needs. The account page below asks Amazon rather more, and says which permission is missing when one is."
 #~ msgstr "ses:SendEmail yetkisi olan bir IAM kullanıcısı. Göndermek için gereken bu kadar. Aşağıdaki hesap sayfası Amazon'a daha fazlasını sorar ve eksik olan yetkiyi söyler."
 
-#: src/features/governance/trash-page.tsx:112
+#: src/features/governance/trash-page.tsx:113
 msgid "An image keeps its file while it is here, so a restored post still has its pictures. The file goes when the entry does."
 msgstr "Bir görsel burada durduğu sürece dosyasını korur; böylece geri alınan bir yazının resimleri de yerinde olur. Dosya, kayıt silindiğinde gider."
 
@@ -1725,7 +1729,7 @@ msgstr "Bir adım daha"
 msgid "Anything already using it will stop showing it."
 msgstr "Bunu kullanan her yerde görünmeyi bırakır."
 
-#: src/features/governance/audit-page.tsx:118
+#: src/features/governance/audit-page.tsx:135
 msgid "Anything done"
 msgstr "Yapılan her şey"
 
@@ -1734,7 +1738,7 @@ msgstr "Yapılan her şey"
 msgid "Anything else"
 msgstr "Başka bir şey"
 
-#: src/features/governance/audit-page.tsx:125
+#: src/features/governance/audit-page.tsx:142
 msgid "Anything it was done to"
 msgstr "Yapılan her şeye"
 
@@ -2034,7 +2038,7 @@ msgid "Basic"
 msgstr "Temel"
 
 #: src/shop/app.tsx:63
-#: src/shop/app.tsx:161
+#: src/shop/app.tsx:156
 msgid "Basket"
 msgstr "Sepet"
 
@@ -2125,7 +2129,7 @@ msgstr "Yazılıyor"
 #~ msgstr "Faturalar"
 
 #: src/components/dashboard/dashboard-shell.tsx:106
-#: src/features/governance/trash-page.tsx:104
+#: src/features/governance/trash-page.tsx:105
 msgid "Bin"
 msgstr "Çöp kutusu"
 
@@ -2306,7 +2310,7 @@ msgstr "Madde listesi"
 #~ msgid "Business"
 #~ msgstr "Kurumsal"
 
-#: src/shop/app.tsx:245
+#: src/shop/app.tsx:240
 msgid "Buy"
 msgstr "Satın al"
 
@@ -2416,11 +2420,11 @@ msgid "Cancel"
 msgstr "Vazgeç"
 
 #: src/features/shop/orders-page.tsx:48
-#: src/shop/app.tsx:274
+#: src/shop/app.tsx:264
 msgid "Cancelled"
 msgstr "İptal edildi"
 
-#: src/features/settings/settings-page.tsx:85
+#: src/features/settings/settings-page.tsx:94
 msgid "Canonical URL"
 msgstr "Canonical URL"
 
@@ -2473,7 +2477,7 @@ msgstr ""
 #~ msgid "Category"
 #~ msgstr "Kategori"
 
-#: src/features/governance/trash-page.tsx:63
+#: src/features/governance/trash-page.tsx:64
 msgid "category or tag"
 msgstr "kategori veya etiket"
 
@@ -2498,7 +2502,7 @@ msgstr "{0} değiştir"
 #~ msgid "Changed"
 #~ msgstr "Değiştirildi"
 
-#: src/features/governance/audit-page.tsx:136
+#: src/features/governance/audit-page.tsx:153
 msgid "Changes made to this site will appear here."
 msgstr ""
 
@@ -3673,8 +3677,12 @@ msgstr "Bu dosya silinsin mi?"
 #~ msgstr "{0} sildi"
 
 #: src/features/governance/trash-page.tsx:105
-msgid "Deleted content waits thirty days before it is removed permanently, and can be restored in the meantime."
-msgstr ""
+#~ msgid "Deleted content waits thirty days before it is removed permanently, and can be restored in the meantime."
+#~ msgstr ""
+
+#: src/features/governance/trash-page.tsx:106
+msgid "Deleted resources wait thirty days before they are removed permanently, and can be restored in the meantime."
+msgstr "Silinen kaynaklar kalıcı olarak kaldırılmadan önce otuz gün bekletilir ve bu süre içinde geri yüklenebilir."
 
 #: src/routes/dashboard.usage.tsx:249
 #~ msgid "Delivered"
@@ -3827,7 +3835,7 @@ msgid "Done."
 msgstr ""
 
 #: src/components/editor/dialogs.tsx:510
-#: src/features/governance/audit-page.tsx:108
+#: src/features/governance/audit-page.tsx:125
 msgid "Download"
 msgstr "İndir"
 
@@ -4196,7 +4204,7 @@ msgstr "Dışa aktar"
 msgid "Fields"
 msgstr "Alanlar"
 
-#: src/features/governance/trash-page.tsx:62
+#: src/features/governance/trash-page.tsx:63
 msgid "file"
 msgstr ""
 
@@ -4212,11 +4220,11 @@ msgstr ""
 #~ msgid "Fill in the region and the keys above and save them. Everything Amazon knows about this account then appears here: how much sending is left today, whether it is still in the sandbox, which senders are verified, and how the last two weeks went."
 #~ msgstr "Yukarıdaki bölge ve anahtarları doldurup kaydedin. Amazon'un bu hesap hakkında bildiği her şey burada görünür: bugün ne kadar gönderim kaldığı, hâlâ kum havuzunda mı, hangi göndericiler doğrulanmış ve son iki hafta nasıl geçmiş."
 
-#: src/features/governance/audit-page.tsx:115
+#: src/features/governance/audit-page.tsx:132
 msgid "Filter by action"
 msgstr ""
 
-#: src/features/governance/audit-page.tsx:122
+#: src/features/governance/audit-page.tsx:139
 msgid "Filter by subject"
 msgstr ""
 
@@ -4335,9 +4343,9 @@ msgstr "Unut"
 #~ msgid "Forgotten."
 #~ msgstr "Unutuldu."
 
-#: src/features/governance/trash-page.tsx:64
-#~ msgid "form"
-#~ msgstr "form"
+#: src/features/governance/trash-page.tsx:61
+msgid "form"
+msgstr "form"
 
 #: src/routes/dashboard.index.tsx:151
 #: src/routes/dashboard.usage.tsx:94
@@ -5169,6 +5177,10 @@ msgstr "Anahtarı"
 msgid "Justify"
 msgstr "İki yana yasla"
 
+#: src/features/settings/settings-page.tsx:115
+msgid "Keep deleted items (days)"
+msgstr "Silinen öğeleri saklama (gün)"
+
 #: src/components/editor/extensions/index.ts:253
 msgid "Keep going, type “/” to add a block…"
 msgstr "Devam et, “/” ile blok ekle…"
@@ -5178,8 +5190,12 @@ msgstr "Devam et, “/” ile blok ekle…"
 #~ msgstr "Kalsın"
 
 #: src/shop/app.tsx:290
-msgid "Keep this address: it is how you look this order up again."
-msgstr "Bu adresi saklayın: siparişi yeniden buradan görebilirsiniz."
+#~ msgid "Keep this address: it is how you look this order up again."
+#~ msgstr "Bu adresi saklayın: siparişi yeniden buradan görebilirsiniz."
+
+#: src/shop/app.tsx:280
+msgid "Keep this receipt in this browser. The public API never exposes another customer's order by ID."
+msgstr ""
 
 #: src/routes/dashboard.billing.tsx:82
 #~ msgid "Kept"
@@ -5290,7 +5306,7 @@ msgstr ""
 #~ msgid "Leave empty for AWS S3"
 #~ msgstr "AWS S3 için boş bırakın"
 
-#: src/features/settings/settings-page.tsx:94
+#: src/features/settings/settings-page.tsx:103
 msgid "Leave empty to clear it. This is the public origin used in generated links."
 msgstr ""
 
@@ -6438,7 +6454,7 @@ msgstr "Henüz satışta bir şey yok."
 #~ msgid "Nothing has been charged yet."
 #~ msgstr "Henüz bir ücret işlenmedi."
 
-#: src/features/governance/trash-page.tsx:123
+#: src/features/governance/trash-page.tsx:124
 msgid "Nothing has been deleted"
 msgstr "Hiçbir şey silinmedi"
 
@@ -6474,7 +6490,7 @@ msgstr "Henüz bir şey gelmedi"
 #~ msgid "Nothing has happened yet."
 #~ msgstr "Henüz bir şey olmadı."
 
-#: src/features/governance/audit-page.tsx:135
+#: src/features/governance/audit-page.tsx:152
 msgid "Nothing here yet."
 msgstr "Burada henüz bir şey yok."
 
@@ -6494,7 +6510,7 @@ msgstr "Burada henüz bir şey yok."
 #~ msgid "Nothing here. Either nothing has happened yet, or this site was set up before the record was kept."
 #~ msgstr "Burada bir şey yok. Ya henüz bir şey olmadı, ya da bu site kayıt tutulmaya başlanmadan önce kuruldu."
 
-#: src/shop/app.tsx:154
+#: src/shop/app.tsx:149
 msgid "Nothing in it yet."
 msgstr "Henüz içinde bir şey yok."
 
@@ -6704,7 +6720,7 @@ msgstr "Numaralı liste"
 #~ msgid "Off while you are testing. A test key and a live key look alike, and this is the field that says which one you meant."
 #~ msgstr "Denerken kapalı tutun. Test anahtarıyla canlı anahtar birbirine benzer; hangisini kastettiğinizi söyleyen alan budur."
 
-#: src/features/governance/audit-page.tsx:154
+#: src/features/governance/audit-page.tsx:171
 msgid "Older"
 msgstr "Daha eski"
 
@@ -6814,7 +6830,7 @@ msgstr "kendi adresinde"
 #~ msgid "One Amazon account behind a mail service the sites here can use instead of opening their own. Each sends as its own Amazon tenant, so one site's complaints do not become everybody's."
 #~ msgstr "Buradaki sitelerin kendi hesaplarını açmak yerine kullanabileceği bir e-posta servisi ve arkasında tek bir Amazon hesabı. Her site kendi Amazon kiracısı olarak gönderir; böylece bir sitenin şikâyetleri herkesin sorunu olmaz."
 
-#: src/shop/app.tsx:178
+#: src/shop/app.tsx:173
 msgid "One fewer"
 msgstr "Bir eksilt"
 
@@ -6832,7 +6848,7 @@ msgstr "Bir eksilt"
 #~ msgid "One language, one page at a time."
 #~ msgstr "Tek dil, sayfa sayfa."
 
-#: src/shop/app.tsx:191
+#: src/shop/app.tsx:186
 msgid "One more"
 msgstr "Bir arttır"
 
@@ -7039,8 +7055,8 @@ msgstr "Turuncu"
 #~ msgid "Order"
 #~ msgstr "Sıra"
 
-#. placeholder {0}: order.number
-#: src/shop/app.tsx:282
+#. placeholder {0}: receipt.number
+#: src/shop/app.tsx:272
 msgid "Order #{0}"
 msgstr "Sipariş #{0}"
 
@@ -7143,7 +7159,7 @@ msgstr ""
 #~ msgstr "Sayfalar, en kötüsü önce"
 
 #: src/features/shop/orders-page.tsx:46
-#: src/shop/app.tsx:272
+#: src/shop/app.tsx:262
 msgid "Paid"
 msgstr "Ödendi"
 
@@ -7172,7 +7188,7 @@ msgstr "Parola"
 #~ msgid "Password link"
 #~ msgstr "Parola bağlantısı"
 
-#: src/features/governance/audit-page.tsx:161
+#: src/features/governance/audit-page.tsx:178
 msgid "Passwords, keys and tokens are never written here — an entry says a key was replaced, not what it was replaced with."
 msgstr "Parolalar, anahtarlar ve token'lar buraya hiç yazılmaz — bir kayıt anahtarın değiştirildiğini söyler, neyle değiştirildiğini değil."
 
@@ -7356,7 +7372,7 @@ msgstr "Düz metin bloğu"
 #~ msgstr "Port"
 
 #: src/components/dashboard/dashboard-shell.tsx:74
-#: src/features/governance/trash-page.tsx:61
+#: src/features/governance/trash-page.tsx:62
 msgid "post"
 msgstr "yazı"
 
@@ -7462,7 +7478,7 @@ msgstr ""
 #~ msgid "Public base URL"
 #~ msgstr "Genel URL tabanı"
 
-#: src/features/settings/settings-page.tsx:72
+#: src/features/settings/settings-page.tsx:81
 msgid "Public identity"
 msgstr ""
 
@@ -7543,7 +7559,7 @@ msgstr "… yerine bir jeton koyun. Jeton yalnızca üretildiği anda gösterili
 #~ msgid "Put answers on a board"
 #~ msgstr "Cevapları bir panoya koy"
 
-#: src/features/governance/trash-page.tsx:145
+#: src/features/governance/trash-page.tsx:146
 msgid "Put it back"
 msgstr "Geri al"
 
@@ -7670,7 +7686,7 @@ msgstr ""
 #~ msgstr "Önerilen"
 
 #: src/components/dashboard/dashboard-shell.tsx:105
-#: src/features/governance/audit-page.tsx:90
+#: src/features/governance/audit-page.tsx:91
 #: src/features/people/roles-page.tsx:174
 msgid "Record"
 msgstr "Kayıt"
@@ -7698,7 +7714,7 @@ msgid "Refund it"
 msgstr "İade et"
 
 #: src/features/shop/orders-page.tsx:49
-#: src/shop/app.tsx:275
+#: src/shop/app.tsx:265
 msgid "Refunded"
 msgstr "İade edildi"
 
@@ -8084,7 +8100,7 @@ msgstr "Kaydet"
 #~ msgid "Save it first"
 #~ msgstr "Önce kaydedin"
 
-#: src/features/settings/settings-page.tsx:124
+#: src/features/settings/settings-page.tsx:162
 msgid "Save settings"
 msgstr ""
 
@@ -8111,7 +8127,7 @@ msgstr ""
 #: src/components/editor/status-bar.tsx:116
 #: src/features/forms/forms-page.tsx:106
 #: src/features/mail/letters-page.tsx:83
-#: src/features/settings/settings-page.tsx:54
+#: src/features/settings/settings-page.tsx:59
 #: src/features/shop/coupons-page.tsx:162
 msgid "Saved"
 msgstr "Kaydedildi"
@@ -8390,7 +8406,7 @@ msgstr "Bağlantıyı gönder"
 #~ msgstr "gönderildi"
 
 #: src/features/shop/orders-page.tsx:47
-#: src/shop/app.tsx:273
+#: src/shop/app.tsx:263
 msgid "Sent"
 msgstr "Gönderildi"
 
@@ -8685,7 +8701,7 @@ msgstr "Giriş yapıldı"
 #~ msgstr "Site sınırı"
 
 #: src/features/auth/setup-page.tsx:88
-#: src/features/settings/settings-page.tsx:76
+#: src/features/settings/settings-page.tsx:85
 msgid "Site name"
 msgstr ""
 
@@ -8782,7 +8798,7 @@ msgstr "biri@example.test"
 #~ msgstr "biri@example.com ya da example.com"
 
 #: src/learn/app.tsx:138
-#: src/shop/app.tsx:144
+#: src/shop/app.tsx:139
 msgid "Something failed"
 msgstr "Bir şey ters gitti"
 
@@ -9170,7 +9186,7 @@ msgstr "Etiketler"
 #~ msgid "Take it off instead"
 #~ msgstr "Bunun yerine düş"
 
-#: src/shop/app.tsx:200
+#: src/shop/app.tsx:195
 msgid "Take it out"
 msgstr "Sepetten çıkar"
 
@@ -9409,7 +9425,7 @@ msgstr "Yanıt verdiği adres addan üretilir ve hiç değişmez; çünkü bir �
 #~ msgid "The backup failed"
 #~ msgstr "Yedekleme başarısız oldu"
 
-#: src/features/governance/trash-page.tsx:119
+#: src/features/governance/trash-page.tsx:120
 msgid "The bin could not be read just now."
 msgstr ""
 
@@ -9487,6 +9503,10 @@ msgstr "Eğri, ilk ziyaretten itibaren kendini çizer."
 #: src/routes/dashboard.platform-mail.tsx:153
 #~ msgid "The exact permissions this needs are in docs/shared-email.md. A new Amazon account may only send 200 messages a day and only to addresses it has verified, which is no use to anybody — ask Amazon for production access before switching any site on."
 #~ msgstr "Gereken yetkilerin tam listesi docs/shared-email.md içinde. Yeni bir Amazon hesabı günde yalnızca 200 ileti ve yalnızca doğruladığı adreslere gönderebilir; bu kimsenin işine yaramaz — herhangi bir siteyi açmadan önce Amazon'dan üretim erişimi isteyin."
+
+#: src/features/governance/audit-page.tsx:118
+msgid "The export reached its 10,000-event limit."
+msgstr ""
 
 #: src/components/flows/flow-canvas.tsx:375
 #~ msgid "The faded ones need something set up first, and say what underneath."
@@ -9647,7 +9667,7 @@ msgstr "Sayılar şu anda okunamadı."
 #~ msgid "The only honest check. A key without permission, an address SES has not verified and an account still in the sandbox all look the same until something is actually sent."
 #~ msgstr "Tek dürüst kontrol. Yetkisi olmayan bir anahtar, SES'in doğrulamadığı bir adres ve hâlâ kum havuzundaki bir hesap — gerçekten bir şey gönderilene kadar üçü de aynı görünür."
 
-#: src/features/settings/settings-page.tsx:66
+#: src/features/settings/settings-page.tsx:75
 msgid "The public identity and URL settings used by this site."
 msgstr ""
 
@@ -9655,7 +9675,7 @@ msgstr ""
 #~ msgid "The pull zone hostname is on the same tab — it looks like vz-… .b-cdn.net"
 #~ msgstr "Pull zone alan adı da aynı sekmede — vz-… .b-cdn.net gibi görünür."
 
-#: src/features/governance/audit-page.tsx:132
+#: src/features/governance/audit-page.tsx:149
 msgid "The record could not be read just now."
 msgstr ""
 
@@ -9981,6 +10001,10 @@ msgstr "Bu yazı açılamadı, bu yüzden hiç değiştirilmedi."
 #~ msgid "This really sends: mail goes to real addresses and any address step is really called. Go ahead?"
 #~ msgstr "Bu gerçekten gönderir: posta gerçek adreslere gider ve adres adımı gerçekten çağrılır. Devam edilsin mi?"
 
+#: src/shop/app.tsx:256
+msgid "This receipt is only available in the browser that placed the order."
+msgstr ""
+
 #: src/lib/auth.ts:73
 msgid "This request conflicts with the current site state."
 msgstr ""
@@ -10010,7 +10034,7 @@ msgstr "Bu rol yazılımla birlikte gelir; site tarafından değiştirilemez."
 #~ msgid "This signs you in to the server itself. Everyone else signs in somewhere else:"
 #~ msgstr "Bu giriş sunucunun kendisine. Diğer herkes başka bir yerden giriyor:"
 
-#: src/features/settings/settings-page.tsx:65
+#: src/features/settings/settings-page.tsx:74
 msgid "This site"
 msgstr "Bu site"
 
@@ -10080,7 +10104,7 @@ msgstr ""
 #~ msgid "Those are not the digits the app is showing."
 #~ msgstr "Bunlar uygulamanın gösterdiği basamaklar değil."
 
-#: src/features/governance/trash-page.tsx:150
+#: src/features/governance/trash-page.tsx:151
 msgid "Throw it away now"
 msgstr "Şimdi kalıcı olarak sil"
 
@@ -10092,7 +10116,7 @@ msgstr "Çöpe at"
 msgid "Tick it"
 msgstr "Seç"
 
-#: src/features/settings/settings-page.tsx:102
+#: src/features/settings/settings-page.tsx:134
 msgid "Time"
 msgstr ""
 
@@ -10104,7 +10128,7 @@ msgstr "Toplam kaç kez"
 #~ msgid "Times per person"
 #~ msgstr "Kişi başı kaç kez"
 
-#: src/features/settings/settings-page.tsx:106
+#: src/features/settings/settings-page.tsx:138
 msgid "Timezone"
 msgstr ""
 
@@ -10186,6 +10210,10 @@ msgstr ""
 #: src/components/editor/mavi-editor.tsx:912
 msgid "Translations"
 msgstr "Çeviriler"
+
+#: src/features/settings/settings-page.tsx:111
+msgid "Trash retention"
+msgstr "Çöp kutusu saklama süresi"
 
 #. placeholder {0}: one.attempts
 #: src/routes/dashboard.transfers.tsx:195
@@ -10373,7 +10401,7 @@ msgstr "Kullanım"
 #~ msgid "Use {0} — {1} off your balance"
 #~ msgstr "{0} kullan — bakiyenizden {1} düşer"
 
-#: src/features/settings/settings-page.tsx:114
+#: src/features/settings/settings-page.tsx:146
 msgid "Use an IANA timezone such as Europe/Berlin or UTC."
 msgstr ""
 
@@ -10515,7 +10543,7 @@ msgstr "Ziyaretçiler"
 #~ msgstr "DNS bekleniyor"
 
 #: src/features/shop/orders-page.tsx:45
-#: src/shop/app.tsx:271
+#: src/shop/app.tsx:261
 msgid "Waiting for payment"
 msgstr "Ödeme bekleniyor"
 
@@ -10536,7 +10564,7 @@ msgstr "Ödeme bekleniyor"
 #~ msgid "Waiting to be paid"
 #~ msgstr "Ödeme bekliyor"
 
-#: src/features/governance/trash-page.tsx:110
+#: src/features/governance/trash-page.tsx:111
 msgid "Waiting to be thrown away"
 msgstr "Silinmeyi bekleyenler"
 
@@ -11049,7 +11077,7 @@ msgstr "Ne zaman"
 #~ msgid "When something calls in"
 #~ msgstr "Dışarıdan bir çağrı geldiğinde"
 
-#: src/features/governance/trash-page.tsx:124
+#: src/features/governance/trash-page.tsx:125
 msgid "When something is, it appears here first."
 msgstr "Bir şey silindiğinde önce burada görünür."
 
@@ -11102,7 +11130,7 @@ msgstr "Bir şey silindiğinde önce burada görünür."
 #~ msgid "Where to send it"
 #~ msgstr "Nereye gönderilsin"
 
-#: src/shop/app.tsx:217
+#: src/shop/app.tsx:212
 msgid "Where to send the receipt"
 msgstr "Makbuz nereye gönderilsin"
 
@@ -11170,7 +11198,7 @@ msgstr ""
 #~ msgid "Who did what to this site, and from where. Kept for six months."
 #~ msgstr "Bu siteye kim ne yaptı ve nereden. Altı ay saklanır."
 
-#: src/features/governance/audit-page.tsx:91
+#: src/features/governance/audit-page.tsx:92
 msgid "Who did what to this site, and when."
 msgstr "Bu siteye kim ne yaptı, ne zaman."
 

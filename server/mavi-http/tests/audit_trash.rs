@@ -188,6 +188,78 @@ async fn audit_and_trash_routes_use_cursors_restore_and_cleanup_boundaries() {
     .await;
     assert_eq!(missing.status(), StatusCode::NOT_FOUND);
 
+    let form = send(
+        &app,
+        Method::POST,
+        "/api/v1/forms",
+        Some(&owner_token),
+        Some(json!({
+            "slug": "audit-trash-form",
+            "name": "Audit trash form"
+        })),
+    )
+    .await;
+    assert_eq!(form.status(), StatusCode::CREATED);
+    let form_id = response_json(form).await["id"]
+        .as_str()
+        .expect("form id")
+        .to_owned();
+    let form_trashed = send(
+        &app,
+        Method::DELETE,
+        &format!("/api/v1/forms/{form_id}"),
+        Some(&owner_token),
+        None,
+    )
+    .await;
+    assert_eq!(form_trashed.status(), StatusCode::NO_CONTENT);
+    let form_trash = send(
+        &app,
+        Method::GET,
+        "/api/v1/trash?kind=form",
+        Some(&owner_token),
+        None,
+    )
+    .await;
+    assert_eq!(form_trash.status(), StatusCode::OK);
+    assert_eq!(response_json(form_trash).await["items"][0]["id"], form_id);
+    let form_restored = send(
+        &app,
+        Method::POST,
+        &format!("/api/v1/trash/form/{form_id}/restore"),
+        Some(&owner_token),
+        None,
+    )
+    .await;
+    assert_eq!(form_restored.status(), StatusCode::NO_CONTENT);
+    let form_read = send(
+        &app,
+        Method::GET,
+        &format!("/api/v1/forms/{form_id}"),
+        Some(&owner_token),
+        None,
+    )
+    .await;
+    assert_eq!(form_read.status(), StatusCode::OK);
+    let form_trashed_again = send(
+        &app,
+        Method::DELETE,
+        &format!("/api/v1/forms/{form_id}"),
+        Some(&owner_token),
+        None,
+    )
+    .await;
+    assert_eq!(form_trashed_again.status(), StatusCode::NO_CONTENT);
+    let form_deleted = send(
+        &app,
+        Method::DELETE,
+        &format!("/api/v1/trash/form/{form_id}"),
+        Some(&owner_token),
+        None,
+    )
+    .await;
+    assert_eq!(form_deleted.status(), StatusCode::NO_CONTENT);
+
     let file = send_raw(
         &app,
         Method::POST,

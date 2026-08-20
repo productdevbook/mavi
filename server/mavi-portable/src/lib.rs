@@ -1660,28 +1660,9 @@ fn valid_role_name(value: &str) -> bool {
 }
 
 fn valid_capability(value: &str) -> bool {
-    matches!(
-        value,
-        "analytics"
-            | "automation"
-            | "audit"
-            | "boards"
-            | "content"
-            | "courses"
-            | "credentials"
-            | "design"
-            | "feedback"
-            | "forms"
-            | "mail"
-            | "media"
-            | "people"
-            | "portable"
-            | "publish"
-            | "settings"
-            | "shop"
-            | "taxonomy"
-            | "trash"
-    )
+    Capability::ALL
+        .into_iter()
+        .any(|capability| capability.as_str() == value)
 }
 
 fn schema_hash() -> String {
@@ -2346,6 +2327,14 @@ mod tests {
                 .all(|shape| !shape.schema.to_string().contains("offset"))
         );
         api.validate().expect("portable API");
+    }
+
+    #[test]
+    fn relocation_capability_validation_uses_the_core_registry() {
+        for capability in Capability::ALL {
+            assert!(valid_capability(capability.as_str()));
+        }
+        assert!(!valid_capability("unknown"));
     }
 
     #[test]

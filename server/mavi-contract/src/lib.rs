@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
 use sha2::{Digest, Sha256};
 
-/// The release version embedded in generated OpenAPI metadata.
+/// The release version embedded in generated `OpenAPI` metadata.
 ///
 /// Keeping this at the package boundary prevents a release bump from leaving
 /// the runtime manifest and generated contract with different versions.

@@ -1,15 +1,22 @@
-/**
- * What a shopper's browser is allowed to ask for.
- *
- * Deliberately small, and deliberately not the panel's own client: what is
- * served to somebody buying a thing should not carry the shape of the whole
- * administrative API.
- *
- * There is no account here and no basket on the server. A basket is a list in
- * this browser until somebody buys it, which is the honest shape of the thing:
- * nothing is reserved by putting it in one, and the shop is not keeping a
- * record of what somebody nearly bought.
- */
+/** Public storefront access through the canonical generated Mavi contract. */
+
+import {
+  MaviApiError,
+  MaviClient,
+} from "@api"
+import type {
+  CheckoutReceipt,
+  Money,
+  OperationArguments,
+  OperationName,
+  OperationResponses,
+  PublicProduct,
+} from "@api"
+
+type PublicOperation = Extract<
+  OperationName,
+  "shop.public.products.list" | "shop.public.orders.checkout"
+>
 
 export class ShopError extends Error {
   status: number
@@ -20,62 +27,31 @@ export class ShopError extends Error {
   }
 }
 
-async function ask<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`/api${path}`, {
-    credentials: "same-origin",
-    headers: init?.body ? { "content-type": "application/json" } : {},
-    ...init,
-  })
-
-  if (!response.ok) {
-    const body = await response.json().catch(() => null)
-
-    throw new ShopError(
-      response.status,
-      String(body?.error?.message ?? response.statusText),
+async function ask<Name extends PublicOperation>(
+  operation: Name,
+  args: OperationArguments[Name],
+): Promise<OperationResponses[Name]> {
+  try {
+    return await new MaviClient({ baseUrl: window.location.origin }).call(
+      operation,
+      args,
     )
+  } catch (error) {
+    if (error instanceof MaviApiError) {
+      throw new ShopError(
+        error.status,
+        error.payload?.error.message ?? error.message,
+      )
+    }
+    throw error
   }
-
-  if (response.status === 204) {
-    return undefined as T
-  }
-
-  return response.json() as Promise<T>
 }
 
-export interface Money {
-  minor: number
-  currency: string
-}
-
-export interface Product {
-  id: string
-  slug: string
-  name: string
-  description: string | null
-  price: Money
-  stock: number
-}
-
-export interface Order {
-  id: string
-  number: number
-  state: string
-  email: string
-  total: Money
-  created_at: string
-}
-
-export interface Placed {
-  order: Order
-  /** Where to go and pay, when the site has somewhere. */
-  pay_at: string | null
-}
+export type { CheckoutReceipt, Money }
+export type Product = PublicProduct
 
 export const products = () =>
-  ask<{ items: Product[]; next: string | null }>("/sites/products")
-
-export const order = (id: string) => ask<Order>(`/sites/orders/${id}`)
+  ask("shop.public.products.list", { query: { limit: 100 } })
 
 export const buy = (
   email: string,
@@ -83,10 +59,31 @@ export const buy = (
   coupon: string | null,
   key: string,
 ) =>
-  ask<Placed>("/sites/checkout", {
-    method: "POST",
-    body: JSON.stringify({ email, items, coupon, idempotency_key: key }),
+  ask("shop.public.orders.checkout", {
+    body: {
+      email,
+      items,
+      coupon_code: coupon,
+      idempotency_key: key,
+    },
   })
+
+const RECEIPT = "mavi.shop.receipt"
+
+export function saveReceipt(value: CheckoutReceipt): void {
+  sessionStorage.setItem(RECEIPT, JSON.stringify(value))
+}
+
+export function receipt(id: string): CheckoutReceipt | null {
+  try {
+    const value = JSON.parse(sessionStorage.getItem(RECEIPT) ?? "null") as
+      | CheckoutReceipt
+      | null
+    return value?.id === id ? value : null
+  } catch {
+    return null
+  }
+}
 
 /** An amount, as somebody reads it. */
 export function money(amount: Money): string {

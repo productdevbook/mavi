@@ -85,6 +85,7 @@ pub struct Product {
 
 #[derive(Clone, Debug, Serialize)]
 pub struct PublicProduct {
+    pub id: ProductId,
     pub slug: String,
     pub name: String,
     pub description: Option<String>,
@@ -296,8 +297,9 @@ fn shapes() -> Vec<Shape> {
             "PublicProduct",
             json!({
                 "type": "object",
-                "required": ["slug", "name", "description", "price", "can_be_bought"],
+                "required": ["id", "slug", "name", "description", "price", "can_be_bought"],
                 "properties": {
+                    "id": {"type": "string", "format": "uuid"},
                     "slug": {"type": "string"},
                     "name": {"type": "string"},
                     "description": {"type": ["string", "null"]},
@@ -355,6 +357,7 @@ impl ShopService {
             page.items
                 .into_iter()
                 .map(|product| PublicProduct {
+                    id: product.id,
                     slug: product.slug,
                     name: product.name,
                     description: product.description,

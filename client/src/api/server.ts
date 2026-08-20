@@ -1463,6 +1463,7 @@ export interface PublicForm {
 }
 
 export interface PublicProduct {
+  id: string;
   slug: string;
   name: string;
   description: string | null;

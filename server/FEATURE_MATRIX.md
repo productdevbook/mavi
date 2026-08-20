@@ -260,4 +260,6 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
 - [x] Release smoke test, migration rollback policy, backups and upgrade docs.
   - [x] 'scripts/mavi-smoke.sh' checks health, readiness, OpenAPI, panel delivery and one-time setup behavior.
   - [x] Self-host runbook defines backup/restore, pinned-tag recovery and forward-only migration policy.
-- [ ] Operator consumes only a tagged Mavi release/API contract.
+- [x] Operator consumes only a tagged Mavi release/API contract; the
+  `operator-v0.1.4` release pins Mavi `v0.1.4` and verifies the exact release
+  commit, API fingerprint and storage schema before activation.

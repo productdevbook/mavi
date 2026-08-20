@@ -54,11 +54,11 @@ per source/action window.
 
 ## Self-host image
 
-The release image is built from this workspace only. It runs as a non-root
-user, persists site files below `/data/files`, listens on `0.0.0.0:8080` and
-does not include the panel. The panel is a later generated-client slice;
-deploying an unmigrated screen beside this image would mix incompatible API
-contracts.
+The API release image is built from this workspace only. It runs as a non-root
+user, persists site files below `/data/files` and listens on `0.0.0.0:8080`.
+The panel is a separate image built from the same release tag; the self-host
+compose package mounts it at `/admin`, `/learn` and `/shop` without putting
+browser assets in the Rust runtime image.
 
 For a local image build:
 

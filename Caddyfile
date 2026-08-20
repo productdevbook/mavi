@@ -1,6 +1,7 @@
-# What answers on the address, and how it gets a certificate. The clean
-# release currently exposes the canonical API; the panel will be mounted here
-# after it is regenerated from the same contract.
+# What answers on the address, and how it gets a certificate. Browser bundles
+# and API traffic are separate services but share one Host/site boundary.
 {$MAVI_DOMAIN} {
+	@panel path /admin* /shop* /learn*
+	reverse_proxy @panel panel:80
 	reverse_proxy api:8080
 }

@@ -6,6 +6,7 @@
 
 use std::{
     fmt::Write as _,
+    future::{Future, ready},
     sync::{Arc, OnceLock},
     time::Instant,
 };
@@ -266,34 +267,35 @@ pub struct Query<T>(pub T);
 
 impl<T, S> FromRequestParts<S> for Query<T>
 where
-    T: DeserializeOwned,
+    T: DeserializeOwned + Send,
     S: Send + Sync,
 {
     type Rejection = Response;
 
-    async fn from_request_parts(
+    fn from_request_parts(
         parts: &mut axum::http::request::Parts,
         _state: &S,
-    ) -> std::result::Result<Self, Self::Rejection> {
+    ) -> impl Future<Output = std::result::Result<Self, Self::Rejection>> + Send {
         let query = parts.uri.query().unwrap_or_default();
         let deserializer =
             serde_urlencoded::Deserializer::new(form_urlencoded::parse(query.as_bytes()));
         let mut unknown_field = None;
-        let value = serde_ignored::deserialize(deserializer, |path| {
+        let Ok(value) = serde_ignored::deserialize(deserializer, |path| {
             if unknown_field.is_none() {
                 unknown_field = Some(path.to_string());
             }
-        })
-        .map_err(|_| input_rejection(MaviError::validation("invalid_query")))?;
+        }) else {
+            return ready(Err(input_rejection(MaviError::validation("invalid_query"))));
+        };
 
         if let Some(field) = unknown_field {
-            return Err(input_rejection(MaviError::validation_field(
+            return ready(Err(input_rejection(MaviError::validation_field(
                 "unknown_field",
                 field,
-            )));
+            ))));
         }
 
-        Ok(Self(value))
+        ready(Ok(Self(value)))
     }
 }
 

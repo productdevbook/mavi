@@ -13,6 +13,7 @@ mod mail_policy;
 mod money;
 mod pagination;
 pub mod ports;
+mod trash_retention;
 
 pub use analytics_retention::{
     AnalyticsRetentionPolicy, DEFAULT_ANALYTICS_AGGREGATE_RETENTION_DAYS,
@@ -34,3 +35,6 @@ pub use ids::{
 pub use mail_policy::{MailSender, MailSenderPolicy};
 pub use money::{Currency, Money};
 pub use pagination::{Cursor, Page, PageRequest};
+pub use trash_retention::{
+    DEFAULT_TRASH_RETENTION_DAYS, MAX_TRASH_RETENTION_DAYS, TrashRetentionPolicy,
+};

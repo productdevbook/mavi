@@ -13,9 +13,10 @@ use chrono::{DateTime, Utc};
 use mavi_audit::{AuditEntry, AuditService};
 use mavi_contract::{Endpoint, Method, Permission, Shape};
 use mavi_core::{
-    Action, Capability, Cursor, ErrorCode, MaviError, Page, PageRequest, Result, SiteContext,
-    SiteId, ports::FileStore,
+    Action, Capability, Cursor, ErrorCode, JobId, MaviError, Page, PageRequest, Result,
+    SiteContext, SiteId, ports::FileStore,
 };
+use mavi_jobs::{JobKind, JobsService};
 use mavi_media::{FileKind, MAX_FILE_BYTES, MAX_MEDIA_RELOCATION_BYTES};
 use mavi_storage::SiteTx;
 use serde::{Deserialize, Serialize};
@@ -33,6 +34,9 @@ pub const TRASH_RELOCATION_CONFLICT: &str = "trash_relocation_conflict";
 pub const MAX_TRASH_RECORDS_PER_SECTION: usize = 10_000;
 pub const MAX_TRASH_TOTAL_RECORDS: usize = 20_000;
 pub const MAX_TRASH_RELOCATION_BYTES: usize = 256 * 1024 * 1024;
+pub const TRASH_RETENTION_JOB: JobKind = JobKind::new("trash.retention", 5);
+pub const TRASH_RETENTION_BUCKET_SECONDS: i64 = 24 * 60 * 60;
+pub const MAX_TRASH_RETENTION_BATCH: i64 = 100;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -389,6 +393,19 @@ pub struct PermanentDeletion {
     pub file_storage_key: Option<String>,
 }
 
+/// Payload for the idempotent daily trash retention job.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct TrashRetentionJob {
+    pub bucket: i64,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ExpiredTrashItem {
+    pub kind: TrashKind,
+    pub id: Uuid,
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 struct TrashCursor {
     deleted_at: DateTime<Utc>,
@@ -511,6 +528,111 @@ pub fn shapes() -> Vec<Shape> {
 }
 
 impl TrashService {
+    /// Enqueues one retention pass for the current UTC day. Discovery is
+    /// idempotent, so a shard can poll every site without multiplying jobs.
+    pub async fn enqueue_retention_job(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        jobs: &JobsService,
+        now: DateTime<Utc>,
+    ) -> Result<JobId> {
+        let bucket = now.timestamp().div_euclid(TRASH_RETENTION_BUCKET_SECONDS);
+        let payload =
+            serde_json::to_value(TrashRetentionJob { bucket }).map_err(|_| MaviError::Internal)?;
+        let idempotency_key = format!("trash:retention:{}:{}", context.site_id, bucket);
+        jobs.enqueue(
+            tx,
+            context,
+            TRASH_RETENTION_JOB.name,
+            &payload,
+            None,
+            Some(&idempotency_key),
+        )
+        .await
+    }
+
+    /// Schedules the next bounded batch after a retention job consumed its
+    /// full page. The claim id makes the continuation unique even when two
+    /// workers discover the same daily job around a lease hand-off.
+    pub async fn enqueue_retention_continuation(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        jobs: &JobsService,
+        bucket: i64,
+        parent_job: JobId,
+    ) -> Result<JobId> {
+        let payload =
+            serde_json::to_value(TrashRetentionJob { bucket }).map_err(|_| MaviError::Internal)?;
+        let idempotency_key = format!(
+            "trash:retention:{}:{}:continuation:{}",
+            context.site_id, bucket, parent_job
+        );
+        jobs.enqueue(
+            tx,
+            context,
+            TRASH_RETENTION_JOB.name,
+            &payload,
+            None,
+            Some(&idempotency_key),
+        )
+        .await
+    }
+
+    /// Returns a bounded, oldest-first batch of soft-deleted core records.
+    /// Each candidate is locked again by [`Self::permanently_delete`]. This
+    /// keeps discovery bounded while making the final delete the authority if
+    /// a manual restore races with a worker poll.
+    pub async fn expired(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        before: DateTime<Utc>,
+        limit: i64,
+    ) -> Result<Vec<ExpiredTrashItem>> {
+        if !(1..=MAX_TRASH_RETENTION_BATCH).contains(&limit) {
+            return Err(MaviError::validation("trash_retention_batch_invalid"));
+        }
+        let rows = sqlx::query(
+            "select kind, id
+               from (
+                 select site_id, 'content'::text as kind, id, deleted_at,
+                        3::int as kind_rank
+                   from content_entries where deleted_at is not null
+                 union all
+                 select site_id, 'file'::text as kind, id, deleted_at,
+                        2::int as kind_rank
+                   from media_files where deleted_at is not null
+                 union all
+                 select site_id, 'term'::text as kind, id, deleted_at,
+                        1::int as kind_rank
+                   from taxonomy_terms where deleted_at is not null
+               ) as trashed
+              where site_id = $1 and deleted_at < $2
+              order by deleted_at asc, kind_rank asc, id asc
+              limit $3",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(before)
+        .bind(limit)
+        .fetch_all(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?;
+
+        rows.iter()
+            .map(|row| {
+                Ok(ExpiredTrashItem {
+                    kind: TrashKind::parse(
+                        &row.try_get::<String, _>("kind")
+                            .map_err(|_| MaviError::Internal)?,
+                    )?,
+                    id: row.try_get("id").map_err(|_| MaviError::Internal)?,
+                })
+            })
+            .collect()
+    }
+
     pub async fn list(
         &self,
         tx: &mut SiteTx,
@@ -1081,6 +1203,7 @@ impl TrashService {
         id: Uuid,
     ) -> Result<PermanentDeletion> {
         let mut deletion = PermanentDeletion::default();
+        ensure_trashed(tx, context, kind, id).await?;
         let payload = match kind {
             TrashKind::Content | TrashKind::Term => json!({"kind": kind}),
             TrashKind::File => {
@@ -1157,7 +1280,6 @@ impl TrashService {
 
         match kind {
             TrashKind::Content => {
-                ensure_trashed(tx, context, TrashKind::Content, id).await?;
                 sqlx::query(
                     "delete from content_slug_history where site_id = $1 and content_id = $2",
                 )
@@ -1188,7 +1310,6 @@ impl TrashService {
                     .map_err(|_| MaviError::Internal)?;
             }
             TrashKind::Term => {
-                ensure_trashed(tx, context, TrashKind::Term, id).await?;
                 sqlx::query("delete from taxonomy_terms where site_id = $1 and id = $2 and deleted_at is not null")
                     .bind(context.site_id.into_uuid())
                     .bind(id)
@@ -1209,38 +1330,41 @@ async fn ensure_trashed(
 ) -> Result<()> {
     let exists = match kind {
         TrashKind::Content => {
-            sqlx::query_scalar::<_, bool>(
-                "select exists(select 1 from content_entries
-                    where site_id = $1 and id = $2 and deleted_at is not null)",
+            sqlx::query_scalar::<_, Uuid>(
+                "select id from content_entries
+              where site_id = $1 and id = $2 and deleted_at is not null
+              for update",
             )
             .bind(context.site_id.into_uuid())
             .bind(id)
-            .fetch_one(tx.conn())
-            .await
-        }
-        TrashKind::File => {
-            sqlx::query_scalar::<_, bool>(
-                "select exists(select 1 from media_files
-                    where site_id = $1 and id = $2 and deleted_at is not null)",
-            )
-            .bind(context.site_id.into_uuid())
-            .bind(id)
-            .fetch_one(tx.conn())
+            .fetch_optional(tx.conn())
             .await
         }
         TrashKind::Term => {
-            sqlx::query_scalar::<_, bool>(
-                "select exists(select 1 from taxonomy_terms
-                    where site_id = $1 and id = $2 and deleted_at is not null)",
+            sqlx::query_scalar::<_, Uuid>(
+                "select id from taxonomy_terms
+              where site_id = $1 and id = $2 and deleted_at is not null
+              for update",
             )
             .bind(context.site_id.into_uuid())
             .bind(id)
-            .fetch_one(tx.conn())
+            .fetch_optional(tx.conn())
+            .await
+        }
+        TrashKind::File => {
+            sqlx::query_scalar::<_, Uuid>(
+                "select id from media_files
+              where site_id = $1 and id = $2 and deleted_at is not null
+              for update",
+            )
+            .bind(context.site_id.into_uuid())
+            .bind(id)
+            .fetch_optional(tx.conn())
             .await
         }
     }
     .map_err(|_| MaviError::Internal)?;
-    if exists {
+    if exists.is_some() {
         Ok(())
     } else {
         Err(MaviError::NotFound {

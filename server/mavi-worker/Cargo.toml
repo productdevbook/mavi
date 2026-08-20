@@ -19,6 +19,7 @@ mavi-mail = { path = "../mavi-mail" }
 mavi-observability = { path = "../mavi-observability" }
 mavi-settings = { path = "../mavi-settings" }
 mavi-storage = { path = "../mavi-storage" }
+mavi-trash = { path = "../mavi-trash" }
 serde_json.workspace = true
 tokio.workspace = true
 tracing.workspace = true

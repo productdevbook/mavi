@@ -15,9 +15,10 @@ use mavi_media::{
     MEDIA_VARIANT_JOB, MediaService, VariantPreset,
 };
 use mavi_storage::Database;
-use mavi_trash::{TrashKind, TrashService};
+use mavi_trash::{MAX_TRASH_RETENTION_BATCH, TRASH_RETENTION_JOB, TrashKind, TrashService};
 use mavi_worker::{WorkerConfig, WorkerSupervisor};
 use serde_json::to_value;
+use uuid::Uuid;
 
 #[tokio::test]
 #[ignore = "requires TEST_DATABASE_URL and a non-superuser PostgreSQL role"]
@@ -372,6 +373,258 @@ async fn form_retention_worker_prunes_expired_submissions_and_records_system_aud
     assert_eq!(actor_kind, "system");
     assert_eq!(actor_id.as_deref(), Some("test-form-retention-worker"));
     transaction.commit().await.expect("check commit");
+}
+
+async fn seed_expired_trash_content(database: &Database, site_id: SiteId) -> uuid::Uuid {
+    let request_context = SiteContext::public(site_id);
+    let content_service = ContentService;
+    let mut transaction = database
+        .begin(&request_context)
+        .await
+        .expect("content scope");
+    sqlx::query("insert into site_settings (site_id, name) values ($1, 'Trash retention')")
+        .bind(site_id.into_uuid())
+        .execute(transaction.conn())
+        .await
+        .expect("site settings");
+    sqlx::query("update site_settings set trash_retention_days = 1 where site_id = $1")
+        .bind(site_id.into_uuid())
+        .execute(transaction.conn())
+        .await
+        .expect("trash policy");
+    let created = content_service
+        .create(
+            &mut transaction,
+            &request_context,
+            &CreateContent {
+                kind: "post".to_owned(),
+                language: "en".to_owned(),
+                slug: "expired-trash-content".to_owned(),
+                title: "Expired trash content".to_owned(),
+                excerpt: None,
+                body: "removed by retention".to_owned(),
+                fields: serde_json::json!({}),
+                publication: PublicationInput::default(),
+            },
+            Utc::now(),
+        )
+        .await
+        .expect("content");
+    content_service
+        .trash(&mut transaction, &request_context, created.id)
+        .await
+        .expect("trash content");
+    sqlx::query(
+        "update content_entries
+            set deleted_at = $3
+          where site_id = $1 and id = $2",
+    )
+    .bind(site_id.into_uuid())
+    .bind(created.id.into_uuid())
+    .bind(Utc::now() - Duration::days(2))
+    .execute(transaction.conn())
+    .await
+    .expect("age trash content");
+    transaction.commit().await.expect("seed commit");
+    created.id.into_uuid()
+}
+
+async fn seed_expired_trash_content_batch(
+    database: &Database,
+    site_id: SiteId,
+    count: usize,
+) -> usize {
+    let context = SiteContext::public(site_id);
+    let mut transaction = database.begin(&context).await.expect("content scope");
+    sqlx::query("insert into site_settings (site_id, name) values ($1, 'Trash retention batch')")
+        .bind(site_id.into_uuid())
+        .execute(transaction.conn())
+        .await
+        .expect("site settings");
+    sqlx::query("update site_settings set trash_retention_days = 1 where site_id = $1")
+        .bind(site_id.into_uuid())
+        .execute(transaction.conn())
+        .await
+        .expect("trash policy");
+    let deleted_at = Utc::now() - Duration::days(2);
+    for index in 0..count {
+        sqlx::query(
+            "insert into content_entries
+                (site_id, id, kind, language, slug, title, body, fields, status, deleted_at)
+             values ($1, $2, 'post', 'en', $3, $4, 'expired', '{}'::jsonb, 'draft', $5)",
+        )
+        .bind(site_id.into_uuid())
+        .bind(Uuid::now_v7())
+        .bind(format!("expired-trash-batch-{index}"))
+        .bind(format!("Expired trash batch {index}"))
+        .bind(deleted_at)
+        .execute(transaction.conn())
+        .await
+        .expect("expired content");
+    }
+    transaction.commit().await.expect("seed commit");
+    count
+}
+
+async fn run_until_job_done(
+    supervisor: &WorkerSupervisor,
+    database: &Database,
+    site_id: SiteId,
+    context: &SiteContext,
+    kind: &str,
+) -> bool {
+    for _ in 0..=8 {
+        supervisor.run_once(site_id).await.expect("retention run");
+        let mut check = database.begin(context).await.expect("check scope");
+        let state: Option<String> = sqlx::query_scalar(
+            "select state from jobs
+               where site_id = $1 and kind = $2
+               order by created_at desc limit 1",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(kind)
+        .fetch_optional(check.conn())
+        .await
+        .expect("retention job state");
+        check.commit().await.expect("check commit");
+        if state.as_deref() == Some("done") {
+            return true;
+        }
+        tokio::task::yield_now().await;
+    }
+    false
+}
+
+#[tokio::test]
+#[ignore = "requires TEST_DATABASE_URL and a non-superuser PostgreSQL role"]
+async fn trash_retention_worker_removes_expired_content_and_audits_system_work() {
+    let database_url = env::var("TEST_DATABASE_URL").expect("TEST_DATABASE_URL");
+    let database = Database::connect(&database_url, 4)
+        .await
+        .expect("database connection");
+    database.migrate().await.expect("migrations");
+    let site_id = SiteId::new();
+    database.ensure_site(site_id).await.expect("site");
+
+    let context = SiteContext::public(site_id);
+    let content_id = seed_expired_trash_content(&database, site_id).await;
+
+    let supervisor = WorkerSupervisor::new(
+        database.clone(),
+        [site_id],
+        WorkerConfig::new(
+            "test-trash-retention-worker",
+            30,
+            std::time::Duration::from_millis(10),
+        )
+        .expect("worker config"),
+        Arc::new(InMemoryFileStore::default()),
+    );
+
+    assert!(
+        run_until_job_done(
+            &supervisor,
+            &database,
+            site_id,
+            &context,
+            TRASH_RETENTION_JOB.name,
+        )
+        .await,
+        "trash retention job should complete"
+    );
+
+    let mut transaction = database.begin(&context).await.expect("assert scope");
+    let content_exists: bool = sqlx::query_scalar(
+        "select exists(select 1 from content_entries where site_id = $1 and id = $2)",
+    )
+    .bind(site_id.into_uuid())
+    .bind(content_id)
+    .fetch_one(transaction.conn())
+    .await
+    .expect("content state");
+    assert!(!content_exists);
+    let (actor_kind, actor_id): (String, Option<String>) = sqlx::query_as(
+        "select actor_kind, actor_id from audit_events
+          where site_id = $1 and action = 'trash.item.permanently_deleted'
+          order by created_at desc limit 1",
+    )
+    .bind(site_id.into_uuid())
+    .fetch_one(transaction.conn())
+    .await
+    .expect("retention audit");
+    assert_eq!(actor_kind, "system");
+    assert_eq!(actor_id.as_deref(), Some("test-trash-retention-worker"));
+    transaction.commit().await.expect("assert commit");
+}
+
+#[tokio::test]
+#[ignore = "requires TEST_DATABASE_URL and a non-superuser PostgreSQL role"]
+async fn trash_retention_worker_continues_after_a_full_batch() {
+    let database_url = env::var("TEST_DATABASE_URL").expect("TEST_DATABASE_URL");
+    let database = Database::connect(&database_url, 4)
+        .await
+        .expect("database connection");
+    database.migrate().await.expect("migrations");
+    let site_id = SiteId::new();
+    database.ensure_site(site_id).await.expect("site");
+    let seeded = seed_expired_trash_content_batch(
+        &database,
+        site_id,
+        usize::try_from(MAX_TRASH_RETENTION_BATCH).expect("batch size") + 1,
+    )
+    .await;
+    let context = SiteContext::public(site_id);
+    let supervisor = WorkerSupervisor::new(
+        database.clone(),
+        [site_id],
+        WorkerConfig::new(
+            "test-trash-retention-batch-worker",
+            30,
+            std::time::Duration::from_millis(10),
+        )
+        .expect("worker config"),
+        Arc::new(InMemoryFileStore::default()),
+    );
+
+    assert!(
+        run_until_job_done(
+            &supervisor,
+            &database,
+            site_id,
+            &context,
+            TRASH_RETENTION_JOB.name,
+        )
+        .await
+    );
+
+    let mut transaction = database.begin(&context).await.expect("assert scope");
+    let remaining: i64 = sqlx::query_scalar(
+        "select count(*) from content_entries
+          where site_id = $1 and deleted_at is not null",
+    )
+    .bind(site_id.into_uuid())
+    .fetch_one(transaction.conn())
+    .await
+    .expect("remaining trash");
+    assert_eq!(remaining, 0);
+    let retention_jobs: i64 =
+        sqlx::query_scalar("select count(*) from jobs where site_id = $1 and kind = $2")
+            .bind(site_id.into_uuid())
+            .bind(TRASH_RETENTION_JOB.name)
+            .fetch_one(transaction.conn())
+            .await
+            .expect("retention jobs");
+    assert_eq!(retention_jobs, 2);
+    let deletion_audits: i64 = sqlx::query_scalar(
+        "select count(*) from audit_events
+          where site_id = $1 and action = 'trash.item.permanently_deleted'",
+    )
+    .bind(site_id.into_uuid())
+    .fetch_one(transaction.conn())
+    .await
+    .expect("retention audits");
+    assert_eq!(deletion_audits, i64::try_from(seeded).expect("audit count"));
+    transaction.commit().await.expect("assert commit");
 }
 
 #[tokio::test]

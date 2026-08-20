@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Mavi",
-    "version": "0.1.2"
+    "version": "0.1.3"
   },
   "paths": {
     "/api/v1/setup": {
@@ -26397,6 +26397,7 @@
           "canonical_url",
           "mail_sender",
           "analytics_retention",
+          "trash_retention",
           "updated_at"
         ],
         "properties": {
@@ -26425,6 +26426,9 @@
           },
           "analytics_retention": {
             "$ref": "#/components/schemas/AnalyticsRetention"
+          },
+          "trash_retention": {
+            "$ref": "#/components/schemas/TrashRetention"
           },
           "updated_at": {
             "type": "string",
@@ -26926,6 +26930,37 @@
         },
         "additionalProperties": false
       },
+      "TrashRetention": {
+        "type": "object",
+        "required": [
+          "days"
+        ],
+        "properties": {
+          "days": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3650
+          }
+        },
+        "additionalProperties": false
+      },
+      "TrashRetentionUpdate": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "required": [
+          "days"
+        ],
+        "properties": {
+          "days": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3650
+          }
+        },
+        "additionalProperties": false
+      },
       "Trigger": {
         "type": "string",
         "enum": [
@@ -27363,6 +27398,9 @@
           },
           "analytics_retention": {
             "$ref": "#/components/schemas/AnalyticsRetentionUpdate"
+          },
+          "trash_retention": {
+            "$ref": "#/components/schemas/TrashRetentionUpdate"
           }
         },
         "additionalProperties": false

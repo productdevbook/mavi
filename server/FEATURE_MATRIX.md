@@ -121,7 +121,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
 - [-] Trash, restore and permanent deletion policy.
   - [x] Shared cursor list, typed content/file/term restore and permanent-delete API.
   - [x] Media trash retains bytes; permanent deletion queues and confirms adapter cleanup.
-  - [ ] Forms, shop, courses, boards and flow-specific trash kinds plus scheduled retention worker.
+  - [-] Forms, shop, courses, boards and flow-specific trash kinds remain open; core content, file and term trash now has a site-configured, idempotent `trash.retention` worker with bounded batches, media cleanup and system audit receipts.
 - [-] Design files, preview builds, publish, rollback and public serving.
   - [x] Site-scoped design changes copy the current published source and expose only typed source-file APIs.
   - [x] Opaque keyset cursors are used for changes, files and builds; `page`/`offset` are not public inputs.

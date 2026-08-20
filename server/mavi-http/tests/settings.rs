@@ -30,6 +30,7 @@ async fn settings_and_languages_enforce_cursor_authz_and_defaults() {
     let settings = response_json(settings).await;
     assert_eq!(settings["timezone"], "UTC");
     assert!(settings["canonical_url"].is_null());
+    assert_eq!(settings["trash_retention"]["days"], 30);
 
     let updated = send(
         &app,
@@ -44,6 +45,34 @@ async fn settings_and_languages_enforce_cursor_authz_and_defaults() {
     assert_eq!(updated["name"], "Updated settings site");
     assert_eq!(updated["timezone"], "Europe/Berlin");
     assert!(updated["canonical_url"].is_null());
+
+    let retention = send(
+        &app,
+        Method::PATCH,
+        "/api/v1/settings",
+        Some(&owner_token),
+        Some(json!({"trash_retention": {"days": 45}})),
+    )
+    .await;
+    assert_eq!(retention.status(), StatusCode::OK);
+    assert_eq!(
+        response_json(retention).await["trash_retention"]["days"],
+        45
+    );
+
+    let invalid_retention = send(
+        &app,
+        Method::PATCH,
+        "/api/v1/settings",
+        Some(&owner_token),
+        Some(json!({"trash_retention": {"days": 0}})),
+    )
+    .await;
+    assert_eq!(invalid_retention.status(), StatusCode::BAD_REQUEST);
+    assert_eq!(
+        response_json(invalid_retention).await["error"]["code"],
+        "trash_retention_invalid"
+    );
 
     let canonical = send(
         &app,

@@ -1,6 +1,6 @@
 import * as React from "react"
 import { useLingui } from "@lingui/react/macro"
-import { Clock3, Globe2, Loader2 } from "lucide-react"
+import { Clock3, Globe2, Loader2, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { api } from "@/lib/api"
@@ -18,6 +18,7 @@ export function SettingsPage() {
   const [name, setName] = React.useState("")
   const [timezone, setTimezone] = React.useState("")
   const [canonicalUrl, setCanonicalUrl] = React.useState("")
+  const [trashRetentionDays, setTrashRetentionDays] = React.useState("30")
   const [busy, setBusy] = React.useState(false)
 
   const load = React.useCallback(() => {
@@ -27,6 +28,7 @@ export function SettingsPage() {
         setName(found.name)
         setTimezone(found.timezone)
         setCanonicalUrl(found.canonical_url ?? "")
+        setTrashRetentionDays(String(found.trash_retention.days))
       })
       .catch((why: unknown) => {
         toast.error(apiMessage(why))
@@ -40,17 +42,20 @@ export function SettingsPage() {
     setBusy(true)
 
     try {
+      const retentionDays = Number(trashRetentionDays)
       const updated = await api("settings.update", {
         body: {
           name: name.trim(),
           timezone: timezone.trim(),
           canonical_url: canonicalUrl.trim() || null,
+          trash_retention: { days: retentionDays },
         },
       })
       setSite(updated)
       setName(updated.name)
       setTimezone(updated.timezone)
       setCanonicalUrl(updated.canonical_url ?? "")
+      setTrashRetentionDays(String(updated.trash_retention.days))
       toast.success(t`Saved`)
     } catch (why) {
       toast.error(apiMessage(why))
@@ -58,6 +63,10 @@ export function SettingsPage() {
       setBusy(false)
     }
   }
+
+  const retentionDays = Number(trashRetentionDays)
+  const validRetentionDays =
+    Number.isInteger(retentionDays) && retentionDays >= 1 && retentionDays <= 3650
 
   return (
     <div className="flex max-w-2xl flex-col gap-8">
@@ -98,6 +107,29 @@ export function SettingsPage() {
 
       <section className="flex flex-col gap-4 rounded-xl border border-border p-4">
         <div className="flex items-center gap-2">
+          <Trash2 className="size-4 text-muted-foreground" />
+          <h2 className="text-sm font-medium">{t`Trash retention`}</h2>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="trash-retention-days">{t`Keep deleted items (days)`}</Label>
+          <Input
+            id="trash-retention-days"
+            type="number"
+            min={1}
+            max={3650}
+            step={1}
+            value={trashRetentionDays}
+            onChange={(event) => setTrashRetentionDays(event.target.value)}
+          />
+          <p className="text-xs text-muted-foreground">
+            {t`After this period, deleted content, files and taxonomy terms are permanently removed. Use 1 to 3,650 days.`}
+          </p>
+        </div>
+      </section>
+
+      <section className="flex flex-col gap-4 rounded-xl border border-border p-4">
+        <div className="flex items-center gap-2">
           <Clock3 className="size-4 text-muted-foreground" />
           <h2 className="text-sm font-medium">{t`Time`}</h2>
         </div>
@@ -117,7 +149,13 @@ export function SettingsPage() {
 
         <Button
           className="self-start"
-          disabled={!site || !name.trim() || !timezone.trim() || busy}
+          disabled={
+            !site ||
+            !name.trim() ||
+            !timezone.trim() ||
+            !validRetentionDays ||
+            busy
+          }
           onClick={() => void save()}
         >
           {busy && <Loader2 className="size-4 animate-spin" />}

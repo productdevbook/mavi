@@ -34,6 +34,7 @@ use mavi_media::{
 pub use mavi_observability::{WorkerMetrics, WorkerMetricsSnapshot};
 use mavi_settings::SettingsService;
 use mavi_storage::{Database, SiteTx};
+use mavi_trash::{MAX_TRASH_RETENTION_BATCH, TRASH_RETENTION_JOB, TrashRetentionJob, TrashService};
 use serde_json::json;
 use tokio::sync::RwLock;
 use uuid::Uuid;
@@ -91,6 +92,7 @@ pub struct WorkerSupervisor {
     forms: FormService,
     settings: SettingsService,
     media: MediaService,
+    trash: TrashService,
     file_store: Arc<dyn FileStore>,
     mail: MailService,
     mailer: Option<Arc<dyn Mailer>>,
@@ -192,12 +194,14 @@ impl WorkerSupervisor {
                 MEDIA_VARIANT_JOB,
                 MEDIA_ORPHAN_CLEANUP_JOB,
                 FORM_RETENTION_JOB,
+                TRASH_RETENTION_JOB,
             ]),
             content: ContentService,
             analytics: AnalyticsService,
             forms: FormService,
             settings: SettingsService,
             media: MediaService,
+            trash: TrashService,
             file_store,
             mail: MailService,
             mailer,
@@ -280,6 +284,9 @@ impl WorkerSupervisor {
         self.analytics
             .enqueue_retention_job(&mut transaction, &claim_context, &self.jobs, Utc::now())
             .await?;
+        self.trash
+            .enqueue_retention_job(&mut transaction, &claim_context, &self.jobs, Utc::now())
+            .await?;
         let (mail_claim, claim) = if self.mail_first.fetch_xor(true, Ordering::Relaxed) {
             let mail_claim = self
                 .claim_mail_delivery(&mut transaction, &claim_context)
@@ -347,6 +354,7 @@ impl WorkerSupervisor {
             MEDIA_VARIANT_JOB.name,
             MEDIA_ORPHAN_CLEANUP_JOB.name,
             FORM_RETENTION_JOB.name,
+            TRASH_RETENTION_JOB.name,
             // Retention is deliberately lowest priority: a newly discovered
             // analytics pass must not delay an already queued publish or
             // storage cleanup operation.
@@ -444,6 +452,9 @@ impl WorkerSupervisor {
         }
         if claim.kind == ANALYTICS_RETENTION_JOB.name {
             return self.execute_analytics_retention(&context, &claim).await;
+        }
+        if claim.kind == TRASH_RETENTION_JOB.name {
+            return self.execute_trash_retention(&context, &claim).await;
         }
         let payload = match serde_json::from_value::<ScheduledPublishJob>(claim.payload.clone()) {
             Ok(payload) => payload,
@@ -837,6 +848,77 @@ impl WorkerSupervisor {
         self.analytics
             .prune_scheduled(&mut transaction, context, policy, payload.bucket)
             .await?;
+        self.complete_claim(transaction, context, claim).await
+    }
+
+    async fn execute_trash_retention(&self, context: &SiteContext, claim: &JobClaim) -> Result<()> {
+        let payload = match serde_json::from_value::<TrashRetentionJob>(claim.payload.clone()) {
+            Ok(payload) if payload.bucket >= 0 => payload,
+            Ok(_) => {
+                return self
+                    .fail_claim(context, claim, "invalid trash retention bucket".to_owned())
+                    .await;
+            }
+            Err(error) => {
+                return self
+                    .fail_claim(
+                        context,
+                        claim,
+                        format!("invalid trash retention payload: {error}"),
+                    )
+                    .await;
+            }
+        };
+
+        let mut transaction = self.database.begin(context).await?;
+        let policy = self
+            .settings
+            .trash_retention(&mut transaction, context)
+            .await?;
+        let cutoff = Utc::now() - ChronoDuration::days(i64::from(policy.days));
+        let expired = self
+            .trash
+            .expired(&mut transaction, context, cutoff, MAX_TRASH_RETENTION_BATCH)
+            .await?;
+
+        let batch_size = expired.len();
+        for item in expired {
+            let deletion = match self
+                .trash
+                .permanently_delete(&mut transaction, context, item.kind, item.id)
+                .await
+            {
+                Ok(deletion) => deletion,
+                Err(MaviError::NotFound { .. }) => continue,
+                Err(error) => return Err(error),
+            };
+            if let (Some(file_id), Some(storage_key)) =
+                (deletion.file_id, deletion.file_storage_key)
+            {
+                self.media
+                    .enqueue_cleanup_job(
+                        &mut transaction,
+                        context,
+                        &self.jobs,
+                        mavi_core::FileId::from_uuid(file_id),
+                        &storage_key,
+                    )
+                    .await?;
+            }
+        }
+
+        if batch_size == usize::try_from(MAX_TRASH_RETENTION_BATCH).unwrap_or_default() {
+            self.trash
+                .enqueue_retention_continuation(
+                    &mut transaction,
+                    context,
+                    &self.jobs,
+                    payload.bucket,
+                    claim.id,
+                )
+                .await?;
+        }
+
         self.complete_claim(transaction, context, claim).await
     }
 

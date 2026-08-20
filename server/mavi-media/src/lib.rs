@@ -1264,8 +1264,25 @@ impl MediaService {
         file_id: FileId,
         storage_key: &str,
     ) -> Result<JobId> {
-        self.enqueue_cleanup_job_with_variants(tx, context, jobs, file_id, storage_key, Vec::new())
-            .await
+        let additional_storage_keys: Vec<String> = sqlx::query_scalar(
+            "select storage_keys from media_cleanup_tasks
+              where site_id = $1 and file_id = $2",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(file_id.into_uuid())
+        .fetch_optional(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?
+        .unwrap_or_default();
+        self.enqueue_cleanup_job_with_variants(
+            tx,
+            context,
+            jobs,
+            file_id,
+            storage_key,
+            additional_storage_keys,
+        )
+        .await
     }
 
     async fn enqueue_cleanup_job_with_variants(

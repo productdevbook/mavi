@@ -1321,6 +1321,23 @@
                   }
                 },
                 "additionalProperties": false
+              },
+              "trash_retention": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "required": [
+                  "days"
+                ],
+                "properties": {
+                  "days": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 3650
+                  }
+                },
+                "additionalProperties": false
               }
             },
             "additionalProperties": false

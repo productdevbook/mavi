@@ -15,7 +15,7 @@ use uuid::Uuid;
 /// It is part of the runtime compatibility contract exposed to the operator.
 /// Keep it next to the migration runner so a release cannot advertise a
 /// storage version independently from the migrations it ships.
-pub const CURRENT_SCHEMA_VERSION: u32 = 40;
+pub const CURRENT_SCHEMA_VERSION: u32 = 41;
 
 /// The lifecycle state stored in the shared shard catalog.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -471,7 +471,11 @@ mod tests {
         assert!(course_instructors_migration.contains("course_instructors"));
         assert!(course_instructors_migration.contains("foreign key (site_id, course_id)"));
         assert!(course_instructors_migration.contains("force row level security"));
-        assert_eq!(CURRENT_SCHEMA_VERSION, 40);
+        let trash_retention_migration =
+            include_str!("../migrations/0041_trash_retention_policy.sql");
+        assert!(trash_retention_migration.contains("trash_retention_days"));
+        assert!(trash_retention_migration.contains("between 1 and 3650"));
+        assert_eq!(CURRENT_SCHEMA_VERSION, 41);
     }
 
     #[test]

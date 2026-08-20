@@ -216,6 +216,7 @@ impl SiteTx {
 #[cfg(test)]
 mod tests {
     use crate::{CURRENT_SCHEMA_VERSION, SiteStatus};
+    use mavi_core::Capability;
 
     #[test]
     fn site_statuses_match_the_catalog_contract() {
@@ -471,5 +472,13 @@ mod tests {
         assert!(course_instructors_migration.contains("foreign key (site_id, course_id)"));
         assert!(course_instructors_migration.contains("force row level security"));
         assert_eq!(CURRENT_SCHEMA_VERSION, 40);
+    }
+
+    #[test]
+    fn identity_grant_constraints_cover_the_core_capability_registry() {
+        let migration = include_str!("../migrations/0040_feedback.sql");
+        for capability in Capability::ALL {
+            assert!(migration.contains(&format!("'{}'", capability.as_str())));
+        }
     }
 }

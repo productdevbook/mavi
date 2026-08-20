@@ -4,7 +4,7 @@ One place, chosen by whoever runs the machine, and a site does not know which
 it is.
 
 ```
-upload ──▶ what the bytes say it is ──▶ the store ──▶ /uploads/{id}
+upload ──▶ what the bytes say it is ──▶ the store ──▶ /public/v1/files/{id}
 ```
 
 ## What is checked on the way in
@@ -20,7 +20,7 @@ per site by the operator; a site that has been sold more room has more room.
 
 ## What is served, and how
 
-Anything a site has uploaded answers at `/uploads/{id}`, with two headers that
+Anything a site has made public answers at `/public/v1/files/{id}`, with two headers that
 are the whole of the safety here:
 
 - the kind **this machine decided** when the bytes arrived, never the string in
@@ -31,11 +31,11 @@ are the whole of the safety here:
 
 ## A course's video is not a picture
 
-`/uploads/{id}` is public: what a published page shows is meant to be seen. A
-video a lesson plays is not, so it is served from `/api/learn/videos/{id}`
-instead — decided per request against who is on the course and whether their
-access has ended, never cached in between, and refused outright if what it
-points at is not a video.
+`/public/v1/files/{id}` is public: what a published page shows is meant to be
+seen. A video a lesson plays is not, so it is served from
+`/student/v1/learning/lessons/{id}/media` instead — decided per request against
+who is on the course and whether their access has ended, never cached in
+between, and refused outright if the lesson has no media.
 
 ## Where the bytes actually live
 

@@ -35,9 +35,10 @@ Uploaded like anything else, and then handed to whatever this machine is
 configured to make it playable with — which may be nothing at all, in which
 case what was uploaded is what is played.
 
-It is served from `/api/learn/videos/{id}`, decided per request against who is
-on the course, never cached in between, and refused if what it points at is
-not a video. `/uploads/{id}` is public and a lesson's video is not.
+It is served from `/student/v1/learning/lessons/{id}/media`, decided per
+request against who is enrolled, never cached in between, and refused if the
+lesson has no media. Public site files use `/public/v1/files/{id}`; a lesson's
+media does not.
 
 ## What a curriculum is built with
 

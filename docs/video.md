@@ -18,11 +18,11 @@ phone on a train.
 A video that is being made ready says so, and a lesson pointing at one that is
 not ready plays nothing rather than a broken player.
 
-## Why it is not served from /uploads
+## Why it is not served from the public file route
 
-`/uploads/{id}` is public, because what a published page shows is meant to be
-seen by anybody. A course's video is not, so it is served from
-`/api/learn/videos/{id}`:
+`/public/v1/files/{id}` is public, because what a published page shows is meant
+to be seen by anybody. A course's video is not, so it is served from
+`/student/v1/learning/lessons/{id}/media`:
 
 - decided per request, against who is on the course and whether their access
   has ended;

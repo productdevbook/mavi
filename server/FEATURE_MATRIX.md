@@ -175,6 +175,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
 - [-] Courses, modules, lessons, video/file access and student enrollment.
   - [x] Course lifecycle is monotonic (`draft` → `open` → `closed`); ordered module/lesson writes are atomic and closed courses reject content changes.
   - [x] Student invitations, activation/login, enrollment and self-only learning routes use typed DTOs and opaque cursors.
+  - [x] Student curriculum reads expose enrolled modules, lesson completion state and deterministic lesson navigation through `learning.course.read` and `learning.lesson.read`.
   - [x] Lesson media is served as protected bytes only after enrollment, standing and open-course checks.
   - [x] Course tables use composite site keys, foreign keys and RLS; mutations emit audit receipts.
 - [-] Expiring access, progress, completion and instructor permissions.
@@ -225,7 +226,8 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
 - [-] Cloud/operator provisioning contract without direct database coupling.
   - [x] Mavi publishes a versioned runtime manifest for post-provision compatibility checks.
   - [ ] Operator consumes only a tagged Mavi release and verifies the manifest before activation.
-- [ ] Panel generated client, stale-contract check and feature screens.
+- [x] Panel generated client, stale-contract check and feature screens.
+  - [x] Administrative screens use the generated canonical operation client; student screens use the generated student operations and never call the removed `/api/learn/*` surface.
 - [ ] Per-domain unit, repository, migration, isolation, application, API,
   HTTP, permission and audit tests.
   - [x] Identity unit, PostgreSQL scope/audit and negative delegation tests.
@@ -240,6 +242,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Mail template/list/outbox PostgreSQL RLS state-machine tests and HTTP contract coverage.
   - [x] Shop catalog/checkout/stock/order PostgreSQL isolation tests and HTTP permission/contract coverage.
   - [x] Courses authoring/order/student-session/enrollment/progress/media PostgreSQL isolation tests and HTTP permission/contract coverage.
+  - [x] Student curriculum, completion/navigation fields and protected media contract coverage.
   - [x] Course instructor assignment PostgreSQL/RLS and Cedar resource-grant HTTP acceptance coverage.
   - [x] Jobs lease/idempotency/dead-letter PostgreSQL isolation and automation flow snapshot/event/run HTTP coverage.
   - [x] Boards PostgreSQL scope/order/activity tests and boards HTTP cursor/permission acceptance coverage.

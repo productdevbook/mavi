@@ -27,7 +27,10 @@ pub use courses::{
 pub use instructors::{
     CourseInstructor, CourseInstructorGrant, CourseInstructorListFilter, ReplaceCourseInstructor,
 };
-pub use learning::{LearningCourse, LearningCourseListFilter, LearningLesson, Progress};
+pub use learning::{
+    LearningCourse, LearningCourseDetail, LearningCourseListFilter, LearningLesson,
+    LearningLessonSummary, LearningModule, Progress,
+};
 pub use relocation::{
     CourseLessonRelocation, CourseModuleRelocation, CourseRelocation,
     CourseStudentCredentialRelocation, CourseStudentRelocation, CoursesRelocation,

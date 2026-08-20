@@ -1017,6 +1017,11 @@ export interface LearningCourse {
   enrolled_at: string;
 }
 
+export interface LearningCourseDetail {
+  course: LearningCourse;
+  modules: LearningModule[];
+}
+
 export interface LearningCourseListFilter {
   after?: string | null;
   limit?: number;
@@ -1030,6 +1035,29 @@ export interface LearningCoursePage {
 export interface LearningLesson {
   lesson: Lesson;
   completed_at: string | null;
+  course_id: string;
+  course: string;
+  position: number;
+  total: number;
+  previous: string | null;
+  next: string | null;
+}
+
+export interface LearningLessonSummary {
+  id: string;
+  module_id: string;
+  title: string;
+  media_file_id: string | null;
+  position: number;
+  completed_at: string | null;
+}
+
+export interface LearningModule {
+  id: string;
+  course_id: string;
+  title: string;
+  position: number;
+  lessons: LearningLessonSummary[];
 }
 
 export interface Lesson {
@@ -2070,6 +2098,7 @@ export const operations = {
   "courses.students.session.create": { method: "post", path: "/public/v1/courses/students/sessions", input: { location: "json", shape: "StudentLoginInput" }, query: null, output: "StudentSessionCreated", status: 201, authentication: "public", permission: null },
   "courses.students.session.revoke": { method: "delete", path: "/student/v1/auth/session", input: null, query: null, output: "Empty", status: 204, authentication: "student", permission: null },
   "learning.courses.list": { method: "get", path: "/student/v1/learning/courses", input: { location: "query", shape: "LearningCourseListFilter" }, query: null, output: "LearningCoursePage", status: 200, authentication: "student", permission: null },
+  "learning.course.read": { method: "get", path: "/student/v1/learning/courses/{id}", input: null, query: null, output: "LearningCourseDetail", status: 200, authentication: "student", permission: null },
   "learning.lesson.read": { method: "get", path: "/student/v1/learning/lessons/{id}", input: null, query: null, output: "LearningLesson", status: 200, authentication: "student", permission: null },
   "learning.lesson.media.read": { method: "get", path: "/student/v1/learning/lessons/{id}/media", input: null, query: null, output: "FileBytes", outputLocation: "raw", status: 200, authentication: "student", permission: null },
   "learning.lesson.done": { method: "put", path: "/student/v1/learning/lessons/{id}/done", input: null, query: null, output: "Progress", status: 200, authentication: "student", permission: null },
@@ -2274,6 +2303,7 @@ export interface OperationArguments {
   "courses.students.session.create": { path?: never; query?: never; body: StudentLoginInput; }
   "courses.students.session.revoke": { path?: never; query?: never; body?: never; }
   "learning.courses.list": { path?: never; query: LearningCourseListFilter; body?: never; }
+  "learning.course.read": { path: { id: string }; query?: never; body?: never; }
   "learning.lesson.read": { path: { id: string }; query?: never; body?: never; }
   "learning.lesson.media.read": { path: { id: string }; query?: never; body?: never; }
   "learning.lesson.done": { path: { id: string }; query?: never; body?: never; }
@@ -2476,6 +2506,7 @@ export interface OperationResponses {
   "courses.students.session.create": StudentSessionCreated;
   "courses.students.session.revoke": void;
   "learning.courses.list": LearningCoursePage;
+  "learning.course.read": LearningCourseDetail;
   "learning.lesson.read": LearningLesson;
   "learning.lesson.media.read": FileBytes;
   "learning.lesson.done": Progress;

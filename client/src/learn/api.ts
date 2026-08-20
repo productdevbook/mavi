@@ -1,114 +1,145 @@
-/**
- * What a student's browser is allowed to ask for.
- *
- * Deliberately small, and deliberately not the panel's own client: that one
- * names every endpoint a site has, and importing it here would put the shape
- * of the whole administrative API into a bundle served to people who bought a
- * course. Nothing is exposed by a type — but nothing here needs one either,
- * and the smaller surface is the point.
- */
+import {
+  MaviApiError,
+  MaviClient,
+} from "@api"
+import type {
+  LearningCourse,
+  LearningCourseDetail,
+  LearningCoursePage,
+  LearningLesson,
+  OperationArguments,
+  OperationName,
+  OperationResponses,
+  Student,
+  StudentSessionCreated,
+} from "@api"
+
+export type Learner = Student
+export type Course = LearningCourse
+export type Curriculum = LearningCourseDetail
+export type Watching = LearningLesson
+
+/** The student bundle speaks only the canonical student contract. */
+const SESSION_KEY = "mavi:student-session"
+
+const STUDENT_OPERATIONS = [
+  "courses.students.session.create",
+  "courses.students.session.revoke",
+  "learning.courses.list",
+  "learning.course.read",
+  "learning.lesson.read",
+  "learning.lesson.media.read",
+  "learning.lesson.done",
+] as const satisfies readonly OperationName[]
+
+type StudentOperation = (typeof STUDENT_OPERATIONS)[number]
 
 export class LearnError extends Error {
-  status: number
+  readonly status: number
+  readonly code: string
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, code = "request_failed") {
     super(message)
+    this.name = "LearnError"
     this.status = status
+    this.code = code
   }
 }
 
-async function ask<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`/api${path}`, {
-    credentials: "same-origin",
-    headers: init?.body ? { "content-type": "application/json" } : {},
-    ...init,
+function readSession(): StudentSessionCreated | null {
+  const encoded = window.sessionStorage.getItem(SESSION_KEY)
+  if (!encoded) return null
+
+  try {
+    const session = JSON.parse(encoded) as StudentSessionCreated
+    if (
+      typeof session.token !== "string" ||
+      typeof session.student?.id !== "string" ||
+      Date.parse(session.expires_at) <= Date.now()
+    ) {
+      forgetSession()
+      return null
+    }
+    return session
+  } catch {
+    forgetSession()
+    return null
+  }
+}
+
+function rememberSession(session: StudentSessionCreated): void {
+  window.sessionStorage.setItem(SESSION_KEY, JSON.stringify(session))
+}
+
+function forgetSession(): void {
+  window.sessionStorage.removeItem(SESSION_KEY)
+}
+
+function client(): MaviClient {
+  return new MaviClient({
+    baseUrl: window.location.origin,
+    token: readSession()?.token,
   })
+}
 
-  if (!response.ok) {
-    const body = await response.json().catch(() => null)
-
+async function call<Name extends StudentOperation>(
+  operation: Name,
+  args: OperationArguments[Name],
+): Promise<OperationResponses[Name]> {
+  try {
+    return await client().call(operation, args)
+  } catch (error) {
+    if (!(error instanceof MaviApiError)) throw error
+    const body = error.payload?.error
     throw new LearnError(
-      response.status,
-      String(body?.error?.message ?? response.statusText),
+      error.status,
+      body?.message ?? `Mavi request failed with status ${error.status}`,
+      body?.code,
     )
   }
+}
 
-  if (response.status === 204) {
-    return undefined as T
+/** The signed-in student is the identity returned by the canonical session. */
+export const me = async (): Promise<Student> => {
+  const session = readSession()
+  if (!session) {
+    throw new LearnError(401, "You are not signed in.", "unauthenticated")
   }
-
-  return response.json() as Promise<T>
+  return session.student
 }
 
-/** One course somebody is on. */
-export interface Course {
-  id: string
-  slug: string
-  title: string
-  summary: string | null
-  state: string
-}
-
-export interface Lesson {
-  id: string
-  title: string
-  position: number
-  video_id: string | null
-  done: boolean
-}
-
-export interface Module {
-  id: string
-  title: string
-  position: number
-  lessons: Lesson[]
-}
-
-export interface Curriculum {
-  course: Course
-  modules: Module[]
-}
-
-/** One lesson, as somebody on the course reads it. */
-export interface Watching {
-  id: string
-  title: string
-  body: string
-  course_id: string
-  course: string
-  position: number
-  total: number
-  previous: string | null
-  next: string | null
-  video_id: string | null
-  done: boolean
-}
-
-export interface Learner {
-  id: string
-  email: string
-  name: string
-}
-
-export const me = () => ask<Learner>("/learn/me")
-
-export const signIn = (email: string, password: string) =>
-  ask<void>("/learn/session", {
-    method: "POST",
-    body: JSON.stringify({ email, password }),
+export const signIn = async (
+  email: string,
+  password: string,
+): Promise<Student> => {
+  const session = await call("courses.students.session.create", {
+    body: { email, password },
   })
+  rememberSession(session)
+  return session.student
+}
 
-export const signOut = () => ask<void>("/learn/session", { method: "DELETE" })
+export const signOut = async (): Promise<void> => {
+  if (!readSession()) return
+  try {
+    await call("courses.students.session.revoke", {})
+  } finally {
+    forgetSession()
+  }
+}
 
-export const mine = () =>
-  ask<{ items: Course[]; next: string | null }>("/learn/courses")
+export const mine = (): Promise<LearningCoursePage> =>
+  call("learning.courses.list", { query: {} })
 
-export const course = (id: string) => ask<Curriculum>(`/learn/courses/${id}`)
+export const course = (id: string): Promise<LearningCourseDetail> =>
+  call("learning.course.read", { path: { id } })
 
-export const lesson = (id: string) => ask<Watching>(`/learn/lessons/${id}`)
+export const lesson = (id: string): Promise<LearningLesson> =>
+  call("learning.lesson.read", { path: { id } })
 
 export const finished = (id: string) =>
-  ask<void>(`/learn/lessons/${id}/done`, { method: "POST" })
+  call("learning.lesson.done", { path: { id } })
 
-/** Where a lesson's video is played from. Refused to anybody not on it. */
-export const watching = (videoId: string) => `/api/learn/videos/${videoId}`
+/** Private lesson media is authorized by the student session on every read. */
+export const watching = (lessonId: string): string =>
+  `/student/v1/learning/lessons/${encodeURIComponent(lessonId)}/media`

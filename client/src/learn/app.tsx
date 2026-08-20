@@ -232,15 +232,15 @@ function Courses() {
 
       {courses.map((course) => (
         <button
-          key={course.id}
+          key={course.course_id}
           type="button"
           className="flex flex-col gap-1 rounded-xl border border-border px-4 py-3 text-left hover:bg-muted/50"
-          onClick={() => go(`/courses/${course.id}`)}
+          onClick={() => go(`/courses/${course.course_id}`)}
         >
           <span className="text-sm font-medium">{course.title}</span>
-          {course.summary && (
+          {course.about && (
             <span className="text-xs text-muted-foreground">
-              {course.summary}
+              {course.about}
             </span>
           )}
         </button>
@@ -269,7 +269,7 @@ function Course({ id }: { id: string }) {
   }
 
   const lessons = whole.modules.flatMap((module) => module.lessons)
-  const done = lessons.filter((lesson) => lesson.done).length
+  const done = lessons.filter((lesson) => lesson.completed_at !== null).length
 
   return (
     <div className="flex flex-col gap-5">
@@ -292,7 +292,7 @@ function Course({ id }: { id: string }) {
                 className="flex items-center gap-3 px-4 py-3 text-left hover:bg-muted/50"
                 onClick={() => go(`/lessons/${lesson.id}`)}
               >
-                {lesson.done ? (
+                {lesson.completed_at ? (
                   <CheckCircle2 className="size-4 shrink-0 text-emerald-600" />
                 ) : (
                   <Play className="size-4 shrink-0 text-muted-foreground" />
@@ -361,13 +361,15 @@ function Lesson({ id }: { id: string }) {
         </span>
       </div>
 
-      <h1 className="text-lg font-semibold">{watching.title}</h1>
+      <h1 className="text-lg font-semibold">{watching.lesson.title}</h1>
 
-      {watching.video_id && <Player videoId={watching.video_id} />}
+      {watching.lesson.media_file_id && (
+        <Player lessonId={watching.lesson.id} />
+      )}
 
-      {watching.body && (
+      {watching.lesson.body && (
         <article className="mavi-prose whitespace-pre-wrap text-sm">
-          {watching.body}
+          {watching.lesson.body}
         </article>
       )}
 
@@ -383,11 +385,12 @@ function Lesson({ id }: { id: string }) {
         </Button>
 
         <Button
-          variant={watching.done ? "outline" : "default"}
+          variant={watching.completed_at ? "outline" : "default"}
           onClick={() => void finish()}
-          disabled={watching.done}
+          disabled={watching.completed_at !== null}
         >
-          <CheckCircle2 /> {watching.done ? t`Finished` : t`Mark as finished`}
+          <CheckCircle2 />
+          {watching.completed_at ? t`Finished` : t`Mark as finished`}
         </Button>
 
         <Button

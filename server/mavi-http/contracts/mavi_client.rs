@@ -1160,6 +1160,12 @@ pub struct LearningCourse {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct LearningCourseDetail {
+    pub course: LearningCourse,
+    pub modules: Vec<LearningModule>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct LearningCourseListFilter {
     pub after: Option<String>,
     pub limit: Option<i64>,
@@ -1175,6 +1181,31 @@ pub struct LearningCoursePage {
 pub struct LearningLesson {
     pub lesson: Lesson,
     pub completed_at: Option<String>,
+    pub course_id: String,
+    pub course: String,
+    pub position: i64,
+    pub total: i64,
+    pub previous: Option<String>,
+    pub next: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct LearningLessonSummary {
+    pub id: String,
+    pub module_id: String,
+    pub title: String,
+    pub media_file_id: Option<String>,
+    pub position: i64,
+    pub completed_at: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct LearningModule {
+    pub id: String,
+    pub course_id: String,
+    pub title: String,
+    pub position: i64,
+    pub lessons: Vec<LearningLessonSummary>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -2347,6 +2378,7 @@ pub const OPERATIONS: &[OperationDefinition] = &[
     OperationDefinition { name: "courses.students.session.create", method: "post", path: "/public/v1/courses/students/sessions", request: Some("StudentLoginInput"), request_location: Some("json"), query: None, response: Some("StudentSessionCreated"), response_location: None, status: 201, authentication: "public", capability: None, action: None },
     OperationDefinition { name: "courses.students.session.revoke", method: "delete", path: "/student/v1/auth/session", request: None, request_location: None, query: None, response: Some("Empty"), response_location: None, status: 204, authentication: "student", capability: None, action: None },
     OperationDefinition { name: "learning.courses.list", method: "get", path: "/student/v1/learning/courses", request: Some("LearningCourseListFilter"), request_location: Some("query"), query: None, response: Some("LearningCoursePage"), response_location: None, status: 200, authentication: "student", capability: None, action: None },
+    OperationDefinition { name: "learning.course.read", method: "get", path: "/student/v1/learning/courses/{id}", request: None, request_location: None, query: None, response: Some("LearningCourseDetail"), response_location: None, status: 200, authentication: "student", capability: None, action: None },
     OperationDefinition { name: "learning.lesson.read", method: "get", path: "/student/v1/learning/lessons/{id}", request: None, request_location: None, query: None, response: Some("LearningLesson"), response_location: None, status: 200, authentication: "student", capability: None, action: None },
     OperationDefinition { name: "learning.lesson.media.read", method: "get", path: "/student/v1/learning/lessons/{id}/media", request: None, request_location: None, query: None, response: Some("FileBytes"), response_location: Some("raw"), status: 200, authentication: "student", capability: None, action: None },
     OperationDefinition { name: "learning.lesson.done", method: "put", path: "/student/v1/learning/lessons/{id}/done", request: None, request_location: None, query: None, response: Some("Progress"), response_location: None, status: 200, authentication: "student", capability: None, action: None },

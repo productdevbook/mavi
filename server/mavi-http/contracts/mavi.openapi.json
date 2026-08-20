@@ -14280,6 +14280,95 @@
         }
       }
     },
+    "/student/v1/learning/courses/{id}": {
+      "get": {
+        "operationId": "learning.course.read",
+        "summary": "Read the enrolled course curriculum for the current student",
+        "tags": [
+          "learning"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LearningCourseDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-mavi": {
+          "scope": "site",
+          "authentication": "student",
+          "mutation": "none",
+          "permission": null,
+          "errors": [
+            "unauthenticated",
+            "not_found",
+            "forbidden",
+            "internal"
+          ]
+        }
+      }
+    },
     "/student/v1/learning/lessons/{id}": {
       "get": {
         "operationId": "learning.lesson.read",
@@ -23184,6 +23273,25 @@
         },
         "additionalProperties": false
       },
+      "LearningCourseDetail": {
+        "type": "object",
+        "required": [
+          "course",
+          "modules"
+        ],
+        "properties": {
+          "course": {
+            "$ref": "#/components/schemas/LearningCourse"
+          },
+          "modules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LearningModule"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
       "LearningCourseListFilter": {
         "type": "object",
         "properties": {
@@ -23229,7 +23337,13 @@
         "type": "object",
         "required": [
           "lesson",
-          "completed_at"
+          "completed_at",
+          "course_id",
+          "course",
+          "position",
+          "total",
+          "previous",
+          "next"
         ],
         "properties": {
           "lesson": {
@@ -23241,6 +23355,110 @@
               "null"
             ],
             "format": "date-time"
+          },
+          "course_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "course": {
+            "type": "string"
+          },
+          "position": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "previous": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "next": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false
+      },
+      "LearningLessonSummary": {
+        "type": "object",
+        "required": [
+          "id",
+          "module_id",
+          "title",
+          "media_file_id",
+          "position",
+          "completed_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "module_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "media_file_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "position": {
+            "type": "integer"
+          },
+          "completed_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "LearningModule": {
+        "type": "object",
+        "required": [
+          "id",
+          "course_id",
+          "title",
+          "position",
+          "lessons"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "course_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "position": {
+            "type": "integer"
+          },
+          "lessons": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LearningLessonSummary"
+            }
           }
         },
         "additionalProperties": false

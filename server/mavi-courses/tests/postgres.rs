@@ -270,6 +270,15 @@ async fn courses_learning_and_progress_are_site_scoped() {
         assert_eq!(learning.items.len(), 1);
         assert_eq!(learning.items[0].total_lessons, 2);
         assert_eq!(learning.items[0].completed_lessons, 0);
+        let detail = service
+            .get_learning_course(&mut transaction, &student_context, course.id)
+            .await
+            .expect("learning course detail");
+        assert_eq!(detail.course.course_id, course.id);
+        assert_eq!(detail.modules.len(), 2);
+        assert!(detail.modules[0].lessons.is_empty());
+        assert_eq!(detail.modules[1].lessons.len(), 2);
+        assert!(detail.modules[1].lessons[0].completed_at.is_none());
         let lesson = service
             .get_learning_lesson(&mut transaction, &student_context, lesson_one.id)
             .await

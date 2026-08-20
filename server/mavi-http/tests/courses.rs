@@ -238,6 +238,23 @@ async fn course_routes_isolate_student_learning_and_protected_media() {
     assert_eq!(learning_courses["items"][0]["course_id"], course_id);
     assert_eq!(learning_courses["items"][0]["total_lessons"], 1);
 
+    let learning_course = send(
+        &app,
+        Method::GET,
+        &format!("/student/v1/learning/courses/{course_id}"),
+        Some(&student_token),
+        None,
+    )
+    .await;
+    assert_eq!(learning_course.status(), StatusCode::OK);
+    let learning_course = response_json(learning_course).await;
+    assert_eq!(learning_course["course"]["course_id"], course_id);
+    assert_eq!(learning_course["modules"][0]["lessons"][0]["id"], lesson_id);
+    assert_eq!(
+        learning_course["modules"][0]["lessons"][0]["completed_at"],
+        json!(null)
+    );
+
     let student_lesson = send(
         &app,
         Method::GET,
@@ -247,10 +264,13 @@ async fn course_routes_isolate_student_learning_and_protected_media() {
     )
     .await;
     assert_eq!(student_lesson.status(), StatusCode::OK);
-    assert_eq!(
-        response_json(student_lesson).await["completed_at"],
-        json!(null)
-    );
+    let student_lesson = response_json(student_lesson).await;
+    assert_eq!(student_lesson["completed_at"], json!(null));
+    assert_eq!(student_lesson["course_id"], course_id);
+    assert_eq!(student_lesson["position"], 1);
+    assert_eq!(student_lesson["total"], 1);
+    assert_eq!(student_lesson["previous"], json!(null));
+    assert_eq!(student_lesson["next"], json!(null));
 
     let media = send(
         &app,

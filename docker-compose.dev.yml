@@ -6,8 +6,10 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-mavi}
-      # Asked for rather than defaulted, for the reason given in
-      # docker-compose.yml: `:-` makes a default the real password.
+      # Asked for rather than defaulted. Use a URI-safe value (hex is a good
+      # choice), because compose embeds it in the default DATABASE_URL. The
+      # reason it is not defaulted is given in docker-compose.yml: `:-` makes
+      # a default the real password.
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env — see .env.example}
       POSTGRES_DB: ${POSTGRES_DB:-mavi}
     volumes:

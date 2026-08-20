@@ -184,7 +184,10 @@ jobs:
       - name: Start a fresh fixed-site installation
         run: |
           {
-            echo "POSTGRES_PASSWORD=$(openssl rand -base64 32 | tr -d '\n')"
+            # Compose embeds this value in DATABASE_URL. Hex keeps the generated
+            # password URI-safe instead of occasionally producing an unescaped
+            # slash or another reserved character from base64.
+            echo "POSTGRES_PASSWORD=$(openssl rand -hex 32)"
             echo "MAVI_KEYS=1:$(openssl rand -base64 32 | tr -d '\n')"
             echo "MAVI_SITE_ID=$(cat /proc/sys/kernel/random/uuid)"
             echo "MAVI_DOMAIN=http://localhost"

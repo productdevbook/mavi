@@ -15,6 +15,12 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
 use sha2::{Digest, Sha256};
 
+/// The release version embedded in generated OpenAPI metadata.
+///
+/// Keeping this at the package boundary prevents a release bump from leaving
+/// the runtime manifest and generated contract with different versions.
+pub const API_VERSION: &str = env!("CARGO_PKG_VERSION");
+
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum Method {
@@ -696,7 +702,7 @@ impl Api {
 
     /// Generates a small, dependency-free TypeScript client from this API.
     pub fn typescript(&self) -> Result<String, Vec<String>> {
-        let document = self.openapi("Mavi", "0.1.0")?;
+        let document = self.openapi("Mavi", API_VERSION)?;
         let schemas = document["components"]["schemas"]
             .as_object()
             .ok_or_else(|| vec!["OpenAPI schemas are not an object".to_owned()])?;
@@ -797,7 +803,7 @@ impl Api {
     /// service or an integration test. Transport remains an adapter concern;
     /// this artifact only carries the stable contract vocabulary.
     pub fn rust_client(&self) -> Result<String, Vec<String>> {
-        let document = self.openapi("Mavi", "0.1.0")?;
+        let document = self.openapi("Mavi", API_VERSION)?;
         let schemas = document["components"]["schemas"]
             .as_object()
             .ok_or_else(|| vec!["OpenAPI schemas are not an object".to_owned()])?;
@@ -1587,7 +1593,7 @@ mod tests {
         .with_shapes([Shape::new("Course", json!({"type": "object"}))]);
 
         assert!(api.endpoints[0].resource_scoped);
-        let openapi = api.openapi("Mavi", "0.1.0").expect("OpenAPI");
+        let openapi = api.openapi("Mavi", API_VERSION).expect("OpenAPI");
         assert_eq!(
             openapi["paths"]["/api/v1/courses/{id}"]["get"]["x-mavi"]["resourceScoped"],
             true
@@ -1604,7 +1610,7 @@ mod tests {
                 .returns(200, "Health"),
         ])
         .with_shapes([Shape::new("Health", json!({"type": "string"}))]);
-        let document = api.openapi("Mavi", "0.1.0").expect("OpenAPI");
+        let document = api.openapi("Mavi", API_VERSION).expect("OpenAPI");
 
         assert_eq!(document["openapi"], "3.1.0");
         assert_eq!(
@@ -1636,7 +1642,7 @@ mod tests {
                 Shape::new("PeoplePage", json!({"type": "object"})),
             ]);
 
-        let document = api.openapi("Mavi", "0.1.0").expect("OpenAPI");
+        let document = api.openapi("Mavi", API_VERSION).expect("OpenAPI");
         let operation = &document["paths"]["/api/v1/people"]["get"];
         assert!(operation.get("requestBody").is_none());
         assert_eq!(operation["parameters"][0]["name"], "after");
@@ -1748,7 +1754,7 @@ mod tests {
             Shape::new("File", json!({"type": "object"})),
         ]);
 
-        let document = api.openapi("Mavi", "0.1.0").expect("OpenAPI");
+        let document = api.openapi("Mavi", API_VERSION).expect("OpenAPI");
         let operation = &document["paths"]["/api/v1/files"]["post"];
         assert_eq!(
             operation["requestBody"]["content"]["application/octet-stream"]["schema"]["$ref"],
@@ -1786,7 +1792,7 @@ mod tests {
             Shape::new("Content", json!({"type": "object"})),
         ]);
 
-        let document = api.openapi("Mavi", "0.1.0").expect("OpenAPI");
+        let document = api.openapi("Mavi", API_VERSION).expect("OpenAPI");
         assert_eq!(
             document["components"]["schemas"]["CreateContent"]["additionalProperties"],
             false
@@ -1812,7 +1818,7 @@ mod tests {
             json!({"type": "string", "format": "binary"}),
         )]);
 
-        let document = api.openapi("Mavi", "0.1.0").expect("OpenAPI");
+        let document = api.openapi("Mavi", API_VERSION).expect("OpenAPI");
         let operation = &document["paths"]["/student/v1/learning/media/{id}"]["get"];
         assert!(
             operation["responses"]["200"]["content"]
@@ -1868,7 +1874,7 @@ mod tests {
             json!({"$ref": "#/components/schemas/DoesNotExist"}),
         )]);
 
-        let errors = api.openapi("Mavi", "0.1.0").expect_err("missing ref");
+        let errors = api.openapi("Mavi", API_VERSION).expect_err("missing ref");
         assert!(errors.iter().any(|error| error.contains("DoesNotExist")));
     }
 }

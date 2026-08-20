@@ -3,13 +3,14 @@
 
 use std::{env, process::ExitCode};
 
+use mavi_contract::API_VERSION;
 use mavi_http::api;
 
 fn main() -> ExitCode {
     let format = env::args().nth(1).unwrap_or_else(|| "openapi".to_owned());
     let catalog = api();
     let result = match format.as_str() {
-        "openapi" => catalog.openapi("Mavi", "0.1.0"),
+        "openapi" => catalog.openapi("Mavi", API_VERSION),
         "mcp" => catalog.mcp_tools(),
         "typescript" => catalog.typescript().map(serde_json::Value::String),
         "rust" => catalog.rust_client().map(serde_json::Value::String),

@@ -17,8 +17,12 @@ mod generated_rust {
 fn committed_openapi_snapshot_matches_the_canonical_catalog() {
     let expected = format!(
         "{}\n",
-        serde_json::to_string_pretty(&api().openapi("Mavi", "0.1.0").expect("OpenAPI"))
-            .expect("OpenAPI JSON")
+        serde_json::to_string_pretty(
+            &api()
+                .openapi("Mavi", mavi_contract::API_VERSION)
+                .expect("OpenAPI"),
+        )
+        .expect("OpenAPI JSON")
     );
     assert_eq!(OPENAPI, expected);
 }

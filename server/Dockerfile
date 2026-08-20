@@ -13,14 +13,26 @@ RUN apk add --no-cache ca-certificates curl musl-dev tar \
        esac \
     && curl -fsSL "https://github.com/mozilla/sccache/releases/download/v${SCCACHE_VERSION}/sccache-v${SCCACHE_VERSION}-${SCCACHE_ARCH}.tar.gz" \
        | tar -xz --strip-components=1 -C /usr/local/bin "sccache-v${SCCACHE_VERSION}-${SCCACHE_ARCH}/sccache" \
-    && chmod 0755 /usr/local/bin/sccache
+    && chmod 0755 /usr/local/bin/sccache \
+    && printf '%s\n' \
+         '#!/bin/sh' \
+         'set -u' \
+         'if [ -e /tmp/mavi-sccache-disabled ]; then exec "$@"; fi' \
+         'if /usr/local/bin/sccache "$@"; then exit 0; fi' \
+         'touch /tmp/mavi-sccache-disabled' \
+         'exec "$@"' \
+       > /usr/local/bin/mavi-rustc-wrapper \
+    && chmod 0755 /usr/local/bin/mavi-rustc-wrapper
 
 WORKDIR /app
 COPY . .
 RUN --mount=type=secret,id=sccache-env,required=false \
-    if [ -r /run/secrets/sccache-env ]; then \
+    if [ -r /run/secrets/sccache-env ] \
+       && sh -eu -c '. "$1"' sh /run/secrets/sccache-env >/dev/null 2>&1; then \
       set -a; . /run/secrets/sccache-env; set +a; \
-      export RUSTC_WRAPPER=/usr/local/bin/sccache; \
+      export RUSTC_WRAPPER=/usr/local/bin/mavi-rustc-wrapper; \
+    elif [ -r /run/secrets/sccache-env ]; then \
+      echo 'WARNING: invalid sccache environment; building without remote cache' >&2; \
     fi; \
     export CARGO_INCREMENTAL=0; \
     cargo build --locked --release --bin mavi

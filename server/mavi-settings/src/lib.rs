@@ -1159,7 +1159,9 @@ mod tests {
     fn settings_contract_is_site_scoped_and_permissioned() {
         let catalog = api();
         catalog.validate().expect("settings API");
-        let openapi = catalog.openapi("Mavi", "0.1.0").expect("OpenAPI");
+        let openapi = catalog
+            .openapi("Mavi", mavi_contract::API_VERSION)
+            .expect("OpenAPI");
         assert_eq!(
             openapi["paths"]["/api/v1/languages"]["get"]["parameters"][0]["name"],
             "after"

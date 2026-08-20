@@ -1,8 +1,8 @@
 # What somebody who has not cloned this runs.
 #
-# The compose file names the published clean-runtime image, so until this
+# The compose file names the published API and panel images, so until this
 # workflow has run once for a tag, `docker compose up` has nothing to pull and
-# the quickest way to try this is building Rust from source.
+# the quickest way to try this is building the development stack from source.
 name: Release
 
 on:
@@ -25,13 +25,16 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     strategy:
-      # Only the API runtime is published until the panel is regenerated
-      # against the canonical v1 contract. The panel is deployed separately
-      # and never baked into this release image.
+      # The API and panel are separate images with one release/tag boundary.
+      # The panel is never baked into the Rust runtime image, and the API never
+      # serves an unversioned browser bundle.
       matrix:
         include:
           - name: mavi
             context: server
+            file: Dockerfile
+          - name: mavi-panel
+            context: client
             file: Dockerfile
     steps:
       # What is asked for by hand is checked before it is used as a ref or

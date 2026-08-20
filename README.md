@@ -4,9 +4,10 @@ A content management system you run yourself. The clean rewrite is one Rust
 binary and one PostgreSQL database: site-scoped content, identity, media,
 publishing, forms, mail, commerce, courses, automation and MCP.
 
-The public panel is being regenerated from the clean canonical API. Until the
-remaining panel slices land, the published image is the API runtime and the
-legacy client screens remain compatibility material, not a mixed deployment.
+The public panel is generated from the same clean canonical API as the Rust
+runtime. The API and panel are separate images with one release/tag boundary:
+the panel owns browser routing while the API owns site data, authorization and
+runtime admission.
 Mavi is a CMS, not a hosting business; organization, billing, metering and
 shard lifecycle belong in `mavi-operator`.
 
@@ -43,8 +44,9 @@ stable across upgrades. `MAVI_KEYS` seals credentials and must also survive
 restarts. The API starts with the fixed-site runtime and runs migrations before
 opening its listener.
 
-The clean image currently exposes the API, not the unfinished legacy panel.
-For example, setup is available at:
+The API image exposes the canonical HTTP runtime. The panel image is mounted
+at `/admin`, `/learn` and `/shop` by the self-host compose package. Setup is
+also available directly at:
 
 ```bash
 curl -sS -X POST http://localhost/api/v1/setup \
@@ -70,7 +72,7 @@ DATABASE_URL=postgres://user:password@your-host:5432/mavi docker compose up -d
 | | |
 |---|---|
 | API | `ghcr.io/productdevbook/mavi` |
-| Panel | Not included until the clean generated-client slice lands |
+| Panel | `ghcr.io/productdevbook/mavi-panel` |
 
 Both are built for `linux/amd64` and `linux/arm64`.
 
@@ -185,9 +187,9 @@ settings, which is enough to carry a site somewhere else by hand.
 
 ## Development
 
-The clean runtime is the `server/` workspace. The panel is being regenerated
-from its canonical v1 contract; domains that have not moved yet are isolated
-behind an explicit legacy client boundary.
+The clean runtime is the `server/` workspace. The panel is generated from the
+committed contract artifacts in `server/mavi-http/contracts`; a stale artifact
+fails CI before either image is published.
 
 ```bash
 cd server
@@ -225,8 +227,7 @@ server/         the clean API/runtime rewrite
   mavi-http/         request admission and API composition
   mavi-runtime/      fixed-site and shared-shard runtime boundaries
   mavi-<domain>/     one application/service boundary per site feature
-client/              panel; remaining legacy domain screens are temporary
-                     compatibility slices
+client/              generated-contract administrative panel and student area
 wordpress-plugin/    the WordPress migration plugin (GPLv2+)
 ```
 

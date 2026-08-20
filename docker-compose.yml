@@ -53,6 +53,14 @@ services:
     expose:
       - "8080"
 
+  panel:
+    image: ghcr.io/productdevbook/mavi-panel:${MAVI_VERSION:-latest}
+    restart: unless-stopped
+    depends_on:
+      - api
+    expose:
+      - "80"
+
   # Certificates, and the address the API answers on. Anything can stand here —
   # this is nginx, Traefik, or whatever is already in front of your machine —
   # as long as it passes the `Host` header through and sets `X-Forwarded-For`
@@ -63,6 +71,7 @@ services:
     restart: unless-stopped
     depends_on:
       - api
+      - panel
     environment:
       # The address this answers on. Left as it is, it serves plain HTTP on
       # localhost, which is what you want while you are looking at it and

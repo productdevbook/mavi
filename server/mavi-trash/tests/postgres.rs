@@ -3,6 +3,7 @@ use mavi_content::{ContentService, CreateContent, PublicationInput};
 use mavi_core::ports::FileStore;
 use mavi_core::{MaviError, PageRequest, SiteContext, SiteId};
 use mavi_files::InMemoryFileStore;
+use mavi_forms::{CreateForm, FormService};
 use mavi_media::{FileVisibility, MediaService};
 use mavi_storage::Database;
 use mavi_taxonomy::{CreateTerm, TaxonomyService, TermKind};
@@ -313,4 +314,149 @@ async fn trash_lists_restores_and_permanently_deletes_site_resources() {
         .expect("isolated trash list");
     assert!(isolated.items.is_empty());
     transaction.commit().await.expect("commit");
+}
+
+#[tokio::test]
+#[ignore = "requires TEST_DATABASE_URL and a non-superuser PostgreSQL role"]
+#[allow(clippy::too_many_lines)]
+async fn form_trash_restores_and_permanently_deletes_submissions_with_the_form() {
+    let url = std::env::var("TEST_DATABASE_URL").expect("TEST_DATABASE_URL");
+    let database = Database::connect(&url, 2).await.expect("database");
+    database.migrate().await.expect("migrations");
+
+    let site_id = SiteId::new();
+    let other_site_id = SiteId::new();
+    database.ensure_site(site_id).await.expect("site");
+    database
+        .ensure_site(other_site_id)
+        .await
+        .expect("other site");
+
+    let context = SiteContext::public(site_id);
+    let form_service = FormService;
+    let trash_service = TrashService;
+    let form = {
+        let mut transaction = database.begin(&context).await.expect("create transaction");
+        let form = form_service
+            .create(
+                &mut transaction,
+                &context,
+                &CreateForm {
+                    slug: "form-trash".to_owned(),
+                    name: "Form trash".to_owned(),
+                    fields: Vec::new(),
+                    kept_days: None,
+                },
+            )
+            .await
+            .expect("form");
+        sqlx::query(
+            "insert into form_submissions (site_id, id, form_id, answers)
+             values ($1, $2, $3, $4)",
+        )
+        .bind(site_id.into_uuid())
+        .bind(uuid::Uuid::now_v7())
+        .bind(form.id.into_uuid())
+        .bind(json!({"email": "trash@example.test"}))
+        .execute(transaction.conn())
+        .await
+        .expect("submission");
+        transaction.commit().await.expect("create commit");
+        form
+    };
+
+    let mut transaction = database.begin(&context).await.expect("trash transaction");
+    form_service
+        .delete(&mut transaction, &context, form.id)
+        .await
+        .expect("trash form");
+    transaction.commit().await.expect("trash commit");
+
+    let mut transaction = database.begin(&context).await.expect("list transaction");
+    let page = trash_service
+        .list(
+            &mut transaction,
+            &context,
+            &TrashListFilter {
+                page: PageRequest::default(),
+                kind: Some(TrashKind::Form),
+            },
+        )
+        .await
+        .expect("form trash list");
+    assert_eq!(page.items.len(), 1);
+    assert_eq!(page.items[0].id, form.id.into_uuid());
+    assert_eq!(page.items[0].kind, TrashKind::Form);
+    trash_service
+        .restore(
+            &mut transaction,
+            &context,
+            TrashKind::Form,
+            form.id.into_uuid(),
+        )
+        .await
+        .expect("restore form");
+    form_service
+        .get(&mut transaction, &context, form.id)
+        .await
+        .expect("restored form");
+    transaction.commit().await.expect("restore commit");
+
+    let mut transaction = database
+        .begin(&context)
+        .await
+        .expect("trash again transaction");
+    form_service
+        .delete(&mut transaction, &context, form.id)
+        .await
+        .expect("trash restored form");
+    trash_service
+        .permanently_delete(
+            &mut transaction,
+            &context,
+            TrashKind::Form,
+            form.id.into_uuid(),
+        )
+        .await
+        .expect("permanently delete form");
+    transaction.commit().await.expect("permanent delete commit");
+
+    let mut transaction = database.begin(&context).await.expect("assert transaction");
+    let form_exists: bool =
+        sqlx::query_scalar("select exists(select 1 from forms where site_id = $1 and id = $2)")
+            .bind(site_id.into_uuid())
+            .bind(form.id.into_uuid())
+            .fetch_one(transaction.conn())
+            .await
+            .expect("form state");
+    let submission_count: i64 = sqlx::query_scalar(
+        "select count(*) from form_submissions where site_id = $1 and form_id = $2",
+    )
+    .bind(site_id.into_uuid())
+    .bind(form.id.into_uuid())
+    .fetch_one(transaction.conn())
+    .await
+    .expect("submission state");
+    assert!(!form_exists);
+    assert_eq!(submission_count, 0);
+    transaction.commit().await.expect("assert commit");
+
+    let other_context = SiteContext::public(other_site_id);
+    let mut transaction = database
+        .begin(&other_context)
+        .await
+        .expect("other site transaction");
+    let isolated = trash_service
+        .list(
+            &mut transaction,
+            &other_context,
+            &TrashListFilter {
+                page: PageRequest::default(),
+                kind: Some(TrashKind::Form),
+            },
+        )
+        .await
+        .expect("other site trash list");
+    assert!(isolated.items.is_empty());
+    transaction.commit().await.expect("other site commit");
 }

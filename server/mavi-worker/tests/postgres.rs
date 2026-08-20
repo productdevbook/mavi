@@ -559,6 +559,126 @@ async fn trash_retention_worker_removes_expired_content_and_audits_system_work()
 
 #[tokio::test]
 #[ignore = "requires TEST_DATABASE_URL and a non-superuser PostgreSQL role"]
+#[allow(clippy::too_many_lines)]
+async fn trash_retention_worker_removes_expired_forms_and_cascades_submissions() {
+    let database_url = env::var("TEST_DATABASE_URL").expect("TEST_DATABASE_URL");
+    let database = Database::connect(&database_url, 4)
+        .await
+        .expect("database connection");
+    database.migrate().await.expect("migrations");
+    let site_id = SiteId::new();
+    database.ensure_site(site_id).await.expect("site");
+
+    let context = SiteContext::public(site_id);
+    let form_service = FormService;
+    let form_id = {
+        let mut transaction = database.begin(&context).await.expect("form scope");
+        sqlx::query(
+            "insert into site_settings (site_id, name) values ($1, 'Form trash retention')",
+        )
+        .bind(site_id.into_uuid())
+        .execute(transaction.conn())
+        .await
+        .expect("site settings");
+        sqlx::query("update site_settings set trash_retention_days = 1 where site_id = $1")
+            .bind(site_id.into_uuid())
+            .execute(transaction.conn())
+            .await
+            .expect("trash policy");
+        let form = form_service
+            .create(
+                &mut transaction,
+                &context,
+                &CreateForm {
+                    slug: "expired-form-trash".to_owned(),
+                    name: "Expired form trash".to_owned(),
+                    fields: Vec::new(),
+                    kept_days: None,
+                },
+            )
+            .await
+            .expect("form");
+        sqlx::query(
+            "insert into form_submissions (site_id, id, form_id, answers)
+             values ($1, $2, $3, '{}'::jsonb)",
+        )
+        .bind(site_id.into_uuid())
+        .bind(Uuid::now_v7())
+        .bind(form.id.into_uuid())
+        .execute(transaction.conn())
+        .await
+        .expect("submission");
+        form_service
+            .delete(&mut transaction, &context, form.id)
+            .await
+            .expect("trash form");
+        sqlx::query("update forms set deleted_at = $3 where site_id = $1 and id = $2")
+            .bind(site_id.into_uuid())
+            .bind(form.id.into_uuid())
+            .bind(Utc::now() - Duration::days(2))
+            .execute(transaction.conn())
+            .await
+            .expect("age form trash");
+        transaction.commit().await.expect("seed commit");
+        form.id.into_uuid()
+    };
+
+    let supervisor = WorkerSupervisor::new(
+        database.clone(),
+        [site_id],
+        WorkerConfig::new(
+            "test-form-trash-retention-worker",
+            30,
+            std::time::Duration::from_millis(10),
+        )
+        .expect("worker config"),
+        Arc::new(InMemoryFileStore::default()),
+    );
+    assert!(
+        run_until_job_done(
+            &supervisor,
+            &database,
+            site_id,
+            &context,
+            TRASH_RETENTION_JOB.name,
+        )
+        .await,
+        "form trash retention job should complete"
+    );
+
+    let mut transaction = database.begin(&context).await.expect("assert scope");
+    let form_exists: bool =
+        sqlx::query_scalar("select exists(select 1 from forms where site_id = $1 and id = $2)")
+            .bind(site_id.into_uuid())
+            .bind(form_id)
+            .fetch_one(transaction.conn())
+            .await
+            .expect("form state");
+    let submission_count: i64 = sqlx::query_scalar(
+        "select count(*) from form_submissions where site_id = $1 and form_id = $2",
+    )
+    .bind(site_id.into_uuid())
+    .bind(form_id)
+    .fetch_one(transaction.conn())
+    .await
+    .expect("submission state");
+    assert!(!form_exists);
+    assert_eq!(submission_count, 0);
+    let resource_type: String = sqlx::query_scalar(
+        "select resource_type from audit_events
+          where site_id = $1 and action = 'trash.item.permanently_deleted'
+          order by created_at desc limit 1",
+    )
+    .bind(site_id.into_uuid())
+    .fetch_one(transaction.conn())
+    .await
+    .expect("retention audit");
+    assert_eq!(resource_type, "Form");
+    transaction.commit().await.expect("assert commit");
+}
+
+#[tokio::test]
+#[ignore = "requires TEST_DATABASE_URL and a non-superuser PostgreSQL role"]
 async fn trash_retention_worker_continues_after_a_full_batch() {
     let database_url = env::var("TEST_DATABASE_URL").expect("TEST_DATABASE_URL");
     let database = Database::connect(&database_url, 4)

@@ -41,6 +41,7 @@ pub const MAX_TRASH_RETENTION_BATCH: i64 = 100;
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum TrashKind {
+    Form,
     Content,
     File,
     Term,
@@ -50,6 +51,7 @@ impl TrashKind {
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
+            Self::Form => "form",
             Self::Content => "content",
             Self::File => "file",
             Self::Term => "term",
@@ -59,6 +61,7 @@ impl TrashKind {
     #[must_use]
     pub const fn resource_type(self) -> &'static str {
         match self {
+            Self::Form => "Form",
             Self::Content => "Content",
             Self::File => "File",
             Self::Term => "TaxonomyTerm",
@@ -68,6 +71,7 @@ impl TrashKind {
     #[must_use]
     const fn rank(self) -> i32 {
         match self {
+            Self::Form => 4,
             Self::Content => 3,
             Self::File => 2,
             Self::Term => 1,
@@ -76,6 +80,7 @@ impl TrashKind {
 
     pub fn parse(value: &str) -> Result<Self> {
         match value {
+            "form" => Ok(Self::Form),
             "content" => Ok(Self::Content),
             "file" => Ok(Self::File),
             "term" => Ok(Self::Term),
@@ -487,7 +492,7 @@ pub fn shapes() -> Vec<Shape> {
     vec![
         Shape::new(
             "TrashKind",
-            json!({"type": "string", "enum": ["content", "file", "term"]}),
+            json!({"type": "string", "enum": ["form", "content", "file", "term"]}),
         ),
         Shape::new(
             "TrashListFilter",
@@ -597,6 +602,10 @@ impl TrashService {
         let rows = sqlx::query(
             "select kind, id
                from (
+                 select site_id, 'form'::text as kind, id, deleted_at,
+                        4::int as kind_rank
+                   from forms where deleted_at is not null
+                 union all
                  select site_id, 'content'::text as kind, id, deleted_at,
                         3::int as kind_rank
                    from content_entries where deleted_at is not null
@@ -644,6 +653,10 @@ impl TrashService {
         let mut query = sqlx::QueryBuilder::<sqlx::Postgres>::new(
             "select kind, id, label, deleted_at, kind_rank
                from (
+                 select site_id, 'form'::text as kind, id, name as label,
+                        deleted_at, 4::int as kind_rank
+                   from forms where deleted_at is not null
+                 union all
                  select site_id, 'content'::text as kind, id, title as label,
                         deleted_at, 3::int as kind_rank
                    from content_entries where deleted_at is not null
@@ -1147,6 +1160,16 @@ impl TrashService {
     ) -> Result<()> {
         let result =
             match kind {
+                TrashKind::Form => {
+                    sqlx::query(
+                        "update forms set deleted_at = null, updated_at = clock_timestamp()
+                      where site_id = $1 and id = $2 and deleted_at is not null",
+                    )
+                    .bind(context.site_id.into_uuid())
+                    .bind(id)
+                    .execute(tx.conn())
+                    .await
+                }
                 TrashKind::Content => sqlx::query(
                     "update content_entries set deleted_at = null, updated_at = clock_timestamp()
                       where site_id = $1 and id = $2 and deleted_at is not null",
@@ -1205,7 +1228,7 @@ impl TrashService {
         let mut deletion = PermanentDeletion::default();
         ensure_trashed(tx, context, kind, id).await?;
         let payload = match kind {
-            TrashKind::Content | TrashKind::Term => json!({"kind": kind}),
+            TrashKind::Form | TrashKind::Content | TrashKind::Term => json!({"kind": kind}),
             TrashKind::File => {
                 let storage_key: String = sqlx::query_scalar(
                     "select storage_key from media_files
@@ -1279,6 +1302,16 @@ impl TrashService {
             .await?;
 
         match kind {
+            TrashKind::Form => {
+                sqlx::query(
+                    "delete from forms where site_id = $1 and id = $2 and deleted_at is not null",
+                )
+                .bind(context.site_id.into_uuid())
+                .bind(id)
+                .execute(tx.conn())
+                .await
+                .map_err(|_| MaviError::Internal)?;
+            }
             TrashKind::Content => {
                 sqlx::query(
                     "delete from content_slug_history where site_id = $1 and content_id = $2",
@@ -1329,6 +1362,17 @@ async fn ensure_trashed(
     id: Uuid,
 ) -> Result<()> {
     let exists = match kind {
+        TrashKind::Form => {
+            sqlx::query_scalar::<_, Uuid>(
+                "select id from forms
+              where site_id = $1 and id = $2 and deleted_at is not null
+              for update",
+            )
+            .bind(context.site_id.into_uuid())
+            .bind(id)
+            .fetch_optional(tx.conn())
+            .await
+        }
         TrashKind::Content => {
             sqlx::query_scalar::<_, Uuid>(
                 "select id from content_entries
@@ -1560,6 +1604,10 @@ mod tests {
     #[test]
     fn kind_never_becomes_a_table_name_from_the_url() {
         assert!(TrashKind::parse("content; drop table content_entries").is_err());
+        assert_eq!(
+            TrashKind::parse("form").expect("form kind"),
+            TrashKind::Form
+        );
         assert_eq!(TrashKind::Content.resource_type(), "Content");
     }
 

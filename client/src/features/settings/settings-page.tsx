@@ -123,7 +123,7 @@ export function SettingsPage() {
             onChange={(event) => setTrashRetentionDays(event.target.value)}
           />
           <p className="text-xs text-muted-foreground">
-            {t`After this period, deleted content, files and taxonomy terms are permanently removed. Use 1 to 3,650 days.`}
+            {t`After this period, deleted resources such as content, forms, files and taxonomy terms are permanently removed. Use 1 to 3,650 days.`}
           </p>
         </div>
       </section>

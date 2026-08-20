@@ -58,6 +58,7 @@ export function TrashPage() {
   React.useEffect(load, [load])
 
   const named: Record<string, string> = {
+    form: t`form`,
     content: t`post`,
     file: t`file`,
     term: t`category or tag`,
@@ -102,7 +103,7 @@ export function TrashPage() {
     <div className="flex flex-col gap-5">
       <DashboardPageHeader
         title={t`Bin`}
-        description={t`Deleted content waits thirty days before it is removed permanently, and can be restored in the meantime.`}
+        description={t`Deleted resources wait thirty days before they are removed permanently, and can be restored in the meantime.`}
       />
 
       <Card>

@@ -4,9 +4,9 @@ set -Eeuo pipefail
 base_url=${MAVI_SMOKE_URL:-http://localhost}
 setup_enabled=${MAVI_SMOKE_SETUP:-1}
 
-curl --fail --silent --show-error --retry 30 --retry-delay 2 --retry-connrefused \
+curl --fail --silent --show-error --retry 30 --retry-delay 2 --retry-all-errors \
   "${base_url%/}/healthz" >/dev/null
-curl --fail --silent --show-error --retry 30 --retry-delay 2 --retry-connrefused \
+curl --fail --silent --show-error --retry 30 --retry-delay 2 --retry-all-errors \
   "${base_url%/}/readyz" >/dev/null
 
 openapi=$(curl --fail --silent --show-error "${base_url%/}/openapi.json")

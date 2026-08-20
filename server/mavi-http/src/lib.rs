@@ -28,7 +28,9 @@ use mavi_analytics::{
     AnalyticsEvent, AnalyticsEventBatch, AnalyticsReceipt, AnalyticsService, DailyAggregate,
     DailyListFilter, EventListFilter, PruneAnalytics, PruneReceipt,
 };
-use mavi_audit::{AuditEntry, AuditEvent, AuditListFilter, AuditService};
+use mavi_audit::{
+    AuditEntry, AuditEvent, AuditExport, AuditExportFilter, AuditListFilter, AuditService,
+};
 use mavi_authz::CedarAuthorizer;
 use mavi_boards::{
     Activity, ActivityPageFilter, AssignCard, Board, BoardList, BoardListFilter, BoardService,
@@ -1314,6 +1316,7 @@ where
 {
     Router::new()
         .route("/api/v1/audit", get(list_audit::<R>))
+        .route("/api/v1/audit/export", get(export_audit::<R>))
         .route("/api/v1/audit/{id}", get(read_audit::<R>))
         .route("/api/v1/trash", get(list_trash::<R>))
         .route(
@@ -3929,6 +3932,50 @@ where
         .map_err(HttpError)?;
     transaction.commit().await.map_err(HttpError)?;
     Ok(Json(events))
+}
+
+async fn export_audit<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Query(filter): Query<AuditExportFilter>,
+) -> Result<Json<AuditExport>, HttpError>
+where
+    R: SiteResolver,
+{
+    require_grant_for(
+        &state,
+        &context,
+        Grant::new(Capability::Audit, Action::View),
+        "AuditExport",
+        "audit_export",
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let export = state
+        .audit
+        .export(&mut transaction, &context, &filter)
+        .await
+        .map_err(HttpError)?;
+    state
+        .audit
+        .record(
+            &mut transaction,
+            &context,
+            &AuditEntry {
+                action: "audit.events.exported".to_owned(),
+                resource_type: "AuditExport".to_owned(),
+                resource_id: None,
+                payload: json!({
+                    "format": &export.format,
+                    "version": export.version,
+                    "count": export.items.len(),
+                    "truncated": export.truncated,
+                }),
+            },
+        )
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(export))
 }
 
 async fn read_audit<R>(

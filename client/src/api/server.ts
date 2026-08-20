@@ -124,6 +124,26 @@ export interface AuditEventPage {
   next_cursor: string | null;
 }
 
+export interface AuditExport {
+  format: string;
+  version: number;
+  site_id: string;
+  generated_at: string;
+  items: AuditEvent[];
+  truncated: boolean;
+}
+
+export interface AuditExportFilter {
+  action?: string | null;
+  resource_type?: string | null;
+  resource_id?: string | null;
+  actor_kind?: AuditActorKind;
+  actor_id?: string | null;
+  created_after?: string | null;
+  created_before?: string | null;
+  limit?: number | null;
+}
+
 export interface AuditListFilter {
   after?: string | null;
   limit?: number;
@@ -2006,6 +2026,7 @@ export const operations = {
   "media.files.variants.public_download": { method: "get", path: "/public/v1/files/{id}/variants/{preset}", input: null, query: null, output: "FileBytes", outputLocation: "raw", status: 200, authentication: "public", permission: null },
   "media.files.trash": { method: "delete", path: "/api/v1/files/{id}", input: null, query: null, output: "Empty", status: 204, authentication: "account_or_assistant", permission: { capability: "media", action: "delete" } },
   "audit.events.list": { method: "get", path: "/api/v1/audit", input: { location: "query", shape: "AuditListFilter" }, query: null, output: "AuditEventPage", status: 200, authentication: "account_or_assistant", permission: { capability: "audit", action: "view" } },
+  "audit.events.export": { method: "get", path: "/api/v1/audit/export", input: { location: "query", shape: "AuditExportFilter" }, query: null, output: "AuditExport", status: 200, authentication: "account_or_assistant", permission: { capability: "audit", action: "view" } },
   "audit.events.read": { method: "get", path: "/api/v1/audit/{id}", input: null, query: null, output: "AuditEvent", status: 200, authentication: "account_or_assistant", permission: { capability: "audit", action: "view" } },
   "trash.items.list": { method: "get", path: "/api/v1/trash", input: { location: "query", shape: "TrashListFilter" }, query: null, output: "TrashPage", status: 200, authentication: "account_or_assistant", permission: { capability: "trash", action: "view" } },
   "trash.items.restore": { method: "post", path: "/api/v1/trash/{kind}/{id}/restore", input: null, query: null, output: "Empty", status: 204, authentication: "account_or_assistant", permission: { capability: "trash", action: "write" } },
@@ -2211,6 +2232,7 @@ export interface OperationArguments {
   "media.files.variants.public_download": { path: { id: string; preset: string }; query?: never; body?: never; }
   "media.files.trash": { path: { id: string }; query?: never; body?: never; }
   "audit.events.list": { path?: never; query: AuditListFilter; body?: never; }
+  "audit.events.export": { path?: never; query: AuditExportFilter; body?: never; }
   "audit.events.read": { path: { id: string }; query?: never; body?: never; }
   "trash.items.list": { path?: never; query: TrashListFilter; body?: never; }
   "trash.items.restore": { path: { kind: string; id: string }; query?: never; body?: never; }
@@ -2414,6 +2436,7 @@ export interface OperationResponses {
   "media.files.variants.public_download": FileBytes;
   "media.files.trash": void;
   "audit.events.list": AuditEventPage;
+  "audit.events.export": AuditExport;
   "audit.events.read": AuditEvent;
   "trash.items.list": TrashPage;
   "trash.items.restore": void;

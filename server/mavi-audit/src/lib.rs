@@ -21,6 +21,10 @@ use uuid::Uuid;
 
 pub const AUDIT_EVENT_NOT_FOUND: &str = "audit_event_not_found";
 pub const AUDIT_FILTER_INVALID: &str = "audit_filter_invalid";
+pub const AUDIT_EXPORT_FILTER_INVALID: &str = "audit_export_filter_invalid";
+pub const AUDIT_EXPORT_FORMAT: &str = "mavi.audit.export";
+pub const AUDIT_EXPORT_VERSION: u16 = 1;
+pub const MAX_AUDIT_EXPORT_EVENTS: usize = 10_000;
 pub const AUDIT_RELOCATION_FORMAT: &str = "mavi.audit.relocation";
 pub const AUDIT_RELOCATION_VERSION: u16 = 1;
 pub const AUDIT_RELOCATION_CONFLICT: &str = "audit_relocation_conflict";
@@ -180,6 +184,40 @@ pub struct AuditListFilter {
     pub actor_id: Option<String>,
 }
 
+/// A bounded, chronological audit download. The date window is exclusive at
+/// both ends so adjacent exports can be composed without duplicating a row.
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+pub struct AuditExportFilter {
+    pub action: Option<String>,
+    pub resource_type: Option<String>,
+    pub resource_id: Option<Uuid>,
+    pub actor_kind: Option<AuditActorKind>,
+    pub actor_id: Option<String>,
+    pub created_after: Option<DateTime<Utc>>,
+    pub created_before: Option<DateTime<Utc>>,
+    pub limit: Option<u16>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AuditExport {
+    pub format: String,
+    pub version: u16,
+    pub site_id: SiteId,
+    pub generated_at: DateTime<Utc>,
+    pub items: Vec<AuditEvent>,
+    pub truncated: bool,
+}
+
+impl AuditExportFilter {
+    fn effective_limit(&self) -> Result<i64> {
+        let limit = self.limit.map_or(MAX_AUDIT_EXPORT_EVENTS, usize::from);
+        if limit == 0 || limit > MAX_AUDIT_EXPORT_EVENTS {
+            return Err(MaviError::validation(AUDIT_EXPORT_FILTER_INVALID));
+        }
+        i64::try_from(limit).map_err(|_| MaviError::Internal)
+    }
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 struct AuditCursor {
     created_at: DateTime<Utc>,
@@ -210,6 +248,24 @@ pub fn endpoints() -> Vec<Endpoint> {
         })
         .takes_query("AuditListFilter")
         .returns(200, "AuditEventPage")
+        .refuses([
+            ErrorCode::Forbidden,
+            ErrorCode::Validation,
+            ErrorCode::Internal,
+        ]),
+        Endpoint::new(
+            Method::Get,
+            "/api/v1/audit/export",
+            "audit.events.export",
+            "Download a bounded chronological audit export",
+        )
+        .account_or_assistant()
+        .requires(Permission {
+            capability: Capability::Audit,
+            action: Action::View,
+        })
+        .takes_query("AuditExportFilter")
+        .returns(200, "AuditExport")
         .refuses([
             ErrorCode::Forbidden,
             ErrorCode::Validation,
@@ -272,6 +328,37 @@ pub fn shapes() -> Vec<Shape> {
                     "resource_id": {"type": ["string", "null"], "format": "uuid"},
                     "payload": {"type": "object", "additionalProperties": true},
                     "created_at": {"type": "string", "format": "date-time"},
+                },
+            }),
+        ),
+        Shape::new(
+            "AuditExportFilter",
+            json!({
+                "type": "object",
+                "properties": {
+                    "action": {"type": ["string", "null"], "maxLength": 160},
+                    "resource_type": {"type": ["string", "null"], "maxLength": 80},
+                    "resource_id": {"type": ["string", "null"], "format": "uuid"},
+                    "actor_kind": {"$ref": "#/components/schemas/AuditActorKind"},
+                    "actor_id": {"type": ["string", "null"], "maxLength": 255},
+                    "created_after": {"type": ["string", "null"], "format": "date-time"},
+                    "created_before": {"type": ["string", "null"], "format": "date-time"},
+                    "limit": {"type": ["integer", "null"], "minimum": 1, "maximum": 10000},
+                },
+            }),
+        ),
+        Shape::new(
+            "AuditExport",
+            json!({
+                "type": "object",
+                "required": ["format", "version", "site_id", "generated_at", "items", "truncated"],
+                "properties": {
+                    "format": {"type": "string", "const": "mavi.audit.export"},
+                    "version": {"type": "integer", "const": 1},
+                    "site_id": {"type": "string", "format": "uuid"},
+                    "generated_at": {"type": "string", "format": "date-time"},
+                    "items": {"type": "array", "items": {"$ref": "#/components/schemas/AuditEvent"}},
+                    "truncated": {"type": "boolean"},
                 },
             }),
         ),
@@ -381,6 +468,73 @@ impl AuditService {
         };
         items.truncate(limit_usize);
         Ok(Page::new(items, next_cursor))
+    }
+
+    pub async fn export(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        filter: &AuditExportFilter,
+    ) -> Result<AuditExport> {
+        let action = validate_filter(filter.action.as_deref(), 160)?;
+        let resource_type = validate_filter(filter.resource_type.as_deref(), 80)?;
+        let actor_id = validate_filter(filter.actor_id.as_deref(), 255)?;
+        if filter
+            .created_after
+            .zip(filter.created_before)
+            .is_some_and(|(after, before)| after >= before)
+        {
+            return Err(MaviError::validation(AUDIT_EXPORT_FILTER_INVALID));
+        }
+        let limit = filter.effective_limit()?;
+        let mut query = sqlx::QueryBuilder::<sqlx::Postgres>::new(
+            "select id, request_id, actor_kind, actor_id, action, resource_type,
+                    resource_id, payload, created_at
+               from audit_events where site_id = ",
+        );
+        query.push_bind(context.site_id.into_uuid());
+        if let Some(action) = action {
+            query.push(" and action = ").push_bind(action);
+        }
+        if let Some(resource_type) = resource_type {
+            query.push(" and resource_type = ").push_bind(resource_type);
+        }
+        if let Some(resource_id) = filter.resource_id {
+            query.push(" and resource_id = ").push_bind(resource_id);
+        }
+        if let Some(actor_kind) = filter.actor_kind {
+            query
+                .push(" and actor_kind = ")
+                .push_bind(actor_kind.as_str());
+        }
+        if let Some(actor_id) = actor_id {
+            query.push(" and actor_id = ").push_bind(actor_id);
+        }
+        if let Some(created_after) = filter.created_after {
+            query.push(" and created_at > ").push_bind(created_after);
+        }
+        if let Some(created_before) = filter.created_before {
+            query.push(" and created_at < ").push_bind(created_before);
+        }
+        let rows = query
+            .push(" order by created_at asc, id asc limit ")
+            .push_bind(limit + 1)
+            .build()
+            .fetch_all(tx.conn())
+            .await
+            .map_err(|_| MaviError::Internal)?;
+        let mut items = rows.iter().map(from_row).collect::<Result<Vec<_>>>()?;
+        let limit_usize = usize::try_from(limit).map_err(|_| MaviError::Internal)?;
+        let truncated = items.len() > limit_usize;
+        items.truncate(limit_usize);
+        Ok(AuditExport {
+            format: AUDIT_EXPORT_FORMAT.to_owned(),
+            version: AUDIT_EXPORT_VERSION,
+            site_id: context.site_id,
+            generated_at: Utc::now(),
+            items,
+            truncated,
+        })
     }
 
     pub async fn get(

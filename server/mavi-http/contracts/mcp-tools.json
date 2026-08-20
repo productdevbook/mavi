@@ -2296,6 +2296,96 @@
       }
     },
     {
+      "name": "audit.events.export",
+      "description": "Download a bounded chronological audit export",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "object",
+            "properties": {
+              "action": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 160
+              },
+              "resource_type": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 80
+              },
+              "resource_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uuid"
+              },
+              "actor_kind": {
+                "type": "string",
+                "enum": [
+                  "public",
+                  "account",
+                  "student",
+                  "assistant",
+                  "system"
+                ]
+              },
+              "actor_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 255
+              },
+              "created_after": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time"
+              },
+              "created_before": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time"
+              },
+              "limit": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 1,
+                "maximum": 10000
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true
+      },
+      "x-mavi": {
+        "authentication": "account_or_assistant",
+        "scope": "site",
+        "permission": {
+          "capability": "audit",
+          "action": "view"
+        }
+      }
+    },
+    {
       "name": "audit.events.read",
       "description": "Read one immutable audit event",
       "inputSchema": {

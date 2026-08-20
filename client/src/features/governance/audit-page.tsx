@@ -35,6 +35,7 @@ export function AuditPage() {
   const [subject, setSubject] = React.useState("")
   const [next, setNext] = React.useState<string | null>(null)
   const [more, setMore] = React.useState(false)
+  const [exporting, setExporting] = React.useState(false)
   const [error, setError] = React.useState(false)
   const request = React.useRef(0)
 
@@ -93,19 +94,35 @@ export function AuditPage() {
           <Button
             variant="outline"
             size="sm"
+            disabled={exporting}
             onClick={() => {
-              const file = new Blob([JSON.stringify(entries ?? [], null, 2)], {
-                type: "application/json",
+              setExporting(true)
+              api("audit.events.export", {
+                query: {
+                  action: action || undefined,
+                  resource_type: subject || undefined,
+                  limit: 10000,
+                },
               })
-              const url = URL.createObjectURL(file)
-              const link = document.createElement("a")
-              link.href = url
-              link.download = `audit-${new Date().toISOString().slice(0, 10)}.json`
-              link.click()
-              URL.revokeObjectURL(url)
+                .then((exported) => {
+                  const file = new Blob([JSON.stringify(exported, null, 2)], {
+                    type: "application/json",
+                  })
+                  const url = URL.createObjectURL(file)
+                  const link = document.createElement("a")
+                  link.href = url
+                  link.download = `audit-${new Date().toISOString().slice(0, 10)}.json`
+                  link.click()
+                  URL.revokeObjectURL(url)
+                  if (exported.truncated) {
+                    toast.warning(t`The export reached its 10,000-event limit.`)
+                  }
+                })
+                .catch((why: unknown) => toast.error(apiMessage(why)))
+                .finally(() => setExporting(false))
             }}
           >
-            <Download /> {t`Download`}
+            {exporting ? <Loader2 className="animate-spin" /> : <Download />} {t`Download`}
           </Button>
         }
       />

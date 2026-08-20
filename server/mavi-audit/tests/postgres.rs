@@ -1,4 +1,4 @@
-use mavi_audit::{AuditEntry, AuditListFilter, AuditService};
+use mavi_audit::{AuditEntry, AuditExportFilter, AuditListFilter, AuditService};
 use mavi_core::{MaviError, PageRequest, SiteContext, SiteId};
 use mavi_storage::Database;
 use serde_json::json;
@@ -96,6 +96,39 @@ async fn audit_receipts_are_site_scoped_and_cursor_listable() {
         .expect("second audit page");
     assert_eq!(second_page.items.len(), 1);
     assert!(second_page.next_cursor.is_none());
+
+    let export = service
+        .export(
+            &mut transaction,
+            &first_context,
+            &AuditExportFilter {
+                limit: Some(1),
+                ..AuditExportFilter::default()
+            },
+        )
+        .await
+        .expect("bounded audit export");
+    assert_eq!(export.format, "mavi.audit.export");
+    assert_eq!(export.version, 1);
+    assert_eq!(export.site_id, first_site);
+    assert_eq!(export.items.len(), 1);
+    assert!(export.truncated);
+
+    let invalid_export = service
+        .export(
+            &mut transaction,
+            &first_context,
+            &AuditExportFilter {
+                limit: Some(10_001),
+                ..AuditExportFilter::default()
+            },
+        )
+        .await
+        .expect_err("oversized export");
+    assert!(matches!(
+        invalid_export,
+        MaviError::Validation { code, .. } if code == "audit_export_filter_invalid"
+    ));
 
     let invalid = service
         .list(

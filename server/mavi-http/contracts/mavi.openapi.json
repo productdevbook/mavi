@@ -5437,6 +5437,171 @@
         }
       }
     },
+    "/api/v1/audit/export": {
+      "get": {
+        "operationId": "audit.events.export",
+        "summary": "Download a bounded chronological audit export",
+        "tags": [
+          "audit"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditExport"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "action",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "maxLength": 160
+            }
+          },
+          {
+            "name": "resource_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "maxLength": 80
+            }
+          },
+          {
+            "name": "resource_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "actor_kind",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/AuditActorKind"
+            }
+          },
+          {
+            "name": "actor_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "maxLength": 255
+            }
+          },
+          {
+            "name": "created_after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "created_before",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 1,
+              "maximum": 10000
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-mavi": {
+          "scope": "site",
+          "authentication": "account_or_assistant",
+          "mutation": "none",
+          "permission": {
+            "capability": "audit",
+            "action": "view"
+          },
+          "errors": [
+            "forbidden",
+            "validation",
+            "internal"
+          ]
+        }
+      }
+    },
     "/api/v1/audit/{id}": {
       "get": {
         "operationId": "audit.events.read",
@@ -19463,6 +19628,104 @@
               "null"
             ],
             "maxLength": 512
+          }
+        },
+        "additionalProperties": false
+      },
+      "AuditExport": {
+        "type": "object",
+        "required": [
+          "format",
+          "version",
+          "site_id",
+          "generated_at",
+          "items",
+          "truncated"
+        ],
+        "properties": {
+          "format": {
+            "type": "string",
+            "const": "mavi.audit.export"
+          },
+          "version": {
+            "type": "integer",
+            "const": 1
+          },
+          "site_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "generated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuditEvent"
+            }
+          },
+          "truncated": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AuditExportFilter": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 160
+          },
+          "resource_type": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 80
+          },
+          "resource_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "actor_kind": {
+            "$ref": "#/components/schemas/AuditActorKind"
+          },
+          "actor_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 255
+          },
+          "created_after": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "created_before": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "limit": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1,
+            "maximum": 10000
           }
         },
         "additionalProperties": false

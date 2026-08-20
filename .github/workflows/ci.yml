@@ -54,15 +54,14 @@ jobs:
     needs: what
     if: needs.what.outputs.skip != 'true' && !fromJSON(needs.what.outputs.paths)['server'].should_skip
     runs-on: ubuntu-24.04
-    # The acceptance suite intentionally runs each domain against a fresh
-    # PostgreSQL process and compiles the integration test binaries separately.
-    # Twenty minutes expires while the tests are still green on a cold cache.
+    # The acceptance suite compiles the workspace once, then runs the full
+    # PostgreSQL/RLS matrix on four isolated databases in parallel.
     timeout-minutes: 45
     defaults:
       run:
         working-directory: server
     env:
-      TEST_DATABASE_URL: postgres://mavi_test:mavi_test@localhost:5435/mavi_server
+      TEST_DATABASE_URL_BASE: postgres://mavi_test:mavi_test@localhost:5435
       CARGO_PROFILE_DEV_DEBUG: 0
       CARGO_PROFILE_TEST_DEBUG: 0
       CARGO_INCREMENTAL: 0
@@ -85,7 +84,11 @@ jobs:
           until docker exec pg-server psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "select 1" >/dev/null 2>&1; do sleep 1; done
           docker exec pg-server psql -v ON_ERROR_STOP=1 -U postgres -d postgres \
             -c "create role mavi_test login password 'mavi_test' nocreatedb nosuperuser nobypassrls;" \
-            -c "create database mavi_server owner mavi_test;"
+            -c "create database mavi_server owner mavi_test;" \
+            -c "create database mavi_server_1 owner mavi_test;" \
+            -c "create database mavi_server_2 owner mavi_test;" \
+            -c "create database mavi_server_3 owner mavi_test;" \
+            -c "create database mavi_server_4 owner mavi_test;"
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -101,47 +104,8 @@ jobs:
       - run: cargo fmt --all -- --check
       - run: cargo clippy --workspace --all-targets --all-features -- -D warnings
       - run: cargo nextest run --workspace
-      - run: cargo nextest run -p mavi-storage --test postgres --run-ignored all
-      - run: cargo nextest run -p mavi-content --test postgres --run-ignored all
-      - run: cargo nextest run -p mavi-identity --test postgres --run-ignored all
-      - run: cargo nextest run -p mavi-secrets --test postgres --run-ignored all
-      - run: cargo nextest run -p mavi-settings --test postgres --run-ignored all
-      - run: cargo nextest run -p mavi-http --test identity --run-ignored all
-      - run: cargo nextest run -p mavi-http --test credentials --run-ignored all
-      - run: cargo nextest run -p mavi-http --test settings --run-ignored all
-      - run: cargo nextest run -p mavi-http --test content_types --run-ignored all
-      - run: cargo nextest run -p mavi-http --test content_lifecycle --run-ignored all
-      - run: cargo nextest run -p mavi-taxonomy --test postgres --run-ignored all
-      - run: cargo nextest run -p mavi-http --test taxonomy --run-ignored all
-      - run: cargo nextest run -p mavi-audit --test postgres --run-ignored all
-      - run: cargo nextest run -p mavi-trash --test postgres --run-ignored all
-      - run: cargo nextest run -p mavi-media --test postgres --run-ignored all
-      - run: cargo nextest run -p mavi-http --test media --run-ignored all
-      - run: cargo nextest run -p mavi-design --test postgres --run-ignored all
-      - run: cargo nextest run -p mavi-http --test design --run-ignored all
-      - run: cargo nextest run -p mavi-forms --test postgres --run-ignored all
-      - run: cargo nextest run -p mavi-http --test forms --run-ignored all
-      - run: cargo nextest run -p mavi-http --test feedback --run-ignored all
-      - run: cargo nextest run -p mavi-mail --test postgres --run-ignored all
-      - run: cargo nextest run -p mavi-http --test mail --run-ignored all
-      - run: cargo nextest run -p mavi-shop --test postgres --run-ignored all
-      - run: cargo nextest run -p mavi-http --test shop --run-ignored all
-      - run: cargo nextest run -p mavi-courses --test postgres --run-ignored all
-      - run: cargo nextest run -p mavi-http --test courses --run-ignored all
-      - run: cargo nextest run -p mavi-jobs --test postgres --run-ignored all
-      - run: cargo nextest run -p mavi-worker --test postgres --run-ignored all
-      - run: cargo nextest run -p mavi-worker --test mail --run-ignored all
-      - run: cargo nextest run -p mavi-flows --test postgres --run-ignored all
-      - run: cargo nextest run -p mavi-http --test automation --run-ignored all
-      - run: cargo nextest run -p mavi-boards --test postgres --run-ignored all
-      - run: cargo nextest run -p mavi-analytics --test postgres --run-ignored all
-      - run: cargo nextest run -p mavi-http --test boards_analytics --run-ignored all
-      - run: cargo nextest run -p mavi-portable --test postgres --run-ignored all
-      - run: cargo nextest run -p mavi-http --test portable --run-ignored all
-      - run: cargo nextest run -p mavi-http --test runtime --run-ignored all
-      - run: cargo nextest run -p mavi-http --test write_fence --run-ignored all
-      - run: cargo nextest run -p mavi-http --test mcp --run-ignored all
-      - run: cargo nextest run -p mavi-http --test audit_trash --run-ignored all
+      - name: Run PostgreSQL acceptance shards
+        run: bash ../.github/scripts/run-postgres-acceptance.sh
       - run: cargo test --workspace --doc
 
       # The panel consumes the clean contract, not a hand-copied variant. A

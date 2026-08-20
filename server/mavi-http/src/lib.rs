@@ -52,10 +52,11 @@ use mavi_core::{
 use mavi_courses::{
     Course, CourseInstructorListFilter, CourseListFilter, CourseSummary, CoursesService,
     CreateCourse, CreateLesson, CreateModule, CreateStudent, EnrollStudent, Enrollment,
-    EnrollmentListFilter, LearningCourse, LearningCourseListFilter, LearningLesson, Lesson,
-    LessonListFilter, Module, Progress, ReorderLessons, ReorderModules, ReplaceCourseInstructor,
-    Student, StudentActivationInput, StudentInvitation, StudentListFilter, StudentLoginInput,
-    StudentSessionCreated, UpdateCourse, UpdateLesson, UpdateModule, UpdateStudent,
+    EnrollmentListFilter, LearningCourse, LearningCourseDetail, LearningCourseListFilter,
+    LearningLesson, Lesson, LessonListFilter, Module, Progress, ReorderLessons, ReorderModules,
+    ReplaceCourseInstructor, Student, StudentActivationInput, StudentInvitation, StudentListFilter,
+    StudentLoginInput, StudentSessionCreated, UpdateCourse, UpdateLesson, UpdateModule,
+    UpdateStudent,
 };
 use mavi_design::{
     BuildEngine, DESIGN_BUILD_FAILED, DesignBuild, DesignBuildListFilter, DesignChange,
@@ -1548,6 +1549,10 @@ where
         .route(
             "/student/v1/learning/courses",
             get(list_learning_courses::<R>),
+        )
+        .route(
+            "/student/v1/learning/courses/{id}",
+            get(read_learning_course::<R>),
         )
         .route(
             "/student/v1/learning/lessons/{id}",
@@ -6794,6 +6799,24 @@ where
         .map_err(HttpError)?;
     transaction.commit().await.map_err(HttpError)?;
     Ok(Json(courses))
+}
+
+async fn read_learning_course<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<CourseId>,
+) -> Result<Json<LearningCourseDetail>, HttpError>
+where
+    R: SiteResolver,
+{
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    let course = state
+        .courses
+        .get_learning_course(&mut transaction, &context, id)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(Json(course))
 }
 
 async fn read_learning_lesson<R>(

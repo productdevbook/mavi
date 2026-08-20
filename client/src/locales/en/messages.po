@@ -321,6 +321,12 @@ msgstr "{0} of {1}"
 #~ msgid "{0} of {1} done"
 #~ msgstr "{0} of {1} done"
 
+#. placeholder {0}: course.completed_lessons
+#. placeholder {1}: course.total_lessons
+#: src/learn/app.tsx:247
+#~ msgid "{0} of {1} finished"
+#~ msgstr "{0} of {1} finished"
+
 #. placeholder {0}: allowance.sent_today
 #. placeholder {1}: allowance.a_day ?? 0
 #: src/routes/dashboard.plugins_.email.tsx:437
@@ -1949,7 +1955,7 @@ msgstr "At least twelve characters. Everything else that was open closes when yo
 msgid "Automate"
 msgstr "Automate"
 
-#: src/learn/app.tsx:382
+#: src/learn/app.tsx:384
 msgid "Back"
 msgstr "Back"
 
@@ -4228,7 +4234,7 @@ msgstr "Find and replace"
 msgid "Find…"
 msgstr "Find…"
 
-#: src/learn/app.tsx:390
+#: src/learn/app.tsx:393
 msgid "Finished"
 msgstr "Finished"
 
@@ -5595,7 +5601,7 @@ msgstr "Make the course"
 #~ msgid "Mark all read"
 #~ msgstr "Mark all read"
 
-#: src/learn/app.tsx:390
+#: src/learn/app.tsx:393
 msgid "Mark as finished"
 msgstr "Mark as finished"
 
@@ -5979,7 +5985,7 @@ msgstr "New role"
 #~ msgstr "Newsletters and campaigns"
 
 #: src/components/editor/find-replace.tsx:112
-#: src/learn/app.tsx:398
+#: src/learn/app.tsx:401
 msgid "Next"
 msgstr "Next"
 

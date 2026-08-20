@@ -321,6 +321,12 @@ msgstr "{1} içinde {0}"
 #~ msgid "{0} of {1} done"
 #~ msgstr "{1} dersin {0} tanesi bitti"
 
+#. placeholder {0}: course.completed_lessons
+#. placeholder {1}: course.total_lessons
+#: src/learn/app.tsx:247
+#~ msgid "{0} of {1} finished"
+#~ msgstr ""
+
 #. placeholder {0}: allowance.sent_today
 #. placeholder {1}: allowance.a_day ?? 0
 #: src/routes/dashboard.plugins_.email.tsx:437
@@ -1949,7 +1955,7 @@ msgstr "En az on iki karakter. Bunu yaptığınızda açık olan diğer her şey
 msgid "Automate"
 msgstr "Otomasyon"
 
-#: src/learn/app.tsx:382
+#: src/learn/app.tsx:384
 msgid "Back"
 msgstr "Geri"
 
@@ -4228,7 +4234,7 @@ msgstr "Bul ve değiştir"
 msgid "Find…"
 msgstr "Ara…"
 
-#: src/learn/app.tsx:390
+#: src/learn/app.tsx:393
 msgid "Finished"
 msgstr "Bitti"
 
@@ -5595,7 +5601,7 @@ msgstr "Eğitimi oluştur"
 #~ msgid "Mark all read"
 #~ msgstr "Tümünü okundu say"
 
-#: src/learn/app.tsx:390
+#: src/learn/app.tsx:393
 msgid "Mark as finished"
 msgstr "Bitti olarak işaretle"
 
@@ -5979,7 +5985,7 @@ msgstr "Yeni rol"
 #~ msgstr "Bültenler ve kampanyalar"
 
 #: src/components/editor/find-replace.tsx:112
-#: src/learn/app.tsx:398
+#: src/learn/app.tsx:401
 msgid "Next"
 msgstr "Sonraki"
 

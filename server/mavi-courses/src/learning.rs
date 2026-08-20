@@ -1,7 +1,8 @@
 use chrono::{DateTime, Utc};
 use mavi_contract::{Endpoint, Method, Shape};
 use mavi_core::{
-    CourseId, ErrorCode, LessonId, MaviError, Page, PageRequest, Result, SiteContext, StudentId,
+    CourseId, ErrorCode, FileId, LessonId, MaviError, ModuleId, Page, PageRequest, Result,
+    SiteContext, StudentId,
 };
 use mavi_storage::SiteTx;
 use serde::{Deserialize, Serialize};
@@ -35,6 +36,37 @@ pub struct LearningCourse {
 pub struct LearningLesson {
     pub lesson: Lesson,
     pub completed_at: Option<DateTime<Utc>>,
+    pub course_id: CourseId,
+    pub course: String,
+    pub position: i64,
+    pub total: i64,
+    pub previous: Option<LessonId>,
+    pub next: Option<LessonId>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearningCourseDetail {
+    pub course: LearningCourse,
+    pub modules: Vec<LearningModule>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearningModule {
+    pub id: ModuleId,
+    pub course_id: CourseId,
+    pub title: String,
+    pub position: i32,
+    pub lessons: Vec<LearningLessonSummary>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LearningLessonSummary {
+    pub id: LessonId,
+    pub module_id: ModuleId,
+    pub title: String,
+    pub media_file_id: Option<FileId>,
+    pub position: i32,
+    pub completed_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -44,6 +76,7 @@ pub struct Progress {
 }
 
 #[must_use]
+#[allow(clippy::too_many_lines)]
 pub fn api() -> mavi_contract::Api {
     mavi_contract::Api::new([
         Endpoint::new(
@@ -58,6 +91,20 @@ pub fn api() -> mavi_contract::Api {
         .refuses([
             ErrorCode::Unauthenticated,
             ErrorCode::Validation,
+            ErrorCode::Internal,
+        ]),
+        Endpoint::new(
+            Method::Get,
+            "/student/v1/learning/courses/{id}",
+            "learning.course.read",
+            "Read the enrolled course curriculum for the current student",
+        )
+        .student()
+        .returns(200, "LearningCourseDetail")
+        .refuses([
+            ErrorCode::Unauthenticated,
+            ErrorCode::NotFound,
+            ErrorCode::Forbidden,
             ErrorCode::Internal,
         ]),
         Endpoint::new(
@@ -127,9 +174,35 @@ pub fn api() -> mavi_contract::Api {
             }}),
         ),
         Shape::new(
+            "LearningCourseDetail",
+            json!({"type": "object", "required": ["course", "modules"], "properties": {
+                "course": {"$ref": "#/components/schemas/LearningCourse"},
+                "modules": {"type": "array", "items": {"$ref": "#/components/schemas/LearningModule"}}
+            }}),
+        ),
+        Shape::new(
+            "LearningModule",
+            json!({"type": "object", "required": ["id", "course_id", "title", "position", "lessons"], "properties": {
+                "id": {"type": "string", "format": "uuid"}, "course_id": {"type": "string", "format": "uuid"},
+                "title": {"type": "string"}, "position": {"type": "integer"},
+                "lessons": {"type": "array", "items": {"$ref": "#/components/schemas/LearningLessonSummary"}}
+            }}),
+        ),
+        Shape::new(
+            "LearningLessonSummary",
+            json!({"type": "object", "required": ["id", "module_id", "title", "media_file_id", "position", "completed_at"], "properties": {
+                "id": {"type": "string", "format": "uuid"}, "module_id": {"type": "string", "format": "uuid"},
+                "title": {"type": "string"}, "media_file_id": {"type": ["string", "null"], "format": "uuid"},
+                "position": {"type": "integer"}, "completed_at": {"type": ["string", "null"], "format": "date-time"}
+            }}),
+        ),
+        Shape::new(
             "LearningLesson",
-            json!({"type": "object", "required": ["lesson", "completed_at"], "properties": {
-                "lesson": {"$ref": "#/components/schemas/Lesson"}, "completed_at": {"type": ["string", "null"], "format": "date-time"}
+            json!({"type": "object", "required": ["lesson", "completed_at", "course_id", "course", "position", "total", "previous", "next"], "properties": {
+                "lesson": {"$ref": "#/components/schemas/Lesson"}, "completed_at": {"type": ["string", "null"], "format": "date-time"},
+                "course_id": {"type": "string", "format": "uuid"}, "course": {"type": "string"},
+                "position": {"type": "integer", "minimum": 1}, "total": {"type": "integer", "minimum": 1},
+                "previous": {"type": ["string", "null"], "format": "uuid"}, "next": {"type": ["string", "null"], "format": "uuid"}
             }}),
         ),
         Shape::new(
@@ -143,6 +216,144 @@ pub fn api() -> mavi_contract::Api {
 }
 
 impl CoursesService {
+    #[allow(clippy::too_many_lines)]
+    pub async fn get_learning_course(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        course_id: CourseId,
+    ) -> Result<LearningCourseDetail> {
+        let student_id = current_student(context)?;
+        let course_row = sqlx::query(
+            "select c.id, c.slug, c.title, c.about, c.state, e.created_at as enrolled_at,
+                    (select count(*) from course_lessons l
+                       join course_modules m on m.site_id = l.site_id and m.id = l.module_id
+                      where l.site_id = c.site_id and m.course_id = c.id) as total_lessons,
+                    (select count(*) from course_progress p
+                       join course_lessons l on l.site_id = p.site_id and l.id = p.lesson_id
+                       join course_modules m on m.site_id = l.site_id and m.id = l.module_id
+                      where p.site_id = c.site_id and p.student_id = e.student_id and m.course_id = c.id) as completed_lessons,
+                    s.standing
+               from course_enrollments e
+               join courses c on c.site_id = e.site_id and c.id = e.course_id
+               join course_students s on s.site_id = e.site_id and s.id = e.student_id
+              where e.site_id = $1 and e.course_id = $2 and e.student_id = $3
+                and c.deleted_at is null and s.deleted_at is null",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(course_id.into_uuid())
+        .bind(student_id.into_uuid())
+        .fetch_optional(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?
+        .ok_or(MaviError::NotFound {
+            resource: "learning_course_not_found",
+        })?;
+
+        if StudentStanding::parse(
+            &course_row
+                .try_get::<String, _>("standing")
+                .map_err(|_| MaviError::Internal)?,
+        )? == StudentStanding::Stopped
+        {
+            return Err(MaviError::Forbidden);
+        }
+        let state = CourseState::parse(
+            &course_row
+                .try_get::<String, _>("state")
+                .map_err(|_| MaviError::Internal)?,
+        )?;
+        if !state.is_open() {
+            return Err(MaviError::Forbidden);
+        }
+
+        let course = LearningCourse {
+            course_id,
+            slug: course_row
+                .try_get("slug")
+                .map_err(|_| MaviError::Internal)?,
+            title: course_row
+                .try_get("title")
+                .map_err(|_| MaviError::Internal)?,
+            about: course_row
+                .try_get("about")
+                .map_err(|_| MaviError::Internal)?,
+            state,
+            completed_lessons: course_row
+                .try_get("completed_lessons")
+                .map_err(|_| MaviError::Internal)?,
+            total_lessons: course_row
+                .try_get("total_lessons")
+                .map_err(|_| MaviError::Internal)?,
+            enrolled_at: course_row
+                .try_get("enrolled_at")
+                .map_err(|_| MaviError::Internal)?,
+        };
+
+        let rows = sqlx::query(
+            "select m.id, m.course_id, m.title, m.position,
+                    l.id as lesson_id, l.module_id as lesson_module_id, l.title as lesson_title,
+                    l.media_file_id as lesson_media_file_id, l.position as lesson_position,
+                    p.completed_at
+               from course_modules m
+               left join course_lessons l on l.site_id = m.site_id and l.module_id = m.id
+               left join course_progress p on p.site_id = m.site_id and p.lesson_id = l.id
+                                             and p.student_id = $2
+              where m.site_id = $1 and m.course_id = $3
+              order by m.position asc, m.id asc, l.position asc nulls first, l.id asc nulls first",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(student_id.into_uuid())
+        .bind(course_id.into_uuid())
+        .fetch_all(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?;
+
+        let mut modules = Vec::<LearningModule>::new();
+        for row in rows {
+            let module_id =
+                ModuleId::from_uuid(row.try_get("id").map_err(|_| MaviError::Internal)?);
+            if modules.last().map(|module| module.id) != Some(module_id) {
+                modules.push(LearningModule {
+                    id: module_id,
+                    course_id,
+                    title: row.try_get("title").map_err(|_| MaviError::Internal)?,
+                    position: row.try_get("position").map_err(|_| MaviError::Internal)?,
+                    lessons: Vec::new(),
+                });
+            }
+            let Some(lesson_id) = row
+                .try_get::<Option<Uuid>, _>("lesson_id")
+                .map_err(|_| MaviError::Internal)?
+            else {
+                continue;
+            };
+            let module = modules.last_mut().ok_or(MaviError::Internal)?;
+            module.lessons.push(LearningLessonSummary {
+                id: LessonId::from_uuid(lesson_id),
+                module_id: ModuleId::from_uuid(
+                    row.try_get("lesson_module_id")
+                        .map_err(|_| MaviError::Internal)?,
+                ),
+                title: row
+                    .try_get("lesson_title")
+                    .map_err(|_| MaviError::Internal)?,
+                media_file_id: row
+                    .try_get::<Option<Uuid>, _>("lesson_media_file_id")
+                    .map_err(|_| MaviError::Internal)?
+                    .map(FileId::from_uuid),
+                position: row
+                    .try_get("lesson_position")
+                    .map_err(|_| MaviError::Internal)?,
+                completed_at: row
+                    .try_get("completed_at")
+                    .map_err(|_| MaviError::Internal)?,
+            });
+        }
+
+        Ok(LearningCourseDetail { course, modules })
+    }
+
     pub async fn list_learning_courses(
         &self,
         tx: &mut SiteTx,
@@ -214,7 +425,12 @@ impl CoursesService {
         let student_id = current_student(context)?;
         let row = sqlx::query(
             "select l.id, l.module_id, l.title, l.body, l.media_file_id, l.position,
-                    l.created_at, l.updated_at, c.state, s.standing,
+                    l.created_at, l.updated_at, c.id as course_id, c.title as course_title,
+                    c.state, s.standing,
+                    row_number() over (partition by c.id order by m.position, m.id, l.position, l.id) as lesson_position,
+                    count(*) over (partition by c.id) as lesson_total,
+                    lag(l.id) over (partition by c.id order by m.position, m.id, l.position, l.id) as previous_id,
+                    lead(l.id) over (partition by c.id order by m.position, m.id, l.position, l.id) as next_id,
                     exists (select 1 from course_enrollments e
                              where e.site_id = c.site_id and e.course_id = c.id
                                and e.student_id = $3) as enrolled,
@@ -258,6 +474,26 @@ impl CoursesService {
             completed_at: row
                 .try_get("completed_at")
                 .map_err(|_| MaviError::Internal)?,
+            course_id: CourseId::from_uuid(
+                row.try_get("course_id").map_err(|_| MaviError::Internal)?,
+            ),
+            course: row
+                .try_get("course_title")
+                .map_err(|_| MaviError::Internal)?,
+            position: row
+                .try_get("lesson_position")
+                .map_err(|_| MaviError::Internal)?,
+            total: row
+                .try_get("lesson_total")
+                .map_err(|_| MaviError::Internal)?,
+            previous: row
+                .try_get::<Option<Uuid>, _>("previous_id")
+                .map_err(|_| MaviError::Internal)?
+                .map(LessonId::from_uuid),
+            next: row
+                .try_get::<Option<Uuid>, _>("next_id")
+                .map_err(|_| MaviError::Internal)?
+                .map(LessonId::from_uuid),
         })
     }
 
@@ -350,6 +586,7 @@ mod tests {
     fn learning_contract_is_student_only_and_cursor_based() {
         let contract = serde_json::to_string(&api()).expect("contract");
         assert!(contract.contains("authentication\":\"student\""));
+        assert!(contract.contains("learning.course.read"));
         assert!(contract.contains("learning.lesson.done"));
         assert!(!contract.contains("offset"));
     }

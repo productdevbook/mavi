@@ -5,6 +5,9 @@ use mavi_core::{MaviError, PageRequest, SiteContext, SiteId};
 use mavi_files::InMemoryFileStore;
 use mavi_forms::{CreateForm, FormService};
 use mavi_media::{FileVisibility, MediaService};
+use mavi_shop::{
+    CouponListFilter, CreateCoupon, CreateProduct, ProductListFilter, ProductPrice, ShopService,
+};
 use mavi_storage::Database;
 use mavi_taxonomy::{CreateTerm, TaxonomyService, TermKind};
 use mavi_trash::{TrashKind, TrashListFilter, TrashService};
@@ -459,4 +462,297 @@ async fn form_trash_restores_and_permanently_deletes_submissions_with_the_form()
         .expect("other site trash list");
     assert!(isolated.items.is_empty());
     transaction.commit().await.expect("other site commit");
+}
+
+#[tokio::test]
+#[ignore = "requires TEST_DATABASE_URL and a non-superuser PostgreSQL role"]
+#[allow(clippy::too_many_lines)]
+async fn shop_trash_restores_and_permanently_deletes_products_and_coupons() {
+    let url = std::env::var("TEST_DATABASE_URL").expect("TEST_DATABASE_URL");
+    let database = Database::connect(&url, 2).await.expect("database");
+    database.migrate().await.expect("migrations");
+
+    let site_id = SiteId::new();
+    let other_site_id = SiteId::new();
+    database.ensure_site(site_id).await.expect("site");
+    database
+        .ensure_site(other_site_id)
+        .await
+        .expect("other site");
+
+    let context = SiteContext::public(site_id);
+    let shop = ShopService;
+    let trash = TrashService;
+    let (product, coupon) = {
+        let mut transaction = database.begin(&context).await.expect("create scope");
+        let product = shop
+            .create_product(
+                &mut transaction,
+                &context,
+                &CreateProduct {
+                    slug: "trash-product".to_owned(),
+                    name: "Trash product".to_owned(),
+                    description: None,
+                    price: ProductPrice {
+                        minor: 1_250,
+                        currency: "TRY".to_owned(),
+                    },
+                    stock: 3,
+                    on_sale: true,
+                },
+            )
+            .await
+            .expect("product");
+        let coupon = shop
+            .create_coupon(
+                &mut transaction,
+                &context,
+                &CreateCoupon {
+                    code: "TRASH10".to_owned(),
+                    percent: Some(10),
+                    amount_minor: None,
+                    currency: None,
+                    max_uses: Some(10),
+                    expires_at: None,
+                },
+            )
+            .await
+            .expect("coupon");
+        transaction.commit().await.expect("create commit");
+        (product, coupon)
+    };
+
+    let mut transaction = database.begin(&context).await.expect("trash scope");
+    shop.delete_product(&mut transaction, &context, product.id)
+        .await
+        .expect("trash product");
+    shop.delete_coupon(&mut transaction, &context, coupon.id)
+        .await
+        .expect("trash coupon");
+    transaction.commit().await.expect("trash commit");
+
+    let mut transaction = database.begin(&context).await.expect("list scope");
+    let products = trash
+        .list(
+            &mut transaction,
+            &context,
+            &TrashListFilter {
+                page: PageRequest::default(),
+                kind: Some(TrashKind::Product),
+            },
+        )
+        .await
+        .expect("product trash list");
+    assert_eq!(products.items.len(), 1);
+    assert_eq!(products.items[0].id, product.id.into_uuid());
+    let coupons = trash
+        .list(
+            &mut transaction,
+            &context,
+            &TrashListFilter {
+                page: PageRequest::default(),
+                kind: Some(TrashKind::Coupon),
+            },
+        )
+        .await
+        .expect("coupon trash list");
+    assert_eq!(coupons.items.len(), 1);
+    assert_eq!(coupons.items[0].id, coupon.id.into_uuid());
+    trash
+        .restore(
+            &mut transaction,
+            &context,
+            TrashKind::Product,
+            product.id.into_uuid(),
+        )
+        .await
+        .expect("restore product");
+    trash
+        .restore(
+            &mut transaction,
+            &context,
+            TrashKind::Coupon,
+            coupon.id.into_uuid(),
+        )
+        .await
+        .expect("restore coupon");
+    assert_eq!(
+        shop.list_products(&mut transaction, &context, &ProductListFilter::default())
+            .await
+            .expect("restored products")
+            .items
+            .len(),
+        1
+    );
+    assert!(
+        shop.get_product(&mut transaction, &context, product.id)
+            .await
+            .expect("restored product")
+            .on_sale
+    );
+    assert_eq!(
+        shop.list_coupons(&mut transaction, &context, &CouponListFilter::default())
+            .await
+            .expect("restored coupons")
+            .items
+            .len(),
+        1
+    );
+    transaction.commit().await.expect("restore commit");
+
+    let mut transaction = database.begin(&context).await.expect("permanent scope");
+    shop.delete_product(&mut transaction, &context, product.id)
+        .await
+        .expect("trash product again");
+    shop.delete_coupon(&mut transaction, &context, coupon.id)
+        .await
+        .expect("trash coupon again");
+    trash
+        .permanently_delete(
+            &mut transaction,
+            &context,
+            TrashKind::Product,
+            product.id.into_uuid(),
+        )
+        .await
+        .expect("delete product");
+    trash
+        .permanently_delete(
+            &mut transaction,
+            &context,
+            TrashKind::Coupon,
+            coupon.id.into_uuid(),
+        )
+        .await
+        .expect("delete coupon");
+    transaction.commit().await.expect("permanent commit");
+
+    let mut transaction = database.begin(&context).await.expect("assert scope");
+    let product_exists: bool = sqlx::query_scalar(
+        "select exists(select 1 from shop_products where site_id = $1 and id = $2)",
+    )
+    .bind(site_id.into_uuid())
+    .bind(product.id.into_uuid())
+    .fetch_one(transaction.conn())
+    .await
+    .expect("product state");
+    let coupon_exists: bool = sqlx::query_scalar(
+        "select exists(select 1 from shop_coupons where site_id = $1 and id = $2)",
+    )
+    .bind(site_id.into_uuid())
+    .bind(coupon.id.into_uuid())
+    .fetch_one(transaction.conn())
+    .await
+    .expect("coupon state");
+    assert!(!product_exists);
+    assert!(!coupon_exists);
+    transaction.commit().await.expect("assert commit");
+
+    let other_context = SiteContext::public(other_site_id);
+    let mut transaction = database
+        .begin(&other_context)
+        .await
+        .expect("other site scope");
+    let isolated = trash
+        .list(
+            &mut transaction,
+            &other_context,
+            &TrashListFilter::default(),
+        )
+        .await
+        .expect("isolated trash list");
+    assert!(isolated.items.is_empty());
+    transaction.commit().await.expect("other site commit");
+}
+
+#[tokio::test]
+#[ignore = "requires TEST_DATABASE_URL and a non-superuser PostgreSQL role"]
+async fn shop_product_trash_refuses_permanent_delete_while_stock_is_held() {
+    let url = std::env::var("TEST_DATABASE_URL").expect("TEST_DATABASE_URL");
+    let database = Database::connect(&url, 2).await.expect("database");
+    database.migrate().await.expect("migrations");
+    let site_id = SiteId::new();
+    database.ensure_site(site_id).await.expect("site");
+    let context = SiteContext::public(site_id);
+    let shop = ShopService;
+    let trash = TrashService;
+
+    let mut transaction = database.begin(&context).await.expect("create scope");
+    let product = shop
+        .create_product(
+            &mut transaction,
+            &context,
+            &CreateProduct {
+                slug: "held-trash-product".to_owned(),
+                name: "Held trash product".to_owned(),
+                description: None,
+                price: ProductPrice {
+                    minor: 500,
+                    currency: "TRY".to_owned(),
+                },
+                stock: 1,
+                on_sale: true,
+            },
+        )
+        .await
+        .expect("product");
+    let order_id = uuid::Uuid::now_v7();
+    sqlx::query(
+        "insert into shop_orders
+            (site_id, id, number, state, email, total_minor, currency, idempotency_key)
+         values ($1, $2, 1, 'waiting', 'held@example.test', 500, 'TRY', 'held-trash-order')",
+    )
+    .bind(site_id.into_uuid())
+    .bind(order_id)
+    .execute(transaction.conn())
+    .await
+    .expect("order");
+    sqlx::query(
+        "insert into shop_stock_holds
+            (site_id, id, order_id, product_id, quantity, status, expires_at)
+         values ($1, $2, $3, $4, 1, 'held', clock_timestamp() + interval '1 hour')",
+    )
+    .bind(site_id.into_uuid())
+    .bind(uuid::Uuid::now_v7())
+    .bind(order_id)
+    .bind(product.id.into_uuid())
+    .execute(transaction.conn())
+    .await
+    .expect("stock hold");
+    shop.delete_product(&mut transaction, &context, product.id)
+        .await
+        .expect("trash product");
+    let conflict = trash
+        .permanently_delete(
+            &mut transaction,
+            &context,
+            TrashKind::Product,
+            product.id.into_uuid(),
+        )
+        .await
+        .expect_err("active stock hold must block permanent deletion");
+    assert!(matches!(
+        conflict,
+        MaviError::Conflict { ref code } if code == "trash_shop_product_active_hold"
+    ));
+    sqlx::query(
+        "update shop_stock_holds
+            set status = 'released', settled_at = clock_timestamp()
+          where site_id = $1 and order_id = $2",
+    )
+    .bind(site_id.into_uuid())
+    .bind(order_id)
+    .execute(transaction.conn())
+    .await
+    .expect("release hold");
+    trash
+        .permanently_delete(
+            &mut transaction,
+            &context,
+            TrashKind::Product,
+            product.id.into_uuid(),
+        )
+        .await
+        .expect("delete after hold release");
+    transaction.commit().await.expect("commit");
 }

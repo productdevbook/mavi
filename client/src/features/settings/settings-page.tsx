@@ -66,7 +66,9 @@ export function SettingsPage() {
 
   const retentionDays = Number(trashRetentionDays)
   const validRetentionDays =
-    Number.isInteger(retentionDays) && retentionDays >= 1 && retentionDays <= 3650
+    Number.isInteger(retentionDays) &&
+    retentionDays >= 1 &&
+    retentionDays <= 3650
 
   return (
     <div className="flex max-w-2xl flex-col gap-8">
@@ -123,7 +125,7 @@ export function SettingsPage() {
             onChange={(event) => setTrashRetentionDays(event.target.value)}
           />
           <p className="text-xs text-muted-foreground">
-            {t`After this period, deleted resources such as content, forms, files and taxonomy terms are permanently removed. Use 1 to 3,650 days.`}
+            {t`After this period, deleted resources such as content, forms, products, coupons, files and taxonomy terms are permanently removed. Use 1 to 3,650 days.`}
           </p>
         </div>
       </section>

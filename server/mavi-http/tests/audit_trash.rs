@@ -303,6 +303,140 @@ async fn audit_and_trash_routes_use_cursors_restore_and_cleanup_boundaries() {
     .await;
     assert_eq!(file_deleted.status(), StatusCode::NO_CONTENT);
 
+    let product = send(
+        &app,
+        Method::POST,
+        "/api/v1/shop/products",
+        Some(&owner_token),
+        Some(json!({
+            "slug": "audit-trash-product",
+            "name": "Audit trash product",
+            "price": {"minor": 100, "currency": "TRY"},
+            "stock": 1
+        })),
+    )
+    .await;
+    assert_eq!(product.status(), StatusCode::CREATED);
+    let product_id = response_json(product).await["id"]
+        .as_str()
+        .expect("product id")
+        .to_owned();
+    let coupon = send(
+        &app,
+        Method::POST,
+        "/api/v1/shop/coupons",
+        Some(&owner_token),
+        Some(json!({
+            "code": "TRASHTEN",
+            "percent": 10,
+            "max_uses": 10
+        })),
+    )
+    .await;
+    assert_eq!(coupon.status(), StatusCode::CREATED);
+    let coupon_id = response_json(coupon).await["id"]
+        .as_str()
+        .expect("coupon id")
+        .to_owned();
+    let product_trashed = send(
+        &app,
+        Method::DELETE,
+        &format!("/api/v1/shop/products/{product_id}"),
+        Some(&owner_token),
+        None,
+    )
+    .await;
+    assert_eq!(product_trashed.status(), StatusCode::NO_CONTENT);
+    let coupon_trashed = send(
+        &app,
+        Method::DELETE,
+        &format!("/api/v1/shop/coupons/{coupon_id}"),
+        Some(&owner_token),
+        None,
+    )
+    .await;
+    assert_eq!(coupon_trashed.status(), StatusCode::NO_CONTENT);
+    let shop_trash = send(
+        &app,
+        Method::GET,
+        "/api/v1/trash?kind=product",
+        Some(&owner_token),
+        None,
+    )
+    .await;
+    assert_eq!(shop_trash.status(), StatusCode::OK);
+    assert_eq!(
+        response_json(shop_trash).await["items"][0]["id"],
+        product_id
+    );
+    let restored_product = send(
+        &app,
+        Method::POST,
+        &format!("/api/v1/trash/product/{product_id}/restore"),
+        Some(&owner_token),
+        None,
+    )
+    .await;
+    assert_eq!(restored_product.status(), StatusCode::NO_CONTENT);
+    let products = send(
+        &app,
+        Method::GET,
+        "/api/v1/shop/products",
+        Some(&owner_token),
+        None,
+    )
+    .await;
+    assert_eq!(products.status(), StatusCode::OK);
+    assert_eq!(response_json(products).await["items"][0]["id"], product_id);
+    let restored_coupon = send(
+        &app,
+        Method::POST,
+        &format!("/api/v1/trash/coupon/{coupon_id}/restore"),
+        Some(&owner_token),
+        None,
+    )
+    .await;
+    assert_eq!(restored_coupon.status(), StatusCode::NO_CONTENT);
+    let coupons = send(
+        &app,
+        Method::GET,
+        "/api/v1/shop/coupons",
+        Some(&owner_token),
+        None,
+    )
+    .await;
+    assert_eq!(coupons.status(), StatusCode::OK);
+    assert_eq!(response_json(coupons).await["items"][0]["id"], coupon_id);
+    let product_trashed_again = send(
+        &app,
+        Method::DELETE,
+        &format!("/api/v1/shop/products/{product_id}"),
+        Some(&owner_token),
+        None,
+    )
+    .await;
+    assert_eq!(product_trashed_again.status(), StatusCode::NO_CONTENT);
+    let coupon_trashed_again = send(
+        &app,
+        Method::DELETE,
+        &format!("/api/v1/shop/coupons/{coupon_id}"),
+        Some(&owner_token),
+        None,
+    )
+    .await;
+    assert_eq!(coupon_trashed_again.status(), StatusCode::NO_CONTENT);
+    for (kind, id) in [("product", &product_id), ("coupon", &coupon_id)] {
+        let deleted = send(
+            &app,
+            Method::DELETE,
+            &format!("/api/v1/trash/{kind}/{id}"),
+            Some(&owner_token),
+            None,
+        )
+        .await;
+        assert_eq!(deleted.status(), StatusCode::NO_CONTENT);
+    }
+
     let reader_token = create_reader(&app, &owner_token).await;
     let forbidden_audit = send(
         &app,

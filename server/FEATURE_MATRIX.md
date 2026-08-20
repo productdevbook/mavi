@@ -121,7 +121,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
 - [-] Trash, restore and permanent deletion policy.
   - [x] Shared cursor list, typed content/file/term restore and permanent-delete API.
   - [x] Media trash retains bytes; permanent deletion queues and confirms adapter cleanup.
-- [-] Shop, courses, boards and flow-specific trash kinds remain open; core content, file, term and form trash now has a site-configured, idempotent `trash.retention` worker with bounded batches, form-submission cascade cleanup, media cleanup and system audit receipts.
+- [-] Courses, boards and flow-specific trash kinds remain open; core content, file, term, form, product and coupon trash now has a site-configured, idempotent `trash.retention` worker with bounded batches, form-submission cascade cleanup, shop order-snapshot preservation, active-stock-hold protection, media cleanup and system audit receipts.
 - [-] Design files, preview builds, publish, rollback and public serving.
   - [x] Site-scoped design changes copy the current published source and expose only typed source-file APIs.
   - [x] Opaque keyset cursors are used for changes, files and builds; `page`/`offset` are not public inputs.
@@ -168,6 +168,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Site-scoped product catalog uses Money value objects, immutable currency, soft deletion and cursor-only management/public lists.
   - [x] Checkout sorts product locks, snapshots names/prices, holds available stock and uses email-scoped idempotency keys.
   - [x] Site-local order counters and explicit waiting/paid/sent/called-off/given-back state transitions are transactional and audited.
+  - [x] Product and coupon trash uses the shared site-scoped list/restore/permanent-delete contract; permanent product deletion unlinks historical order lines, removes settled holds and refuses active holds.
   - [ ] Product variants and digital/physical fulfillment policy.
 - [-] Checkout, payment adapter, refunds, discounts and order audit.
   - [x] Coupon percentage/amount rules, expiry/max-use locking and coupon-use audit boundaries.

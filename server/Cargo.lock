@@ -2182,6 +2182,7 @@ dependencies = [
  "mavi-forms",
  "mavi-jobs",
  "mavi-media",
+ "mavi-shop",
  "mavi-storage",
  "mavi-taxonomy",
  "serde",

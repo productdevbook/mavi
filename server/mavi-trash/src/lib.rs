@@ -28,6 +28,7 @@ use uuid::Uuid;
 pub const TRASH_ITEM_NOT_FOUND: &str = "trash_item_not_found";
 pub const TRASH_KIND_INVALID: &str = "trash_kind_invalid";
 pub const TRASH_RESTORE_CONFLICT: &str = "trash_restore_conflict";
+pub const TRASH_SHOP_PRODUCT_ACTIVE_HOLD: &str = "trash_shop_product_active_hold";
 pub const TRASH_RELOCATION_FORMAT: &str = "mavi.trash.relocation";
 pub const TRASH_RELOCATION_VERSION: u16 = 1;
 pub const TRASH_RELOCATION_CONFLICT: &str = "trash_relocation_conflict";
@@ -42,6 +43,8 @@ pub const MAX_TRASH_RETENTION_BATCH: i64 = 100;
 #[serde(rename_all = "snake_case")]
 pub enum TrashKind {
     Form,
+    Product,
+    Coupon,
     Content,
     File,
     Term,
@@ -52,6 +55,8 @@ impl TrashKind {
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::Form => "form",
+            Self::Product => "product",
+            Self::Coupon => "coupon",
             Self::Content => "content",
             Self::File => "file",
             Self::Term => "term",
@@ -62,6 +67,8 @@ impl TrashKind {
     pub const fn resource_type(self) -> &'static str {
         match self {
             Self::Form => "Form",
+            Self::Product => "ShopProduct",
+            Self::Coupon => "ShopCoupon",
             Self::Content => "Content",
             Self::File => "File",
             Self::Term => "TaxonomyTerm",
@@ -71,6 +78,8 @@ impl TrashKind {
     #[must_use]
     const fn rank(self) -> i32 {
         match self {
+            Self::Product => 6,
+            Self::Coupon => 5,
             Self::Form => 4,
             Self::Content => 3,
             Self::File => 2,
@@ -81,6 +90,8 @@ impl TrashKind {
     pub fn parse(value: &str) -> Result<Self> {
         match value {
             "form" => Ok(Self::Form),
+            "product" => Ok(Self::Product),
+            "coupon" => Ok(Self::Coupon),
             "content" => Ok(Self::Content),
             "file" => Ok(Self::File),
             "term" => Ok(Self::Term),
@@ -481,6 +492,7 @@ pub fn endpoints() -> Vec<Endpoint> {
         .changes(false)
         .refuses([
             ErrorCode::Forbidden,
+            ErrorCode::Conflict,
             ErrorCode::NotFound,
             ErrorCode::Internal,
         ]),
@@ -492,7 +504,7 @@ pub fn shapes() -> Vec<Shape> {
     vec![
         Shape::new(
             "TrashKind",
-            json!({"type": "string", "enum": ["form", "content", "file", "term"]}),
+            json!({"type": "string", "enum": ["form", "product", "coupon", "content", "file", "term"]}),
         ),
         Shape::new(
             "TrashListFilter",
@@ -604,7 +616,15 @@ impl TrashService {
                from (
                  select site_id, 'form'::text as kind, id, deleted_at,
                         4::int as kind_rank
-                   from forms where deleted_at is not null
+                 from forms where deleted_at is not null
+                 union all
+                 select site_id, 'product'::text as kind, id, deleted_at,
+                        6::int as kind_rank
+                 from shop_products where deleted_at is not null
+                 union all
+                 select site_id, 'coupon'::text as kind, id, deleted_at,
+                        5::int as kind_rank
+                   from shop_coupons where deleted_at is not null
                  union all
                  select site_id, 'content'::text as kind, id, deleted_at,
                         3::int as kind_rank
@@ -655,7 +675,15 @@ impl TrashService {
                from (
                  select site_id, 'form'::text as kind, id, name as label,
                         deleted_at, 4::int as kind_rank
-                   from forms where deleted_at is not null
+                 from forms where deleted_at is not null
+                 union all
+                 select site_id, 'product'::text as kind, id, name as label,
+                        deleted_at, 6::int as kind_rank
+                 from shop_products where deleted_at is not null
+                 union all
+                 select site_id, 'coupon'::text as kind, id, code as label,
+                        deleted_at, 5::int as kind_rank
+                   from shop_coupons where deleted_at is not null
                  union all
                  select site_id, 'content'::text as kind, id, title as label,
                         deleted_at, 3::int as kind_rank
@@ -1170,6 +1198,26 @@ impl TrashService {
                     .execute(tx.conn())
                     .await
                 }
+                TrashKind::Product => {
+                    sqlx::query(
+                        "update shop_products set deleted_at = null, updated_at = clock_timestamp()
+                      where site_id = $1 and id = $2 and deleted_at is not null",
+                    )
+                    .bind(context.site_id.into_uuid())
+                    .bind(id)
+                    .execute(tx.conn())
+                    .await
+                }
+                TrashKind::Coupon => {
+                    sqlx::query(
+                        "update shop_coupons set deleted_at = null, updated_at = clock_timestamp()
+                      where site_id = $1 and id = $2 and deleted_at is not null",
+                    )
+                    .bind(context.site_id.into_uuid())
+                    .bind(id)
+                    .execute(tx.conn())
+                    .await
+                }
                 TrashKind::Content => sqlx::query(
                     "update content_entries set deleted_at = null, updated_at = clock_timestamp()
                       where site_id = $1 and id = $2 and deleted_at is not null",
@@ -1229,6 +1277,57 @@ impl TrashService {
         ensure_trashed(tx, context, kind, id).await?;
         let payload = match kind {
             TrashKind::Form | TrashKind::Content | TrashKind::Term => json!({"kind": kind}),
+            TrashKind::Product => {
+                let active_hold: bool = sqlx::query_scalar(
+                    "select exists(
+                         select 1 from shop_stock_holds
+                          where site_id = $1 and product_id = $2 and status = 'held'
+                     )",
+                )
+                .bind(context.site_id.into_uuid())
+                .bind(id)
+                .fetch_one(tx.conn())
+                .await
+                .map_err(|_| MaviError::Internal)?;
+                if active_hold {
+                    return Err(MaviError::conflict(TRASH_SHOP_PRODUCT_ACTIVE_HOLD));
+                }
+                let order_line_count: i64 = sqlx::query_scalar(
+                    "select count(*) from shop_order_lines
+                      where site_id = $1 and product_id = $2",
+                )
+                .bind(context.site_id.into_uuid())
+                .bind(id)
+                .fetch_one(tx.conn())
+                .await
+                .map_err(|_| MaviError::Internal)?;
+                let settled_hold_count: i64 = sqlx::query_scalar(
+                    "select count(*) from shop_stock_holds
+                      where site_id = $1 and product_id = $2 and status <> 'held'",
+                )
+                .bind(context.site_id.into_uuid())
+                .bind(id)
+                .fetch_one(tx.conn())
+                .await
+                .map_err(|_| MaviError::Internal)?;
+                json!({
+                    "kind": kind,
+                    "order_line_count": order_line_count,
+                    "settled_hold_count": settled_hold_count,
+                })
+            }
+            TrashKind::Coupon => {
+                let use_count: i64 = sqlx::query_scalar(
+                    "select count(*) from shop_coupon_uses
+                      where site_id = $1 and coupon_id = $2",
+                )
+                .bind(context.site_id.into_uuid())
+                .bind(id)
+                .fetch_one(tx.conn())
+                .await
+                .map_err(|_| MaviError::Internal)?;
+                json!({"kind": kind, "use_count": use_count})
+            }
             TrashKind::File => {
                 let storage_key: String = sqlx::query_scalar(
                     "select storage_key from media_files
@@ -1312,6 +1411,55 @@ impl TrashService {
                 .await
                 .map_err(|_| MaviError::Internal)?;
             }
+            TrashKind::Product => {
+                sqlx::query(
+                    "update shop_order_lines set product_id = null
+                      where site_id = $1 and product_id = $2",
+                )
+                .bind(context.site_id.into_uuid())
+                .bind(id)
+                .execute(tx.conn())
+                .await
+                .map_err(|_| MaviError::Internal)?;
+                sqlx::query(
+                    "delete from shop_stock_holds
+                      where site_id = $1 and product_id = $2 and status <> 'held'",
+                )
+                .bind(context.site_id.into_uuid())
+                .bind(id)
+                .execute(tx.conn())
+                .await
+                .map_err(|_| MaviError::Internal)?;
+                sqlx::query(
+                    "delete from shop_products
+                      where site_id = $1 and id = $2 and deleted_at is not null",
+                )
+                .bind(context.site_id.into_uuid())
+                .bind(id)
+                .execute(tx.conn())
+                .await
+                .map_err(|_| MaviError::Internal)?;
+            }
+            TrashKind::Coupon => {
+                sqlx::query(
+                    "delete from shop_coupon_uses
+                      where site_id = $1 and coupon_id = $2",
+                )
+                .bind(context.site_id.into_uuid())
+                .bind(id)
+                .execute(tx.conn())
+                .await
+                .map_err(|_| MaviError::Internal)?;
+                sqlx::query(
+                    "delete from shop_coupons
+                      where site_id = $1 and id = $2 and deleted_at is not null",
+                )
+                .bind(context.site_id.into_uuid())
+                .bind(id)
+                .execute(tx.conn())
+                .await
+                .map_err(|_| MaviError::Internal)?;
+            }
             TrashKind::Content => {
                 sqlx::query(
                     "delete from content_slug_history where site_id = $1 and content_id = $2",
@@ -1365,6 +1513,28 @@ async fn ensure_trashed(
         TrashKind::Form => {
             sqlx::query_scalar::<_, Uuid>(
                 "select id from forms
+              where site_id = $1 and id = $2 and deleted_at is not null
+              for update",
+            )
+            .bind(context.site_id.into_uuid())
+            .bind(id)
+            .fetch_optional(tx.conn())
+            .await
+        }
+        TrashKind::Product => {
+            sqlx::query_scalar::<_, Uuid>(
+                "select id from shop_products
+              where site_id = $1 and id = $2 and deleted_at is not null
+              for update",
+            )
+            .bind(context.site_id.into_uuid())
+            .bind(id)
+            .fetch_optional(tx.conn())
+            .await
+        }
+        TrashKind::Coupon => {
+            sqlx::query_scalar::<_, Uuid>(
+                "select id from shop_coupons
               where site_id = $1 and id = $2 and deleted_at is not null
               for update",
             )
@@ -1608,6 +1778,14 @@ mod tests {
             TrashKind::parse("form").expect("form kind"),
             TrashKind::Form
         );
+        assert_eq!(
+            TrashKind::parse("product").expect("product kind"),
+            TrashKind::Product
+        );
+        assert_eq!(
+            TrashKind::parse("coupon").expect("coupon kind"),
+            TrashKind::Coupon
+        );
         assert_eq!(TrashKind::Content.resource_type(), "Content");
     }
 
@@ -1625,6 +1803,14 @@ mod tests {
         assert!(properties.contains_key("limit"));
         assert!(!properties.contains_key("offset"));
         assert!(!properties.contains_key("page"));
+        assert_eq!(
+            filter.schema["properties"],
+            serde_json::json!({
+                "after": {"type": ["string", "null"], "maxLength": 512},
+                "limit": {"type": "integer", "minimum": 1, "maximum": 100},
+                "kind": {"$ref": "#/components/schemas/TrashKind"}
+            })
+        );
         assert!(api().validate().is_ok());
     }
 

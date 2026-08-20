@@ -1821,7 +1821,7 @@ export interface TrashItem {
   deleted_at: string;
 }
 
-export type TrashKind = "form" | "content" | "file" | "term";
+export type TrashKind = "form" | "product" | "coupon" | "content" | "file" | "term";
 
 export interface TrashListFilter {
   after?: string | null;

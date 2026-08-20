@@ -5903,6 +5903,16 @@
               }
             }
           },
+          "409": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Request refused",
             "content": {
@@ -5962,6 +5972,7 @@
           },
           "errors": [
             "forbidden",
+            "conflict",
             "not_found",
             "internal"
           ]
@@ -26882,6 +26893,8 @@
         "type": "string",
         "enum": [
           "form",
+          "product",
+          "coupon",
           "content",
           "file",
           "term"

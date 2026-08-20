@@ -890,6 +890,24 @@ impl WorkerSupervisor {
             {
                 Ok(deletion) => deletion,
                 Err(MaviError::NotFound { .. }) => continue,
+                Err(MaviError::Conflict { code }) => {
+                    AuditService
+                        .record(
+                            &mut transaction,
+                            context,
+                            &AuditEntry {
+                                action: "trash.retention.skipped".to_owned(),
+                                resource_type: item.kind.resource_type().to_owned(),
+                                resource_id: Some(item.id),
+                                payload: serde_json::json!({
+                                    "kind": item.kind,
+                                    "reason": code,
+                                }),
+                            },
+                        )
+                        .await?;
+                    continue;
+                }
                 Err(error) => return Err(error),
             };
             if let (Some(file_id), Some(storage_key)) =

@@ -1670,6 +1670,7 @@ fn valid_capability(value: &str) -> bool {
             | "courses"
             | "credentials"
             | "design"
+            | "feedback"
             | "forms"
             | "mail"
             | "media"

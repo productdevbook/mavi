@@ -258,7 +258,7 @@ msgstr "{0} dosya"
 #~ msgstr "{days} günde {0}"
 
 #. placeholder {0}: entry.label
-#: src/features/governance/trash-page.tsx:93
+#: src/features/governance/trash-page.tsx:101
 msgid "{0} is back"
 msgstr "{0} geri geldi"
 
@@ -882,7 +882,7 @@ msgstr ""
 #~ msgid "A language is two letters, and a place after them where there is one: en, or en-GB."
 #~ msgstr "Bir dil iki harftir, ardından varsa bir yer gelir: en, ya da en-GB."
 
-#: src/features/learning/course-page.tsx:183
+#: src/features/learning/course-page.tsx:219
 msgid "A lesson"
 msgstr "Bir ders"
 
@@ -981,7 +981,7 @@ msgstr "Sayı"
 msgid "A paid plan is needed for this; developer mode is where custom connectors live."
 msgstr "Bunun için ücretli bir plan gerekiyor; özel bağlayıcılar geliştirici kipinde duruyor."
 
-#: src/features/learning/course-page.tsx:209
+#: src/features/learning/course-page.tsx:245
 msgid "A part of the course"
 msgstr "Eğitimin bir bölümü"
 
@@ -1180,7 +1180,7 @@ msgstr "Etkin"
 
 #: src/components/editor/dialogs.tsx:225
 #: src/features/boards/board-page.tsx:247
-#: src/features/learning/course-page.tsx:192
+#: src/features/learning/course-page.tsx:228
 #: src/features/mail/mail-page.tsx:240
 #: src/features/taxonomy/tags-page.tsx:155
 msgid "Add"
@@ -1215,7 +1215,7 @@ msgstr ""
 #~ msgid "Add a lesson"
 #~ msgstr "Ders ekle"
 
-#: src/features/learning/course-page.tsx:214
+#: src/features/learning/course-page.tsx:250
 msgid "Add a part"
 msgstr "Bölüm ekle"
 
@@ -1232,7 +1232,7 @@ msgstr "Bölüm ekle"
 #~ msgid "Add a stage"
 #~ msgstr "Aşama ekle"
 
-#: src/features/learning/students-page.tsx:92
+#: src/features/learning/students-page.tsx:120
 msgid "Add a student to enroll them in one of your courses."
 msgstr ""
 
@@ -1308,8 +1308,8 @@ msgstr "Üste satır ekle"
 #~ msgid "Add site"
 #~ msgstr "Site ekle"
 
-#: src/features/learning/students-page.tsx:81
-#: src/features/learning/students-page.tsx:95
+#: src/features/learning/students-page.tsx:109
+#: src/features/learning/students-page.tsx:123
 #: src/features/mail/mail-page.tsx:250
 msgid "Add somebody"
 msgstr "Kişi ekle"
@@ -1645,7 +1645,7 @@ msgstr "E-posta adresi"
 #~ msgid "An IAM user with ses:SendEmail. That is all sending needs. The account page below asks Amazon rather more, and says which permission is missing when one is."
 #~ msgstr "ses:SendEmail yetkisi olan bir IAM kullanıcısı. Göndermek için gereken bu kadar. Aşağıdaki hesap sayfası Amazon'a daha fazlasını sorar ve eksik olan yetkiyi söyler."
 
-#: src/features/governance/trash-page.tsx:121
+#: src/features/governance/trash-page.tsx:129
 msgid "An image keeps its file while it is here, so a restored post still has its pictures. The file goes when the entry does."
 msgstr "Bir görsel burada durduğu sürece dosyasını korur; böylece geri alınan bir yazının resimleri de yerinde olur. Dosya, kayıt silindiğinde gider."
 
@@ -2079,7 +2079,7 @@ msgstr "Sepet"
 #~ msgid "being worked on"
 #~ msgstr "üzerinde çalışılıyor"
 
-#: src/features/learning/course-page.tsx:114
+#: src/features/learning/course-page.tsx:142
 msgid "Being written"
 msgstr "Yazılıyor"
 
@@ -2133,7 +2133,7 @@ msgstr "Yazılıyor"
 #~ msgstr "Faturalar"
 
 #: src/components/dashboard/dashboard-shell.tsx:106
-#: src/features/governance/trash-page.tsx:113
+#: src/features/governance/trash-page.tsx:121
 msgid "Bin"
 msgstr "Çöp kutusu"
 
@@ -2236,7 +2236,7 @@ msgstr ""
 #~ msgid "Build command"
 #~ msgstr "Derleme komutu"
 
-#: src/features/learning/course-page.tsx:110
+#: src/features/learning/course-page.tsx:138
 msgid "Build modules and lessons for this course."
 msgstr ""
 
@@ -2407,7 +2407,9 @@ msgstr "{0} alanın {summary} tanesini açabilir."
 #: src/features/design/design-page.tsx:209
 #: src/features/forms/forms-page.tsx:306
 #: src/features/forms/forms-page.tsx:328
-#: src/features/learning/students-page.tsx:244
+#: src/features/learning/course-page.tsx:266
+#: src/features/learning/students-page.tsx:190
+#: src/features/learning/students-page.tsx:301
 #: src/features/mail/mail-page.tsx:295
 #: src/features/mail/mail-page.tsx:359
 #: src/features/media/media-page.tsx:192
@@ -2481,7 +2483,7 @@ msgstr ""
 #~ msgid "Category"
 #~ msgstr "Kategori"
 
-#: src/features/governance/trash-page.tsx:68
+#: src/features/governance/trash-page.tsx:72
 msgid "category or tag"
 msgstr "kategori veya etiket"
 
@@ -2656,7 +2658,7 @@ msgstr "Biçimi temizle"
 msgid "Close"
 msgstr "Kapat"
 
-#: src/features/learning/course-page.tsx:123
+#: src/features/learning/course-page.tsx:151
 msgid "Close it"
 msgstr "Kapat"
 
@@ -3399,16 +3401,16 @@ msgstr "{0} yüklenemedi"
 #~ msgid "Countries"
 #~ msgstr "Ülkeler"
 
-#: src/features/governance/trash-page.tsx:65
+#: src/features/governance/trash-page.tsx:69
 msgid "coupon"
 msgstr "kupon"
 
-#: src/features/governance/trash-page.tsx:67
-#~ msgid "course"
-#~ msgstr "eğitim"
+#: src/features/governance/trash-page.tsx:65
+msgid "course"
+msgstr "eğitim"
 
 #: src/components/dashboard/content-type-editor.tsx:104
-#: src/features/learning/students-page.tsx:224
+#: src/features/learning/students-page.tsx:281
 msgid "Course"
 msgstr "Eğitim"
 
@@ -3688,7 +3690,7 @@ msgstr "Bu dosya silinsin mi?"
 #~ msgid "Deleted content waits thirty days before it is removed permanently, and can be restored in the meantime."
 #~ msgstr ""
 
-#: src/features/governance/trash-page.tsx:114
+#: src/features/governance/trash-page.tsx:122
 msgid "Deleted resources wait thirty days before they are removed permanently, and can be restored in the meantime."
 msgstr "Silinen kaynaklar kalıcı olarak kaldırılmadan önce otuz gün bekletilir ve bu süre içinde geri yüklenebilir."
 
@@ -3949,7 +3951,7 @@ msgstr "Düzenleme"
 #: src/features/auth/forgotten-page.tsx:146
 #: src/features/auth/login-page.tsx:69
 #: src/features/auth/setup-page.tsx:112
-#: src/features/learning/students-page.tsx:203
+#: src/features/learning/students-page.tsx:260
 #: src/features/people/people-page.tsx:280
 #: src/learn/app.tsx:159
 msgid "Email"
@@ -4212,7 +4214,7 @@ msgstr "Dışa aktar"
 msgid "Fields"
 msgstr "Alanlar"
 
-#: src/features/governance/trash-page.tsx:67
+#: src/features/governance/trash-page.tsx:71
 msgid "file"
 msgstr ""
 
@@ -4351,7 +4353,7 @@ msgstr "Unut"
 #~ msgid "Forgotten."
 #~ msgstr "Unutuldu."
 
-#: src/features/governance/trash-page.tsx:63
+#: src/features/governance/trash-page.tsx:67
 msgid "form"
 msgstr "form"
 
@@ -4450,9 +4452,9 @@ msgstr "Başlıktan üret"
 #~ msgid "GitHub username"
 #~ msgstr "GitHub kullanıcı adı"
 
-#: src/features/learning/students-page.tsx:122
-#: src/features/learning/students-page.tsx:195
-#: src/features/learning/students-page.tsx:250
+#: src/features/learning/students-page.tsx:150
+#: src/features/learning/students-page.tsx:252
+#: src/features/learning/students-page.tsx:307
 msgid "Give access"
 msgstr "Erişim ver"
 
@@ -5149,6 +5151,10 @@ msgstr "Anahtarı"
 #~ msgid "Its key, e.g. google"
 #~ msgstr "Anahtarı, örn. google"
 
+#: src/features/learning/course-page.tsx:262
+msgid "Its modules, lessons, and student history stay restorable until the bin removes it permanently."
+msgstr "Modülleri, dersleri ve öğrenci geçmişi çöp kutusu kalıcı olarak temizleyene kadar geri getirilebilir."
+
 #: src/routes/dashboard.sites.tsx:228
 #~ msgid "Its own database server"
 #~ msgstr "Kendi veritabanı sunucusu"
@@ -5780,9 +5786,27 @@ msgstr ""
 #~ msgid "Move it"
 #~ msgstr "Uygula"
 
+#: src/features/learning/students-page.tsx:155
+msgid "Move student to bin"
+msgstr "Öğrenciyi çöp kutusuna taşı"
+
 #: src/features/portability/portable-page.tsx:77
 msgid "Move the supported site content as a versioned JSON bundle. Accounts, uploads, orders, and secrets stay out of the file."
 msgstr ""
+
+#: src/features/learning/course-page.tsx:260
+msgid "Move this course to the bin?"
+msgstr "Bu kurs çöp kutusuna taşınsın mı?"
+
+#: src/features/learning/students-page.tsx:184
+msgid "Move this student to the bin?"
+msgstr "Bu öğrenci çöp kutusuna taşınsın mı?"
+
+#: src/features/learning/course-page.tsx:159
+#: src/features/learning/course-page.tsx:268
+#: src/features/learning/students-page.tsx:192
+msgid "Move to bin"
+msgstr "Çöp kutusuna taşı"
 
 #: src/components/editor/content-fields.tsx:403
 #: src/routes/dashboard.flows.tsx:888
@@ -5826,7 +5850,7 @@ msgstr "Eğitimlerim"
 #: src/features/forms/forms-page.tsx:158
 #: src/features/forms/forms-page.tsx:243
 #: src/features/integrations/api-page.tsx:161
-#: src/features/learning/students-page.tsx:214
+#: src/features/learning/students-page.tsx:271
 #: src/features/people/people-page.tsx:290
 msgid "Name"
 msgstr "Ad"
@@ -6148,7 +6172,7 @@ msgstr "Henüz form yok"
 msgid "No languages yet"
 msgstr ""
 
-#: src/features/learning/course-page.tsx:149
+#: src/features/learning/course-page.tsx:185
 msgid "No lessons in it yet."
 msgstr "İçinde henüz ders yok."
 
@@ -6311,7 +6335,7 @@ msgstr "Henüz kimse yok."
 #~ msgid "Nobody owes anything."
 #~ msgstr "Kimsenin borcu yok."
 
-#: src/features/learning/students-page.tsx:91
+#: src/features/learning/students-page.tsx:119
 msgid "Nobody yet"
 msgstr "Henüz kimse yok"
 
@@ -6462,7 +6486,7 @@ msgstr "Henüz satışta bir şey yok."
 #~ msgid "Nothing has been charged yet."
 #~ msgstr "Henüz bir ücret işlenmedi."
 
-#: src/features/governance/trash-page.tsx:132
+#: src/features/governance/trash-page.tsx:140
 msgid "Nothing has been deleted"
 msgstr "Hiçbir şey silinmedi"
 
@@ -6971,7 +6995,7 @@ msgstr "Adımlardan biri JSON olarak yazılmamış."
 #~ msgstr "Yalnızca siz bileceksiniz. En az on karakter — hatırlayacağınız birkaç kelime, kısa ve kurnaz bir şeyden iyidir."
 
 #: src/components/editor/bubble-menus.tsx:290
-#: src/features/learning/course-page.tsx:114
+#: src/features/learning/course-page.tsx:142
 msgid "Open"
 msgstr "Aç"
 
@@ -6991,7 +7015,7 @@ msgstr "Aç"
 msgid "Open in new tab"
 msgstr "Yeni sekmede aç"
 
-#: src/features/learning/course-page.tsx:123
+#: src/features/learning/course-page.tsx:151
 msgid "Open it"
 msgstr "Hesabı aç"
 
@@ -7380,7 +7404,7 @@ msgstr "Düz metin bloğu"
 #~ msgstr "Port"
 
 #: src/components/dashboard/dashboard-shell.tsx:74
-#: src/features/governance/trash-page.tsx:66
+#: src/features/governance/trash-page.tsx:70
 msgid "post"
 msgstr "yazı"
 
@@ -7469,7 +7493,7 @@ msgstr "Önceki"
 msgid "Private"
 msgstr ""
 
-#: src/features/governance/trash-page.tsx:64
+#: src/features/governance/trash-page.tsx:68
 msgid "product"
 msgstr "ürün"
 
@@ -7567,7 +7591,7 @@ msgstr "… yerine bir jeton koyun. Jeton yalnızca üretildiği anda gösterili
 #~ msgid "Put answers on a board"
 #~ msgstr "Cevapları bir panoya koy"
 
-#: src/features/governance/trash-page.tsx:154
+#: src/features/governance/trash-page.tsx:162
 msgid "Put it back"
 msgstr "Geri al"
 
@@ -7780,8 +7804,8 @@ msgstr ""
 #: src/features/forms/forms-page.tsx:216
 #: src/features/forms/forms-page.tsx:330
 #: src/features/forms/forms-page.tsx:466
-#: src/features/learning/course-page.tsx:139
-#: src/features/learning/course-page.tsx:164
+#: src/features/learning/course-page.tsx:175
+#: src/features/learning/course-page.tsx:200
 #: src/features/media/videos-page.tsx:122
 #: src/features/people/people-page.tsx:256
 #: src/features/people/people-page.tsx:366
@@ -9000,10 +9024,14 @@ msgstr "Üstü çizili"
 #~ msgid "Strong"
 #~ msgstr "Güçlü"
 
+#: src/features/governance/trash-page.tsx:66
+msgid "student"
+msgstr "öğrenci"
+
 #: src/components/dashboard/dashboard-shell.tsx:102
 #: src/features/dashboard/home-page.tsx:120
-#: src/features/learning/course-page.tsx:241
-#: src/features/learning/students-page.tsx:74
+#: src/features/learning/course-page.tsx:297
+#: src/features/learning/students-page.tsx:102
 msgid "Students"
 msgstr "Öğrenciler"
 
@@ -9433,7 +9461,7 @@ msgstr "Yanıt verdiği adres addan üretilir ve hiç değişmez; çünkü bir �
 #~ msgid "The backup failed"
 #~ msgstr "Yedekleme başarısız oldu"
 
-#: src/features/governance/trash-page.tsx:128
+#: src/features/governance/trash-page.tsx:136
 msgid "The bin could not be read just now."
 msgstr ""
 
@@ -9485,6 +9513,10 @@ msgstr "Kod"
 
 #: src/features/portability/portable-page.tsx:58
 msgid "The copy was read in."
+msgstr ""
+
+#: src/features/learning/course-page.tsx:120
+msgid "The course is in the bin now."
 msgstr ""
 
 #: src/features/analytics/visitors-page.tsx:86
@@ -9769,6 +9801,10 @@ msgstr "Site, yapay zekâ asistanlarına sayfa sayfa tanıtılır."
 #~ msgid "The six digits from your authenticator"
 #~ msgstr "Doğrulayıcı uygulamanızdaki altı hane"
 
+#: src/features/learning/students-page.tsx:86
+msgid "The student is in the bin now."
+msgstr ""
+
 #: src/routes/dashboard.themes.tsx:777
 #~ msgid "The theme's own version"
 #~ msgstr "Temanın kendi sürümü"
@@ -9784,6 +9820,10 @@ msgstr "Site, yapay zekâ asistanlarına sayfa sayfa tanıtılır."
 #: src/routes/dashboard.api.tsx:432
 #~ msgid "The whole of it"
 #~ msgstr "Tamamı"
+
+#: src/features/learning/students-page.tsx:186
+msgid "Their enrollments and learning history stay restorable, but active learning sessions are revoked."
+msgstr "Kayıtları ve öğrenme geçmişi geri getirilebilir; ancak etkin öğrenme oturumları iptal edilir."
 
 #: src/components/editor/mavi-editor.tsx:947
 #: src/components/mode-toggle.tsx:24
@@ -10112,7 +10152,7 @@ msgstr ""
 #~ msgid "Those are not the digits the app is showing."
 #~ msgstr "Bunlar uygulamanın gösterdiği basamaklar değil."
 
-#: src/features/governance/trash-page.tsx:159
+#: src/features/governance/trash-page.tsx:167
 msgid "Throw it away now"
 msgstr "Şimdi kalıcı olarak sil"
 
@@ -10572,7 +10612,7 @@ msgstr "Ödeme bekleniyor"
 #~ msgid "Waiting to be paid"
 #~ msgstr "Ödeme bekliyor"
 
-#: src/features/governance/trash-page.tsx:119
+#: src/features/governance/trash-page.tsx:127
 msgid "Waiting to be thrown away"
 msgstr "Silinmeyi bekleyenler"
 
@@ -11085,7 +11125,7 @@ msgstr "Ne zaman"
 #~ msgid "When something calls in"
 #~ msgstr "Dışarıdan bir çağrı geldiğinde"
 
-#: src/features/governance/trash-page.tsx:133
+#: src/features/governance/trash-page.tsx:141
 msgid "When something is, it appears here first."
 msgstr "Bir şey silindiğinde önce burada görünür."
 
@@ -11154,11 +11194,11 @@ msgstr "Makbuz nereye gönderilsin"
 #~ msgid "Which browser you are using, which screen you were on and anything the panel has already recorded going wrong are sent with this. It goes to whoever runs this server, and nowhere else."
 #~ msgstr "Hangi tarayıcıyı kullandığınız, hangi ekranda olduğunuz ve panelin ters gittiğini kaydettiği her şey bununla birlikte gönderilir. Bu sunucuyu çalıştıran kişiye gider, başka hiçbir yere."
 
-#: src/features/learning/students-page.tsx:230
+#: src/features/learning/students-page.tsx:287
 msgid "Which course"
 msgstr "Hangi eğitim"
 
-#: src/features/learning/students-page.tsx:197
+#: src/features/learning/students-page.tsx:254
 msgid "Which course to enroll the student in."
 msgstr ""
 
@@ -11222,7 +11262,7 @@ msgstr "Bu siteye kim ne yaptı, ne zaman."
 #~ msgid "Who is on it"
 #~ msgstr "Kimler kayıtlı"
 
-#: src/features/learning/students-page.tsx:75
+#: src/features/learning/students-page.tsx:103
 msgid "Who may watch what, and until when."
 msgstr ""
 

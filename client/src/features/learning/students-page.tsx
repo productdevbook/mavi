@@ -1,6 +1,6 @@
 import * as React from "react"
 import { useLingui } from "@lingui/react/macro"
-import { Loader2, Plus, UserPlus } from "lucide-react"
+import { Loader2, Plus, Trash2, UserPlus } from "lucide-react"
 import { toast } from "sonner"
 
 import { api, every } from "@/lib/api"
@@ -29,6 +29,16 @@ import {
   DashboardLoading,
   DashboardPageHeader,
 } from "@/components/dashboard/dashboard-page"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 /**
  * Who may watch what, and until when.
@@ -44,6 +54,8 @@ export function StudentsPage() {
   const [giving, setGiving] = React.useState<Student | "somebody new" | null>(
     null
   )
+  const [removing, setRemoving] = React.useState<Student | null>(null)
+  const [removingId, setRemovingId] = React.useState<string | null>(null)
 
   const load = React.useCallback(() => {
     every("courses.students.list", { query: {} })
@@ -64,6 +76,22 @@ export function StudentsPage() {
         setCourses((held) => held ?? [])
       })
   }, [])
+
+  const remove = async () => {
+    if (!removing) return
+
+    setRemovingId(removing.id)
+    try {
+      await api("courses.students.delete", { path: { id: removing.id } })
+      toast.success(t`The student is in the bin now.`)
+      setRemoving(null)
+      load()
+    } catch (why) {
+      toast.error(apiMessage(why))
+    } finally {
+      setRemovingId(null)
+    }
+  }
 
   const when = (iso: string) =>
     new Date(iso).toLocaleDateString(i18n.locale, { dateStyle: "medium" })
@@ -121,6 +149,15 @@ export function StudentsPage() {
                 >
                   <Plus /> {t`Give access`}
                 </Button>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={t`Move student to bin`}
+                  disabled={removingId === student.id}
+                  onClick={() => setRemoving(student)}
+                >
+                  <Trash2 />
+                </Button>
               </div>
             </div>
           ))}
@@ -137,6 +174,26 @@ export function StudentsPage() {
           load()
         }}
       />
+
+      <AlertDialog
+        open={removing !== null}
+        onOpenChange={(open) => !open && setRemoving(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t`Move this student to the bin?`}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t`Their enrollments and learning history stay restorable, but active learning sessions are revoked.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t`Cancel`}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => void remove()}>
+              {t`Move to bin`}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

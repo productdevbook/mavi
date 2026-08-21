@@ -42,6 +42,8 @@ pub const MAX_TRASH_RETENTION_BATCH: i64 = 100;
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum TrashKind {
+    Course,
+    Student,
     Form,
     Product,
     Coupon,
@@ -54,6 +56,8 @@ impl TrashKind {
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
+            Self::Course => "course",
+            Self::Student => "student",
             Self::Form => "form",
             Self::Product => "product",
             Self::Coupon => "coupon",
@@ -66,6 +70,8 @@ impl TrashKind {
     #[must_use]
     pub const fn resource_type(self) -> &'static str {
         match self {
+            Self::Course => "Course",
+            Self::Student => "CourseStudent",
             Self::Form => "Form",
             Self::Product => "ShopProduct",
             Self::Coupon => "ShopCoupon",
@@ -78,6 +84,8 @@ impl TrashKind {
     #[must_use]
     const fn rank(self) -> i32 {
         match self {
+            Self::Course => 8,
+            Self::Student => 7,
             Self::Product => 6,
             Self::Coupon => 5,
             Self::Form => 4,
@@ -89,6 +97,8 @@ impl TrashKind {
 
     pub fn parse(value: &str) -> Result<Self> {
         match value {
+            "course" => Ok(Self::Course),
+            "student" => Ok(Self::Student),
             "form" => Ok(Self::Form),
             "product" => Ok(Self::Product),
             "coupon" => Ok(Self::Coupon),
@@ -504,7 +514,7 @@ pub fn shapes() -> Vec<Shape> {
     vec![
         Shape::new(
             "TrashKind",
-            json!({"type": "string", "enum": ["form", "product", "coupon", "content", "file", "term"]}),
+            json!({"type": "string", "enum": ["course", "student", "form", "product", "coupon", "content", "file", "term"]}),
         ),
         Shape::new(
             "TrashListFilter",
@@ -613,7 +623,15 @@ impl TrashService {
         }
         let rows = sqlx::query(
             "select kind, id
-               from (
+                 from (
+                 select site_id, 'course'::text as kind, id, deleted_at,
+                        8::int as kind_rank
+                 from courses where deleted_at is not null
+                 union all
+                 select site_id, 'student'::text as kind, id, deleted_at,
+                        7::int as kind_rank
+                 from course_students where deleted_at is not null
+                 union all
                  select site_id, 'form'::text as kind, id, deleted_at,
                         4::int as kind_rank
                  from forms where deleted_at is not null
@@ -673,6 +691,15 @@ impl TrashService {
         let mut query = sqlx::QueryBuilder::<sqlx::Postgres>::new(
             "select kind, id, label, deleted_at, kind_rank
                from (
+                 select site_id, 'course'::text as kind, id, title as label,
+                        deleted_at, 8::int as kind_rank
+                 from courses where deleted_at is not null
+                 union all
+                 select site_id, 'student'::text as kind, id,
+                        concat(name, ' <', email, '>') as label,
+                        deleted_at, 7::int as kind_rank
+                 from course_students where deleted_at is not null
+                 union all
                  select site_id, 'form'::text as kind, id, name as label,
                         deleted_at, 4::int as kind_rank
                  from forms where deleted_at is not null
@@ -1188,6 +1215,24 @@ impl TrashService {
     ) -> Result<()> {
         let result =
             match kind {
+                TrashKind::Course => {
+                    sqlx::query(
+                        "update courses set deleted_at = null, updated_at = clock_timestamp()
+                      where site_id = $1 and id = $2 and deleted_at is not null",
+                    )
+                    .bind(context.site_id.into_uuid())
+                    .bind(id)
+                    .execute(tx.conn())
+                    .await
+                }
+                TrashKind::Student => sqlx::query(
+                    "update course_students set deleted_at = null, updated_at = clock_timestamp()
+                      where site_id = $1 and id = $2 and deleted_at is not null",
+                )
+                .bind(context.site_id.into_uuid())
+                .bind(id)
+                .execute(tx.conn())
+                .await,
                 TrashKind::Form => {
                     sqlx::query(
                         "update forms set deleted_at = null, updated_at = clock_timestamp()
@@ -1277,6 +1322,72 @@ impl TrashService {
         ensure_trashed(tx, context, kind, id).await?;
         let payload = match kind {
             TrashKind::Form | TrashKind::Content | TrashKind::Term => json!({"kind": kind}),
+            TrashKind::Course => {
+                let module_count: i64 = sqlx::query_scalar(
+                    "select count(*) from course_modules where site_id = $1 and course_id = $2",
+                )
+                .bind(context.site_id.into_uuid())
+                .bind(id)
+                .fetch_one(tx.conn())
+                .await
+                .map_err(|_| MaviError::Internal)?;
+                let lesson_count: i64 = sqlx::query_scalar(
+                    "select count(*) from course_lessons l
+                      join course_modules m on m.site_id = l.site_id and m.id = l.module_id
+                      where l.site_id = $1 and m.course_id = $2",
+                )
+                .bind(context.site_id.into_uuid())
+                .bind(id)
+                .fetch_one(tx.conn())
+                .await
+                .map_err(|_| MaviError::Internal)?;
+                let enrollment_count: i64 = sqlx::query_scalar(
+                    "select count(*) from course_enrollments where site_id = $1 and course_id = $2",
+                )
+                .bind(context.site_id.into_uuid())
+                .bind(id)
+                .fetch_one(tx.conn())
+                .await
+                .map_err(|_| MaviError::Internal)?;
+                json!({
+                    "kind": kind,
+                    "module_count": module_count,
+                    "lesson_count": lesson_count,
+                    "enrollment_count": enrollment_count,
+                })
+            }
+            TrashKind::Student => {
+                let enrollment_count: i64 = sqlx::query_scalar(
+                    "select count(*) from course_enrollments where site_id = $1 and student_id = $2",
+                )
+                .bind(context.site_id.into_uuid())
+                .bind(id)
+                .fetch_one(tx.conn())
+                .await
+                .map_err(|_| MaviError::Internal)?;
+                let progress_count: i64 = sqlx::query_scalar(
+                    "select count(*) from course_progress where site_id = $1 and student_id = $2",
+                )
+                .bind(context.site_id.into_uuid())
+                .bind(id)
+                .fetch_one(tx.conn())
+                .await
+                .map_err(|_| MaviError::Internal)?;
+                let session_count: i64 = sqlx::query_scalar(
+                    "select count(*) from course_student_sessions where site_id = $1 and student_id = $2",
+                )
+                .bind(context.site_id.into_uuid())
+                .bind(id)
+                .fetch_one(tx.conn())
+                .await
+                .map_err(|_| MaviError::Internal)?;
+                json!({
+                    "kind": kind,
+                    "enrollment_count": enrollment_count,
+                    "progress_count": progress_count,
+                    "session_count": session_count,
+                })
+            }
             TrashKind::Product => {
                 let active_hold: bool = sqlx::query_scalar(
                     "select exists(
@@ -1401,6 +1512,26 @@ impl TrashService {
             .await?;
 
         match kind {
+            TrashKind::Course => {
+                sqlx::query(
+                    "delete from courses where site_id = $1 and id = $2 and deleted_at is not null",
+                )
+                .bind(context.site_id.into_uuid())
+                .bind(id)
+                .execute(tx.conn())
+                .await
+                .map_err(|_| MaviError::Internal)?;
+            }
+            TrashKind::Student => {
+                sqlx::query(
+                    "delete from course_students where site_id = $1 and id = $2 and deleted_at is not null",
+                )
+                .bind(context.site_id.into_uuid())
+                .bind(id)
+                .execute(tx.conn())
+                .await
+                .map_err(|_| MaviError::Internal)?;
+            }
             TrashKind::Form => {
                 sqlx::query(
                     "delete from forms where site_id = $1 and id = $2 and deleted_at is not null",
@@ -1510,6 +1641,28 @@ async fn ensure_trashed(
     id: Uuid,
 ) -> Result<()> {
     let exists = match kind {
+        TrashKind::Course => {
+            sqlx::query_scalar::<_, Uuid>(
+                "select id from courses
+              where site_id = $1 and id = $2 and deleted_at is not null
+              for update",
+            )
+            .bind(context.site_id.into_uuid())
+            .bind(id)
+            .fetch_optional(tx.conn())
+            .await
+        }
+        TrashKind::Student => {
+            sqlx::query_scalar::<_, Uuid>(
+                "select id from course_students
+              where site_id = $1 and id = $2 and deleted_at is not null
+              for update",
+            )
+            .bind(context.site_id.into_uuid())
+            .bind(id)
+            .fetch_optional(tx.conn())
+            .await
+        }
         TrashKind::Form => {
             sqlx::query_scalar::<_, Uuid>(
                 "select id from forms

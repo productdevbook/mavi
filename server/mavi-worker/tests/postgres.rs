@@ -790,6 +790,199 @@ async fn trash_retention_worker_removes_expired_shop_catalog_items() {
 
 #[tokio::test]
 #[ignore = "requires TEST_DATABASE_URL and a non-superuser PostgreSQL role"]
+#[allow(clippy::too_many_lines)]
+async fn trash_retention_worker_removes_expired_course_roots_and_cascades_learning_state() {
+    let database_url = env::var("TEST_DATABASE_URL").expect("TEST_DATABASE_URL");
+    let database = Database::connect(&database_url, 4)
+        .await
+        .expect("database connection");
+    database.migrate().await.expect("migrations");
+    let site_id = SiteId::new();
+    database.ensure_site(site_id).await.expect("site");
+
+    let context = SiteContext::public(site_id);
+    let (course_id, module_id, lesson_id, student_id, enrollment_id, session_id) = {
+        let mut transaction = database.begin(&context).await.expect("course scope");
+        sqlx::query(
+            "insert into site_settings (site_id, name) values ($1, 'Courses trash retention')",
+        )
+        .bind(site_id.into_uuid())
+        .execute(transaction.conn())
+        .await
+        .expect("site settings");
+        sqlx::query("update site_settings set trash_retention_days = 1 where site_id = $1")
+            .bind(site_id.into_uuid())
+            .execute(transaction.conn())
+            .await
+            .expect("trash policy");
+
+        let course_id = Uuid::now_v7();
+        let module_id = Uuid::now_v7();
+        let lesson_id = Uuid::now_v7();
+        let student_id = Uuid::now_v7();
+        let enrollment_id = Uuid::now_v7();
+        let session_id = Uuid::now_v7();
+        let deleted_at = Utc::now() - Duration::days(2);
+        sqlx::query(
+            "insert into courses (site_id, id, slug, title, deleted_at)
+             values ($1, $2, 'expired-course-trash', 'Expired course trash', $3)",
+        )
+        .bind(site_id.into_uuid())
+        .bind(course_id)
+        .bind(deleted_at)
+        .execute(transaction.conn())
+        .await
+        .expect("course");
+        sqlx::query(
+            "insert into course_modules (site_id, id, course_id, title, position)
+             values ($1, $2, $3, 'Expired module', 0)",
+        )
+        .bind(site_id.into_uuid())
+        .bind(module_id)
+        .bind(course_id)
+        .execute(transaction.conn())
+        .await
+        .expect("module");
+        sqlx::query(
+            "insert into course_lessons (site_id, id, module_id, title, body, position)
+             values ($1, $2, $3, 'Expired lesson', 'retained until purge', 0)",
+        )
+        .bind(site_id.into_uuid())
+        .bind(lesson_id)
+        .bind(module_id)
+        .execute(transaction.conn())
+        .await
+        .expect("lesson");
+        sqlx::query(
+            "insert into course_students (site_id, id, email, name, deleted_at)
+             values ($1, $2, 'expired-course-student@example.test', 'Expired course student', $3)",
+        )
+        .bind(site_id.into_uuid())
+        .bind(student_id)
+        .bind(deleted_at)
+        .execute(transaction.conn())
+        .await
+        .expect("student");
+        sqlx::query(
+            "insert into course_enrollments (site_id, id, course_id, student_id)
+             values ($1, $2, $3, $4)",
+        )
+        .bind(site_id.into_uuid())
+        .bind(enrollment_id)
+        .bind(course_id)
+        .bind(student_id)
+        .execute(transaction.conn())
+        .await
+        .expect("enrollment");
+        sqlx::query(
+            "insert into course_progress (site_id, student_id, lesson_id)
+             values ($1, $2, $3)",
+        )
+        .bind(site_id.into_uuid())
+        .bind(student_id)
+        .bind(lesson_id)
+        .execute(transaction.conn())
+        .await
+        .expect("progress");
+        sqlx::query(
+            "insert into course_student_sessions
+                (site_id, id, student_id, token_hash, expires_at)
+             values ($1, $2, $3, $4, clock_timestamp() + interval '1 day')",
+        )
+        .bind(site_id.into_uuid())
+        .bind(session_id)
+        .bind(student_id)
+        .bind(vec![7_u8, 8, 9])
+        .execute(transaction.conn())
+        .await
+        .expect("session");
+        transaction.commit().await.expect("seed commit");
+        (
+            course_id,
+            module_id,
+            lesson_id,
+            student_id,
+            enrollment_id,
+            session_id,
+        )
+    };
+
+    let supervisor = WorkerSupervisor::new(
+        database.clone(),
+        [site_id],
+        WorkerConfig::new(
+            "test-courses-trash-retention-worker",
+            30,
+            std::time::Duration::from_millis(10),
+        )
+        .expect("worker config"),
+        Arc::new(InMemoryFileStore::default()),
+    );
+    assert!(
+        run_until_job_done(
+            &supervisor,
+            &database,
+            site_id,
+            &context,
+            TRASH_RETENTION_JOB.name,
+        )
+        .await,
+        "course trash retention job should complete"
+    );
+
+    let mut transaction = database.begin(&context).await.expect("assert scope");
+    let course_exists: bool =
+        sqlx::query_scalar("select exists(select 1 from courses where site_id = $1 and id = $2)")
+            .bind(site_id.into_uuid())
+            .bind(course_id)
+            .fetch_one(transaction.conn())
+            .await
+            .expect("course state");
+    let student_exists: bool = sqlx::query_scalar(
+        "select exists(select 1 from course_students where site_id = $1 and id = $2)",
+    )
+    .bind(site_id.into_uuid())
+    .bind(student_id)
+    .fetch_one(transaction.conn())
+    .await
+    .expect("student state");
+    let child_count: i64 = sqlx::query_scalar(
+        "select
+            (select count(*) from course_modules where site_id = $1 and id = $2)
+          + (select count(*) from course_lessons where site_id = $1 and id = $3)
+          + (select count(*) from course_enrollments where site_id = $1 and id = $4)
+          + (select count(*) from course_progress where site_id = $1 and student_id = $5)
+          + (select count(*) from course_student_sessions where site_id = $1 and id = $6)",
+    )
+    .bind(site_id.into_uuid())
+    .bind(module_id)
+    .bind(lesson_id)
+    .bind(enrollment_id)
+    .bind(student_id)
+    .bind(session_id)
+    .fetch_one(transaction.conn())
+    .await
+    .expect("learning state");
+    let retention_audits: i64 = sqlx::query_scalar(
+        "select count(*) from audit_events
+          where site_id = $1 and action = 'trash.item.permanently_deleted'
+            and actor_kind = 'system'
+            and actor_id = 'test-courses-trash-retention-worker'
+            and resource_type in ('Course', 'CourseStudent')",
+    )
+    .bind(site_id.into_uuid())
+    .fetch_one(transaction.conn())
+    .await
+    .expect("retention audits");
+    assert!(!course_exists);
+    assert!(!student_exists);
+    assert_eq!(child_count, 0);
+    assert_eq!(retention_audits, 2);
+    transaction.commit().await.expect("assert commit");
+}
+
+#[tokio::test]
+#[ignore = "requires TEST_DATABASE_URL and a non-superuser PostgreSQL role"]
 async fn trash_retention_worker_continues_after_a_full_batch() {
     let database_url = env::var("TEST_DATABASE_URL").expect("TEST_DATABASE_URL");
     let database = Database::connect(&database_url, 4)

@@ -258,7 +258,7 @@ msgstr "{0} files"
 #~ msgstr "{0} in {days} days"
 
 #. placeholder {0}: entry.label
-#: src/features/governance/trash-page.tsx:93
+#: src/features/governance/trash-page.tsx:101
 msgid "{0} is back"
 msgstr "{0} is back"
 
@@ -882,7 +882,7 @@ msgstr "A key carries the grants of the person who made it. Name each one so it 
 #~ msgid "A language is two letters, and a place after them where there is one: en, or en-GB."
 #~ msgstr "A language is two letters, and a place after them where there is one: en, or en-GB."
 
-#: src/features/learning/course-page.tsx:183
+#: src/features/learning/course-page.tsx:219
 msgid "A lesson"
 msgstr "A lesson"
 
@@ -981,7 +981,7 @@ msgstr "A number"
 msgid "A paid plan is needed for this; developer mode is where custom connectors live."
 msgstr "A paid plan is needed for this; developer mode is where custom connectors live."
 
-#: src/features/learning/course-page.tsx:209
+#: src/features/learning/course-page.tsx:245
 msgid "A part of the course"
 msgstr "A part of the course"
 
@@ -1180,7 +1180,7 @@ msgstr "Active"
 
 #: src/components/editor/dialogs.tsx:225
 #: src/features/boards/board-page.tsx:247
-#: src/features/learning/course-page.tsx:192
+#: src/features/learning/course-page.tsx:228
 #: src/features/mail/mail-page.tsx:240
 #: src/features/taxonomy/tags-page.tsx:155
 msgid "Add"
@@ -1215,7 +1215,7 @@ msgstr "Add a kind when your site publishes something with facts of its own."
 #~ msgid "Add a lesson"
 #~ msgstr "Add a lesson"
 
-#: src/features/learning/course-page.tsx:214
+#: src/features/learning/course-page.tsx:250
 msgid "Add a part"
 msgstr "Add a part"
 
@@ -1232,7 +1232,7 @@ msgstr "Add a part"
 #~ msgid "Add a stage"
 #~ msgstr "Add a stage"
 
-#: src/features/learning/students-page.tsx:92
+#: src/features/learning/students-page.tsx:120
 msgid "Add a student to enroll them in one of your courses."
 msgstr "Add a student to enroll them in one of your courses."
 
@@ -1308,8 +1308,8 @@ msgstr "Add row before"
 #~ msgid "Add site"
 #~ msgstr "Add site"
 
-#: src/features/learning/students-page.tsx:81
-#: src/features/learning/students-page.tsx:95
+#: src/features/learning/students-page.tsx:109
+#: src/features/learning/students-page.tsx:123
 #: src/features/mail/mail-page.tsx:250
 msgid "Add somebody"
 msgstr "Add somebody"
@@ -1645,7 +1645,7 @@ msgstr "An email address"
 #~ msgid "An IAM user with ses:SendEmail. That is all sending needs. The account page below asks Amazon rather more, and says which permission is missing when one is."
 #~ msgstr "An IAM user with ses:SendEmail. That is all sending needs. The account page below asks Amazon rather more, and says which permission is missing when one is."
 
-#: src/features/governance/trash-page.tsx:121
+#: src/features/governance/trash-page.tsx:129
 msgid "An image keeps its file while it is here, so a restored post still has its pictures. The file goes when the entry does."
 msgstr "An image keeps its file while it is here, so a restored post still has its pictures. The file goes when the entry does."
 
@@ -2079,7 +2079,7 @@ msgstr "Basket"
 #~ msgid "being worked on"
 #~ msgstr "being worked on"
 
-#: src/features/learning/course-page.tsx:114
+#: src/features/learning/course-page.tsx:142
 msgid "Being written"
 msgstr "Being written"
 
@@ -2133,7 +2133,7 @@ msgstr "Being written"
 #~ msgstr "Bills"
 
 #: src/components/dashboard/dashboard-shell.tsx:106
-#: src/features/governance/trash-page.tsx:113
+#: src/features/governance/trash-page.tsx:121
 msgid "Bin"
 msgstr "Bin"
 
@@ -2236,7 +2236,7 @@ msgstr "Build and publish a design change to put a version live."
 #~ msgid "Build command"
 #~ msgstr "Build command"
 
-#: src/features/learning/course-page.tsx:110
+#: src/features/learning/course-page.tsx:138
 msgid "Build modules and lessons for this course."
 msgstr "Build modules and lessons for this course."
 
@@ -2407,7 +2407,9 @@ msgstr "Can open {summary} of {0} areas."
 #: src/features/design/design-page.tsx:209
 #: src/features/forms/forms-page.tsx:306
 #: src/features/forms/forms-page.tsx:328
-#: src/features/learning/students-page.tsx:244
+#: src/features/learning/course-page.tsx:266
+#: src/features/learning/students-page.tsx:190
+#: src/features/learning/students-page.tsx:301
 #: src/features/mail/mail-page.tsx:295
 #: src/features/mail/mail-page.tsx:359
 #: src/features/media/media-page.tsx:192
@@ -2481,7 +2483,7 @@ msgstr "Categories and tags"
 #~ msgid "Category"
 #~ msgstr "Category"
 
-#: src/features/governance/trash-page.tsx:68
+#: src/features/governance/trash-page.tsx:72
 msgid "category or tag"
 msgstr "category or tag"
 
@@ -2656,7 +2658,7 @@ msgstr "Clear formatting"
 msgid "Close"
 msgstr "Close"
 
-#: src/features/learning/course-page.tsx:123
+#: src/features/learning/course-page.tsx:151
 msgid "Close it"
 msgstr "Close it"
 
@@ -3399,16 +3401,16 @@ msgstr "Could not upload {0}"
 #~ msgid "Countries"
 #~ msgstr "Countries"
 
-#: src/features/governance/trash-page.tsx:65
+#: src/features/governance/trash-page.tsx:69
 msgid "coupon"
 msgstr "coupon"
 
-#: src/features/governance/trash-page.tsx:67
-#~ msgid "course"
-#~ msgstr "course"
+#: src/features/governance/trash-page.tsx:65
+msgid "course"
+msgstr "course"
 
 #: src/components/dashboard/content-type-editor.tsx:104
-#: src/features/learning/students-page.tsx:224
+#: src/features/learning/students-page.tsx:281
 msgid "Course"
 msgstr "Course"
 
@@ -3688,7 +3690,7 @@ msgstr "Delete this file?"
 #~ msgid "Deleted content waits thirty days before it is removed permanently, and can be restored in the meantime."
 #~ msgstr "Deleted content waits thirty days before it is removed permanently, and can be restored in the meantime."
 
-#: src/features/governance/trash-page.tsx:114
+#: src/features/governance/trash-page.tsx:122
 msgid "Deleted resources wait thirty days before they are removed permanently, and can be restored in the meantime."
 msgstr "Deleted resources wait thirty days before they are removed permanently, and can be restored in the meantime."
 
@@ -3949,7 +3951,7 @@ msgstr "Editing"
 #: src/features/auth/forgotten-page.tsx:146
 #: src/features/auth/login-page.tsx:69
 #: src/features/auth/setup-page.tsx:112
-#: src/features/learning/students-page.tsx:203
+#: src/features/learning/students-page.tsx:260
 #: src/features/people/people-page.tsx:280
 #: src/learn/app.tsx:159
 msgid "Email"
@@ -4212,7 +4214,7 @@ msgstr "Export"
 msgid "Fields"
 msgstr "Fields"
 
-#: src/features/governance/trash-page.tsx:67
+#: src/features/governance/trash-page.tsx:71
 msgid "file"
 msgstr "file"
 
@@ -4351,7 +4353,7 @@ msgstr "Forget it"
 #~ msgid "Forgotten."
 #~ msgstr "Forgotten."
 
-#: src/features/governance/trash-page.tsx:63
+#: src/features/governance/trash-page.tsx:67
 msgid "form"
 msgstr "form"
 
@@ -4450,9 +4452,9 @@ msgstr "Generate from title"
 #~ msgid "GitHub username"
 #~ msgstr "GitHub username"
 
-#: src/features/learning/students-page.tsx:122
-#: src/features/learning/students-page.tsx:195
-#: src/features/learning/students-page.tsx:250
+#: src/features/learning/students-page.tsx:150
+#: src/features/learning/students-page.tsx:252
+#: src/features/learning/students-page.tsx:307
 msgid "Give access"
 msgstr "Give access"
 
@@ -5149,6 +5151,10 @@ msgstr "Its key"
 #~ msgid "Its key, e.g. google"
 #~ msgstr "Its key, e.g. google"
 
+#: src/features/learning/course-page.tsx:262
+msgid "Its modules, lessons, and student history stay restorable until the bin removes it permanently."
+msgstr "Its modules, lessons, and student history stay restorable until the bin removes it permanently."
+
 #: src/routes/dashboard.sites.tsx:228
 #~ msgid "Its own database server"
 #~ msgstr "Its own database server"
@@ -5780,9 +5786,27 @@ msgstr "Move cards through the stages of this board."
 #~ msgid "Move it"
 #~ msgstr "Move it"
 
+#: src/features/learning/students-page.tsx:155
+msgid "Move student to bin"
+msgstr "Move student to bin"
+
 #: src/features/portability/portable-page.tsx:77
 msgid "Move the supported site content as a versioned JSON bundle. Accounts, uploads, orders, and secrets stay out of the file."
 msgstr "Move the supported site content as a versioned JSON bundle. Accounts, uploads, orders, and secrets stay out of the file."
+
+#: src/features/learning/course-page.tsx:260
+msgid "Move this course to the bin?"
+msgstr "Move this course to the bin?"
+
+#: src/features/learning/students-page.tsx:184
+msgid "Move this student to the bin?"
+msgstr "Move this student to the bin?"
+
+#: src/features/learning/course-page.tsx:159
+#: src/features/learning/course-page.tsx:268
+#: src/features/learning/students-page.tsx:192
+msgid "Move to bin"
+msgstr "Move to bin"
 
 #: src/components/editor/content-fields.tsx:403
 #: src/routes/dashboard.flows.tsx:888
@@ -5826,7 +5850,7 @@ msgstr "My courses"
 #: src/features/forms/forms-page.tsx:158
 #: src/features/forms/forms-page.tsx:243
 #: src/features/integrations/api-page.tsx:161
-#: src/features/learning/students-page.tsx:214
+#: src/features/learning/students-page.tsx:271
 #: src/features/people/people-page.tsx:290
 msgid "Name"
 msgstr "Name"
@@ -6148,7 +6172,7 @@ msgstr "No forms yet"
 msgid "No languages yet"
 msgstr "No languages yet"
 
-#: src/features/learning/course-page.tsx:149
+#: src/features/learning/course-page.tsx:185
 msgid "No lessons in it yet."
 msgstr "No lessons in it yet."
 
@@ -6311,7 +6335,7 @@ msgstr "Nobody on it yet."
 #~ msgid "Nobody owes anything."
 #~ msgstr "Nobody owes anything."
 
-#: src/features/learning/students-page.tsx:91
+#: src/features/learning/students-page.tsx:119
 msgid "Nobody yet"
 msgstr "Nobody yet"
 
@@ -6462,7 +6486,7 @@ msgstr "Nothing for sale yet."
 #~ msgid "Nothing has been charged yet."
 #~ msgstr "Nothing has been charged yet."
 
-#: src/features/governance/trash-page.tsx:132
+#: src/features/governance/trash-page.tsx:140
 msgid "Nothing has been deleted"
 msgstr "Nothing has been deleted"
 
@@ -6971,7 +6995,7 @@ msgstr "One of the steps is not written as JSON."
 #~ msgstr "Only you will know it. Ten characters or more — a few words you will remember beats something short and clever."
 
 #: src/components/editor/bubble-menus.tsx:290
-#: src/features/learning/course-page.tsx:114
+#: src/features/learning/course-page.tsx:142
 msgid "Open"
 msgstr "Open"
 
@@ -6991,7 +7015,7 @@ msgstr "Open"
 msgid "Open in new tab"
 msgstr "Open in new tab"
 
-#: src/features/learning/course-page.tsx:123
+#: src/features/learning/course-page.tsx:151
 msgid "Open it"
 msgstr "Open it"
 
@@ -7380,7 +7404,7 @@ msgstr "Plain text block"
 #~ msgstr "Port"
 
 #: src/components/dashboard/dashboard-shell.tsx:74
-#: src/features/governance/trash-page.tsx:66
+#: src/features/governance/trash-page.tsx:70
 msgid "post"
 msgstr "post"
 
@@ -7469,7 +7493,7 @@ msgstr "Previous"
 msgid "Private"
 msgstr "Private"
 
-#: src/features/governance/trash-page.tsx:64
+#: src/features/governance/trash-page.tsx:68
 msgid "product"
 msgstr "product"
 
@@ -7567,7 +7591,7 @@ msgstr "Put a token where the … is. It is shown once, when you make it."
 #~ msgid "Put answers on a board"
 #~ msgstr "Put answers on a board"
 
-#: src/features/governance/trash-page.tsx:154
+#: src/features/governance/trash-page.tsx:162
 msgid "Put it back"
 msgstr "Put it back"
 
@@ -7780,8 +7804,8 @@ msgstr "Release {0}"
 #: src/features/forms/forms-page.tsx:216
 #: src/features/forms/forms-page.tsx:330
 #: src/features/forms/forms-page.tsx:466
-#: src/features/learning/course-page.tsx:139
-#: src/features/learning/course-page.tsx:164
+#: src/features/learning/course-page.tsx:175
+#: src/features/learning/course-page.tsx:200
 #: src/features/media/videos-page.tsx:122
 #: src/features/people/people-page.tsx:256
 #: src/features/people/people-page.tsx:366
@@ -9000,10 +9024,14 @@ msgstr "Strikethrough"
 #~ msgid "Strong"
 #~ msgstr "Strong"
 
+#: src/features/governance/trash-page.tsx:66
+msgid "student"
+msgstr "student"
+
 #: src/components/dashboard/dashboard-shell.tsx:102
 #: src/features/dashboard/home-page.tsx:120
-#: src/features/learning/course-page.tsx:241
-#: src/features/learning/students-page.tsx:74
+#: src/features/learning/course-page.tsx:297
+#: src/features/learning/students-page.tsx:102
 msgid "Students"
 msgstr "Students"
 
@@ -9433,7 +9461,7 @@ msgstr "The address it answers on is made from the name and never changes, becau
 #~ msgid "The backup failed"
 #~ msgstr "The backup failed"
 
-#: src/features/governance/trash-page.tsx:128
+#: src/features/governance/trash-page.tsx:136
 msgid "The bin could not be read just now."
 msgstr "The bin could not be read just now."
 
@@ -9486,6 +9514,10 @@ msgstr "The code"
 #: src/features/portability/portable-page.tsx:58
 msgid "The copy was read in."
 msgstr "The copy was read in."
+
+#: src/features/learning/course-page.tsx:120
+msgid "The course is in the bin now."
+msgstr "The course is in the bin now."
 
 #: src/features/analytics/visitors-page.tsx:86
 msgid "The curve draws itself from the first visit on."
@@ -9769,6 +9801,10 @@ msgstr "The site introduced to AI assistants, page by page."
 #~ msgid "The six digits from your authenticator"
 #~ msgstr "The six digits from your authenticator"
 
+#: src/features/learning/students-page.tsx:86
+msgid "The student is in the bin now."
+msgstr "The student is in the bin now."
+
 #: src/routes/dashboard.themes.tsx:777
 #~ msgid "The theme's own version"
 #~ msgstr "The theme's own version"
@@ -9784,6 +9820,10 @@ msgstr "The site introduced to AI assistants, page by page."
 #: src/routes/dashboard.api.tsx:432
 #~ msgid "The whole of it"
 #~ msgstr "The whole of it"
+
+#: src/features/learning/students-page.tsx:186
+msgid "Their enrollments and learning history stay restorable, but active learning sessions are revoked."
+msgstr "Their enrollments and learning history stay restorable, but active learning sessions are revoked."
 
 #: src/components/editor/mavi-editor.tsx:947
 #: src/components/mode-toggle.tsx:24
@@ -10112,7 +10152,7 @@ msgstr "This site has no automatic messages to customize."
 #~ msgid "Those are not the digits the app is showing."
 #~ msgstr "Those are not the digits the app is showing."
 
-#: src/features/governance/trash-page.tsx:159
+#: src/features/governance/trash-page.tsx:167
 msgid "Throw it away now"
 msgstr "Throw it away now"
 
@@ -10572,7 +10612,7 @@ msgstr "Waiting for payment"
 #~ msgid "Waiting to be paid"
 #~ msgstr "Waiting to be paid"
 
-#: src/features/governance/trash-page.tsx:119
+#: src/features/governance/trash-page.tsx:127
 msgid "Waiting to be thrown away"
 msgstr "Waiting to be thrown away"
 
@@ -11085,7 +11125,7 @@ msgstr "When"
 #~ msgid "When something calls in"
 #~ msgstr "When something calls in"
 
-#: src/features/governance/trash-page.tsx:133
+#: src/features/governance/trash-page.tsx:141
 msgid "When something is, it appears here first."
 msgstr "When something is, it appears here first."
 
@@ -11154,11 +11194,11 @@ msgstr "Where to send the receipt"
 #~ msgid "Which browser you are using, which screen you were on and anything the panel has already recorded going wrong are sent with this. It goes to whoever runs this server, and nowhere else."
 #~ msgstr "Which browser you are using, which screen you were on and anything the panel has already recorded going wrong are sent with this. It goes to whoever runs this server, and nowhere else."
 
-#: src/features/learning/students-page.tsx:230
+#: src/features/learning/students-page.tsx:287
 msgid "Which course"
 msgstr "Which course"
 
-#: src/features/learning/students-page.tsx:197
+#: src/features/learning/students-page.tsx:254
 msgid "Which course to enroll the student in."
 msgstr "Which course to enroll the student in."
 
@@ -11222,7 +11262,7 @@ msgstr "Who did what to this site, and when."
 #~ msgid "Who is on it"
 #~ msgstr "Who is on it"
 
-#: src/features/learning/students-page.tsx:75
+#: src/features/learning/students-page.tsx:103
 msgid "Who may watch what, and until when."
 msgstr "Who may watch what, and until when."
 

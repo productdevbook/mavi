@@ -2,6 +2,7 @@ import * as React from "react"
 import { useLingui } from "@lingui/react/macro"
 import {
   FileText,
+  GraduationCap,
   Image as ImageIcon,
   Inbox,
   ShoppingBag,
@@ -9,6 +10,7 @@ import {
   RotateCcw,
   Tags,
   Trash2,
+  UserRound,
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -60,6 +62,8 @@ export function TrashPage() {
   React.useEffect(load, [load])
 
   const named: Record<string, string> = {
+    course: t`course`,
+    student: t`student`,
     form: t`form`,
     product: t`product`,
     coupon: t`coupon`,
@@ -72,15 +76,19 @@ export function TrashPage() {
     const glyph =
       kind === "file"
         ? ImageIcon
-        : kind === "product"
-          ? ShoppingBag
-          : kind === "coupon"
-            ? Tag
-            : kind === "content"
-              ? Inbox
-              : kind === "term"
-                ? Tags
-                : FileText
+        : kind === "course"
+          ? GraduationCap
+          : kind === "student"
+            ? UserRound
+            : kind === "product"
+              ? ShoppingBag
+              : kind === "coupon"
+                ? Tag
+                : kind === "content"
+                  ? Inbox
+                  : kind === "term"
+                    ? Tags
+                    : FileText
     return React.createElement(glyph, {
       className: "size-4 text-muted-foreground",
     })

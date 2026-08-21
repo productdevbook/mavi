@@ -271,6 +271,22 @@ fn endpoints() -> Vec<Endpoint> {
             ErrorCode::Internal,
         ]),
         Endpoint::new(
+            Method::Delete,
+            "/api/v1/courses/{id}",
+            "courses.delete",
+            "Move a course and its curriculum to site trash",
+        )
+        .account_or_assistant()
+        .requires(delete)
+        .resource_scoped()
+        .returns(204, "Empty")
+        .changes(false)
+        .refuses([
+            ErrorCode::Forbidden,
+            ErrorCode::NotFound,
+            ErrorCode::Internal,
+        ]),
+        Endpoint::new(
             Method::Put,
             "/api/v1/courses/{id}/modules/order",
             "courses.modules.reorder",
@@ -742,6 +758,45 @@ impl CoursesService {
         let mut course = course_from_row(&row)?;
         course.modules = load_modules(tx, context, id).await?;
         Ok(course)
+    }
+
+    /// Moves the course root to site trash while retaining its curriculum,
+    /// enrollments and progress for an explicit restore or permanent delete.
+    /// Child rows remain addressable only through the trashed root and are
+    /// removed by the database cascade when the root is permanently deleted.
+    pub async fn delete_course(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        id: CourseId,
+    ) -> Result<()> {
+        let row = course_row(tx, context, id, true).await?;
+        let slug: String = row.try_get("slug").map_err(|_| MaviError::Internal)?;
+        let state: String = row.try_get("state").map_err(|_| MaviError::Internal)?;
+        let changed = sqlx::query(
+            "update courses
+                set deleted_at = clock_timestamp(), updated_at = clock_timestamp()
+              where site_id = $1 and id = $2 and deleted_at is null",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(id.into_uuid())
+        .execute(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?;
+        if changed.rows_affected() == 0 {
+            return Err(MaviError::NotFound {
+                resource: COURSE_NOT_FOUND,
+            });
+        }
+        audit(
+            tx,
+            context,
+            "courses.course.trashed",
+            "Course",
+            Some(id.into_uuid()),
+            json!({"slug": slug, "state": state}),
+        )
+        .await
     }
 
     pub async fn create_module(

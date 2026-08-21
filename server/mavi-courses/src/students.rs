@@ -194,6 +194,21 @@ pub fn api() -> mavi_contract::Api {
             ErrorCode::Internal,
         ]),
         Endpoint::new(
+            Method::Delete,
+            "/api/v1/courses/students/{id}",
+            "courses.students.delete",
+            "Move a student and learning history to site trash",
+        )
+        .account_or_assistant()
+        .requires(delete)
+        .returns(204, "Empty")
+        .changes(false)
+        .refuses([
+            ErrorCode::Forbidden,
+            ErrorCode::NotFound,
+            ErrorCode::Internal,
+        ]),
+        Endpoint::new(
             Method::Get,
             "/api/v1/courses/{course_id}/enrollments",
             "courses.enrollments.list",
@@ -533,6 +548,68 @@ impl CoursesService {
         )
         .await?;
         Ok(student)
+    }
+
+    /// Moves a student to site trash and revokes every active learning
+    /// session. Enrollments and progress stay intact so restoring the student
+    /// preserves their learning history without reviving old bearer tokens.
+    pub async fn delete_student(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        id: StudentId,
+    ) -> Result<()> {
+        let row = sqlx::query(
+            "select email, standing
+               from course_students
+              where site_id = $1 and id = $2 and deleted_at is null
+              for update",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(id.into_uuid())
+        .fetch_optional(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?
+        .ok_or(MaviError::NotFound {
+            resource: STUDENT_NOT_FOUND,
+        })?;
+        let email: String = row.try_get("email").map_err(|_| MaviError::Internal)?;
+        let standing: String = row.try_get("standing").map_err(|_| MaviError::Internal)?;
+        sqlx::query(
+            "update course_students
+                set deleted_at = clock_timestamp(), updated_at = clock_timestamp(),
+                    activation_token_hash = null, activation_expires_at = null
+              where site_id = $1 and id = $2 and deleted_at is null",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(id.into_uuid())
+        .execute(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?;
+        let revoked_sessions = sqlx::query(
+            "update course_student_sessions
+                set revoked_at = coalesce(revoked_at, clock_timestamp())
+              where site_id = $1 and student_id = $2 and revoked_at is null",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(id.into_uuid())
+        .execute(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?
+        .rows_affected();
+        audit(
+            tx,
+            context,
+            "courses.student.trashed",
+            "CourseStudent",
+            Some(id.into_uuid()),
+            json!({
+                "email": email,
+                "standing": standing,
+                "revoked_sessions": revoked_sessions,
+            }),
+        )
+        .await
     }
 
     pub async fn list_enrollments(

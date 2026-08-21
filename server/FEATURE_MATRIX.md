@@ -121,7 +121,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
 - [-] Trash, restore and permanent deletion policy.
   - [x] Shared cursor list, typed content/file/term restore and permanent-delete API.
   - [x] Media trash retains bytes; permanent deletion queues and confirms adapter cleanup.
-- [-] Courses, boards and flow-specific trash kinds remain open; core content, file, term, form, product and coupon trash now has a site-configured, idempotent `trash.retention` worker with bounded batches, form-submission cascade cleanup, shop order-snapshot preservation, active-stock-hold protection, media cleanup and system audit receipts.
+- [-] Boards and flow-specific trash kinds remain open; core content, file, term, form, product, coupon, course and student trash now has a site-configured, idempotent `trash.retention` worker with bounded batches, form-submission cascade cleanup, shop order-snapshot preservation, active-stock-hold protection, learning-state preservation until purge, media cleanup and system audit receipts.
 - [-] Design files, preview builds, publish, rollback and public serving.
   - [x] Site-scoped design changes copy the current published source and expose only typed source-file APIs.
   - [x] Opaque keyset cursors are used for changes, files and builds; `page`/`offset` are not public inputs.
@@ -180,6 +180,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Student curriculum reads expose enrolled modules, lesson completion state and deterministic lesson navigation through `learning.course.read` and `learning.lesson.read`.
   - [x] Lesson media is served as protected bytes only after enrollment, standing and open-course checks.
   - [x] Course tables use composite site keys, foreign keys and RLS; mutations emit audit receipts.
+  - [x] Course and student trash is site-scoped and auditable; restore keeps curriculum/enrollments/progress, student trash revokes active sessions, and permanent deletion cascades learning state.
 - [-] Expiring access, progress, completion and instructor permissions.
   - [x] Student sessions expire, stopped students lose access, and lesson completion is idempotent while retaining progress after unenrollment.
   - [x] Course-specific instructor assignments use a site-scoped `course_instructors` table, allow only `view`/`write`/`delete`, and are evaluated by Cedar as resource grants inside the same scoped transaction as course reads and mutations.
@@ -246,6 +247,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Mail template/list/outbox PostgreSQL RLS state-machine tests and HTTP contract coverage.
   - [x] Shop catalog/checkout/stock/order PostgreSQL isolation tests and HTTP permission/contract coverage.
   - [x] Courses authoring/order/student-session/enrollment/progress/media PostgreSQL isolation tests and HTTP permission/contract coverage.
+  - [x] Course/student trash restore, purge, retention cascade and site-isolation acceptance coverage.
   - [x] Student curriculum, completion/navigation fields and protected media contract coverage.
   - [x] Course instructor assignment PostgreSQL/RLS and Cedar resource-grant HTTP acceptance coverage.
   - [x] Jobs lease/idempotency/dead-letter PostgreSQL isolation and automation flow snapshot/event/run HTTP coverage.

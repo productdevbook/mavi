@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Mavi",
-    "version": "0.1.6"
+    "version": "0.1.7"
   },
   "paths": {
     "/api/v1/setup": {
@@ -15570,6 +15570,16 @@
               }
             }
           },
+          "409": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Request refused",
             "content": {
@@ -15608,6 +15618,7 @@
           "errors": [
             "forbidden",
             "not_found",
+            "conflict",
             "internal"
           ]
         }
@@ -15729,7 +15740,7 @@
       },
       "delete": {
         "operationId": "automation.flows.delete",
-        "summary": "Disable and remove a flow definition",
+        "summary": "Move a flow definition to site trash",
         "tags": [
           "automation"
         ],
@@ -16511,7 +16522,7 @@
       },
       "delete": {
         "operationId": "boards.delete",
-        "summary": "Archive a board and its visible work",
+        "summary": "Move a board and its visible work to site trash",
         "tags": [
           "boards"
         ],
@@ -27045,6 +27056,8 @@
       "TrashKind": {
         "type": "string",
         "enum": [
+          "board",
+          "flow",
           "course",
           "student",
           "form",

@@ -258,7 +258,7 @@ msgstr "{0} files"
 #~ msgstr "{0} in {days} days"
 
 #. placeholder {0}: entry.label
-#: src/features/governance/trash-page.tsx:101
+#: src/features/governance/trash-page.tsx:109
 msgid "{0} is back"
 msgstr "{0} is back"
 
@@ -936,7 +936,7 @@ msgstr "A new code"
 msgid "A new file"
 msgstr "A new file"
 
-#: src/features/automation/flows-page.tsx:208
+#: src/features/automation/flows-page.tsx:243
 msgid "A new flow"
 msgstr "A new flow"
 
@@ -1645,7 +1645,7 @@ msgstr "An email address"
 #~ msgid "An IAM user with ses:SendEmail. That is all sending needs. The account page below asks Amazon rather more, and says which permission is missing when one is."
 #~ msgstr "An IAM user with ses:SendEmail. That is all sending needs. The account page below asks Amazon rather more, and says which permission is missing when one is."
 
-#: src/features/governance/trash-page.tsx:129
+#: src/features/governance/trash-page.tsx:137
 msgid "An image keeps its file while it is here, so a restored post still has its pictures. The file goes when the entry does."
 msgstr "An image keeps its file while it is here, so a restored post still has its pictures. The file goes when the entry does."
 
@@ -1670,7 +1670,7 @@ msgstr "Another"
 msgid "Another stage"
 msgstr "Another stage"
 
-#: src/features/automation/flows-page.tsx:258
+#: src/features/automation/flows-page.tsx:293
 msgid "Another step"
 msgstr "Another step"
 
@@ -2133,7 +2133,7 @@ msgstr "Being written"
 #~ msgstr "Bills"
 
 #: src/components/dashboard/dashboard-shell.tsx:106
-#: src/features/governance/trash-page.tsx:121
+#: src/features/governance/trash-page.tsx:129
 msgid "Bin"
 msgstr "Bin"
 
@@ -2166,9 +2166,9 @@ msgstr "Blocks"
 msgid "Blue"
 msgstr "Blue"
 
-#: src/features/governance/trash-page.tsx:68
-#~ msgid "board"
-#~ msgstr "board"
+#: src/features/governance/trash-page.tsx:67
+msgid "board"
+msgstr "board"
 
 #: src/components/dashboard/dashboard-shell.tsx:104
 #: src/features/boards/board-page.tsx:129
@@ -2398,7 +2398,8 @@ msgstr "Can open {summary} of {0} areas."
 #: src/components/editor/dialogs.tsx:267
 #: src/components/editor/dialogs.tsx:357
 #: src/components/report-a-problem.tsx:178
-#: src/features/automation/flows-page.tsx:328
+#: src/features/automation/flows-page.tsx:232
+#: src/features/automation/flows-page.tsx:363
 #: src/features/boards/board-page.tsx:240
 #: src/features/boards/boards-page.tsx:223
 #: src/features/boards/boards-page.tsx:245
@@ -2483,7 +2484,7 @@ msgstr "Categories and tags"
 #~ msgid "Category"
 #~ msgstr "Category"
 
-#: src/features/governance/trash-page.tsx:72
+#: src/features/governance/trash-page.tsx:76
 msgid "category or tag"
 msgstr "category or tag"
 
@@ -3401,11 +3402,11 @@ msgstr "Could not upload {0}"
 #~ msgid "Countries"
 #~ msgstr "Countries"
 
-#: src/features/governance/trash-page.tsx:69
+#: src/features/governance/trash-page.tsx:73
 msgid "coupon"
 msgstr "coupon"
 
-#: src/features/governance/trash-page.tsx:65
+#: src/features/governance/trash-page.tsx:69
 msgid "course"
 msgstr "course"
 
@@ -3464,7 +3465,7 @@ msgstr "Create a product before you start taking orders."
 msgid "Create a tag once and reuse it across content in this language."
 msgstr "Create a tag once and reuse it across content in this language."
 
-#: src/features/automation/flows-page.tsx:150
+#: src/features/automation/flows-page.tsx:165
 msgid "Create a trigger and steps to automate work on this site."
 msgstr "Create a trigger and steps to automate work on this site."
 
@@ -3690,7 +3691,7 @@ msgstr "Delete this file?"
 #~ msgid "Deleted content waits thirty days before it is removed permanently, and can be restored in the meantime."
 #~ msgstr "Deleted content waits thirty days before it is removed permanently, and can be restored in the meantime."
 
-#: src/features/governance/trash-page.tsx:122
+#: src/features/governance/trash-page.tsx:130
 msgid "Deleted resources wait thirty days before they are removed permanently, and can be restored in the meantime."
 msgstr "Deleted resources wait thirty days before they are removed permanently, and can be restored in the meantime."
 
@@ -4214,7 +4215,7 @@ msgstr "Export"
 msgid "Fields"
 msgstr "Fields"
 
-#: src/features/governance/trash-page.tsx:71
+#: src/features/governance/trash-page.tsx:75
 msgid "file"
 msgstr "file"
 
@@ -4268,9 +4269,9 @@ msgstr "First byte"
 #~ msgid "Flood refused"
 #~ msgstr "Flood refused"
 
-#: src/features/governance/trash-page.tsx:70
-#~ msgid "flow"
-#~ msgstr "flow"
+#: src/features/governance/trash-page.tsx:68
+msgid "flow"
+msgstr "flow"
 
 #: src/lib/audit-looks.ts:70
 #~ msgid "Flow removed"
@@ -4281,7 +4282,7 @@ msgstr "First byte"
 #~ msgstr "Flow written"
 
 #: src/components/dashboard/dashboard-shell.tsx:93
-#: src/features/automation/flows-page.tsx:135
+#: src/features/automation/flows-page.tsx:150
 #: src/features/dashboard/home-page.tsx:132
 #: src/features/people/roles-page.tsx:166
 msgid "Flows"
@@ -4353,7 +4354,7 @@ msgstr "Forget it"
 #~ msgid "Forgotten."
 #~ msgstr "Forgotten."
 
-#: src/features/governance/trash-page.tsx:67
+#: src/features/governance/trash-page.tsx:71
 msgid "form"
 msgstr "form"
 
@@ -5091,6 +5092,10 @@ msgstr "It has gone"
 #~ msgid "It stopped before any step ran."
 #~ msgstr "It stopped before any step ran."
 
+#: src/features/automation/flows-page.tsx:228
+msgid "It stops running and can be restored from the bin with its previous enabled state."
+msgstr "It stops running and can be restored from the bin with its previous enabled state."
+
 #: src/lib/lead-words.ts:58
 #~ msgid "It went no further"
 #~ msgstr "It went no further"
@@ -5131,8 +5136,8 @@ msgstr "Italic"
 #~ msgstr "Its address"
 
 #: src/features/boards/boards-page.tsx:241
-msgid "Its cards go with it."
-msgstr "Its cards go with it."
+#~ msgid "Its cards go with it."
+#~ msgstr "Its cards go with it."
 
 #: src/components/dashboard/content-type-editor.tsx:104
 #~ msgid "Its icon"
@@ -5150,6 +5155,10 @@ msgstr "Its key"
 #: src/routes/dashboard.settings.tsx:372
 #~ msgid "Its key, e.g. google"
 #~ msgstr "Its key, e.g. google"
+
+#: src/features/boards/boards-page.tsx:241
+msgid "Its lists and cards go with it and can be restored from the bin."
+msgstr "Its lists and cards go with it and can be restored from the bin."
 
 #: src/features/learning/course-page.tsx:262
 msgid "Its modules, lessons, and student history stay restorable until the bin removes it permanently."
@@ -5587,7 +5596,7 @@ msgstr "Make a role, then tick what it may do below."
 msgid "Make default"
 msgstr "Make default"
 
-#: src/features/automation/flows-page.tsx:332
+#: src/features/automation/flows-page.tsx:367
 #: src/features/boards/boards-page.tsx:227
 #: src/features/mail/mail-page.tsx:302
 #: src/features/people/roles-page.tsx:455
@@ -5794,14 +5803,23 @@ msgstr "Move student to bin"
 msgid "Move the supported site content as a versioned JSON bundle. Accounts, uploads, orders, and secrets stay out of the file."
 msgstr "Move the supported site content as a versioned JSON bundle. Accounts, uploads, orders, and secrets stay out of the file."
 
+#: src/features/boards/boards-page.tsx:239
+msgid "Move this board to the bin?"
+msgstr "Move this board to the bin?"
+
 #: src/features/learning/course-page.tsx:260
 msgid "Move this course to the bin?"
 msgstr "Move this course to the bin?"
+
+#: src/features/automation/flows-page.tsx:226
+msgid "Move this flow to the bin?"
+msgstr "Move this flow to the bin?"
 
 #: src/features/learning/students-page.tsx:184
 msgid "Move this student to the bin?"
 msgstr "Move this student to the bin?"
 
+#: src/features/automation/flows-page.tsx:234
 #: src/features/learning/course-page.tsx:159
 #: src/features/learning/course-page.tsx:268
 #: src/features/learning/students-page.tsx:192
@@ -5949,8 +5967,8 @@ msgstr "New category"
 msgid "New code"
 msgstr "New code"
 
-#: src/features/automation/flows-page.tsx:139
-#: src/features/automation/flows-page.tsx:153
+#: src/features/automation/flows-page.tsx:154
+#: src/features/automation/flows-page.tsx:168
 msgid "New flow"
 msgstr "New flow"
 
@@ -6156,7 +6174,7 @@ msgstr "no fields of its own"
 #~ msgid "No flows yet"
 #~ msgstr "No flows yet"
 
-#: src/features/automation/flows-page.tsx:149
+#: src/features/automation/flows-page.tsx:164
 msgid "No flows yet."
 msgstr "No flows yet."
 
@@ -6486,7 +6504,7 @@ msgstr "Nothing for sale yet."
 #~ msgid "Nothing has been charged yet."
 #~ msgstr "Nothing has been charged yet."
 
-#: src/features/governance/trash-page.tsx:140
+#: src/features/governance/trash-page.tsx:148
 msgid "Nothing has been deleted"
 msgstr "Nothing has been deleted"
 
@@ -6893,7 +6911,7 @@ msgstr "One of a few"
 #~ msgid "One of a list"
 #~ msgstr "One of a list"
 
-#: src/features/automation/flows-page.tsx:124
+#: src/features/automation/flows-page.tsx:139
 msgid "One of the steps is not written as JSON."
 msgstr "One of the steps is not written as JSON."
 
@@ -7404,7 +7422,7 @@ msgstr "Plain text block"
 #~ msgstr "Port"
 
 #: src/components/dashboard/dashboard-shell.tsx:74
-#: src/features/governance/trash-page.tsx:70
+#: src/features/governance/trash-page.tsx:74
 msgid "post"
 msgstr "post"
 
@@ -7493,7 +7511,7 @@ msgstr "Previous"
 msgid "Private"
 msgstr "Private"
 
-#: src/features/governance/trash-page.tsx:68
+#: src/features/governance/trash-page.tsx:72
 msgid "product"
 msgstr "product"
 
@@ -7591,7 +7609,7 @@ msgstr "Put a token where the … is. It is shown once, when you make it."
 #~ msgid "Put answers on a board"
 #~ msgstr "Put answers on a board"
 
-#: src/features/governance/trash-page.tsx:162
+#: src/features/governance/trash-page.tsx:170
 msgid "Put it back"
 msgstr "Put it back"
 
@@ -7792,8 +7810,8 @@ msgstr "Release {0}"
 #: src/components/dashboard/content-type-editor.tsx:211
 #: src/components/editor/bubble-menus.tsx:201
 #: src/components/editor/bubble-menus.tsx:282
-#: src/features/automation/flows-page.tsx:181
-#: src/features/automation/flows-page.tsx:298
+#: src/features/automation/flows-page.tsx:196
+#: src/features/automation/flows-page.tsx:333
 #: src/features/boards/board-page.tsx:162
 #: src/features/boards/boards-page.tsx:154
 #: src/features/boards/boards-page.tsx:201
@@ -7850,8 +7868,8 @@ msgid "Remove this account?"
 msgstr "Remove this account?"
 
 #: src/features/boards/boards-page.tsx:239
-msgid "Remove this board?"
-msgstr "Remove this board?"
+#~ msgid "Remove this board?"
+#~ msgstr "Remove this board?"
 
 #: src/features/forms/forms-page.tsx:322
 msgid "Remove this form?"
@@ -8917,7 +8935,7 @@ msgstr "Start writing, or type “/” for commands…"
 msgid "Status"
 msgstr "Status"
 
-#: src/features/automation/flows-page.tsx:247
+#: src/features/automation/flows-page.tsx:282
 msgid "Steps"
 msgstr "Steps"
 
@@ -9024,7 +9042,7 @@ msgstr "Strikethrough"
 #~ msgid "Strong"
 #~ msgstr "Strong"
 
-#: src/features/governance/trash-page.tsx:66
+#: src/features/governance/trash-page.tsx:70
 msgid "student"
 msgstr "student"
 
@@ -9461,7 +9479,7 @@ msgstr "The address it answers on is made from the name and never changes, becau
 #~ msgid "The backup failed"
 #~ msgstr "The backup failed"
 
-#: src/features/governance/trash-page.tsx:136
+#: src/features/governance/trash-page.tsx:144
 msgid "The bin could not be read just now."
 msgstr "The bin could not be read just now."
 
@@ -10152,7 +10170,7 @@ msgstr "This site has no automatic messages to customize."
 #~ msgid "Those are not the digits the app is showing."
 #~ msgstr "Those are not the digits the app is showing."
 
-#: src/features/governance/trash-page.tsx:167
+#: src/features/governance/trash-page.tsx:175
 msgid "Throw it away now"
 msgstr "Throw it away now"
 
@@ -10612,7 +10630,7 @@ msgstr "Waiting for payment"
 #~ msgid "Waiting to be paid"
 #~ msgstr "Waiting to be paid"
 
-#: src/features/governance/trash-page.tsx:127
+#: src/features/governance/trash-page.tsx:135
 msgid "Waiting to be thrown away"
 msgstr "Waiting to be thrown away"
 
@@ -10739,7 +10757,7 @@ msgstr "What each role on this site may read, write and delete. Menus follow thi
 #~ msgid "What happened"
 #~ msgstr "What happened"
 
-#: src/features/automation/flows-page.tsx:136
+#: src/features/automation/flows-page.tsx:151
 msgid "What happens by itself when something happens: a form comes in, an order is paid. One trigger, then steps in order."
 msgstr "What happens by itself when something happens: a form comes in, an order is paid. One trigger, then steps in order."
 
@@ -10813,7 +10831,7 @@ msgstr "What it is about"
 
 #: src/components/dashboard/content-type-editor.tsx:99
 #: src/components/dashboard/content-type-editor.tsx:146
-#: src/features/automation/flows-page.tsx:216
+#: src/features/automation/flows-page.tsx:251
 #: src/features/boards/boards-page.tsx:175
 #: src/features/forms/forms-page.tsx:401
 #: src/features/learning/start-teaching-page.tsx:70
@@ -10916,11 +10934,11 @@ msgstr "What one of these is made of, beyond its title and its text."
 #~ msgid "what somebody sent"
 #~ msgstr "what somebody sent"
 
-#: src/features/automation/flows-page.tsx:225
+#: src/features/automation/flows-page.tsx:260
 msgid "What starts it"
 msgstr "What starts it"
 
-#: src/features/automation/flows-page.tsx:210
+#: src/features/automation/flows-page.tsx:245
 msgid "What starts it, and what it does. Each step's settings are written as JSON, which is what the API keeps."
 msgstr "What starts it, and what it does. Each step's settings are written as JSON, which is what the API keeps."
 
@@ -11125,7 +11143,7 @@ msgstr "When"
 #~ msgid "When something calls in"
 #~ msgstr "When something calls in"
 
-#: src/features/governance/trash-page.tsx:141
+#: src/features/governance/trash-page.tsx:149
 msgid "When something is, it appears here first."
 msgstr "When something is, it appears here first."
 

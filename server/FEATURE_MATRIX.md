@@ -121,7 +121,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
 - [-] Trash, restore and permanent deletion policy.
   - [x] Shared cursor list, typed content/file/term restore and permanent-delete API.
   - [x] Media trash retains bytes; permanent deletion queues and confirms adapter cleanup.
-- [-] Boards and flow-specific trash kinds remain open; core content, file, term, form, product, coupon, course and student trash now has a site-configured, idempotent `trash.retention` worker with bounded batches, form-submission cascade cleanup, shop order-snapshot preservation, active-stock-hold protection, learning-state preservation until purge, media cleanup and system audit receipts.
+- [x] Boards and flows use site trash kinds with reversible root tombstones, child-state-preserving restore, active-flow purge fencing, bounded retention cleanup and immutable audit receipts; core content, file, term, form, product, coupon, course and student trash remains covered by the same site-configured `trash.retention` worker.
 - [-] Design files, preview builds, publish, rollback and public serving.
   - [x] Site-scoped design changes copy the current published source and expose only typed source-file APIs.
   - [x] Opaque keyset cursors are used for changes, files and builds; `page`/`offset` are not public inputs.
@@ -252,6 +252,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Course instructor assignment PostgreSQL/RLS and Cedar resource-grant HTTP acceptance coverage.
   - [x] Jobs lease/idempotency/dead-letter PostgreSQL isolation and automation flow snapshot/event/run HTTP coverage.
   - [x] Boards PostgreSQL scope/order/activity tests and boards HTTP cursor/permission acceptance coverage.
+  - [x] Board/flow trash restore, purge, active-work protection, retention cascade and cross-site isolation coverage.
   - [x] Analytics PostgreSQL aggregate/retention/isolation tests and analytics HTTP ingest/export coverage.
   - [x] Portable cross-site PostgreSQL export/import/conflict tests, private identity/media/design relocation and HTTP contract acceptance coverage.
   - [x] Identity HTTP integration covers setup, login, cursor, 401/403 and Cedar behavior.

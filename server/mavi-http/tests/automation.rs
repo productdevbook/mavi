@@ -8,6 +8,7 @@ use uuid::Uuid;
 
 #[tokio::test]
 #[ignore = "requires TEST_DATABASE_URL and a non-superuser PostgreSQL role"]
+#[allow(clippy::too_many_lines)]
 async fn automation_http_contract_and_authorization_are_explicit() {
     let app = support::build_app().await;
     let token = bootstrap(&app, "Automation site").await;
@@ -72,6 +73,45 @@ async fn automation_http_contract_and_authorization_are_explicit() {
             .len(),
         2
     );
+
+    let trashed = send(
+        &app,
+        Method::DELETE,
+        &format!("/api/v1/automation/flows/{flow_id}"),
+        Some(&token),
+        None,
+    )
+    .await;
+    assert_eq!(trashed.status(), StatusCode::NO_CONTENT);
+    let flow_trash = send(
+        &app,
+        Method::GET,
+        "/api/v1/trash?kind=flow",
+        Some(&token),
+        None,
+    )
+    .await;
+    assert_eq!(flow_trash.status(), StatusCode::OK);
+    assert_eq!(response_json(flow_trash).await["items"][0]["id"], flow_id);
+    let restored = send(
+        &app,
+        Method::POST,
+        &format!("/api/v1/trash/flow/{flow_id}/restore"),
+        Some(&token),
+        None,
+    )
+    .await;
+    assert_eq!(restored.status(), StatusCode::NO_CONTENT);
+    let restored_flow = send(
+        &app,
+        Method::GET,
+        &format!("/api/v1/automation/flows/{flow_id}"),
+        Some(&token),
+        None,
+    )
+    .await;
+    assert_eq!(restored_flow.status(), StatusCode::OK);
+    assert_eq!(response_json(restored_flow).await["enabled"], true);
 
     let triggers = send(
         &app,

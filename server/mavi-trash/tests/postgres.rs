@@ -1,9 +1,11 @@
 use chrono::Utc;
+use mavi_boards::{BoardService, CreateBoard, CreateCard, CreateList};
 use mavi_content::{ContentService, CreateContent, PublicationInput};
 use mavi_core::ports::FileStore;
 use mavi_core::{MaviError, PageRequest, SiteContext, SiteId};
 use mavi_courses::{CoursesService, CreateCourse, CreateLesson, CreateModule, CreateStudent};
 use mavi_files::InMemoryFileStore;
+use mavi_flows::{CreateFlow, FlowService, FlowStepInput, StepKind, Trigger, UpdateFlow};
 use mavi_forms::{CreateForm, FormService};
 use mavi_media::{FileVisibility, MediaService};
 use mavi_shop::{
@@ -318,6 +320,294 @@ async fn trash_lists_restores_and_permanently_deletes_site_resources() {
         .expect("isolated trash list");
     assert!(isolated.items.is_empty());
     transaction.commit().await.expect("commit");
+}
+
+#[tokio::test]
+#[ignore = "requires TEST_DATABASE_URL and a non-superuser PostgreSQL role"]
+#[allow(clippy::too_many_lines)]
+async fn board_and_flow_trash_restore_preserves_state_and_purges_children() {
+    let url = std::env::var("TEST_DATABASE_URL").expect("TEST_DATABASE_URL");
+    let database = Database::connect(&url, 2).await.expect("database");
+    database.migrate().await.expect("migrations");
+
+    let site_id = SiteId::new();
+    let other_site_id = SiteId::new();
+    database.ensure_site(site_id).await.expect("site");
+    database
+        .ensure_site(other_site_id)
+        .await
+        .expect("other site");
+    let context = SiteContext::public(site_id);
+    let boards = BoardService;
+    let flows = FlowService;
+    let trash = TrashService;
+
+    let (board, list, archived_card, active_card, flow) = {
+        let mut transaction = database.begin(&context).await.expect("create scope");
+        let board = boards
+            .create_board(
+                &mut transaction,
+                &context,
+                &CreateBoard {
+                    name: "Trash board".to_owned(),
+                    description: Some("restorable board".to_owned()),
+                },
+            )
+            .await
+            .expect("board");
+        let list = boards
+            .create_list(
+                &mut transaction,
+                &context,
+                board.id,
+                &CreateList {
+                    name: "Backlog".to_owned(),
+                },
+            )
+            .await
+            .expect("list");
+        let archived_card = boards
+            .create_card(
+                &mut transaction,
+                &context,
+                list.id,
+                &CreateCard {
+                    title: "Already archived".to_owned(),
+                    description: None,
+                    assignee_id: None,
+                },
+            )
+            .await
+            .expect("archived card");
+        let active_card = boards
+            .create_card(
+                &mut transaction,
+                &context,
+                list.id,
+                &CreateCard {
+                    title: "Visible card".to_owned(),
+                    description: None,
+                    assignee_id: None,
+                },
+            )
+            .await
+            .expect("active card");
+        boards
+            .delete_card(&mut transaction, &context, archived_card.id)
+            .await
+            .expect("archive card");
+        let flow = flows
+            .create(
+                &mut transaction,
+                &context,
+                &CreateFlow {
+                    name: "Trash flow".to_owned(),
+                    trigger: Trigger::FormSubmitted,
+                    steps: vec![FlowStepInput {
+                        kind: StepKind::Wait,
+                        config: json!({"seconds": 60}),
+                    }],
+                },
+            )
+            .await
+            .expect("flow");
+        flows
+            .update(
+                &mut transaction,
+                &context,
+                flow.id,
+                &UpdateFlow {
+                    enabled: Some(true),
+                    ..UpdateFlow::default()
+                },
+            )
+            .await
+            .expect("enable flow");
+        transaction.commit().await.expect("create commit");
+        (board, list, archived_card, active_card, flow)
+    };
+
+    let mut transaction = database.begin(&context).await.expect("trash scope");
+    boards
+        .delete_board(&mut transaction, &context, board.id)
+        .await
+        .expect("trash board");
+    flows
+        .delete(&mut transaction, &context, flow.id)
+        .await
+        .expect("trash flow");
+    let boards_in_trash = trash
+        .list(
+            &mut transaction,
+            &context,
+            &TrashListFilter {
+                kind: Some(TrashKind::Board),
+                ..TrashListFilter::default()
+            },
+        )
+        .await
+        .expect("board trash");
+    assert_eq!(boards_in_trash.items.len(), 1);
+    let flows_in_trash = trash
+        .list(
+            &mut transaction,
+            &context,
+            &TrashListFilter {
+                kind: Some(TrashKind::Flow),
+                ..TrashListFilter::default()
+            },
+        )
+        .await
+        .expect("flow trash");
+    assert_eq!(flows_in_trash.items.len(), 1);
+    trash
+        .restore(
+            &mut transaction,
+            &context,
+            TrashKind::Board,
+            board.id.into_uuid(),
+        )
+        .await
+        .expect("restore board");
+    trash
+        .restore(
+            &mut transaction,
+            &context,
+            TrashKind::Flow,
+            flow.id.into_uuid(),
+        )
+        .await
+        .expect("restore flow");
+    let restored_board = boards
+        .get_board(&mut transaction, board.id)
+        .await
+        .expect("restored board");
+    assert!(!restored_board.archived);
+    let cards = boards
+        .list_cards(
+            &mut transaction,
+            list.id,
+            &mavi_boards::CardPageFilter::default(),
+        )
+        .await
+        .expect("restored cards");
+    assert_eq!(cards.items.len(), 1);
+    assert_eq!(cards.items[0].id, active_card.id);
+    let archived_at: Option<chrono::DateTime<Utc>> =
+        sqlx::query_scalar("select archived_at from board_cards where site_id = $1 and id = $2")
+            .bind(site_id.into_uuid())
+            .bind(archived_card.id.into_uuid())
+            .fetch_one(transaction.conn())
+            .await
+            .expect("archived state");
+    assert!(archived_at.is_some());
+    assert!(
+        flows
+            .get(&mut transaction, flow.id)
+            .await
+            .expect("restored flow")
+            .enabled
+    );
+    transaction.commit().await.expect("restore commit");
+
+    let mut transaction = database.begin(&context).await.expect("purge scope");
+    boards
+        .delete_board(&mut transaction, &context, board.id)
+        .await
+        .expect("trash board again");
+    flows
+        .delete(&mut transaction, &context, flow.id)
+        .await
+        .expect("trash flow again");
+    let active_run_id = uuid::Uuid::now_v7();
+    sqlx::query(
+        "insert into automation_runs
+            (site_id, id, flow_id, trigger, event, definition, state, current_position, retry_count)
+         values ($1, $2, $3, 'form_submitted', '{}'::jsonb, '[]'::jsonb, 'running', 0, 0)",
+    )
+    .bind(site_id.into_uuid())
+    .bind(active_run_id)
+    .bind(flow.id.into_uuid())
+    .execute(transaction.conn())
+    .await
+    .expect("active flow run");
+    let blocked = trash
+        .permanently_delete(
+            &mut transaction,
+            &context,
+            TrashKind::Flow,
+            flow.id.into_uuid(),
+        )
+        .await;
+    assert!(matches!(
+        blocked,
+        Err(MaviError::Conflict { code }) if code == mavi_trash::TRASH_FLOW_ACTIVE_WORK
+    ));
+    sqlx::query("delete from automation_runs where site_id = $1 and id = $2")
+        .bind(site_id.into_uuid())
+        .bind(active_run_id)
+        .execute(transaction.conn())
+        .await
+        .expect("remove active run");
+    trash
+        .permanently_delete(
+            &mut transaction,
+            &context,
+            TrashKind::Board,
+            board.id.into_uuid(),
+        )
+        .await
+        .expect("purge board");
+    trash
+        .permanently_delete(
+            &mut transaction,
+            &context,
+            TrashKind::Flow,
+            flow.id.into_uuid(),
+        )
+        .await
+        .expect("purge flow");
+    let child_count: i64 = sqlx::query_scalar(
+        "select
+            (select count(*) from board_lists where site_id = $1 and board_id = $2)
+          + (select count(*) from board_cards where site_id = $1 and board_id = $2)
+          + (select count(*) from board_activity where site_id = $1 and board_id = $2)
+          + (select count(*) from automation_flow_steps where site_id = $1 and flow_id = $3)
+          + (select count(*) from automation_runs where site_id = $1 and flow_id = $3)",
+    )
+    .bind(site_id.into_uuid())
+    .bind(board.id.into_uuid())
+    .bind(flow.id.into_uuid())
+    .fetch_one(transaction.conn())
+    .await
+    .expect("child state");
+    assert_eq!(child_count, 0);
+    let audit_count: i64 = sqlx::query_scalar(
+        "select count(*) from audit_events
+          where site_id = $1 and action in ('board.trashed', 'automation.flow.trashed', 'trash.item.restored', 'trash.item.permanently_deleted')",
+    )
+    .bind(site_id.into_uuid())
+    .fetch_one(transaction.conn())
+    .await
+    .expect("audit state");
+    assert_eq!(audit_count, 8);
+    transaction.commit().await.expect("purge commit");
+
+    let other_context = SiteContext::public(other_site_id);
+    let mut transaction = database.begin(&other_context).await.expect("other scope");
+    assert!(
+        trash
+            .list(
+                &mut transaction,
+                &other_context,
+                &TrashListFilter::default()
+            )
+            .await
+            .expect("other trash")
+            .items
+            .is_empty()
+    );
+    transaction.commit().await.expect("other commit");
 }
 
 #[tokio::test]

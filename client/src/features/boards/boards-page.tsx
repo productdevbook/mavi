@@ -236,9 +236,9 @@ export function BoardsPage() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t`Remove this board?`}</AlertDialogTitle>
+            <AlertDialogTitle>{t`Move this board to the bin?`}</AlertDialogTitle>
             <AlertDialogDescription>
-              {t`Its cards go with it.`}
+              {t`Its lists and cards go with it and can be restored from the bin.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

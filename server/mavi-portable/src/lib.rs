@@ -218,6 +218,11 @@ pub struct PortableRole {
     pub id: Uuid,
     pub name: String,
     pub created_at: DateTime<Utc>,
+    /// System roles (currently the protected `owner` role) cannot have their
+    /// grants deleted during a reverse relocation. Older envelopes omitted
+    /// this field, so defaulting to `false` keeps them readable.
+    #[serde(default)]
+    pub system_role: bool,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -1335,7 +1340,7 @@ async fn export_identity(tx: &mut SiteTx, context: &SiteContext) -> Result<Porta
     .collect::<Result<Vec<_>>>()?;
 
     let roles = sqlx::query(
-        "select id, name, created_at from roles
+        "select id, name, created_at, system_role from roles
          where site_id = $1 order by created_at asc, id asc",
     )
     .bind(context.site_id.into_uuid())
@@ -1348,6 +1353,9 @@ async fn export_identity(tx: &mut SiteTx, context: &SiteContext) -> Result<Porta
             id: row.try_get("id").map_err(|_| MaviError::Internal)?,
             name: row.try_get("name").map_err(|_| MaviError::Internal)?,
             created_at: row.try_get("created_at").map_err(|_| MaviError::Internal)?,
+            system_role: row
+                .try_get("system_role")
+                .map_err(|_| MaviError::Internal)?,
         })
     })
     .collect::<Result<Vec<_>>>()?;
@@ -1444,6 +1452,7 @@ fn validate_identity(
         if role.id.is_nil()
             || !roles.insert(role.id)
             || !valid_role_name(&role.name)
+            || (role.system_role && role.name != "owner")
             || !role_names.insert(role.name.clone())
         {
             return Err(MaviError::validation("portable_identity_role_invalid"));
@@ -1529,11 +1538,22 @@ async fn import_identity(
         .execute(tx.conn())
         .await
         .map_err(map_import_write_error)?;
-    sqlx::query("delete from role_grants where site_id = $1")
-        .bind(context.site_id.into_uuid())
-        .execute(tx.conn())
-        .await
-        .map_err(map_import_write_error)?;
+    // The owner role is database-protected. Remove stale grants only for
+    // mutable roles, then make the snapshot idempotent for protected grants.
+    sqlx::query(
+        "delete from role_grants grant_row
+          where grant_row.site_id = $1
+            and not exists (
+                select 1 from roles role_row
+                 where role_row.site_id = grant_row.site_id
+                   and role_row.id = grant_row.role_id
+                   and role_row.system_role
+            )",
+    )
+    .bind(context.site_id.into_uuid())
+    .execute(tx.conn())
+    .await
+    .map_err(map_import_write_error)?;
 
     let credentials = credentials
         .iter()
@@ -1567,15 +1587,17 @@ async fn import_identity(
 
     for role in &identity.roles {
         sqlx::query(
-            "insert into roles (site_id, id, name, created_at)
-             values ($1, $2, $3, $4)
+            "insert into roles (site_id, id, name, created_at, system_role)
+             values ($1, $2, $3, $4, $5)
              on conflict (site_id, id) do update set
-                name = excluded.name, created_at = excluded.created_at",
+                name = excluded.name, created_at = excluded.created_at,
+                system_role = roles.system_role or excluded.system_role",
         )
         .bind(context.site_id.into_uuid())
         .bind(role.id)
         .bind(&role.name)
         .bind(role.created_at)
+        .bind(role.system_role)
         .execute(tx.conn())
         .await
         .map_err(map_import_write_error)?;
@@ -1584,7 +1606,8 @@ async fn import_identity(
     for grant in &identity.role_grants {
         sqlx::query(
             "insert into role_grants (site_id, role_id, capability, action)
-             values ($1, $2, $3, $4)",
+             values ($1, $2, $3, $4)
+             on conflict (site_id, role_id, capability, action) do nothing",
         )
         .bind(context.site_id.into_uuid())
         .bind(grant.role_id)
@@ -2359,6 +2382,7 @@ mod tests {
                     id: role_id,
                     name: "owner".to_owned(),
                     created_at: now,
+                    system_role: true,
                 }],
                 role_grants: vec![PortableRoleGrant {
                     role_id,

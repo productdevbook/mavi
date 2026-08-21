@@ -354,6 +354,34 @@ async fn portable_bundles_export_cross_site_import_and_reject_conflicts() {
         .begin(&relocation_context)
         .await
         .expect("relocation scope");
+    // A real rollback targets the original source site, where the protected
+    // owner role and its grants already exist. Keep that state in this
+    // integration fixture so relocation proves it is idempotent for system
+    // grants instead of only working against an empty site.
+    let owner_role = &relocation_bundle.identity.roles[0];
+    let owner_grant = &relocation_bundle.identity.role_grants[0];
+    sqlx::query(
+        "insert into roles (site_id, id, name, created_at, system_role)
+         values ($1, $2, $3, $4, true)",
+    )
+    .bind(relocation_site.into_uuid())
+    .bind(owner_role.id)
+    .bind(&owner_role.name)
+    .bind(owner_role.created_at)
+    .execute(relocation_tx.conn())
+    .await
+    .expect("existing protected owner role");
+    sqlx::query(
+        "insert into role_grants (site_id, role_id, capability, action)
+         values ($1, $2, $3, $4)",
+    )
+    .bind(relocation_site.into_uuid())
+    .bind(owner_grant.role_id)
+    .bind(&owner_grant.capability)
+    .bind(&owner_grant.action)
+    .execute(relocation_tx.conn())
+    .await
+    .expect("existing protected owner grant");
     portable
         .relocate(
             &mut relocation_tx,
@@ -373,6 +401,7 @@ async fn portable_bundles_export_cross_site_import_and_reject_conflicts() {
     assert_eq!(relocated.bundle.site.name, "Source site");
     assert_eq!(relocated.identity.people.len(), 1);
     assert_eq!(relocated.identity.roles.len(), 1);
+    assert!(relocated.identity.roles[0].system_role);
     assert_eq!(relocated.credentials.len(), 1);
     assert_eq!(relocated.media.files.len(), 1);
     assert_eq!(

@@ -229,6 +229,8 @@ pub struct PortableRole {
     pub system_role: bool,
 }
 
+// Serde's skip_serializing_if callback receives a reference by contract.
+#[allow(clippy::trivially_copy_pass_by_ref)]
 fn is_false(value: &bool) -> bool {
     !*value
 }

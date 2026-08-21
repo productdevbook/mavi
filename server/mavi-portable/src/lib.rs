@@ -221,8 +221,16 @@ pub struct PortableRole {
     /// System roles (currently the protected `owner` role) cannot have their
     /// grants deleted during a reverse relocation. Older envelopes omitted
     /// this field, so defaulting to `false` keeps them readable.
-    #[serde(default)]
+    ///
+    /// Keep the false value omitted on serialization as well. Evidence hashes
+    /// are computed from the canonical JSON envelope, and adding a defaulted
+    /// field must not invalidate backups created by the previous release.
+    #[serde(default, skip_serializing_if = "is_false")]
     pub system_role: bool,
+}
+
+fn is_false(value: &bool) -> bool {
+    !*value
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -2350,6 +2358,28 @@ mod tests {
                 .all(|shape| !shape.schema.to_string().contains("offset"))
         );
         api.validate().expect("portable API");
+    }
+
+    #[test]
+    fn legacy_roles_keep_evidence_json_stable_when_system_role_is_absent() {
+        let legacy = json!({
+            "id": "01933b5e-6d8d-7e8f-9a0b-1c2d3e4f5061",
+            "name": "editor",
+            "created_at": "2026-01-01T00:00:00Z"
+        });
+        let role: PortableRole = serde_json::from_value(legacy.clone()).expect("legacy role");
+        assert_eq!(
+            serde_json::to_value(&role).expect("legacy role JSON"),
+            legacy
+        );
+
+        let mut owner = role;
+        owner.name = "owner".to_owned();
+        owner.system_role = true;
+        assert_eq!(
+            serde_json::to_value(owner).expect("system role JSON")["system_role"],
+            json!(true)
+        );
     }
 
     #[test]

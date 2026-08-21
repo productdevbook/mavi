@@ -1,4 +1,5 @@
 import * as React from "react"
+import { useNavigate } from "@tanstack/react-router"
 import { useLingui } from "@lingui/react/macro"
 import { Loader2, Plus, Trash2 } from "lucide-react"
 import { toast } from "sonner"
@@ -13,9 +14,20 @@ import {
   DashboardLoading,
   DashboardPageHeader,
 } from "@/components/dashboard/dashboard-page"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 export function CoursePage({ courseId }: { courseId: string }) {
   const { t } = useLingui()
+  const navigate = useNavigate()
 
   const [course, setCourse] = React.useState<Course | null>(null)
   const [moduleTitle, setModuleTitle] = React.useState("")
@@ -23,6 +35,7 @@ export function CoursePage({ courseId }: { courseId: string }) {
     Record<string, string>
   >({})
   const [busy, setBusy] = React.useState(false)
+  const [removing, setRemoving] = React.useState(false)
 
   const load = React.useCallback(() => {
     api("courses.read", { path: { id: courseId } })
@@ -99,6 +112,21 @@ export function CoursePage({ courseId }: { courseId: string }) {
     }
   }
 
+  const removeCourse = async () => {
+    setBusy(true)
+
+    try {
+      await api("courses.delete", { path: { id: courseId } })
+      toast.success(t`The course is in the bin now.`)
+      void navigate({ to: "/dashboard/trash" })
+    } catch (why) {
+      toast.error(apiMessage(why))
+    } finally {
+      setBusy(false)
+      setRemoving(false)
+    }
+  }
+
   if (!course) {
     return <DashboardLoading />
   }
@@ -121,6 +149,14 @@ export function CoursePage({ courseId }: { courseId: string }) {
               }
             >
               {course.state === "open" ? t`Close it` : t`Open it`}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={busy}
+              onClick={() => setRemoving(true)}
+            >
+              <Trash2 /> {t`Move to bin`}
             </Button>
           </div>
         }
@@ -214,6 +250,26 @@ export function CoursePage({ courseId }: { courseId: string }) {
           {t`Add a part`}
         </Button>
       </form>
+
+      <AlertDialog
+        open={removing}
+        onOpenChange={(open) => !open && setRemoving(false)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t`Move this course to the bin?`}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t`Its modules, lessons, and student history stay restorable until the bin removes it permanently.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t`Cancel`}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => void removeCourse()}>
+              {t`Move to bin`}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

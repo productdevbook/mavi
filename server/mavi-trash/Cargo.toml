@@ -26,6 +26,7 @@ uuid.workspace = true
 workspace = true
 
 [dev-dependencies]
+mavi-courses = { path = "../mavi-courses" }
 mavi-content = { path = "../mavi-content" }
 mavi-files = { path = "../mavi-files" }
 mavi-forms = { path = "../mavi-forms" }

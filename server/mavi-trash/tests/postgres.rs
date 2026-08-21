@@ -2,6 +2,7 @@ use chrono::Utc;
 use mavi_content::{ContentService, CreateContent, PublicationInput};
 use mavi_core::ports::FileStore;
 use mavi_core::{MaviError, PageRequest, SiteContext, SiteId};
+use mavi_courses::{CoursesService, CreateCourse, CreateLesson, CreateModule, CreateStudent};
 use mavi_files::InMemoryFileStore;
 use mavi_forms::{CreateForm, FormService};
 use mavi_media::{FileVisibility, MediaService};
@@ -755,4 +756,226 @@ async fn shop_product_trash_refuses_permanent_delete_while_stock_is_held() {
         .await
         .expect("delete after hold release");
     transaction.commit().await.expect("commit");
+}
+
+#[tokio::test]
+#[ignore = "requires TEST_DATABASE_URL and a non-superuser PostgreSQL role"]
+#[allow(clippy::too_many_lines)]
+async fn course_and_student_trash_preserves_learning_state_until_purge() {
+    let url = std::env::var("TEST_DATABASE_URL").expect("TEST_DATABASE_URL");
+    let database = Database::connect(&url, 2).await.expect("database");
+    database.migrate().await.expect("migrations");
+
+    let site_id = SiteId::new();
+    let other_site_id = SiteId::new();
+    database.ensure_site(site_id).await.expect("site");
+    database
+        .ensure_site(other_site_id)
+        .await
+        .expect("other site");
+    let context = SiteContext::public(site_id);
+    let courses = CoursesService;
+    let trash = TrashService;
+    let (course, student) = {
+        let mut transaction = database.begin(&context).await.expect("create scope");
+        let course = courses
+            .create_course(
+                &mut transaction,
+                &context,
+                &CreateCourse {
+                    slug: "trash-course".to_owned(),
+                    title: "Trash course".to_owned(),
+                    about: Some("restorable curriculum".to_owned()),
+                },
+            )
+            .await
+            .expect("course");
+        let module = courses
+            .create_module(
+                &mut transaction,
+                &context,
+                course.id,
+                &CreateModule {
+                    title: "Module".to_owned(),
+                },
+            )
+            .await
+            .expect("module");
+        courses
+            .create_lesson(
+                &mut transaction,
+                &context,
+                module.id,
+                &CreateLesson {
+                    title: "Lesson".to_owned(),
+                    body: "Body".to_owned(),
+                    media_file_id: None,
+                },
+            )
+            .await
+            .expect("lesson");
+        let student = courses
+            .create_student(
+                &mut transaction,
+                &context,
+                &CreateStudent {
+                    email: "trash-student@example.test".to_owned(),
+                    name: "Trash student".to_owned(),
+                },
+                Utc::now(),
+            )
+            .await
+            .expect("student")
+            .student;
+        transaction.commit().await.expect("create commit");
+        (course, student)
+    };
+
+    let mut transaction = database.begin(&context).await.expect("trash scope");
+    courses
+        .delete_course(&mut transaction, &context, course.id)
+        .await
+        .expect("trash course");
+    courses
+        .delete_student(&mut transaction, &context, student.id)
+        .await
+        .expect("trash student");
+    let courses_in_trash = trash
+        .list(
+            &mut transaction,
+            &context,
+            &TrashListFilter {
+                page: PageRequest::default(),
+                kind: Some(TrashKind::Course),
+            },
+        )
+        .await
+        .expect("course trash");
+    assert_eq!(courses_in_trash.items.len(), 1);
+    assert_eq!(courses_in_trash.items[0].id, course.id.into_uuid());
+    let students_in_trash = trash
+        .list(
+            &mut transaction,
+            &context,
+            &TrashListFilter {
+                page: PageRequest::default(),
+                kind: Some(TrashKind::Student),
+            },
+        )
+        .await
+        .expect("student trash");
+    assert_eq!(students_in_trash.items.len(), 1);
+    assert_eq!(students_in_trash.items[0].id, student.id.into_uuid());
+    trash
+        .restore(
+            &mut transaction,
+            &context,
+            TrashKind::Course,
+            course.id.into_uuid(),
+        )
+        .await
+        .expect("restore course");
+    trash
+        .restore(
+            &mut transaction,
+            &context,
+            TrashKind::Student,
+            student.id.into_uuid(),
+        )
+        .await
+        .expect("restore student");
+    assert_eq!(
+        courses
+            .get_course(&mut transaction, &context, course.id)
+            .await
+            .expect("restored course")
+            .modules
+            .len(),
+        1
+    );
+    assert_eq!(
+        courses
+            .list_students(
+                &mut transaction,
+                &context,
+                &mavi_courses::StudentListFilter::default(),
+            )
+            .await
+            .expect("restored student list")
+            .items
+            .len(),
+        1
+    );
+    transaction.commit().await.expect("restore commit");
+
+    let mut transaction = database.begin(&context).await.expect("purge scope");
+    courses
+        .delete_course(&mut transaction, &context, course.id)
+        .await
+        .expect("trash course again");
+    courses
+        .delete_student(&mut transaction, &context, student.id)
+        .await
+        .expect("trash student again");
+    trash
+        .permanently_delete(
+            &mut transaction,
+            &context,
+            TrashKind::Course,
+            course.id.into_uuid(),
+        )
+        .await
+        .expect("purge course");
+    trash
+        .permanently_delete(
+            &mut transaction,
+            &context,
+            TrashKind::Student,
+            student.id.into_uuid(),
+        )
+        .await
+        .expect("purge student");
+    let course_exists: bool =
+        sqlx::query_scalar("select exists(select 1 from courses where site_id = $1 and id = $2)")
+            .bind(site_id.into_uuid())
+            .bind(course.id.into_uuid())
+            .fetch_one(transaction.conn())
+            .await
+            .expect("course state");
+    let module_count: i64 = sqlx::query_scalar(
+        "select count(*) from course_modules where site_id = $1 and course_id = $2",
+    )
+    .bind(site_id.into_uuid())
+    .bind(course.id.into_uuid())
+    .fetch_one(transaction.conn())
+    .await
+    .expect("module state");
+    let student_exists: bool = sqlx::query_scalar(
+        "select exists(select 1 from course_students where site_id = $1 and id = $2)",
+    )
+    .bind(site_id.into_uuid())
+    .bind(student.id.into_uuid())
+    .fetch_one(transaction.conn())
+    .await
+    .expect("student state");
+    assert!(!course_exists);
+    assert_eq!(module_count, 0);
+    assert!(!student_exists);
+    transaction.commit().await.expect("purge commit");
+
+    let other_context = SiteContext::public(other_site_id);
+    let mut transaction = database.begin(&other_context).await.expect("other scope");
+    assert!(
+        trash
+            .list(
+                &mut transaction,
+                &other_context,
+                &TrashListFilter::default()
+            )
+            .await
+            .expect("other trash")
+            .items
+            .is_empty()
+    );
+    transaction.commit().await.expect("other commit");
 }

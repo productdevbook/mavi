@@ -1483,7 +1483,9 @@ where
         )
         .route(
             "/api/v1/courses/{id}",
-            get(read_course::<R>).patch(update_course::<R>),
+            get(read_course::<R>)
+                .patch(update_course::<R>)
+                .delete(delete_course::<R>),
         )
         .route(
             "/api/v1/courses/{course_id}/instructors",
@@ -1525,7 +1527,7 @@ where
         )
         .route(
             "/api/v1/courses/students/{id}",
-            axum::routing::patch(update_course_student::<R>),
+            axum::routing::patch(update_course_student::<R>).delete(delete_course_student::<R>),
         )
         .route(
             "/api/v1/courses/students/{id}/invite",
@@ -6272,6 +6274,34 @@ where
     Ok(Json(course))
 }
 
+async fn delete_course<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<CourseId>,
+) -> Result<StatusCode, HttpError>
+where
+    R: SiteResolver,
+{
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    require_course_grant(
+        &state,
+        &context,
+        &mut transaction,
+        Action::Delete,
+        id,
+        "Course",
+        id.to_string(),
+    )
+    .await?;
+    state
+        .courses
+        .delete_course(&mut transaction, &context, id)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
 async fn reorder_course_modules<R>(
     State(state): State<HttpState<R>>,
     Extension(context): Extension<SiteContext>,
@@ -6686,6 +6716,31 @@ where
         .map_err(HttpError)?;
     transaction.commit().await.map_err(HttpError)?;
     Ok(Json(student))
+}
+
+async fn delete_course_student<R>(
+    State(state): State<HttpState<R>>,
+    Extension(context): Extension<SiteContext>,
+    Path(id): Path<StudentId>,
+) -> Result<StatusCode, HttpError>
+where
+    R: SiteResolver,
+{
+    require_courses_grant(
+        &state,
+        &context,
+        Action::Delete,
+        "CourseStudent",
+        id.to_string(),
+    )?;
+    let mut transaction = state.runtime.begin(&context).await.map_err(HttpError)?;
+    state
+        .courses
+        .delete_student(&mut transaction, &context, id)
+        .await
+        .map_err(HttpError)?;
+    transaction.commit().await.map_err(HttpError)?;
+    Ok(StatusCode::NO_CONTENT)
 }
 
 async fn list_course_enrollments<R>(

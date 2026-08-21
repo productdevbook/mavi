@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Mavi",
-    "version": "0.1.5"
+    "version": "0.1.6"
   },
   "paths": {
     "/api/v1/setup": {
@@ -12006,6 +12006,83 @@
           ],
           "resourceScoped": true
         }
+      },
+      "delete": {
+        "operationId": "courses.delete",
+        "summary": "Move a course and its curriculum to site trash",
+        "tags": [
+          "courses"
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-mavi": {
+          "scope": "site",
+          "authentication": "account_or_assistant",
+          "mutation": {
+            "permissioned": {
+              "idempotent": false
+            }
+          },
+          "permission": {
+            "capability": "courses",
+            "action": "delete"
+          },
+          "errors": [
+            "forbidden",
+            "not_found",
+            "internal"
+          ],
+          "resourceScoped": true
+        }
       }
     },
     "/api/v1/courses/{id}/modules/order": {
@@ -13808,6 +13885,82 @@
             "validation",
             "not_found",
             "conflict",
+            "internal"
+          ]
+        }
+      },
+      "delete": {
+        "operationId": "courses.students.delete",
+        "summary": "Move a student and learning history to site trash",
+        "tags": [
+          "courses"
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful response"
+          },
+          "403": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-mavi": {
+          "scope": "site",
+          "authentication": "account_or_assistant",
+          "mutation": {
+            "permissioned": {
+              "idempotent": false
+            }
+          },
+          "permission": {
+            "capability": "courses",
+            "action": "delete"
+          },
+          "errors": [
+            "forbidden",
+            "not_found",
             "internal"
           ]
         }
@@ -26892,6 +27045,8 @@
       "TrashKind": {
         "type": "string",
         "enum": [
+          "course",
+          "student",
           "form",
           "product",
           "coupon",

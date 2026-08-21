@@ -2461,6 +2461,8 @@
               "kind": {
                 "type": "string",
                 "enum": [
+                  "course",
+                  "student",
                   "form",
                   "product",
                   "coupon",
@@ -5370,6 +5372,42 @@
       }
     },
     {
+      "name": "courses.delete",
+      "description": "Move a course and its curriculum to site trash",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ]
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false
+      },
+      "x-mavi": {
+        "authentication": "account_or_assistant",
+        "scope": "site",
+        "permission": {
+          "capability": "courses",
+          "action": "delete"
+        },
+        "resourceScoped": true
+      }
+    },
+    {
       "name": "courses.modules.reorder",
       "description": "Replace a course module order atomically",
       "inputSchema": {
@@ -6213,6 +6251,41 @@
         "permission": {
           "capability": "courses",
           "action": "write"
+        }
+      }
+    },
+    {
+      "name": "courses.students.delete",
+      "description": "Move a student and learning history to site trash",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ]
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false
+      },
+      "x-mavi": {
+        "authentication": "account_or_assistant",
+        "scope": "site",
+        "permission": {
+          "capability": "courses",
+          "action": "delete"
         }
       }
     },

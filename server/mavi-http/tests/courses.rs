@@ -350,3 +350,169 @@ async fn course_routes_isolate_student_learning_and_protected_media() {
     .await;
     assert_eq!(closed_media.status(), StatusCode::FORBIDDEN);
 }
+
+#[tokio::test]
+#[ignore = "requires TEST_DATABASE_URL and a non-superuser PostgreSQL role"]
+#[allow(clippy::too_many_lines)]
+async fn course_and_student_trash_routes_restore_and_purge_site_state() {
+    let app = support::build_app().await;
+    let owner_token = bootstrap(&app, "HTTP course trash test").await;
+
+    let course = send(
+        &app,
+        Method::POST,
+        "/api/v1/courses",
+        Some(&owner_token),
+        Some(json!({
+            "slug": "trash-route-course",
+            "title": "Trash route course"
+        })),
+    )
+    .await;
+    assert_eq!(course.status(), StatusCode::CREATED);
+    let course_id = response_json(course).await["id"]
+        .as_str()
+        .expect("course id")
+        .to_owned();
+
+    let student = send(
+        &app,
+        Method::POST,
+        "/api/v1/courses/students",
+        Some(&owner_token),
+        Some(json!({
+            "email": "trash-route-student@example.test",
+            "name": "Trash route student"
+        })),
+    )
+    .await;
+    assert_eq!(student.status(), StatusCode::CREATED);
+    let student_id = response_json(student).await["student"]["id"]
+        .as_str()
+        .expect("student id")
+        .to_owned();
+
+    let course_deleted = send(
+        &app,
+        Method::DELETE,
+        &format!("/api/v1/courses/{course_id}"),
+        Some(&owner_token),
+        None,
+    )
+    .await;
+    assert_eq!(course_deleted.status(), StatusCode::NO_CONTENT);
+    let student_deleted = send(
+        &app,
+        Method::DELETE,
+        &format!("/api/v1/courses/students/{student_id}"),
+        Some(&owner_token),
+        None,
+    )
+    .await;
+    assert_eq!(student_deleted.status(), StatusCode::NO_CONTENT);
+
+    let course_trash = send(
+        &app,
+        Method::GET,
+        "/api/v1/trash?kind=course",
+        Some(&owner_token),
+        None,
+    )
+    .await;
+    assert_eq!(course_trash.status(), StatusCode::OK);
+    assert_eq!(
+        response_json(course_trash).await["items"]
+            .as_array()
+            .expect("course trash items")
+            .len(),
+        1
+    );
+    let student_trash = send(
+        &app,
+        Method::GET,
+        "/api/v1/trash?kind=student",
+        Some(&owner_token),
+        None,
+    )
+    .await;
+    assert_eq!(student_trash.status(), StatusCode::OK);
+    assert_eq!(
+        response_json(student_trash).await["items"]
+            .as_array()
+            .expect("student trash items")
+            .len(),
+        1
+    );
+
+    for (kind, id) in [("course", &course_id), ("student", &student_id)] {
+        let restored = send(
+            &app,
+            Method::POST,
+            &format!("/api/v1/trash/{kind}/{id}/restore"),
+            Some(&owner_token),
+            None,
+        )
+        .await;
+        assert_eq!(restored.status(), StatusCode::NO_CONTENT);
+    }
+
+    let restored_course = send(
+        &app,
+        Method::GET,
+        &format!("/api/v1/courses/{course_id}"),
+        Some(&owner_token),
+        None,
+    )
+    .await;
+    assert_eq!(restored_course.status(), StatusCode::OK);
+    let restored_students = send(
+        &app,
+        Method::GET,
+        "/api/v1/courses/students",
+        Some(&owner_token),
+        None,
+    )
+    .await;
+    assert_eq!(restored_students.status(), StatusCode::OK);
+    assert_eq!(
+        response_json(restored_students).await["items"]
+            .as_array()
+            .expect("restored student items")
+            .len(),
+        1
+    );
+
+    for (kind, id, path) in [
+        ("course", &course_id, "/api/v1/courses/{id}"),
+        ("student", &student_id, "/api/v1/courses/students/{id}"),
+    ] {
+        let deleted = send(
+            &app,
+            Method::DELETE,
+            &path.replace("{id}", id),
+            Some(&owner_token),
+            None,
+        )
+        .await;
+        assert_eq!(deleted.status(), StatusCode::NO_CONTENT);
+
+        let purged = send(
+            &app,
+            Method::DELETE,
+            &format!("/api/v1/trash/{kind}/{id}"),
+            Some(&owner_token),
+            None,
+        )
+        .await;
+        assert_eq!(purged.status(), StatusCode::NO_CONTENT);
+    }
+
+    let final_trash = send(&app, Method::GET, "/api/v1/trash", Some(&owner_token), None).await;
+    assert_eq!(final_trash.status(), StatusCode::OK);
+    assert!(
+        response_json(final_trash).await["items"]
+            .as_array()
+            .expect("trash items")
+            .is_empty()
+    );
+}

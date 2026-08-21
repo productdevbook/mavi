@@ -1821,7 +1821,7 @@ export interface TrashItem {
   deleted_at: string;
 }
 
-export type TrashKind = "form" | "product" | "coupon" | "content" | "file" | "term";
+export type TrashKind = "course" | "student" | "form" | "product" | "coupon" | "content" | "file" | "term";
 
 export interface TrashListFilter {
   after?: string | null;
@@ -2103,6 +2103,7 @@ export const operations = {
   "courses.create": { method: "post", path: "/api/v1/courses", input: { location: "json", shape: "CreateCourse" }, query: null, output: "Course", status: 201, authentication: "account_or_assistant", permission: { capability: "courses", action: "write" } },
   "courses.read": { method: "get", path: "/api/v1/courses/{id}", input: null, query: null, output: "Course", status: 200, authentication: "account_or_assistant", permission: { capability: "courses", action: "view" } },
   "courses.update": { method: "patch", path: "/api/v1/courses/{id}", input: { location: "json", shape: "UpdateCourse" }, query: null, output: "Course", status: 200, authentication: "account_or_assistant", permission: { capability: "courses", action: "write" } },
+  "courses.delete": { method: "delete", path: "/api/v1/courses/{id}", input: null, query: null, output: "Empty", status: 204, authentication: "account_or_assistant", permission: { capability: "courses", action: "delete" } },
   "courses.modules.reorder": { method: "put", path: "/api/v1/courses/{id}/modules/order", input: { location: "json", shape: "ReorderModules" }, query: null, output: "Course", status: 200, authentication: "account_or_assistant", permission: { capability: "courses", action: "write" } },
   "courses.modules.create": { method: "post", path: "/api/v1/courses/{id}/modules", input: { location: "json", shape: "CreateModule" }, query: null, output: "Module", status: 201, authentication: "account_or_assistant", permission: { capability: "courses", action: "write" } },
   "courses.modules.read": { method: "get", path: "/api/v1/courses/modules/{id}", input: null, query: null, output: "Module", status: 200, authentication: "account_or_assistant", permission: { capability: "courses", action: "view" } },
@@ -2120,6 +2121,7 @@ export const operations = {
   "courses.students.create": { method: "post", path: "/api/v1/courses/students", input: { location: "json", shape: "CreateStudent" }, query: null, output: "StudentInvitation", status: 201, authentication: "account_or_assistant", permission: { capability: "courses", action: "write" } },
   "courses.students.invite": { method: "post", path: "/api/v1/courses/students/{id}/invite", input: null, query: null, output: "StudentInvitation", status: 200, authentication: "account_or_assistant", permission: { capability: "courses", action: "write" } },
   "courses.students.update": { method: "patch", path: "/api/v1/courses/students/{id}", input: { location: "json", shape: "UpdateStudent" }, query: null, output: "Student", status: 200, authentication: "account_or_assistant", permission: { capability: "courses", action: "write" } },
+  "courses.students.delete": { method: "delete", path: "/api/v1/courses/students/{id}", input: null, query: null, output: "Empty", status: 204, authentication: "account_or_assistant", permission: { capability: "courses", action: "delete" } },
   "courses.enrollments.list": { method: "get", path: "/api/v1/courses/{course_id}/enrollments", input: { location: "query", shape: "EnrollmentListFilter" }, query: null, output: "EnrollmentPage", status: 200, authentication: "account_or_assistant", permission: { capability: "courses", action: "view" } },
   "courses.enrollments.create": { method: "post", path: "/api/v1/courses/{course_id}/enrollments", input: { location: "json", shape: "EnrollStudent" }, query: null, output: "Enrollment", status: 201, authentication: "account_or_assistant", permission: { capability: "courses", action: "write" } },
   "courses.enrollments.delete": { method: "delete", path: "/api/v1/courses/enrollments/{id}", input: null, query: null, output: "Empty", status: 204, authentication: "account_or_assistant", permission: { capability: "courses", action: "delete" } },
@@ -2309,6 +2311,7 @@ export interface OperationArguments {
   "courses.create": { path?: never; query?: never; body: CreateCourse; }
   "courses.read": { path: { id: string }; query?: never; body?: never; }
   "courses.update": { path: { id: string }; query?: never; body: UpdateCourse; }
+  "courses.delete": { path: { id: string }; query?: never; body?: never; }
   "courses.modules.reorder": { path: { id: string }; query?: never; body: ReorderModules; }
   "courses.modules.create": { path: { id: string }; query?: never; body: CreateModule; }
   "courses.modules.read": { path: { id: string }; query?: never; body?: never; }
@@ -2326,6 +2329,7 @@ export interface OperationArguments {
   "courses.students.create": { path?: never; query?: never; body: CreateStudent; }
   "courses.students.invite": { path: { id: string }; query?: never; body?: never; }
   "courses.students.update": { path: { id: string }; query?: never; body: UpdateStudent; }
+  "courses.students.delete": { path: { id: string }; query?: never; body?: never; }
   "courses.enrollments.list": { path: { course_id: string }; query: EnrollmentListFilter; body?: never; }
   "courses.enrollments.create": { path: { course_id: string }; query?: never; body: EnrollStudent; }
   "courses.enrollments.delete": { path: { id: string }; query?: never; body?: never; }
@@ -2513,6 +2517,7 @@ export interface OperationResponses {
   "courses.create": Course;
   "courses.read": Course;
   "courses.update": Course;
+  "courses.delete": void;
   "courses.modules.reorder": Course;
   "courses.modules.create": Module;
   "courses.modules.read": Module;
@@ -2530,6 +2535,7 @@ export interface OperationResponses {
   "courses.students.create": StudentInvitation;
   "courses.students.invite": StudentInvitation;
   "courses.students.update": Student;
+  "courses.students.delete": void;
   "courses.enrollments.list": EnrollmentPage;
   "courses.enrollments.create": Enrollment;
   "courses.enrollments.delete": void;

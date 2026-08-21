@@ -1516,6 +1516,10 @@ fn validate_identity(
     Ok(())
 }
 
+fn role_is_protected(role: &PortableRole) -> bool {
+    role.system_role || role.name == "owner"
+}
+
 #[allow(clippy::too_many_lines)]
 async fn import_identity(
     tx: &mut SiteTx,
@@ -1596,6 +1600,11 @@ async fn import_identity(
     }
 
     for role in &identity.roles {
+        // The owner role was already protected by name before `system_role`
+        // was added to the relocation envelope. Treat that legacy shape as
+        // protected during import so an older snapshot cannot downgrade the
+        // target's owner boundary.
+        let system_role = role_is_protected(role);
         sqlx::query(
             "insert into roles (site_id, id, name, created_at, system_role)
              values ($1, $2, $3, $4, $5)
@@ -1607,7 +1616,7 @@ async fn import_identity(
         .bind(role.id)
         .bind(&role.name)
         .bind(role.created_at)
-        .bind(role.system_role)
+        .bind(system_role)
         .execute(tx.conn())
         .await
         .map_err(map_import_write_error)?;
@@ -2382,6 +2391,21 @@ mod tests {
             serde_json::to_value(owner).expect("system role JSON")["system_role"],
             json!(true)
         );
+    }
+
+    #[test]
+    fn legacy_owner_role_remains_protected_during_import() {
+        let role = PortableRole {
+            id: Uuid::now_v7(),
+            name: "owner".to_owned(),
+            created_at: Utc::now(),
+            system_role: false,
+        };
+        assert!(role_is_protected(&role));
+
+        let mut editor = role;
+        editor.name = "editor".to_owned();
+        assert!(!role_is_protected(&editor));
     }
 
     #[test]

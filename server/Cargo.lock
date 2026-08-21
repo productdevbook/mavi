@@ -1685,7 +1685,7 @@ checksum = "47e1ffaa40ddd1f3ed91f717a33c8c0ee23fff369e3aa8772b9605cc1d22f4c3"
 
 [[package]]
 name = "mavi"
-version = "0.1.9"
+version = "0.1.10"
 dependencies = [
  "axum",
  "mavi-core",
@@ -1706,7 +1706,7 @@ dependencies = [
 
 [[package]]
 name = "mavi-analytics"
-version = "0.1.9"
+version = "0.1.10"
 dependencies = [
  "base64 0.23.1",
  "chrono",
@@ -1724,7 +1724,7 @@ dependencies = [
 
 [[package]]
 name = "mavi-audit"
-version = "0.1.9"
+version = "0.1.10"
 dependencies = [
  "base64 0.23.1",
  "chrono",
@@ -1740,7 +1740,7 @@ dependencies = [
 
 [[package]]
 name = "mavi-authz"
-version = "0.1.9"
+version = "0.1.10"
 dependencies = [
  "cedar-policy",
  "mavi-core",
@@ -1749,7 +1749,7 @@ dependencies = [
 
 [[package]]
 name = "mavi-boards"
-version = "0.1.9"
+version = "0.1.10"
 dependencies = [
  "base64 0.23.1",
  "chrono",
@@ -1767,7 +1767,7 @@ dependencies = [
 
 [[package]]
 name = "mavi-content"
-version = "0.1.9"
+version = "0.1.10"
 dependencies = [
  "base64 0.23.1",
  "chrono",
@@ -1785,7 +1785,7 @@ dependencies = [
 
 [[package]]
 name = "mavi-contract"
-version = "0.1.9"
+version = "0.1.10"
 dependencies = [
  "mavi-core",
  "serde",
@@ -1795,7 +1795,7 @@ dependencies = [
 
 [[package]]
 name = "mavi-core"
-version = "0.1.9"
+version = "0.1.10"
 dependencies = [
  "chrono",
  "serde",
@@ -1806,7 +1806,7 @@ dependencies = [
 
 [[package]]
 name = "mavi-courses"
-version = "0.1.9"
+version = "0.1.10"
 dependencies = [
  "argon2",
  "base64 0.23.1",
@@ -1826,7 +1826,7 @@ dependencies = [
 
 [[package]]
 name = "mavi-design"
-version = "0.1.9"
+version = "0.1.10"
 dependencies = [
  "base64 0.23.1",
  "chrono",
@@ -1845,7 +1845,7 @@ dependencies = [
 
 [[package]]
 name = "mavi-feedback"
-version = "0.1.9"
+version = "0.1.10"
 dependencies = [
  "base64 0.23.1",
  "chrono",
@@ -1862,7 +1862,7 @@ dependencies = [
 
 [[package]]
 name = "mavi-files"
-version = "0.1.9"
+version = "0.1.10"
 dependencies = [
  "mavi-core",
  "tokio",
@@ -1871,7 +1871,7 @@ dependencies = [
 
 [[package]]
 name = "mavi-flows"
-version = "0.1.9"
+version = "0.1.10"
 dependencies = [
  "base64 0.23.1",
  "chrono",
@@ -1889,7 +1889,7 @@ dependencies = [
 
 [[package]]
 name = "mavi-forms"
-version = "0.1.9"
+version = "0.1.10"
 dependencies = [
  "base64 0.23.1",
  "chrono",
@@ -1907,7 +1907,7 @@ dependencies = [
 
 [[package]]
 name = "mavi-http"
-version = "0.1.9"
+version = "0.1.10"
 dependencies = [
  "axum",
  "base64 0.23.1",
@@ -1954,7 +1954,7 @@ dependencies = [
 
 [[package]]
 name = "mavi-identity"
-version = "0.1.9"
+version = "0.1.10"
 dependencies = [
  "argon2",
  "base64 0.23.1",
@@ -1974,7 +1974,7 @@ dependencies = [
 
 [[package]]
 name = "mavi-jobs"
-version = "0.1.9"
+version = "0.1.10"
 dependencies = [
  "base64 0.23.1",
  "chrono",
@@ -1991,7 +1991,7 @@ dependencies = [
 
 [[package]]
 name = "mavi-mail"
-version = "0.1.9"
+version = "0.1.10"
 dependencies = [
  "base64 0.23.1",
  "chrono",
@@ -2011,7 +2011,7 @@ dependencies = [
 
 [[package]]
 name = "mavi-media"
-version = "0.1.9"
+version = "0.1.10"
 dependencies = [
  "base64 0.23.1",
  "chrono",
@@ -2032,11 +2032,11 @@ dependencies = [
 
 [[package]]
 name = "mavi-observability"
-version = "0.1.9"
+version = "0.1.10"
 
 [[package]]
 name = "mavi-portable"
-version = "0.1.9"
+version = "0.1.10"
 dependencies = [
  "chrono",
  "mavi-analytics",
@@ -2067,7 +2067,7 @@ dependencies = [
 
 [[package]]
 name = "mavi-runtime"
-version = "0.1.9"
+version = "0.1.10"
 dependencies = [
  "axum",
  "mavi-core",
@@ -2079,7 +2079,7 @@ dependencies = [
 
 [[package]]
 name = "mavi-sealing"
-version = "0.1.9"
+version = "0.1.10"
 dependencies = [
  "aes-gcm",
  "base64 0.23.1",
@@ -2089,7 +2089,7 @@ dependencies = [
 
 [[package]]
 name = "mavi-secrets"
-version = "0.1.9"
+version = "0.1.10"
 dependencies = [
  "base64 0.23.1",
  "chrono",
@@ -2107,7 +2107,7 @@ dependencies = [
 
 [[package]]
 name = "mavi-settings"
-version = "0.1.9"
+version = "0.1.10"
 dependencies = [
  "base64 0.23.1",
  "chrono",
@@ -2124,7 +2124,7 @@ dependencies = [
 
 [[package]]
 name = "mavi-shop"
-version = "0.1.9"
+version = "0.1.10"
 dependencies = [
  "base64 0.23.1",
  "chrono",
@@ -2141,7 +2141,7 @@ dependencies = [
 
 [[package]]
 name = "mavi-storage"
-version = "0.1.9"
+version = "0.1.10"
 dependencies = [
  "mavi-core",
  "sqlx",
@@ -2152,7 +2152,7 @@ dependencies = [
 
 [[package]]
 name = "mavi-taxonomy"
-version = "0.1.9"
+version = "0.1.10"
 dependencies = [
  "base64 0.23.1",
  "chrono",
@@ -2170,7 +2170,7 @@ dependencies = [
 
 [[package]]
 name = "mavi-trash"
-version = "0.1.9"
+version = "0.1.10"
 dependencies = [
  "base64 0.23.1",
  "chrono",
@@ -2198,7 +2198,7 @@ dependencies = [
 
 [[package]]
 name = "mavi-worker"
-version = "0.1.9"
+version = "0.1.10"
 dependencies = [
  "chrono",
  "mavi-analytics",

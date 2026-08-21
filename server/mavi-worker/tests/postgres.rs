@@ -983,6 +983,250 @@ async fn trash_retention_worker_removes_expired_course_roots_and_cascades_learni
 
 #[tokio::test]
 #[ignore = "requires TEST_DATABASE_URL and a non-superuser PostgreSQL role"]
+#[allow(clippy::too_many_lines)]
+async fn trash_retention_worker_removes_expired_boards_and_flows_safely() {
+    let database_url = env::var("TEST_DATABASE_URL").expect("TEST_DATABASE_URL");
+    let database = Database::connect(&database_url, 4)
+        .await
+        .expect("database connection");
+    database.migrate().await.expect("migrations");
+    let site_id = SiteId::new();
+    database.ensure_site(site_id).await.expect("site");
+    let context = SiteContext::public(site_id);
+    let deleted_at = Utc::now() - Duration::days(2);
+    let (
+        board_id,
+        list_id,
+        card_id,
+        comment_id,
+        activity_id,
+        flow_id,
+        step_id,
+        run_id,
+        run_step_id,
+    ) = {
+        let mut transaction = database.begin(&context).await.expect("seed scope");
+        sqlx::query(
+            "insert into site_settings (site_id, name) values ($1, 'Board flow trash retention')",
+        )
+        .bind(site_id.into_uuid())
+        .execute(transaction.conn())
+        .await
+        .expect("site settings");
+        sqlx::query("update site_settings set trash_retention_days = 1 where site_id = $1")
+            .bind(site_id.into_uuid())
+            .execute(transaction.conn())
+            .await
+            .expect("trash policy");
+
+        let board_id = Uuid::now_v7();
+        let list_id = Uuid::now_v7();
+        let card_id = Uuid::now_v7();
+        let comment_id = Uuid::now_v7();
+        let activity_id = Uuid::now_v7();
+        sqlx::query(
+            "insert into boards
+                    (site_id, id, name, deleted_at, trash_archived)
+                 values ($1, $2, 'Expired board', $3, false)",
+        )
+        .bind(site_id.into_uuid())
+        .bind(board_id)
+        .bind(deleted_at)
+        .execute(transaction.conn())
+        .await
+        .expect("board");
+        sqlx::query(
+            "insert into board_lists
+                    (site_id, id, board_id, name, position, deleted_at)
+                 values ($1, $2, $3, 'Expired list', 0, $4)",
+        )
+        .bind(site_id.into_uuid())
+        .bind(list_id)
+        .bind(board_id)
+        .bind(deleted_at)
+        .execute(transaction.conn())
+        .await
+        .expect("board list");
+        sqlx::query(
+            "insert into board_cards
+                    (site_id, id, board_id, list_id, title, position, deleted_at)
+                 values ($1, $2, $3, $4, 'Expired card', 0, $5)",
+        )
+        .bind(site_id.into_uuid())
+        .bind(card_id)
+        .bind(board_id)
+        .bind(list_id)
+        .bind(deleted_at)
+        .execute(transaction.conn())
+        .await
+        .expect("board card");
+        sqlx::query(
+            "insert into board_comments
+                    (site_id, id, board_id, card_id, body, deleted_at)
+                 values ($1, $2, $3, $4, 'Expired comment', $5)",
+        )
+        .bind(site_id.into_uuid())
+        .bind(comment_id)
+        .bind(board_id)
+        .bind(card_id)
+        .bind(deleted_at)
+        .execute(transaction.conn())
+        .await
+        .expect("board comment");
+        sqlx::query(
+            "insert into board_activity
+                    (site_id, id, board_id, card_id, kind, actor_kind)
+                 values ($1, $2, $3, $4, 'board.trashed', 'public')",
+        )
+        .bind(site_id.into_uuid())
+        .bind(activity_id)
+        .bind(board_id)
+        .bind(card_id)
+        .execute(transaction.conn())
+        .await
+        .expect("board activity");
+
+        let flow_id = Uuid::now_v7();
+        let step_id = Uuid::now_v7();
+        let run_id = Uuid::now_v7();
+        let run_step_id = Uuid::now_v7();
+        sqlx::query(
+            "insert into automation_flows
+                    (site_id, id, name, trigger, enabled, trash_enabled, deleted_at)
+                 values ($1, $2, 'Expired flow', 'form_submitted', false, true, $3)",
+        )
+        .bind(site_id.into_uuid())
+        .bind(flow_id)
+        .bind(deleted_at)
+        .execute(transaction.conn())
+        .await
+        .expect("flow");
+        sqlx::query(
+            "insert into automation_flow_steps
+                    (site_id, id, flow_id, position, kind, config)
+                 values ($1, $2, $3, 0, 'wait', '{\"seconds\": 60}'::jsonb)",
+        )
+        .bind(site_id.into_uuid())
+        .bind(step_id)
+        .bind(flow_id)
+        .execute(transaction.conn())
+        .await
+        .expect("flow step");
+        sqlx::query(
+                "insert into automation_runs
+                    (site_id, id, flow_id, trigger, event, definition, state, current_position, retry_count, started_at, updated_at, finished_at)
+                 values ($1, $2, $3, 'form_submitted', '{}'::jsonb, '[{\"kind\": \"wait\", \"config\": {\"seconds\": 60}}]'::jsonb, 'succeeded', 1, 0, $4, $4, $4)",
+            )
+            .bind(site_id.into_uuid())
+            .bind(run_id)
+            .bind(flow_id)
+            .bind(deleted_at)
+            .execute(transaction.conn())
+            .await
+            .expect("flow run");
+        sqlx::query(
+            "insert into automation_run_steps
+                    (site_id, id, run_id, position, attempt, kind, outcome, finished_at)
+                 values ($1, $2, $3, 0, 1, 'wait', 'succeeded', $4)",
+        )
+        .bind(site_id.into_uuid())
+        .bind(run_step_id)
+        .bind(run_id)
+        .bind(deleted_at)
+        .execute(transaction.conn())
+        .await
+        .expect("flow run step");
+        sqlx::query(
+                "insert into jobs
+                    (site_id, id, kind, payload, state, run_at, finished_at)
+                 values ($1, $2, 'automation.flow.start', jsonb_build_object('flow_id', $3::text), 'done', $4, $4)",
+            )
+            .bind(site_id.into_uuid())
+            .bind(Uuid::now_v7())
+            .bind(flow_id)
+            .bind(deleted_at)
+            .execute(transaction.conn())
+            .await
+            .expect("flow job");
+        transaction.commit().await.expect("seed commit");
+        (
+            board_id,
+            list_id,
+            card_id,
+            comment_id,
+            activity_id,
+            flow_id,
+            step_id,
+            run_id,
+            run_step_id,
+        )
+    };
+
+    let supervisor = WorkerSupervisor::new(
+        database.clone(),
+        [site_id],
+        WorkerConfig::new(
+            "test-board-flow-trash-retention-worker",
+            30,
+            std::time::Duration::from_millis(10),
+        )
+        .expect("worker config"),
+        Arc::new(InMemoryFileStore::default()),
+    );
+    assert!(
+        run_until_job_done(
+            &supervisor,
+            &database,
+            site_id,
+            &context,
+            TRASH_RETENTION_JOB.name,
+        )
+        .await,
+        "board/flow trash retention job should complete"
+    );
+
+    let mut transaction = database.begin(&context).await.expect("assert scope");
+    let remaining: i64 = sqlx::query_scalar(
+        "select
+            (select count(*) from boards where site_id = $1 and id = $2)
+          + (select count(*) from board_lists where site_id = $1 and id = $3)
+          + (select count(*) from board_cards where site_id = $1 and id = $4)
+          + (select count(*) from board_comments where site_id = $1 and id = $5)
+          + (select count(*) from board_activity where site_id = $1 and id = $6)
+          + (select count(*) from automation_flows where site_id = $1 and id = $7)
+          + (select count(*) from automation_flow_steps where site_id = $1 and id = $8)
+          + (select count(*) from automation_runs where site_id = $1 and id = $9)
+          + (select count(*) from automation_run_steps where site_id = $1 and id = $10)",
+    )
+    .bind(site_id.into_uuid())
+    .bind(board_id)
+    .bind(list_id)
+    .bind(card_id)
+    .bind(comment_id)
+    .bind(activity_id)
+    .bind(flow_id)
+    .bind(step_id)
+    .bind(run_id)
+    .bind(run_step_id)
+    .fetch_one(transaction.conn())
+    .await
+    .expect("remaining state");
+    let audits: i64 = sqlx::query_scalar(
+        "select count(*) from audit_events
+          where site_id = $1 and action = 'trash.item.permanently_deleted'
+            and resource_type in ('Board', 'AutomationFlow')",
+    )
+    .bind(site_id.into_uuid())
+    .fetch_one(transaction.conn())
+    .await
+    .expect("retention audits");
+    assert_eq!(remaining, 0);
+    assert_eq!(audits, 2);
+    transaction.commit().await.expect("assert commit");
+}
+
+#[tokio::test]
+#[ignore = "requires TEST_DATABASE_URL and a non-superuser PostgreSQL role"]
 async fn trash_retention_worker_continues_after_a_full_batch() {
     let database_url = env::var("TEST_DATABASE_URL").expect("TEST_DATABASE_URL");
     let database = Database::connect(&database_url, 4)

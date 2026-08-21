@@ -29,6 +29,7 @@ pub const TRASH_ITEM_NOT_FOUND: &str = "trash_item_not_found";
 pub const TRASH_KIND_INVALID: &str = "trash_kind_invalid";
 pub const TRASH_RESTORE_CONFLICT: &str = "trash_restore_conflict";
 pub const TRASH_SHOP_PRODUCT_ACTIVE_HOLD: &str = "trash_shop_product_active_hold";
+pub const TRASH_FLOW_ACTIVE_WORK: &str = "trash_flow_active_work";
 pub const TRASH_RELOCATION_FORMAT: &str = "mavi.trash.relocation";
 pub const TRASH_RELOCATION_VERSION: u16 = 1;
 pub const TRASH_RELOCATION_CONFLICT: &str = "trash_relocation_conflict";
@@ -42,6 +43,8 @@ pub const MAX_TRASH_RETENTION_BATCH: i64 = 100;
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum TrashKind {
+    Board,
+    Flow,
     Course,
     Student,
     Form,
@@ -56,6 +59,8 @@ impl TrashKind {
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
+            Self::Board => "board",
+            Self::Flow => "flow",
             Self::Course => "course",
             Self::Student => "student",
             Self::Form => "form",
@@ -70,6 +75,8 @@ impl TrashKind {
     #[must_use]
     pub const fn resource_type(self) -> &'static str {
         match self {
+            Self::Board => "Board",
+            Self::Flow => "AutomationFlow",
             Self::Course => "Course",
             Self::Student => "CourseStudent",
             Self::Form => "Form",
@@ -84,6 +91,8 @@ impl TrashKind {
     #[must_use]
     const fn rank(self) -> i32 {
         match self {
+            Self::Board => 10,
+            Self::Flow => 9,
             Self::Course => 8,
             Self::Student => 7,
             Self::Product => 6,
@@ -97,6 +106,8 @@ impl TrashKind {
 
     pub fn parse(value: &str) -> Result<Self> {
         match value {
+            "board" => Ok(Self::Board),
+            "flow" => Ok(Self::Flow),
             "course" => Ok(Self::Course),
             "student" => Ok(Self::Student),
             "form" => Ok(Self::Form),
@@ -514,7 +525,7 @@ pub fn shapes() -> Vec<Shape> {
     vec![
         Shape::new(
             "TrashKind",
-            json!({"type": "string", "enum": ["course", "student", "form", "product", "coupon", "content", "file", "term"]}),
+            json!({"type": "string", "enum": ["board", "flow", "course", "student", "form", "product", "coupon", "content", "file", "term"]}),
         ),
         Shape::new(
             "TrashListFilter",
@@ -624,6 +635,14 @@ impl TrashService {
         let rows = sqlx::query(
             "select kind, id
                  from (
+                 select site_id, 'board'::text as kind, id, deleted_at,
+                        10::int as kind_rank
+                 from boards where deleted_at is not null
+                 union all
+                 select site_id, 'flow'::text as kind, id, deleted_at,
+                        9::int as kind_rank
+                 from automation_flows where deleted_at is not null
+                 union all
                  select site_id, 'course'::text as kind, id, deleted_at,
                         8::int as kind_rank
                  from courses where deleted_at is not null
@@ -691,6 +710,14 @@ impl TrashService {
         let mut query = sqlx::QueryBuilder::<sqlx::Postgres>::new(
             "select kind, id, label, deleted_at, kind_rank
                from (
+                 select site_id, 'board'::text as kind, id, name as label,
+                        deleted_at, 10::int as kind_rank
+                 from boards where deleted_at is not null
+                 union all
+                 select site_id, 'flow'::text as kind, id, name as label,
+                        deleted_at, 9::int as kind_rank
+                 from automation_flows where deleted_at is not null
+                 union all
                  select site_id, 'course'::text as kind, id, title as label,
                         deleted_at, 8::int as kind_rank
                  from courses where deleted_at is not null
@@ -1206,6 +1233,7 @@ impl TrashService {
             .await
     }
 
+    #[allow(clippy::too_many_lines)]
     pub async fn restore(
         &self,
         tx: &mut SiteTx,
@@ -1213,85 +1241,141 @@ impl TrashService {
         kind: TrashKind,
         id: Uuid,
     ) -> Result<()> {
-        let result =
-            match kind {
-                TrashKind::Course => {
-                    sqlx::query(
-                        "update courses set deleted_at = null, updated_at = clock_timestamp()
-                      where site_id = $1 and id = $2 and deleted_at is not null",
-                    )
-                    .bind(context.site_id.into_uuid())
-                    .bind(id)
-                    .execute(tx.conn())
-                    .await
-                }
-                TrashKind::Student => sqlx::query(
-                    "update course_students set deleted_at = null, updated_at = clock_timestamp()
-                      where site_id = $1 and id = $2 and deleted_at is not null",
+        let rows_affected = match kind {
+            TrashKind::Board => {
+                let result = sqlx::query(
+                    "update boards
+                            set deleted_at = null,
+                                archived = trash_archived,
+                                trash_archived = false,
+                                updated_at = clock_timestamp()
+                          where site_id = $1 and id = $2 and deleted_at is not null",
                 )
                 .bind(context.site_id.into_uuid())
                 .bind(id)
                 .execute(tx.conn())
-                .await,
-                TrashKind::Form => {
+                .await;
+                let result = result.map_err(map_write_error)?;
+                if result.rows_affected() > 0 {
                     sqlx::query(
-                        "update forms set deleted_at = null, updated_at = clock_timestamp()
-                      where site_id = $1 and id = $2 and deleted_at is not null",
+                        "update board_lists
+                                set deleted_at = null, updated_at = clock_timestamp()
+                              where site_id = $1 and board_id = $2 and deleted_at is not null",
                     )
                     .bind(context.site_id.into_uuid())
                     .bind(id)
                     .execute(tx.conn())
                     .await
-                }
-                TrashKind::Product => {
+                    .map_err(map_write_error)?;
                     sqlx::query(
-                        "update shop_products set deleted_at = null, updated_at = clock_timestamp()
-                      where site_id = $1 and id = $2 and deleted_at is not null",
+                        "update board_cards
+                                set deleted_at = null, updated_at = clock_timestamp()
+                              where site_id = $1 and board_id = $2 and deleted_at is not null",
                     )
                     .bind(context.site_id.into_uuid())
                     .bind(id)
                     .execute(tx.conn())
                     .await
+                    .map_err(map_write_error)?;
                 }
-                TrashKind::Coupon => {
-                    sqlx::query(
-                        "update shop_coupons set deleted_at = null, updated_at = clock_timestamp()
+                result.rows_affected()
+            }
+            TrashKind::Flow => sqlx::query(
+                "update automation_flows
+                        set deleted_at = null,
+                            enabled = trash_enabled,
+                            trash_enabled = false,
+                            updated_at = clock_timestamp()
                       where site_id = $1 and id = $2 and deleted_at is not null",
-                    )
-                    .bind(context.site_id.into_uuid())
-                    .bind(id)
-                    .execute(tx.conn())
-                    .await
-                }
-                TrashKind::Content => sqlx::query(
-                    "update content_entries set deleted_at = null, updated_at = clock_timestamp()
+            )
+            .bind(context.site_id.into_uuid())
+            .bind(id)
+            .execute(tx.conn())
+            .await
+            .map_err(map_write_error)?
+            .rows_affected(),
+            TrashKind::Course => sqlx::query(
+                "update courses set deleted_at = null, updated_at = clock_timestamp()
                       where site_id = $1 and id = $2 and deleted_at is not null",
-                )
-                .bind(context.site_id.into_uuid())
-                .bind(id)
-                .execute(tx.conn())
-                .await,
-                TrashKind::File => {
-                    sqlx::query(
-                        "update media_files set deleted_at = null
+            )
+            .bind(context.site_id.into_uuid())
+            .bind(id)
+            .execute(tx.conn())
+            .await
+            .map_err(map_write_error)?
+            .rows_affected(),
+            TrashKind::Student => sqlx::query(
+                "update course_students set deleted_at = null, updated_at = clock_timestamp()
                       where site_id = $1 and id = $2 and deleted_at is not null",
-                    )
-                    .bind(context.site_id.into_uuid())
-                    .bind(id)
-                    .execute(tx.conn())
-                    .await
-                }
-                TrashKind::Term => sqlx::query(
-                    "update taxonomy_terms set deleted_at = null, updated_at = clock_timestamp()
+            )
+            .bind(context.site_id.into_uuid())
+            .bind(id)
+            .execute(tx.conn())
+            .await
+            .map_err(map_write_error)?
+            .rows_affected(),
+            TrashKind::Form => sqlx::query(
+                "update forms set deleted_at = null, updated_at = clock_timestamp()
                       where site_id = $1 and id = $2 and deleted_at is not null",
-                )
-                .bind(context.site_id.into_uuid())
-                .bind(id)
-                .execute(tx.conn())
-                .await,
-            };
-        let result = result.map_err(map_write_error)?;
-        if result.rows_affected() == 0 {
+            )
+            .bind(context.site_id.into_uuid())
+            .bind(id)
+            .execute(tx.conn())
+            .await
+            .map_err(map_write_error)?
+            .rows_affected(),
+            TrashKind::Product => sqlx::query(
+                "update shop_products set deleted_at = null, updated_at = clock_timestamp()
+                      where site_id = $1 and id = $2 and deleted_at is not null",
+            )
+            .bind(context.site_id.into_uuid())
+            .bind(id)
+            .execute(tx.conn())
+            .await
+            .map_err(map_write_error)?
+            .rows_affected(),
+            TrashKind::Coupon => sqlx::query(
+                "update shop_coupons set deleted_at = null, updated_at = clock_timestamp()
+                      where site_id = $1 and id = $2 and deleted_at is not null",
+            )
+            .bind(context.site_id.into_uuid())
+            .bind(id)
+            .execute(tx.conn())
+            .await
+            .map_err(map_write_error)?
+            .rows_affected(),
+            TrashKind::Content => sqlx::query(
+                "update content_entries set deleted_at = null, updated_at = clock_timestamp()
+                      where site_id = $1 and id = $2 and deleted_at is not null",
+            )
+            .bind(context.site_id.into_uuid())
+            .bind(id)
+            .execute(tx.conn())
+            .await
+            .map_err(map_write_error)?
+            .rows_affected(),
+            TrashKind::File => sqlx::query(
+                "update media_files set deleted_at = null
+                      where site_id = $1 and id = $2 and deleted_at is not null",
+            )
+            .bind(context.site_id.into_uuid())
+            .bind(id)
+            .execute(tx.conn())
+            .await
+            .map_err(map_write_error)?
+            .rows_affected(),
+            TrashKind::Term => sqlx::query(
+                "update taxonomy_terms set deleted_at = null, updated_at = clock_timestamp()
+                      where site_id = $1 and id = $2 and deleted_at is not null",
+            )
+            .bind(context.site_id.into_uuid())
+            .bind(id)
+            .execute(tx.conn())
+            .await
+            .map_err(map_write_error)?
+            .rows_affected(),
+        };
+        if rows_affected == 0 {
             return Err(MaviError::NotFound {
                 resource: TRASH_ITEM_NOT_FOUND,
             });
@@ -1321,6 +1405,157 @@ impl TrashService {
         let mut deletion = PermanentDeletion::default();
         ensure_trashed(tx, context, kind, id).await?;
         let payload = match kind {
+            TrashKind::Board => {
+                let list_count: i64 = sqlx::query_scalar(
+                    "select count(*) from board_lists where site_id = $1 and board_id = $2",
+                )
+                .bind(context.site_id.into_uuid())
+                .bind(id)
+                .fetch_one(tx.conn())
+                .await
+                .map_err(|_| MaviError::Internal)?;
+                let card_count: i64 = sqlx::query_scalar(
+                    "select count(*) from board_cards where site_id = $1 and board_id = $2",
+                )
+                .bind(context.site_id.into_uuid())
+                .bind(id)
+                .fetch_one(tx.conn())
+                .await
+                .map_err(|_| MaviError::Internal)?;
+                let comment_count: i64 = sqlx::query_scalar(
+                    "select count(*) from board_comments where site_id = $1 and board_id = $2",
+                )
+                .bind(context.site_id.into_uuid())
+                .bind(id)
+                .fetch_one(tx.conn())
+                .await
+                .map_err(|_| MaviError::Internal)?;
+                let activity_count: i64 = sqlx::query_scalar(
+                    "select count(*) from board_activity where site_id = $1 and board_id = $2",
+                )
+                .bind(context.site_id.into_uuid())
+                .bind(id)
+                .fetch_one(tx.conn())
+                .await
+                .map_err(|_| MaviError::Internal)?;
+                json!({
+                    "kind": kind,
+                    "list_count": list_count,
+                    "card_count": card_count,
+                    "comment_count": comment_count,
+                    "activity_count": activity_count,
+                })
+            }
+            TrashKind::Flow => {
+                let active_run: bool = sqlx::query_scalar(
+                    "select exists(
+                         select 1 from automation_runs
+                          where site_id = $1 and flow_id = $2
+                            and state not in ('succeeded', 'failed')
+                     )",
+                )
+                .bind(context.site_id.into_uuid())
+                .bind(id)
+                .fetch_one(tx.conn())
+                .await
+                .map_err(|_| MaviError::Internal)?;
+                if active_run {
+                    return Err(MaviError::conflict(TRASH_FLOW_ACTIVE_WORK));
+                }
+                let running_job: bool = sqlx::query_scalar(
+                    "select exists(
+                         select 1 from jobs
+                          where site_id = $1 and state = 'running'
+                            and (
+                                (kind = 'automation.flow.start' and payload->>'flow_id' = $2)
+                                or (kind = 'automation.flow.step' and payload->>'run_id' in (
+                                    select id::text from automation_runs
+                                     where site_id = $1 and flow_id = $3
+                                ))
+                            )
+                     )",
+                )
+                .bind(context.site_id.into_uuid())
+                .bind(id.to_string())
+                .bind(id)
+                .fetch_one(tx.conn())
+                .await
+                .map_err(|_| MaviError::Internal)?;
+                if running_job {
+                    return Err(MaviError::conflict(TRASH_FLOW_ACTIVE_WORK));
+                }
+                let flow_step_count: i64 = sqlx::query_scalar(
+                    "select count(*) from automation_flow_steps
+                      where site_id = $1 and flow_id = $2",
+                )
+                .bind(context.site_id.into_uuid())
+                .bind(id)
+                .fetch_one(tx.conn())
+                .await
+                .map_err(|_| MaviError::Internal)?;
+                let run_count: i64 = sqlx::query_scalar(
+                    "select count(*) from automation_runs
+                      where site_id = $1 and flow_id = $2",
+                )
+                .bind(context.site_id.into_uuid())
+                .bind(id)
+                .fetch_one(tx.conn())
+                .await
+                .map_err(|_| MaviError::Internal)?;
+                let run_step_count: i64 = sqlx::query_scalar(
+                    "select count(*) from automation_run_steps
+                      where site_id = $1 and run_id in (
+                          select id from automation_runs
+                           where site_id = $1 and flow_id = $2
+                      )",
+                )
+                .bind(context.site_id.into_uuid())
+                .bind(id)
+                .fetch_one(tx.conn())
+                .await
+                .map_err(|_| MaviError::Internal)?;
+                let job_count: i64 = sqlx::query_scalar(
+                    "select count(*) from jobs
+                      where site_id = $1 and state <> 'running'
+                        and (
+                            (kind = 'automation.flow.start' and payload->>'flow_id' = $2)
+                            or (kind = 'automation.flow.step' and payload->>'run_id' in (
+                                select id::text from automation_runs
+                                 where site_id = $1 and flow_id = $3
+                            ))
+                        )",
+                )
+                .bind(context.site_id.into_uuid())
+                .bind(id.to_string())
+                .bind(id)
+                .fetch_one(tx.conn())
+                .await
+                .map_err(|_| MaviError::Internal)?;
+                sqlx::query(
+                    "delete from jobs
+                      where site_id = $1 and state <> 'running'
+                        and (
+                            (kind = 'automation.flow.start' and payload->>'flow_id' = $2)
+                            or (kind = 'automation.flow.step' and payload->>'run_id' in (
+                                select id::text from automation_runs
+                                 where site_id = $1 and flow_id = $3
+                            ))
+                        )",
+                )
+                .bind(context.site_id.into_uuid())
+                .bind(id.to_string())
+                .bind(id)
+                .execute(tx.conn())
+                .await
+                .map_err(|_| MaviError::Internal)?;
+                json!({
+                    "kind": kind,
+                    "flow_step_count": flow_step_count,
+                    "run_count": run_count,
+                    "run_step_count": run_step_count,
+                    "job_count": job_count,
+                })
+            }
             TrashKind::Form | TrashKind::Content | TrashKind::Term => json!({"kind": kind}),
             TrashKind::Course => {
                 let module_count: i64 = sqlx::query_scalar(
@@ -1512,6 +1747,58 @@ impl TrashService {
             .await?;
 
         match kind {
+            TrashKind::Board => {
+                sqlx::query(
+                    "delete from boards
+                      where site_id = $1 and id = $2 and deleted_at is not null",
+                )
+                .bind(context.site_id.into_uuid())
+                .bind(id)
+                .execute(tx.conn())
+                .await
+                .map_err(|_| MaviError::Internal)?;
+            }
+            TrashKind::Flow => {
+                sqlx::query(
+                    "delete from automation_run_steps
+                      where site_id = $1 and run_id in (
+                          select id from automation_runs
+                           where site_id = $1 and flow_id = $2
+                      )",
+                )
+                .bind(context.site_id.into_uuid())
+                .bind(id)
+                .execute(tx.conn())
+                .await
+                .map_err(|_| MaviError::Internal)?;
+                sqlx::query(
+                    "delete from automation_runs
+                      where site_id = $1 and flow_id = $2",
+                )
+                .bind(context.site_id.into_uuid())
+                .bind(id)
+                .execute(tx.conn())
+                .await
+                .map_err(|_| MaviError::Internal)?;
+                sqlx::query(
+                    "delete from automation_flow_steps
+                      where site_id = $1 and flow_id = $2",
+                )
+                .bind(context.site_id.into_uuid())
+                .bind(id)
+                .execute(tx.conn())
+                .await
+                .map_err(|_| MaviError::Internal)?;
+                sqlx::query(
+                    "delete from automation_flows
+                      where site_id = $1 and id = $2 and deleted_at is not null",
+                )
+                .bind(context.site_id.into_uuid())
+                .bind(id)
+                .execute(tx.conn())
+                .await
+                .map_err(|_| MaviError::Internal)?;
+            }
             TrashKind::Course => {
                 sqlx::query(
                     "delete from courses where site_id = $1 and id = $2 and deleted_at is not null",
@@ -1634,6 +1921,7 @@ impl TrashService {
     }
 }
 
+#[allow(clippy::too_many_lines)]
 async fn ensure_trashed(
     tx: &mut SiteTx,
     context: &SiteContext,
@@ -1641,6 +1929,28 @@ async fn ensure_trashed(
     id: Uuid,
 ) -> Result<()> {
     let exists = match kind {
+        TrashKind::Board => {
+            sqlx::query_scalar::<_, Uuid>(
+                "select id from boards
+                  where site_id = $1 and id = $2 and deleted_at is not null
+                  for update",
+            )
+            .bind(context.site_id.into_uuid())
+            .bind(id)
+            .fetch_optional(tx.conn())
+            .await
+        }
+        TrashKind::Flow => {
+            sqlx::query_scalar::<_, Uuid>(
+                "select id from automation_flows
+                  where site_id = $1 and id = $2 and deleted_at is not null
+                  for update",
+            )
+            .bind(context.site_id.into_uuid())
+            .bind(id)
+            .fetch_optional(tx.conn())
+            .await
+        }
         TrashKind::Course => {
             sqlx::query_scalar::<_, Uuid>(
                 "select id from courses

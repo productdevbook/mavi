@@ -15,7 +15,7 @@ use uuid::Uuid;
 /// It is part of the runtime compatibility contract exposed to the operator.
 /// Keep it next to the migration runner so a release cannot advertise a
 /// storage version independently from the migrations it ships.
-pub const CURRENT_SCHEMA_VERSION: u32 = 41;
+pub const CURRENT_SCHEMA_VERSION: u32 = 42;
 
 /// The lifecycle state stored in the shared shard catalog.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -475,7 +475,21 @@ mod tests {
             include_str!("../migrations/0041_trash_retention_policy.sql");
         assert!(trash_retention_migration.contains("trash_retention_days"));
         assert!(trash_retention_migration.contains("between 1 and 3650"));
-        assert_eq!(CURRENT_SCHEMA_VERSION, 41);
+        let boards_flows_trash_migration =
+            include_str!("../migrations/0042_boards_flows_trash.sql");
+        assert!(
+            boards_flows_trash_migration.contains("trash_archived boolean not null default false")
+        );
+        assert!(boards_flows_trash_migration.contains("deleted_at timestamptz"));
+        assert!(
+            boards_flows_trash_migration.contains("trash_enabled boolean not null default false")
+        );
+        assert!(boards_flows_trash_migration.contains("before update on board_activity"));
+        assert!(
+            boards_flows_trash_migration
+                .contains("where archived_at is null and deleted_at is null")
+        );
+        assert_eq!(CURRENT_SCHEMA_VERSION, 42);
     }
 
     #[test]

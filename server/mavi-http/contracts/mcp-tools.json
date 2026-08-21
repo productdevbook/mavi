@@ -2461,6 +2461,8 @@
               "kind": {
                 "type": "string",
                 "enum": [
+                  "board",
+                  "flow",
                   "course",
                   "student",
                   "form",
@@ -6864,7 +6866,7 @@
     },
     {
       "name": "automation.flows.delete",
-      "description": "Disable and remove a flow definition",
+      "description": "Move a flow definition to site trash",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -7239,7 +7241,7 @@
     },
     {
       "name": "boards.delete",
-      "description": "Archive a board and its visible work",
+      "description": "Move a board and its visible work to site trash",
       "inputSchema": {
         "type": "object",
         "properties": {

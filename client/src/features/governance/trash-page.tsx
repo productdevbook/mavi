@@ -5,12 +5,14 @@ import {
   GraduationCap,
   Image as ImageIcon,
   Inbox,
+  KanbanSquare,
   ShoppingBag,
   Tag,
   RotateCcw,
   Tags,
   Trash2,
   UserRound,
+  Workflow,
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -62,6 +64,8 @@ export function TrashPage() {
   React.useEffect(load, [load])
 
   const named: Record<string, string> = {
+    board: t`board`,
+    flow: t`flow`,
     course: t`course`,
     student: t`student`,
     form: t`form`,
@@ -74,21 +78,25 @@ export function TrashPage() {
 
   const icon = (kind: string) => {
     const glyph =
-      kind === "file"
-        ? ImageIcon
-        : kind === "course"
-          ? GraduationCap
-          : kind === "student"
-            ? UserRound
-            : kind === "product"
-              ? ShoppingBag
-              : kind === "coupon"
-                ? Tag
-                : kind === "content"
-                  ? Inbox
-                  : kind === "term"
-                    ? Tags
-                    : FileText
+      kind === "board"
+        ? KanbanSquare
+        : kind === "flow"
+          ? Workflow
+          : kind === "file"
+            ? ImageIcon
+            : kind === "course"
+              ? GraduationCap
+              : kind === "student"
+                ? UserRound
+                : kind === "product"
+                  ? ShoppingBag
+                  : kind === "coupon"
+                    ? Tag
+                    : kind === "content"
+                      ? Inbox
+                      : kind === "term"
+                        ? Tags
+                        : FileText
     return React.createElement(glyph, {
       className: "size-4 text-muted-foreground",
     })

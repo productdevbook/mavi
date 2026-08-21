@@ -26,10 +26,12 @@ uuid.workspace = true
 workspace = true
 
 [dev-dependencies]
+mavi-boards = { path = "../mavi-boards" }
 mavi-courses = { path = "../mavi-courses" }
 mavi-content = { path = "../mavi-content" }
 mavi-files = { path = "../mavi-files" }
 mavi-forms = { path = "../mavi-forms" }
+ mavi-flows = { path = "../mavi-flows" }
 mavi-shop = { path = "../mavi-shop" }
 mavi-taxonomy = { path = "../mavi-taxonomy" }
 tokio.workspace = true

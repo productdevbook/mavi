@@ -19,6 +19,16 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -41,12 +51,7 @@ const TRIGGERS: Trigger[] = [
   "course_lesson_completed",
 ]
 
-const KINDS: StepKind[] = [
-  "send_mail",
-  "webhook",
-  "wait",
-  "add_to_mail_list",
-]
+const KINDS: StepKind[] = ["send_mail", "webhook", "wait", "add_to_mail_list"]
 
 type Draft = {
   kind: StepKind
@@ -64,6 +69,7 @@ export function FlowsPage() {
   const [trigger, setTrigger] = React.useState<Flow["trigger"]>(TRIGGERS[0])
   const [drafts, setDrafts] = React.useState<Draft[]>([])
   const [busy, setBusy] = React.useState(false)
+  const [going, setGoing] = React.useState<Flow | null>(null)
 
   const load = React.useCallback(() => {
     every("automation.flows.list", { query: {} })
@@ -88,12 +94,16 @@ export function FlowsPage() {
     }
   }
 
-  const remove = async (flow: Flow) => {
+  const remove = async () => {
+    if (!going) return
+
     try {
-      await api("automation.flows.delete", { path: { id: flow.id } })
+      await api("automation.flows.delete", { path: { id: going.id } })
       load()
     } catch (why) {
       toast.error(apiMessage(why))
+    } finally {
+      setGoing(null)
     }
   }
 
@@ -179,7 +189,7 @@ export function FlowsPage() {
                   variant="ghost"
                   size="icon-sm"
                   aria-label={t`Remove`}
-                  onClick={() => void remove(flow)}
+                  onClick={() => setGoing(flow)}
                 >
                   <Trash2 />
                 </Button>
@@ -201,6 +211,26 @@ export function FlowsPage() {
           ))}
         </div>
       )}
+
+      <AlertDialog
+        open={going !== null}
+        onOpenChange={(open) => !open && setGoing(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t`Move this flow to the bin?`}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t`It stops running and can be restored from the bin with its previous enabled state.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t`Cancel`}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => void remove()}>
+              {t`Move to bin`}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Dialog open={making} onOpenChange={setMaking}>
         <DialogContent className="sm:max-w-2xl">

@@ -284,7 +284,7 @@ pub fn api() -> mavi_contract::Api {
             Method::Delete,
             "/api/v1/boards/{id}",
             "boards.delete",
-            "Archive a board and its visible work",
+            "Move a board and its visible work to site trash",
         )
         .account_or_assistant()
         .requires(delete)
@@ -793,14 +793,14 @@ impl BoardService {
         context: &SiteContext,
         id: BoardId,
     ) -> Result<()> {
-        let rows = sqlx::query("update boards set deleted_at = now(), archived = true, updated_at = now() where id = $1 and deleted_at is null")
-            .bind(id.into_uuid()).execute(tx.conn()).await.map_err(|_| MaviError::Internal)?;
+        let rows = sqlx::query("update boards set trash_archived = archived, deleted_at = now(), archived = true, updated_at = now() where site_id = $1 and id = $2 and deleted_at is null")
+            .bind(context.site_id.into_uuid()).bind(id.into_uuid()).execute(tx.conn()).await.map_err(|_| MaviError::Internal)?;
         if rows.rows_affected() == 0 {
             return Err(MaviError::NotFound { resource: "board" });
         }
-        sqlx::query("update board_lists set deleted_at = now(), updated_at = now() where board_id = $1 and deleted_at is null").bind(id.into_uuid()).execute(tx.conn()).await.map_err(|_| MaviError::Internal)?;
-        sqlx::query("update board_cards set archived_at = now(), updated_at = now() where board_id = $1 and archived_at is null").bind(id.into_uuid()).execute(tx.conn()).await.map_err(|_| MaviError::Internal)?;
-        self.mutate(tx, context, id, None, "board.deleted", json!({}))
+        sqlx::query("update board_lists set deleted_at = now(), updated_at = now() where site_id = $1 and board_id = $2 and deleted_at is null").bind(context.site_id.into_uuid()).bind(id.into_uuid()).execute(tx.conn()).await.map_err(|_| MaviError::Internal)?;
+        sqlx::query("update board_cards set deleted_at = now(), updated_at = now() where site_id = $1 and board_id = $2 and deleted_at is null").bind(context.site_id.into_uuid()).bind(id.into_uuid()).execute(tx.conn()).await.map_err(|_| MaviError::Internal)?;
+        self.mutate(tx, context, id, None, "board.trashed", json!({}))
             .await
     }
 
@@ -908,13 +908,41 @@ impl BoardService {
                 .map(|id| id.into_uuid())
                 .collect::<Vec<_>>(),
         )?;
+        sqlx::query(
+            "with numbered as (
+                 select id, row_number() over (order by position, id)::bigint as number
+                   from board_lists
+                  where site_id = $1 and board_id = $2 and deleted_at is null
+             ), bounds as (
+                 select coalesce(max(position), -1)::bigint
+                          + count(*)::bigint + 1 as base
+                   from board_lists
+                  where site_id = $1 and board_id = $2 and deleted_at is null
+             )
+             update board_lists as lists
+                set position = (bounds.base + numbered.number)::integer,
+                    updated_at = now()
+               from numbered, bounds
+              where lists.site_id = $1 and lists.id = numbered.id",
+        )
+        .bind(context.site_id.into_uuid())
+        .bind(board_id.into_uuid())
+        .execute(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?;
         for (position, id) in order.into_iter().enumerate() {
-            sqlx::query("update board_lists set position = $2, updated_at = now() where id = $1")
-                .bind(id)
-                .bind(i32::try_from(position).map_err(|_| MaviError::Internal)?)
-                .execute(tx.conn())
-                .await
-                .map_err(|_| MaviError::Internal)?;
+            sqlx::query(
+                "update board_lists
+                    set position = $3, updated_at = now()
+                  where site_id = $1 and board_id = $2 and id = $4",
+            )
+            .bind(context.site_id.into_uuid())
+            .bind(board_id.into_uuid())
+            .bind(i32::try_from(position).map_err(|_| MaviError::Internal)?)
+            .bind(id)
+            .execute(tx.conn())
+            .await
+            .map_err(|_| MaviError::Internal)?;
         }
         self.mutate(
             tx,
@@ -953,7 +981,7 @@ impl BoardService {
         );
         query
             .push_bind(list_id.into_uuid())
-            .push(" and archived_at is null");
+            .push(" and archived_at is null and deleted_at is null");
         if let Some(assignee) = filter.assignee_id {
             query
                 .push(" and assignee_id = ")
@@ -1008,7 +1036,7 @@ impl BoardService {
             "card_description_invalid",
         )?;
         validate_assignee(tx, input.assignee_id).await?;
-        let position: i32 = sqlx::query_scalar("select coalesce(max(position), -1) + 1 from board_cards where list_id = $1 and archived_at is null").bind(list_id.into_uuid()).fetch_one(tx.conn()).await.map_err(|_| MaviError::Internal)?;
+        let position: i32 = sqlx::query_scalar("select coalesce(max(position), -1) + 1 from board_cards where list_id = $1 and archived_at is null and deleted_at is null").bind(list_id.into_uuid()).fetch_one(tx.conn()).await.map_err(|_| MaviError::Internal)?;
         let id = BoardCardId::new();
         sqlx::query("insert into board_cards (site_id, id, board_id, list_id, title, description, assignee_id, position) values ($1, $2, $3, $4, $5, $6, $7, $8)")
             .bind(context.site_id.into_uuid()).bind(id.into_uuid()).bind(list.board_id.into_uuid()).bind(list_id.into_uuid()).bind(&title).bind(description).bind(input.assignee_id.map(PersonId::into_uuid)).bind(position)
@@ -1026,7 +1054,7 @@ impl BoardService {
     }
 
     pub async fn get_card(&self, tx: &mut SiteTx, id: BoardCardId) -> Result<Card> {
-        let row = sqlx::query("select id, board_id, list_id, title, description, assignee_id, position, created_at, updated_at from board_cards where id = $1 and archived_at is null").bind(id.into_uuid()).fetch_optional(tx.conn()).await.map_err(|_| MaviError::Internal)?.ok_or(MaviError::NotFound { resource: "board_card" })?;
+        let row = sqlx::query("select id, board_id, list_id, title, description, assignee_id, position, created_at, updated_at from board_cards where id = $1 and archived_at is null and deleted_at is null").bind(id.into_uuid()).fetch_optional(tx.conn()).await.map_err(|_| MaviError::Internal)?.ok_or(MaviError::NotFound { resource: "board_card" })?;
         card_row(&row)
     }
 
@@ -1057,7 +1085,7 @@ impl BoardService {
                 )
             })
             .transpose()?;
-        sqlx::query("update board_cards set title = coalesce($2, title), description = case when $3 then $4 else description end, updated_at = now() where id = $1 and archived_at is null")
+        sqlx::query("update board_cards set title = coalesce($2, title), description = case when $3 then $4 else description end, updated_at = now() where id = $1 and archived_at is null and deleted_at is null")
             .bind(id.into_uuid()).bind(title.as_deref()).bind(input.description.is_some()).bind(description.flatten())
             .execute(tx.conn()).await.map_err(|_| MaviError::Internal)?;
         self.mutate(
@@ -1093,12 +1121,12 @@ impl BoardService {
         if target.board_id != current.board_id {
             return Err(MaviError::validation("card_list_board_mismatch"));
         }
-        let mut source_ids: Vec<Uuid> = sqlx::query_scalar("select id from board_cards where list_id = $1 and archived_at is null order by position, id").bind(current.list_id.into_uuid()).fetch_all(tx.conn()).await.map_err(|_| MaviError::Internal)?;
+        let mut source_ids: Vec<Uuid> = sqlx::query_scalar("select id from board_cards where list_id = $1 and archived_at is null and deleted_at is null order by position, id").bind(current.list_id.into_uuid()).fetch_all(tx.conn()).await.map_err(|_| MaviError::Internal)?;
         source_ids.retain(|value| *value != id.into_uuid());
         let mut target_ids = if target.id == current.list_id {
             source_ids.clone()
         } else {
-            sqlx::query_scalar("select id from board_cards where list_id = $1 and archived_at is null order by position, id").bind(target.id.into_uuid()).fetch_all(tx.conn()).await.map_err(|_| MaviError::Internal)?
+            sqlx::query_scalar("select id from board_cards where list_id = $1 and archived_at is null and deleted_at is null order by position, id").bind(target.id.into_uuid()).fetch_all(tx.conn()).await.map_err(|_| MaviError::Internal)?
         };
         let insertion = input
             .before_card_id
@@ -1133,14 +1161,14 @@ impl BoardService {
     ) -> Result<()> {
         let current = self.get_card(tx, id).await?;
         sqlx::query(
-            "update board_cards set archived_at = now(), updated_at = now() where id = $1 and archived_at is null",
+            "update board_cards set archived_at = now(), updated_at = now() where id = $1 and archived_at is null and deleted_at is null",
         )
         .bind(id.into_uuid())
         .execute(tx.conn())
         .await
         .map_err(|_| MaviError::Internal)?;
         let remaining: Vec<Uuid> = sqlx::query_scalar(
-            "select id from board_cards where list_id = $1 and archived_at is null order by position, id",
+            "select id from board_cards where list_id = $1 and archived_at is null and deleted_at is null order by position, id",
         )
         .bind(current.list_id.into_uuid())
         .fetch_all(tx.conn())
@@ -1167,7 +1195,7 @@ impl BoardService {
     ) -> Result<Card> {
         let current = self.get_card(tx, id).await?;
         validate_assignee(tx, input.assignee_id).await?;
-        sqlx::query("update board_cards set assignee_id = $2, updated_at = now() where id = $1 and archived_at is null").bind(id.into_uuid()).bind(input.assignee_id.map(PersonId::into_uuid)).execute(tx.conn()).await.map_err(|_| MaviError::Internal)?;
+        sqlx::query("update board_cards set assignee_id = $2, updated_at = now() where id = $1 and archived_at is null and deleted_at is null").bind(id.into_uuid()).bind(input.assignee_id.map(PersonId::into_uuid)).execute(tx.conn()).await.map_err(|_| MaviError::Internal)?;
         self.mutate(
             tx,
             context,
@@ -1403,14 +1431,39 @@ async fn validate_assignee(tx: &mut SiteTx, assignee: Option<PersonId>) -> Resul
 }
 
 async fn rewrite_card_positions(tx: &mut SiteTx, list_id: BoardListId, ids: &[Uuid]) -> Result<()> {
+    sqlx::query(
+        "with numbered as (
+             select id, row_number() over (order by position, id)::bigint as number
+               from board_cards
+              where list_id = $1 and archived_at is null and deleted_at is null
+         ), bounds as (
+             select coalesce(max(position), -1)::bigint
+                      + count(*)::bigint + 1 as base
+               from board_cards
+              where list_id = $1 and archived_at is null and deleted_at is null
+         )
+         update board_cards as cards
+            set position = (bounds.base + numbered.number)::integer
+           from numbered, bounds
+          where cards.id = numbered.id",
+    )
+    .bind(list_id.into_uuid())
+    .execute(tx.conn())
+    .await
+    .map_err(|_| MaviError::Internal)?;
     for (position, id) in ids.iter().enumerate() {
-        sqlx::query("update board_cards set position = $2 where id = $1 and list_id = $3")
-            .bind(id)
-            .bind(i32::try_from(position).map_err(|_| MaviError::Internal)?)
-            .bind(list_id.into_uuid())
-            .execute(tx.conn())
-            .await
-            .map_err(|_| MaviError::Internal)?;
+        sqlx::query(
+            "update board_cards
+                set position = $2
+              where id = $1 and list_id = $3
+                and archived_at is null and deleted_at is null",
+        )
+        .bind(id)
+        .bind(i32::try_from(position).map_err(|_| MaviError::Internal)?)
+        .bind(list_id.into_uuid())
+        .execute(tx.conn())
+        .await
+        .map_err(|_| MaviError::Internal)?;
     }
     Ok(())
 }

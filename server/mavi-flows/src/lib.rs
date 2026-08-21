@@ -341,6 +341,7 @@ pub fn api() -> mavi_contract::Api {
         .refuses([
             ErrorCode::Forbidden,
             ErrorCode::NotFound,
+            ErrorCode::Conflict,
             ErrorCode::Internal,
         ]),
         Endpoint::new(
@@ -365,7 +366,7 @@ pub fn api() -> mavi_contract::Api {
             Method::Delete,
             "/api/v1/automation/flows/{id}",
             "automation.flows.delete",
-            "Disable and remove a flow definition",
+            "Move a flow definition to site trash",
         )
         .account_or_assistant()
         .requires(write)
@@ -686,9 +687,14 @@ impl FlowService {
 
     pub async fn delete(&self, tx: &mut SiteTx, context: &SiteContext, id: FlowId) -> Result<()> {
         let rows = sqlx::query(
-            "update automation_flows set deleted_at = now(), enabled = false, updated_at = now()
-              where id = $1 and deleted_at is null",
+            "update automation_flows
+                set trash_enabled = enabled,
+                    deleted_at = now(),
+                    enabled = false,
+                    updated_at = now()
+              where site_id = $1 and id = $2 and deleted_at is null",
         )
+        .bind(context.site_id.into_uuid())
         .bind(id.into_uuid())
         .execute(tx.conn())
         .await
@@ -701,7 +707,7 @@ impl FlowService {
         audit(
             tx,
             context,
-            "automation.flow.deleted",
+            "automation.flow.trashed",
             "AutomationFlow",
             id.into_uuid(),
             json!({}),

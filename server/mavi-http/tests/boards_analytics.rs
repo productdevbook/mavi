@@ -142,6 +142,44 @@ async fn boards_and_analytics_use_canonical_cursor_contracts() {
             .is_empty()
     );
 
+    let trashed = send(
+        &app,
+        Method::DELETE,
+        &format!("/api/v1/boards/{board_id}"),
+        Some(&token),
+        None,
+    )
+    .await;
+    assert_eq!(trashed.status(), StatusCode::NO_CONTENT);
+    let board_trash = send(
+        &app,
+        Method::GET,
+        "/api/v1/trash?kind=board",
+        Some(&token),
+        None,
+    )
+    .await;
+    assert_eq!(board_trash.status(), StatusCode::OK);
+    assert_eq!(response_json(board_trash).await["items"][0]["id"], board_id);
+    let restored = send(
+        &app,
+        Method::POST,
+        &format!("/api/v1/trash/board/{board_id}/restore"),
+        Some(&token),
+        None,
+    )
+    .await;
+    assert_eq!(restored.status(), StatusCode::NO_CONTENT);
+    let restored_board = send(
+        &app,
+        Method::GET,
+        &format!("/api/v1/boards/{board_id}"),
+        Some(&token),
+        None,
+    )
+    .await;
+    assert_eq!(restored_board.status(), StatusCode::OK);
+
     let anonymous_board_read = send(&app, Method::GET, "/api/v1/boards", None, None).await;
     assert_eq!(anonymous_board_read.status(), StatusCode::UNAUTHORIZED);
 
@@ -206,6 +244,7 @@ async fn boards_and_analytics_use_canonical_cursor_contracts() {
     for operation_id in [
         "boards.cards.move",
         "boards.comments.create",
+        "boards.delete",
         "analytics.events.ingest",
         "analytics.daily.list",
     ] {

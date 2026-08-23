@@ -177,9 +177,25 @@ fn normalize_host(value: &str) -> String {
 
     // Bracketed IPv6 literals must be handled before port stripping: a naive
     // split on ':' turns "[::1]:8080" into "[".
+    // After the closing ']', only an empty suffix or ":port" (digits) is
+    // accepted; anything else keeps the full value so it cannot match a bare
+    // allowlisted literal (e.g. "[::1]suffix" must not become "[::1]").
     let host = if value.starts_with('[') {
         match value.find(']') {
-            Some(end) => &value[..=end],
+            Some(end) => {
+                let suffix = &value[end + 1..];
+                if suffix.is_empty() {
+                    &value[..=end]
+                } else if let Some(port) = suffix.strip_prefix(':') {
+                    if !port.is_empty() && port.chars().all(|c| c.is_ascii_digit()) {
+                        &value[..=end]
+                    } else {
+                        value
+                    }
+                } else {
+                    value
+                }
+            }
             None => value,
         }
     } else {
@@ -327,6 +343,10 @@ mod tests {
         assert_eq!(normalize_host("[::1]"), "[::1]");
         assert_eq!(normalize_host("[::1]:8080"), "[::1]");
         assert_eq!(normalize_host("[2001:db8::1]:443"), "[2001:db8::1]");
+        // Malformed suffixes must not collapse to the bare literal.
+        assert_eq!(normalize_host("[::1]suffix"), "[::1]suffix");
+        assert_eq!(normalize_host("[::1]:suffix"), "[::1]:suffix");
+        assert_eq!(normalize_host("[::1]:"), "[::1]:");
     }
 
     #[tokio::test]
@@ -342,6 +362,23 @@ mod tests {
             .await
             .expect("FQDN host with trailing dot should resolve");
         assert_eq!(context.site_id, site_id);
+    }
+
+    #[tokio::test]
+    async fn host_resolver_rejects_malformed_ipv6_suffix() {
+        let site_id = SiteId::new();
+        let resolver = HostSiteResolver::new([("[::1]".to_owned(), site_id)])
+            .expect("valid host directory");
+        let mut headers = axum::http::HeaderMap::new();
+        headers.insert(HOST, "[::1]suffix".parse().expect("host"));
+
+        assert!(
+            resolver
+                .resolve(headers, RequestId::new())
+                .await
+                .is_err(),
+            "junk after bracketed IPv6 must not match allowlisted [::1]"
+        );
     }
 
     #[tokio::test]

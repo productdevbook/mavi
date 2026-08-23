@@ -173,11 +173,21 @@ impl SiteResolver for HostSiteResolver {
 }
 
 fn normalize_host(value: &str) -> String {
-    value
-        .trim()
-        .split_once(':')
-        .map_or(value.trim(), |(host, _)| host)
-        .to_ascii_lowercase()
+    let value = value.trim();
+
+    // Bracketed IPv6 literals must be handled before port stripping: a naive
+    // split on ':' turns "[::1]:8080" into "[".
+    let host = if value.starts_with('[') {
+        match value.find(']') {
+            Some(end) => &value[..=end],
+            None => value,
+        }
+    } else {
+        value.split_once(':').map_or(value, |(host, _)| host)
+    };
+
+    // FQDN form (trailing dot) is legal in Host and must match bare names.
+    host.trim_end_matches('.').to_ascii_lowercase()
 }
 
 fn checked_entries(
@@ -303,6 +313,35 @@ mod tests {
         assert_eq!(context.site_id, site_id);
         assert!(context.caller.is_public());
         assert_eq!(resolver.mode(), RuntimeMode::FixedSite);
+    }
+
+    #[test]
+    fn normalize_host_strips_trailing_dot_and_port() {
+        assert_eq!(normalize_host("Example.com."), "example.com");
+        assert_eq!(normalize_host("example.com.:443"), "example.com");
+        assert_eq!(normalize_host("  Example.COM  "), "example.com");
+    }
+
+    #[test]
+    fn normalize_host_preserves_bracketed_ipv6() {
+        assert_eq!(normalize_host("[::1]"), "[::1]");
+        assert_eq!(normalize_host("[::1]:8080"), "[::1]");
+        assert_eq!(normalize_host("[2001:db8::1]:443"), "[2001:db8::1]");
+    }
+
+    #[tokio::test]
+    async fn host_resolver_accepts_trailing_dot_fqdn() {
+        let site_id = SiteId::new();
+        let resolver = HostSiteResolver::new([("example.com".to_owned(), site_id)])
+            .expect("valid host directory");
+        let mut headers = axum::http::HeaderMap::new();
+        headers.insert(HOST, "example.com.".parse().expect("host"));
+
+        let context = resolver
+            .resolve(headers, RequestId::new())
+            .await
+            .expect("FQDN host with trailing dot should resolve");
+        assert_eq!(context.site_id, site_id);
     }
 
     #[tokio::test]

@@ -179,9 +179,9 @@ fn normalize_host(value: &str) -> String {
     // split on ':' turns "[::1]:8080" into "[".
     // After the closing ']', only an empty suffix or ":port" (digits) is
     // accepted; anything else keeps the full value so it cannot match a bare
-    // allowlisted literal (e.g. "[::1]suffix" must not become "[::1]").
-    let host = if value.starts_with('[') {
-        match value.find(']') {
+    // allowlisted literal (e.g. "[::1]suffix" / "[::1]." must not become "[::1]").
+    if value.starts_with('[') {
+        let host = match value.find(']') {
             Some(end) => {
                 let suffix = &value[end + 1..];
                 if suffix.is_empty() {
@@ -197,11 +197,12 @@ fn normalize_host(value: &str) -> String {
                 }
             }
             None => value,
-        }
-    } else {
-        value.split_once(':').map_or(value, |(host, _)| host)
-    };
+        };
+        // Do not strip trailing dots on IPv6 forms — "[::1]." is junk, not FQDN.
+        return host.to_ascii_lowercase();
+    }
 
+    let host = value.split_once(':').map_or(value, |(host, _)| host);
     // FQDN form (trailing dot) is legal in Host and must match bare names.
     host.trim_end_matches('.').to_ascii_lowercase()
 }
@@ -347,6 +348,7 @@ mod tests {
         assert_eq!(normalize_host("[::1]suffix"), "[::1]suffix");
         assert_eq!(normalize_host("[::1]:suffix"), "[::1]:suffix");
         assert_eq!(normalize_host("[::1]:"), "[::1]:");
+        assert_eq!(normalize_host("[::1]."), "[::1].");
     }
 
     #[tokio::test]
@@ -378,6 +380,23 @@ mod tests {
                 .await
                 .is_err(),
             "junk after bracketed IPv6 must not match allowlisted [::1]"
+        );
+    }
+
+    #[tokio::test]
+    async fn host_resolver_rejects_ipv6_trailing_dot() {
+        let site_id = SiteId::new();
+        let resolver = HostSiteResolver::new([("[::1]".to_owned(), site_id)])
+            .expect("valid host directory");
+        let mut headers = axum::http::HeaderMap::new();
+        headers.insert(HOST, "[::1].".parse().expect("host"));
+
+        assert!(
+            resolver
+                .resolve(headers, RequestId::new())
+                .await
+                .is_err(),
+            "trailing dot after bracketed IPv6 must not match allowlisted [::1]"
         );
     }
 

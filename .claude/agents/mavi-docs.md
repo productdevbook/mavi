@@ -9,8 +9,8 @@ whether to run it on their own machine.
 
 - `README.md` says what it is, what it does and how to run it, in that order.
 - `docs/` is one document per thing that is not obvious from the code.
-- `old/src/*/README.md` is one per module: what it owns, who may reach it,
-  and what it deliberately does not do.
+- A crate's own module docs say what it owns, who may reach it, and what it
+  deliberately does not do.
 
 Write plainly, in prose. No marketing, no feature grids, no emoji headings.
 Say what a thing is for, and what it will not do — the second is what earns

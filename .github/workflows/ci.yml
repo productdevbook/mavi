@@ -132,7 +132,7 @@ jobs:
         with:
           # A released version, not the canary: the lockfile format tracks the
           # bun version, and a canary writes one no release can read.
-          bun-version: "1.3.14"
+          bun-version: "1.4.0"
       - run: bun install --frozen-lockfile
 
       # `--bun` because vite's own bin declares node in its shebang, and

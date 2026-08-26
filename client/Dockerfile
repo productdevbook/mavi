@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM oven/bun:1-alpine AS builder
+FROM oven/bun:1.4.0-alpine AS builder
 WORKDIR /app
 
 # Dependencies as their own layer: they only change when these two files do.

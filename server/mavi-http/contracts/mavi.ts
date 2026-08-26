@@ -2617,7 +2617,8 @@ export class MaviClient {
   constructor(options: MaviClientOptions) {
     this.options = options;
     this.baseUrl = options.baseUrl.replace(/\/+$/, "");
-    this.fetcher = options.fetch ?? globalThis.fetch;
+    // bound: window.fetch throws "Illegal invocation" when its receiver is not the window
+    this.fetcher = options.fetch ?? globalThis.fetch.bind(globalThis);
   }
 
   async call<Name extends OperationName>(

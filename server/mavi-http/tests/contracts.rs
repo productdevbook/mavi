@@ -55,3 +55,17 @@ fn committed_mcp_tools_match_the_canonical_catalog() {
     );
     assert_eq!(MCP, expected);
 }
+
+#[test]
+fn generated_typescript_client_binds_the_global_fetch() {
+    // Unbound, `this.fetcher(...)` calls window.fetch with the client as its
+    // receiver, and every browser call dies with "Illegal invocation".
+    assert!(
+        TYPESCRIPT.contains("globalThis.fetch.bind(globalThis)"),
+        "the generated client must bind the global fetch it falls back to"
+    );
+    assert!(
+        !TYPESCRIPT.contains("options.fetch ?? globalThis.fetch;"),
+        "the generated client must not store an unbound global fetch"
+    );
+}

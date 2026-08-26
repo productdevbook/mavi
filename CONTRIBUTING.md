@@ -17,13 +17,11 @@ The backend needs a Postgres. Any will do:
     cargo clippy --all-targets --all-features -- -D warnings
     cargo nextest run --workspace
 
-Every test that wants a database makes one of its own and migrates it. There
-are sixty-seven of them, and one of them is every migration in the schema — a
-check constraint nothing ever ran is a claim rather than a rule.
-
-`old/` is what still runs the sites while `server/` is being finished. Its own
-three commands are the same, in `old/`, with `--profile ci`. Read
-`old/README.md` before changing anything in there.
+Every test that wants a database makes one of its own and migrates it, and one
+of them is every migration in the schema — a check constraint nothing ever ran
+is a claim rather than a rule. Those tests are `#[ignore]`d and read
+`TEST_DATABASE_URL`, so the three commands above skip them on a machine with
+no database; CI runs them against a real PostgreSQL, sharded across runners.
 
 The panel:
 

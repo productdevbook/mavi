@@ -273,11 +273,11 @@ metering what each site uses, billing for it, making and unmaking sites on a
 machine, moving one between machines, a console that reads across all of them.
 That is somebody's product, and this is the CMS such a product would run.
 
-The seam it is built on is real rather than a promise:
-`old/src/kernel/outside.rs` let a crate that depended on this one hand in
-its own endpoints and its own kinds of queued work, mounted through the same
-guard, the same rate limit and the same audit rule as everything here. Nothing
-mounted that way can skip a permission check or a receipt, and a test says so.
+The seam it is built on is real rather than a promise, and it points inward:
+`mavi-core::ports` names what this asks a host for — `Clock`, `FileStore`,
+`Mailer`, `Payments`, `Builds`, `Seals` — and each arrives at construction. A
+host satisfies them; it does not mount anything of its own through them, and
+nothing here reads the environment to find one for itself.
 
 It is also not a plugin marketplace. What a site can be made to talk to — its
 mail server, its payment provider — is a decision in the software rather than

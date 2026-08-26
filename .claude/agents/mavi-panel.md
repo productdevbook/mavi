@@ -8,11 +8,12 @@ You work in `src/`: React 19, Vite, TanStack Router file routes, Tailwind 4,
 Lingui with English and Turkish. There are three builds from this one tree —
 the panel, `learn` and `shop` — and `bun run build` makes all of them.
 
-Every call goes through the typed client `src/lib/v1.ts` (`api()`, `every()`,
-`Refused`); a refusal is worded by `src/lib/v1-said.ts`, which falls back to
-the English the API sent. The types in `old/types/mavicms.ts` are generated
-from the API and never edited by hand — when a shape is wrong there, the fix
-is in `server/`.
+Every call goes through the typed client `src/lib/api.ts` (`api()`, `every()`,
+`ApiRefused`); a refusal is worded by `apiMessage` in `src/lib/auth.ts`, which
+falls back to the English the API sent. `src/api/server.ts` is generated from
+the canonical contract and never edited by hand — CI runs `cmp` against
+`server/mavi-http/contracts/mavi.ts`, so when a shape is wrong there, the fix
+is in `server/` and the artifact is regenerated in the same commit.
 
 This panel is one site's panel. Whoever signs in is looking at their own site,
 the way WordPress admin is theirs: no site picker, nothing that lists other

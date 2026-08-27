@@ -40,7 +40,7 @@ services:
     image: ghcr.io/hatchet-dev/hatchet/hatchet-lite:${HATCHET_VERSION:-v0.71.14}
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgres://hatchet:${HATCHET_POSTGRES_PASSWORD}@hatchet-postgres:5432/hatchet?sslmode=disable
+      DATABASE_URL: postgres://hatchet:${HATCHET_POSTGRES_PASSWORD}@${HATCHET_POSTGRES_HOST:-hatchet-postgres}:5432/hatchet?sslmode=disable
       SERVER_AUTH_COOKIE_DOMAIN: localhost
       SERVER_AUTH_COOKIE_INSECURE: "t"
       SERVER_GRPC_BIND_ADDRESS: 0.0.0.0

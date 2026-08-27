@@ -326,9 +326,9 @@ mod tests {
     fn removed_runtime_configuration_is_rejected() {
         // Keep the contract visible in source-level tests without setting a
         // process-global variable.
-        assert!(
-            MaviError::validation("MAVI_RUNTIME_MODE_is_removed").code()
-                == mavi_core::ErrorCode::Validation
+        assert_eq!(
+            MaviError::validation("MAVI_RUNTIME_MODE_is_removed").code(),
+            mavi_core::ErrorCode::Validation
         );
     }
 }

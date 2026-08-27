@@ -10,10 +10,12 @@ use std::{
     fmt::Write,
 };
 
-use mavi_core::{Action, Capability, ErrorCode};
+use mavi_core::{ErrorCode, PluginId};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
 use sha2::{Digest, Sha256};
+
+pub use mavi_core::Permission;
 
 /// The release version embedded in generated `OpenAPI` metadata.
 ///
@@ -68,6 +70,11 @@ fn is_json_output(location: &OutputLocation) -> bool {
 #[allow(clippy::trivially_copy_pass_by_ref)]
 fn is_false(value: &bool) -> bool {
     !*value
+}
+
+#[allow(clippy::trivially_copy_pass_by_ref)]
+fn is_core_plugin(plugin: &PluginId) -> bool {
+    plugin.is_core()
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -130,12 +137,6 @@ pub enum Authentication {
     Webhook,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct Permission {
-    pub capability: Capability,
-    pub action: Action,
-}
-
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Mutation {
@@ -155,21 +156,18 @@ pub enum Mutation {
     },
 }
 
-#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub enum Scope {
-    #[default]
-    Site,
-    ControlPlane,
-}
-
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct Endpoint {
+    /// The compiled feature package that owns this endpoint. Core endpoints
+    /// omit the field in serialized contracts for backwards-compatible
+    /// readability; product endpoints are filtered by the site plugin
+    /// registry before OpenAPI/MCP is emitted.
+    #[serde(default, skip_serializing_if = "is_core_plugin")]
+    pub required_plugin: PluginId,
     pub method: Method,
     pub path: String,
     pub operation_id: String,
     pub summary: String,
-    pub scope: Scope,
     /// The permission may also be satisfied by grants attached to the
     /// concrete resource addressed by this operation. Site-wide grants are
     /// still accepted as an administrative override.
@@ -196,11 +194,11 @@ impl Endpoint {
         summary: impl Into<String>,
     ) -> Self {
         Self {
+            required_plugin: PluginId::Core,
             method,
             path: path.into(),
             operation_id: operation_id.into(),
             summary: summary.into(),
-            scope: Scope::Site,
             resource_scoped: false,
             authentication: Authentication::Account,
             permission: None,
@@ -271,19 +269,19 @@ impl Endpoint {
     }
 
     #[must_use]
-    pub const fn control_plane(mut self) -> Self {
-        self.scope = Scope::ControlPlane;
-        self
-    }
-
-    #[must_use]
     pub const fn resource_scoped(mut self) -> Self {
         self.resource_scoped = true;
         self
     }
 
     #[must_use]
-    pub const fn requires(mut self, permission: Permission) -> Self {
+    pub const fn for_plugin(mut self, plugin: PluginId) -> Self {
+        self.required_plugin = plugin;
+        self
+    }
+
+    #[must_use]
+    pub fn requires(mut self, permission: Permission) -> Self {
         self.permission = Some(permission);
         self
     }
@@ -375,6 +373,52 @@ impl Api {
         }
     }
 
+    /// Returns a contract containing only endpoints owned by active compiled
+    /// plugins. Shapes are retained only when referenced by a surviving
+    /// endpoint, which keeps runtime `OpenAPI` and MCP output site-specific.
+    #[must_use]
+    pub fn for_plugins(&self, active: &std::collections::BTreeSet<PluginId>) -> Self {
+        let endpoints = self
+            .endpoints
+            .iter()
+            .filter(|endpoint| active.contains(&endpoint.required_plugin))
+            .cloned()
+            .collect::<Vec<_>>();
+        let mut referenced = endpoints
+            .iter()
+            .flat_map(|endpoint| {
+                endpoint
+                    .request
+                    .iter()
+                    .map(|request| request.shape.clone())
+                    .chain(endpoint.query.iter().cloned())
+                    .chain(endpoint.response.iter().cloned())
+            })
+            .collect::<std::collections::BTreeSet<_>>();
+        // An endpoint can reference a shape that references another shape.
+        // Keep the transitive closure so a runtime-filtered OpenAPI document
+        // remains valid even when the nested shape was authored by a
+        // different domain/plugin.
+        loop {
+            let before = referenced.len();
+            for shape in &self.shapes {
+                if referenced.contains(shape.name.as_str()) {
+                    collect_schema_references(&shape.schema, &mut referenced);
+                }
+            }
+            if referenced.len() == before {
+                break;
+            }
+        }
+        let shapes = self
+            .shapes
+            .iter()
+            .filter(|shape| referenced.contains(shape.name.as_str()))
+            .cloned()
+            .collect();
+        Self { endpoints, shapes }
+    }
+
     pub fn validate(&self) -> Result<(), Vec<String>> {
         let mut errors = Vec::new();
         let mut operation_ids = std::collections::BTreeSet::new();
@@ -395,15 +439,6 @@ impl Api {
             {
                 errors.push(format!(
                     "mutation has no permission: {}",
-                    endpoint.operation_id
-                ));
-            }
-
-            if endpoint.scope == Scope::ControlPlane
-                && endpoint.authentication == Authentication::Public
-            {
-                errors.push(format!(
-                    "control-plane endpoint cannot be public: {}",
                     endpoint.operation_id
                 ));
             }
@@ -591,10 +626,10 @@ impl Api {
             };
             operation.insert("security".to_owned(), security);
             let mut metadata = json!({
-                "scope": endpoint.scope,
                 "authentication": endpoint.authentication,
                 "mutation": endpoint.mutation,
                 "permission": endpoint.permission,
+                "plugin": endpoint.required_plugin,
                 "errors": endpoint.errors,
             });
             if endpoint.resource_scoped {
@@ -716,7 +751,7 @@ impl Api {
         }
 
         output.push_str(
-            "export interface MaviOperation {\n  method: \"get\" | \"post\" | \"put\" | \"patch\" | \"delete\";\n  path: string;\n  input: { location: \"json\" | \"query\" | \"raw\"; shape: string } | null;\n  query: string | null;\n  output: string | null;\n  outputLocation?: \"json\" | \"raw\";\n  status: number;\n  authentication: string;\n  permission: { capability: string; action: string } | null;\n}\n\nexport const operations = {\n",
+            "export interface MaviOperation {\n  method: \"get\" | \"post\" | \"put\" | \"patch\" | \"delete\";\n  path: string;\n  input: { location: \"json\" | \"query\" | \"raw\"; shape: string } | null;\n  query: string | null;\n  output: string | null;\n  outputLocation?: \"json\" | \"raw\";\n  status: number;\n  authentication: string;\n  plugin: string;\n  permission: { plugin: string; action: string; resource_type: string | null } | null;\n}\n\nexport const operations = {\n",
         );
         for endpoint in &self.endpoints {
             let input = endpoint.request.as_ref().map_or_else(
@@ -749,15 +784,19 @@ impl Api {
                 || "null".to_owned(),
                 |permission| {
                     format!(
-                        "{{ capability: \"{}\", action: \"{}\" }}",
-                        permission.capability.as_str(),
-                        permission.action.as_str()
+                        "{{ plugin: \"{}\", action: \"{}\", resource_type: {} }}",
+                        permission.plugin.as_str(),
+                        permission.action.as_str(),
+                        permission
+                            .resource_type
+                            .as_ref()
+                            .map_or_else(|| "null".to_owned(), |value| format!("\"{value}\""))
                     )
                 },
             );
             writeln!(
                 output,
-                "  \"{}\": {{ method: \"{}\", path: \"{}\", input: {}, query: {}, output: {}{}, status: {}, authentication: \"{}\", permission: {} }},",
+                "  \"{}\": {{ method: \"{}\", path: \"{}\", input: {}, query: {}, output: {}{}, status: {}, authentication: \"{}\", plugin: \"{}\", permission: {} }},",
                 endpoint.operation_id,
                 endpoint.method.as_str(),
                 endpoint.path,
@@ -767,6 +806,7 @@ impl Api {
                 output_location,
                 endpoint.status,
                 authentication_name(endpoint.authentication),
+                endpoint.required_plugin.as_str(),
                 permission,
             )
             .expect("writing to a String cannot fail");
@@ -817,7 +857,7 @@ impl Api {
         }
 
         output.push_str(
-            "#[derive(Clone, Copy, Debug, Eq, PartialEq)]\npub struct OperationDefinition {\n    pub name: &'static str,\n    pub method: &'static str,\n    pub path: &'static str,\n    pub request: Option<&'static str>,\n    pub request_location: Option<&'static str>,\n    pub query: Option<&'static str>,\n    pub response: Option<&'static str>,\n    pub response_location: Option<&'static str>,\n    pub status: u16,\n    pub authentication: &'static str,\n    pub capability: Option<&'static str>,\n    pub action: Option<&'static str>,\n}\n\npub const OPERATIONS: &[OperationDefinition] = &[\n",
+            "#[derive(Clone, Copy, Debug, Eq, PartialEq)]\npub struct OperationDefinition {\n    pub name: &'static str,\n    pub method: &'static str,\n    pub path: &'static str,\n    pub request: Option<&'static str>,\n    pub request_location: Option<&'static str>,\n    pub query: Option<&'static str>,\n    pub response: Option<&'static str>,\n    pub response_location: Option<&'static str>,\n    pub status: u16,\n    pub authentication: &'static str,\n    pub plugin: Option<&'static str>,\n    pub action: Option<&'static str>,\n}\n\npub const OPERATIONS: &[OperationDefinition] = &[\n",
         );
         for endpoint in &self.endpoints {
             let request = endpoint.request.as_ref().map_or_else(
@@ -849,18 +889,18 @@ impl Api {
                 OutputLocation::Json => "None",
                 OutputLocation::Raw => "Some(\"raw\")",
             };
-            let (capability, action) = endpoint.permission.as_ref().map_or_else(
+            let (plugin, action) = endpoint.permission.as_ref().map_or_else(
                 || ("None".to_owned(), "None".to_owned()),
                 |permission| {
                     (
-                        format!("Some(\"{}\")", permission.capability.as_str()),
+                        format!("Some(\"{}\")", permission.plugin.as_str()),
                         format!("Some(\"{}\")", permission.action.as_str()),
                     )
                 },
             );
             writeln!(
                 output,
-                "    OperationDefinition {{ name: \"{}\", method: \"{}\", path: \"{}\", request: {}, request_location: {}, query: {}, response: {}, response_location: {}, status: {}, authentication: \"{}\", capability: {}, action: {} }},",
+                "    OperationDefinition {{ name: \"{}\", method: \"{}\", path: \"{}\", request: {}, request_location: {}, query: {}, response: {}, response_location: {}, status: {}, authentication: \"{}\", plugin: {}, action: {} }},",
                 endpoint.operation_id,
                 endpoint.method.as_str(),
                 endpoint.path,
@@ -871,7 +911,7 @@ impl Api {
                 response_location,
                 endpoint.status,
                 authentication_name(endpoint.authentication),
-                capability,
+                plugin,
                 action,
             )
             .expect("writing to a String cannot fail");
@@ -939,7 +979,7 @@ impl Api {
 
             let mut metadata = json!({
                 "authentication": endpoint.authentication,
-                "scope": endpoint.scope,
+                "plugin": endpoint.required_plugin,
                 "permission": endpoint.permission,
             });
             if endpoint.resource_scoped {
@@ -1405,6 +1445,15 @@ const TYPESCRIPT_CLIENT: &str = r#"export interface MaviClientOptions {
   fetch?: typeof globalThis.fetch;
 }
 
+// The server remains the authority, but the browser can fail closed before a
+// disabled feature reaches the network. The runtime manifest provider owns
+// this snapshot and refreshes it after plugin activation changes.
+let activePluginSnapshot: ReadonlySet<string> = new Set();
+
+export function setActivePluginSnapshot(snapshot: ReadonlySet<string>): void {
+  activePluginSnapshot = snapshot;
+}
+
 export class MaviApiError extends Error {
   readonly status: number;
   readonly payload: ErrorEnvelope | null;
@@ -1433,6 +1482,18 @@ export class MaviClient {
     args: OperationArguments[Name],
   ): Promise<OperationResponses[Name]> {
     const definition: MaviOperation = operations[operation];
+    if (
+      definition.plugin !== "core" &&
+      !activePluginSnapshot.has(definition.plugin)
+    ) {
+      throw new MaviApiError(404, {
+        error: {
+          code: "plugin_disabled",
+          message: "Plugin is not enabled",
+          field: null,
+        },
+      });
+    }
     const values = args as {
       path?: Record<string, string>;
       query?: Record<string, unknown>;
@@ -1523,27 +1584,10 @@ mod tests {
             "content.create",
             "Create content",
         )
-        .requires(Permission {
-            capability: Capability::Content,
-            action: Action::Write,
-        })
+        .requires(Permission::from_legacy(Capability::Content, Action::Write))
         .changes(true)]);
 
         assert!(api.validate().is_ok());
-    }
-
-    #[test]
-    fn control_plane_endpoints_cannot_be_public() {
-        let api = Api::new([Endpoint::new(
-            Method::Get,
-            "/operator/v1/sites",
-            "operator.sites.list",
-            "List sites",
-        )
-        .public()
-        .control_plane()]);
-
-        assert!(api.validate().is_err());
     }
 
     #[test]
@@ -1585,10 +1629,7 @@ mod tests {
             "Read a course",
         )
         .account_or_assistant()
-        .requires(Permission {
-            capability: Capability::Courses,
-            action: Action::View,
-        })
+        .requires(Permission::from_legacy(Capability::Courses, Action::View))
         .resource_scoped()
         .returns(200, "Course")])
         .with_shapes([Shape::new("Course", json!({"type": "object"}))]);
@@ -1599,8 +1640,13 @@ mod tests {
             openapi["paths"]["/api/v1/courses/{id}"]["get"]["x-mavi"]["resourceScoped"],
             true
         );
+        assert_eq!(
+            openapi["paths"]["/api/v1/courses/{id}"]["get"]["x-mavi"]["plugin"],
+            "core"
+        );
         let tools = api.mcp_tools().expect("MCP tools");
         assert_eq!(tools["tools"][0]["x-mavi"]["resourceScoped"], true);
+        assert_eq!(tools["tools"][0]["x-mavi"]["plugin"], "core");
     }
 
     #[test]
@@ -1618,6 +1664,36 @@ mod tests {
             document["paths"]["/api/v1/health"]["get"]["operationId"],
             "health.read"
         );
+    }
+
+    #[test]
+    fn plugin_filtered_contract_keeps_transitive_shape_references() {
+        let api = Api::new([Endpoint::new(
+            Method::Get,
+            "/api/v1/shop/products",
+            "shop.products.list",
+            "List products",
+        )
+        .for_plugin(PluginId::Commerce)
+        .public()
+        .returns(200, "ProductPage")])
+        .with_shapes([
+            Shape::new(
+                "ProductPage",
+                json!({
+                    "type": "object",
+                    "properties": {"items": {"$ref": "#/components/schemas/Product"}}
+                }),
+            ),
+            Shape::new("Product", json!({"type": "object"})),
+        ]);
+
+        let active = [PluginId::Commerce].into_iter().collect();
+        let document = api
+            .for_plugins(&active)
+            .openapi("Mavi", API_VERSION)
+            .expect("filtered OpenAPI");
+        assert!(document["components"]["schemas"]["Product"].is_object());
     }
 
     #[test]
@@ -1837,10 +1913,7 @@ mod tests {
             Api::new([
                 Endpoint::new(Method::Get, "/api/v1/people", "people.list", "List people")
                     .account_or_assistant()
-                    .requires(Permission {
-                        capability: Capability::People,
-                        action: Action::View,
-                    })
+                    .requires(Permission::from_legacy(Capability::People, Action::View))
                     .takes_query("PeopleListFilter")
                     .returns(200, "PeoplePage"),
             ])
@@ -1852,10 +1925,17 @@ mod tests {
         let typescript = api.typescript().expect("TypeScript");
         assert!(typescript.contains("people.list"));
         assert!(typescript.contains("query: PeopleListFilter"));
+        assert!(typescript.contains("plugin: \"core\""));
+        assert!(typescript.contains("setActivePluginSnapshot"));
+        assert!(typescript.contains("code: \"plugin_disabled\""));
 
         let tools = api.mcp_tools().expect("MCP tools");
         assert_eq!(tools["tools"][0]["name"], "people.list");
-        assert_eq!(tools["tools"][0]["x-mavi"]["permission"]["action"], "view");
+        assert_eq!(tools["tools"][0]["x-mavi"]["permission"]["plugin"], "core");
+        assert_eq!(
+            tools["tools"][0]["x-mavi"]["permission"]["action"],
+            "people.list"
+        );
         assert_eq!(
             tools["tools"][0]["inputSchema"]["properties"]["query"]["type"],
             "object"

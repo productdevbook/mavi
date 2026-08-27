@@ -1,6 +1,6 @@
 //! Site-scoped media metadata and binary storage orchestration.
 //!
-//! `PostgreSQL` owns the tenant-scoped metadata, while a [`FileStore`] owns the
+//! `PostgreSQL` owns the site-scoped metadata, while a [`FileStore`] owns the
 //! bytes. Uploads write bytes before metadata; trashing tombstones metadata
 //! while retaining bytes for restore, and permanent trash deletion removes
 //! both. The two systems cannot share one transaction, so cleanup remains an
@@ -11,13 +11,13 @@ use std::{collections::BTreeSet, io::Cursor as IoCursor};
 use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
 use chrono::{DateTime, Duration, Utc};
 use image::{ImageReader, Limits, codecs::jpeg::JpegEncoder, imageops::FilterType};
+use mavi_application::{JobKind, JobState, WorkflowScheduler};
 use mavi_audit::{AuditEntry, AuditService};
 use mavi_contract::{Endpoint, Method, Permission, Shape};
 use mavi_core::{
     Action, Capability, Cursor, ErrorCode, FileId, JobId, MaviError, MediaVariantId, Page,
     PageRequest, Result, SiteContext, ports::FileStore,
 };
-use mavi_jobs::{JobKind, JobState, JobsService};
 use mavi_storage::SiteTx;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -41,12 +41,6 @@ pub const MAX_VARIANT_SOURCE_ALLOC: u64 = 256 * 1024 * 1024;
 const VARIANT_JPEG_QUALITY: u8 = 82;
 
 pub const MAX_FILE_BYTES: usize = 100 * 1024 * 1024;
-/// Maximum raw binary payload carried by one private shard relocation.
-///
-/// The wire envelope is JSON and therefore larger than this value after
-/// base64 encoding. The portable coordinator applies the larger envelope
-/// limit around this domain limit.
-pub const MAX_MEDIA_RELOCATION_BYTES: usize = 192 * 1024 * 1024;
 const MAX_FILE_NAME_CHARS: usize = 255;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -237,83 +231,6 @@ pub struct MediaOrphanCleanupJob {
     pub bucket: i64,
 }
 
-/// Site media transferred only by the authenticated shard relocation port.
-///
-/// Public portable exports intentionally do not include this type. Binary
-/// data is encoded as URL-safe base64 so the operator can use one typed JSON
-/// request while retaining the existing HTTP transfer boundary.
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct MediaRelocation {
-    pub files: Vec<MediaRelocationFile>,
-}
-
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct MediaRelocationFile {
-    pub id: FileId,
-    pub kind: FileKind,
-    pub visibility: FileVisibility,
-    pub mime: String,
-    pub name: String,
-    pub storage_key: String,
-    pub bytes: u64,
-    pub sha256: String,
-    pub created_at: DateTime<Utc>,
-    #[serde(with = "base64_bytes")]
-    pub content: Vec<u8>,
-}
-
-impl MediaRelocation {
-    pub fn validate(&self) -> Result<()> {
-        let mut ids = BTreeSet::new();
-        let mut storage_keys = BTreeSet::new();
-        let mut total_bytes = 0usize;
-
-        for file in &self.files {
-            if !ids.insert(file.id) {
-                return Err(MaviError::validation("media_relocation_duplicate_file"));
-            }
-            if !storage_keys.insert(file.storage_key.as_str()) {
-                return Err(MaviError::validation(
-                    "media_relocation_duplicate_storage_key",
-                ));
-            }
-            validate_storage_key(file.id, &file.storage_key)?;
-            if validate_name(&file.name)? != file.name {
-                return Err(MaviError::validation(FILE_NAME_INVALID));
-            }
-            if !valid_mime(&file.mime) {
-                return Err(MaviError::validation("media_relocation_mime_invalid"));
-            }
-            if file.bytes == 0 || file.bytes > MAX_FILE_BYTES as u64 {
-                return Err(MaviError::validation(FILE_TOO_LARGE));
-            }
-            let content_bytes = file.content.len();
-            if content_bytes
-                != usize::try_from(file.bytes)
-                    .map_err(|_| MaviError::validation("media_relocation_byte_count_invalid"))?
-            {
-                return Err(MaviError::validation("media_relocation_byte_count_invalid"));
-            }
-            total_bytes = total_bytes
-                .checked_add(content_bytes)
-                .ok_or_else(|| MaviError::validation("media_relocation_size_overflow"))?;
-            if total_bytes > MAX_MEDIA_RELOCATION_BYTES {
-                return Err(MaviError::validation("media_relocation_too_large"));
-            }
-            if file.sha256.len() != 64 || !file.sha256.bytes().all(|byte| byte.is_ascii_hexdigit())
-            {
-                return Err(MaviError::validation("media_relocation_digest_invalid"));
-            }
-            if hex_digest(&Sha256::digest(&file.content)) != file.sha256 {
-                return Err(MaviError::validation("media_relocation_digest_mismatch"));
-            }
-        }
-        Ok(())
-    }
-}
-
 #[derive(Clone, Copy, Debug, Default)]
 pub struct MediaService;
 
@@ -333,10 +250,7 @@ pub fn endpoints() -> Vec<Endpoint> {
             "List site files with an opaque cursor",
         )
         .account_or_assistant()
-        .requires(Permission {
-            capability: Capability::Media,
-            action: Action::View,
-        })
+        .requires(Permission::from_legacy(Capability::Media, Action::View))
         .takes_query("FileListFilter")
         .returns(200, "FilePage")
         .refuses([
@@ -351,10 +265,7 @@ pub fn endpoints() -> Vec<Endpoint> {
             "Upload a file whose kind is detected from its bytes",
         )
         .account_or_assistant()
-        .requires(Permission {
-            capability: Capability::Media,
-            action: Action::Write,
-        })
+        .requires(Permission::from_legacy(Capability::Media, Action::Write))
         .takes_raw("FileBytes")
         .with_query("UploadFileQuery")
         .returns(201, "File")
@@ -372,10 +283,7 @@ pub fn endpoints() -> Vec<Endpoint> {
             "Read file metadata",
         )
         .account_or_assistant()
-        .requires(Permission {
-            capability: Capability::Media,
-            action: Action::View,
-        })
+        .requires(Permission::from_legacy(Capability::Media, Action::View))
         .returns(200, "File")
         .refuses([
             ErrorCode::Forbidden,
@@ -389,10 +297,7 @@ pub fn endpoints() -> Vec<Endpoint> {
             "Download file bytes for an authorized site caller",
         )
         .account_or_assistant()
-        .requires(Permission {
-            capability: Capability::Media,
-            action: Action::View,
-        })
+        .requires(Permission::from_legacy(Capability::Media, Action::View))
         .returns_raw(200, "FileBytes")
         .refuses([
             ErrorCode::Forbidden,
@@ -406,10 +311,7 @@ pub fn endpoints() -> Vec<Endpoint> {
             "List generated image variants for a file",
         )
         .account_or_assistant()
-        .requires(Permission {
-            capability: Capability::Media,
-            action: Action::View,
-        })
+        .requires(Permission::from_legacy(Capability::Media, Action::View))
         .takes_query("FileVariantListFilter")
         .returns(200, "FileVariantPage")
         .refuses([
@@ -425,10 +327,7 @@ pub fn endpoints() -> Vec<Endpoint> {
             "Download a generated image variant for an authorized site caller",
         )
         .account_or_assistant()
-        .requires(Permission {
-            capability: Capability::Media,
-            action: Action::View,
-        })
+        .requires(Permission::from_legacy(Capability::Media, Action::View))
         .returns_raw(200, "FileBytes")
         .refuses([
             ErrorCode::Forbidden,
@@ -465,10 +364,7 @@ pub fn endpoints() -> Vec<Endpoint> {
             "Move a file to trash while retaining its binary for restore",
         )
         .account_or_assistant()
-        .requires(Permission {
-            capability: Capability::Media,
-            action: Action::Delete,
-        })
+        .requires(Permission::from_legacy(Capability::Media, Action::Delete))
         .returns(204, "Empty")
         .changes(false)
         .refuses([
@@ -678,117 +574,6 @@ impl MediaService {
         }
 
         Ok(file.record)
-    }
-
-    /// Reads live media metadata and bytes for the authenticated shard
-    /// relocation coordinator. Deleted files remain owned by the trash
-    /// domain and are not part of the active site snapshot.
-    pub async fn export_for_relocation(
-        &self,
-        tx: &mut SiteTx,
-        context: &SiteContext,
-        store: &dyn FileStore,
-    ) -> Result<MediaRelocation> {
-        let rows = sqlx::query(
-            "select id, kind, visibility, mime, name, storage_key, bytes, sha256, created_at
-               from media_files
-              where site_id = $1 and deleted_at is null
-              order by created_at asc, id asc",
-        )
-        .bind(context.site_id.into_uuid())
-        .fetch_all(tx.conn())
-        .await
-        .map_err(|_| MaviError::Internal)?;
-
-        let mut files = Vec::with_capacity(rows.len());
-        for row in &rows {
-            let stored = from_row(row)?;
-            let bytes = store.get(context, &stored.storage_key).await?;
-            let expected_bytes = usize::try_from(stored.record.bytes)
-                .map_err(|_| MaviError::validation("media_relocation_byte_count_invalid"))?;
-            if bytes.len() != expected_bytes
-                || hex_digest(&Sha256::digest(&bytes)) != stored.record.sha256
-            {
-                return Err(MaviError::validation("media_storage_integrity_failed"));
-            }
-            files.push(MediaRelocationFile {
-                id: stored.record.id,
-                kind: stored.record.kind,
-                visibility: stored.record.visibility,
-                mime: stored.record.mime,
-                name: stored.record.name,
-                storage_key: stored.storage_key,
-                bytes: stored.record.bytes,
-                sha256: stored.record.sha256,
-                created_at: stored.record.created_at,
-                content: bytes,
-            });
-        }
-
-        let relocation = MediaRelocation { files };
-        relocation.validate()?;
-        Ok(relocation)
-    }
-
-    /// Copies a validated media snapshot into the target site's storage and
-    /// upserts its metadata. `FileStore::put` is intentionally replace-safe,
-    /// which makes retries after a network failure idempotent.
-    pub async fn import_for_relocation(
-        &self,
-        tx: &mut SiteTx,
-        context: &SiteContext,
-        store: &dyn FileStore,
-        relocation: &MediaRelocation,
-    ) -> Result<()> {
-        relocation.validate()?;
-        for file in &relocation.files {
-            store
-                .put(context, &file.storage_key, file.content.clone())
-                .await?;
-            sqlx::query(
-                "insert into media_files
-                    (site_id, id, kind, visibility, mime, name, storage_key, bytes, sha256, created_at)
-                 values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-                 on conflict (site_id, id) do update set
-                    kind = excluded.kind, visibility = excluded.visibility,
-                    mime = excluded.mime, name = excluded.name,
-                    storage_key = excluded.storage_key, bytes = excluded.bytes,
-                    sha256 = excluded.sha256, created_at = excluded.created_at,
-                    deleted_at = null",
-            )
-            .bind(context.site_id.into_uuid())
-            .bind(file.id.into_uuid())
-            .bind(file.kind.as_str())
-            .bind(file.visibility.as_str())
-            .bind(&file.mime)
-            .bind(&file.name)
-            .bind(&file.storage_key)
-            .bind(
-                i64::try_from(file.bytes)
-                    .map_err(|_| MaviError::validation("media_relocation_byte_count_invalid"))?,
-            )
-            .bind(&file.sha256)
-            .bind(file.created_at)
-            .execute(tx.conn())
-            .await
-            .map_err(|_| MaviError::Internal)?;
-        }
-
-        AuditService
-            .record(
-                tx,
-                context,
-                &AuditEntry {
-                    action: "portable.media.relocated".to_owned(),
-                    resource_type: "MediaSnapshot".to_owned(),
-                    resource_id: None,
-                    payload: json!({
-                        "files": relocation.files.len(),
-                        "bytes": relocation.files.iter().map(|file| file.bytes).sum::<u64>(),
-                    }),
-                },
-            )
-            .await
     }
 
     pub async fn list(
@@ -1214,7 +999,7 @@ impl MediaService {
         &self,
         tx: &mut SiteTx,
         context: &SiteContext,
-        jobs: &JobsService,
+        jobs: &WorkflowScheduler,
     ) -> Result<Option<JobId>> {
         let row = sqlx::query(
             "select file_id, storage_key, storage_keys
@@ -1260,7 +1045,7 @@ impl MediaService {
         &self,
         tx: &mut SiteTx,
         context: &SiteContext,
-        jobs: &JobsService,
+        jobs: &WorkflowScheduler,
         file_id: FileId,
         storage_key: &str,
     ) -> Result<JobId> {
@@ -1289,7 +1074,7 @@ impl MediaService {
         &self,
         tx: &mut SiteTx,
         context: &SiteContext,
-        jobs: &JobsService,
+        jobs: &WorkflowScheduler,
         file_id: FileId,
         storage_key: &str,
         additional_storage_keys: Vec<String>,
@@ -1312,13 +1097,13 @@ impl MediaService {
     }
 
     /// Enqueues one missing preset for the oldest live image. Variants are
-    /// derived data: relocation and older uploads do not need to carry them,
+    /// derived data: older uploads do not need to carry them,
     /// because this discovery converges every image to the same preset set.
     pub async fn enqueue_next_variant_job(
         &self,
         tx: &mut SiteTx,
         context: &SiteContext,
-        jobs: &JobsService,
+        jobs: &WorkflowScheduler,
     ) -> Result<Option<JobId>> {
         let row = sqlx::query(
             "with presets(preset) as (
@@ -1384,7 +1169,7 @@ impl MediaService {
         &self,
         tx: &mut SiteTx,
         context: &SiteContext,
-        jobs: &JobsService,
+        jobs: &WorkflowScheduler,
         now: DateTime<Utc>,
     ) -> Result<JobId> {
         let bucket = now.timestamp().div_euclid(MEDIA_ORPHAN_BUCKET_SECONDS);
@@ -1442,9 +1227,16 @@ impl MediaService {
             );
         }
         let pending_variants = sqlx::query(
-            "select payload->>'variant_id' as variant_id
-               from jobs
-              where site_id = $1 and kind = $2 and state in ('ready', 'running')",
+            "select coalesce(
+                        o.payload->'job_payload'->>'variant_id',
+                        o.payload->>'variant_id'
+                    ) as variant_id
+               from workflow_outbox o
+               join workflow_runs r on r.site_id = o.site_id
+                                    and r.idempotency_key = o.idempotency_key
+              where o.site_id = $1 and o.workflow = $2
+                and r.status in ('pending', 'running', 'failed', 'paused')
+                and o.status <> 'cancelled'",
         )
         .bind(context.site_id.into_uuid())
         .bind(MEDIA_VARIANT_JOB.name)
@@ -1792,37 +1584,6 @@ fn validate_name(name: &str) -> Result<String> {
     Ok(name.to_owned())
 }
 
-fn valid_mime(mime: &str) -> bool {
-    let Some((kind, subtype)) = mime.split_once('/') else {
-        return false;
-    };
-    !kind.is_empty()
-        && !subtype.is_empty()
-        && kind.bytes().all(|byte| byte.is_ascii_lowercase())
-        && subtype.bytes().all(|byte| {
-            byte.is_ascii_lowercase() || byte.is_ascii_digit() || b".+-".contains(&byte)
-        })
-}
-
-fn validate_storage_key(id: FileId, key: &str) -> Result<()> {
-    let Some((_, extension)) = key.rsplit_once('.') else {
-        return Err(MaviError::validation(
-            "media_relocation_storage_key_invalid",
-        ));
-    };
-    if !(2..=5).contains(&extension.len())
-        || !extension
-            .bytes()
-            .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit())
-        || storage_key(id, extension) != key
-    {
-        return Err(MaviError::validation(
-            "media_relocation_storage_key_invalid",
-        ));
-    }
-    Ok(())
-}
-
 fn detect(bytes: &[u8]) -> Result<DetectedFile> {
     if bytes.is_empty() {
         return Err(MaviError::validation(FILE_EMPTY));
@@ -1844,26 +1605,6 @@ fn detect(bytes: &[u8]) -> Result<DetectedFile> {
             extension,
         })
         .ok_or_else(|| MaviError::validation(FILE_KIND_UNSUPPORTED))
-}
-
-mod base64_bytes {
-    use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
-    use serde::{Deserialize, Deserializer, Serializer, de::Error as _};
-
-    pub fn serialize<S>(bytes: &[u8], serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serializer.serialize_str(&URL_SAFE_NO_PAD.encode(bytes))
-    }
-
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<Vec<u8>, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let encoded = String::deserialize(deserializer)?;
-        URL_SAFE_NO_PAD.decode(encoded).map_err(D::Error::custom)
-    }
 }
 
 #[cfg(test)]
@@ -1939,64 +1680,6 @@ mod tests {
         let cursor = encode_cursor(Utc::now(), Uuid::now_v7()).expect("cursor");
         assert!(decode_cursor(&cursor).is_ok());
         assert!(decode_cursor(&Cursor::parse("not-a-cursor").expect("cursor")).is_err());
-    }
-
-    #[test]
-    fn relocation_validates_site_key_metadata_and_content_integrity() {
-        let id = FileId::from_uuid(
-            Uuid::parse_str("018f1f27-7f2d-7c2e-8c3d-0123456789ab").expect("uuid"),
-        );
-        let content = b"binary".to_vec();
-        let snapshot = MediaRelocation {
-            files: vec![MediaRelocationFile {
-                id,
-                kind: FileKind::Document,
-                visibility: FileVisibility::Private,
-                mime: "application/pdf".to_owned(),
-                name: "document.pdf".to_owned(),
-                storage_key: storage_key(id, "pdf"),
-                bytes: content.len() as u64,
-                sha256: hex_digest(&Sha256::digest(&content)),
-                created_at: Utc::now(),
-                content,
-            }],
-        };
-        snapshot.validate().expect("valid relocation");
-
-        let mut invalid = snapshot;
-        invalid.files[0].content[0] ^= 1;
-        let error = invalid.validate().expect_err("digest mismatch");
-        assert!(matches!(
-            error,
-            MaviError::Validation { ref code, .. }
-                if code == "media_relocation_digest_mismatch"
-        ));
-    }
-
-    #[test]
-    fn relocation_binary_uses_a_string_wire_shape() {
-        let id = FileId::new();
-        let content = vec![0, 1, 2, 255];
-        let snapshot = MediaRelocation {
-            files: vec![MediaRelocationFile {
-                id,
-                kind: FileKind::Image,
-                visibility: FileVisibility::Public,
-                mime: "image/png".to_owned(),
-                name: "image.png".to_owned(),
-                storage_key: storage_key(id, "png"),
-                bytes: content.len() as u64,
-                sha256: hex_digest(&Sha256::digest(&content)),
-                created_at: Utc::now(),
-                content,
-            }],
-        };
-        let value = serde_json::to_value(&snapshot).expect("serialize");
-        assert!(value["files"][0]["content"].is_string());
-        assert_eq!(
-            serde_json::from_value::<MediaRelocation>(value).expect("deserialize"),
-            snapshot
-        );
     }
 
     #[test]

@@ -8,7 +8,6 @@
 mod coupons;
 mod orders;
 mod products;
-mod relocation;
 
 use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
 use chrono::{DateTime, Utc};
@@ -25,12 +24,6 @@ pub use products::{
     CreateProduct, Product, ProductListFilter, ProductPrice, PublicProduct,
     PublicProductListFilter, UpdateProduct,
 };
-pub use relocation::{
-    ShopCouponRelocation, ShopCouponUseRelocation, ShopOrderCounterRelocation,
-    ShopOrderLineRelocation, ShopOrderRelocation, ShopPaymentReceiptRelocation,
-    ShopProductRelocation, ShopRelocation, ShopStockHoldRelocation, ShopStockHoldStatus,
-};
-
 #[derive(Clone, Copy, Debug, Default)]
 pub struct ShopService;
 

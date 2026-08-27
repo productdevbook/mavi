@@ -4,34 +4,28 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 publish = false
-description = "Site-scoped trash listing, restore and permanent deletion policy."
+description = "Compatibility package re-exporting the application-owned trash use case."
 
 [dependencies]
-base64.workspace = true
-chrono.workspace = true
-mavi-audit = { path = "../mavi-audit" }
-mavi-contract = { path = "../mavi-contract" }
-mavi-core = { path = "../mavi-core" }
-mavi-media = { path = "../mavi-media" }
-mavi-jobs = { path = "../mavi-jobs" }
-mavi-shop = { path = "../mavi-shop" }
-mavi-storage = { path = "../mavi-storage" }
-serde.workspace = true
-serde_json.workspace = true
-sha2.workspace = true
-sqlx.workspace = true
-uuid.workspace = true
+mavi-application = { path = "../mavi-application" }
 
 [lints]
 workspace = true
 
 [dev-dependencies]
 mavi-boards = { path = "../mavi-boards" }
-mavi-courses = { path = "../mavi-courses" }
 mavi-content = { path = "../mavi-content" }
+mavi-core = { path = "../mavi-core" }
+mavi-courses = { path = "../mavi-courses" }
 mavi-files = { path = "../mavi-files" }
+mavi-flows = { path = "../mavi-flows" }
 mavi-forms = { path = "../mavi-forms" }
- mavi-flows = { path = "../mavi-flows" }
+mavi-media = { path = "../mavi-media" }
 mavi-shop = { path = "../mavi-shop" }
+mavi-storage = { path = "../mavi-storage" }
 mavi-taxonomy = { path = "../mavi-taxonomy" }
+chrono.workspace = true
+serde_json.workspace = true
+sqlx.workspace = true
 tokio.workspace = true
+uuid.workspace = true

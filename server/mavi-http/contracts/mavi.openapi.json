@@ -38,10 +38,10 @@
           {}
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "public",
           "mutation": "none",
           "permission": null,
+          "plugin": "core",
           "errors": [
             "internal"
           ]
@@ -89,7 +89,6 @@
           {}
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "public",
           "mutation": {
             "public": {
@@ -97,6 +96,7 @@
             }
           },
           "permission": null,
+          "plugin": "core",
           "errors": [
             "internal"
           ]
@@ -186,7 +186,6 @@
           {}
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "public",
           "mutation": {
             "public": {
@@ -194,6 +193,7 @@
             }
           },
           "permission": null,
+          "plugin": "core",
           "errors": [
             "validation",
             "unauthenticated",
@@ -267,7 +267,6 @@
           {}
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "public",
           "mutation": {
             "public": {
@@ -275,6 +274,7 @@
             }
           },
           "permission": null,
+          "plugin": "core",
           "errors": [
             "validation",
             "rate_limited",
@@ -349,7 +349,6 @@
           {}
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "public",
           "mutation": {
             "public": {
@@ -357,6 +356,7 @@
             }
           },
           "permission": null,
+          "plugin": "core",
           "errors": [
             "validation",
             "conflict",
@@ -429,7 +429,6 @@
           {}
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "public",
           "mutation": {
             "public": {
@@ -437,6 +436,7 @@
             }
           },
           "permission": null,
+          "plugin": "core",
           "errors": [
             "validation",
             "rate_limited",
@@ -511,7 +511,6 @@
           {}
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "public",
           "mutation": {
             "public": {
@@ -519,6 +518,7 @@
             }
           },
           "permission": null,
+          "plugin": "core",
           "errors": [
             "validation",
             "conflict",
@@ -556,7 +556,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account",
           "mutation": {
             "self_only": {
@@ -564,6 +563,7 @@
             }
           },
           "permission": null,
+          "plugin": "core",
           "errors": [
             "internal"
           ]
@@ -623,7 +623,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account",
           "mutation": {
             "self_only": {
@@ -631,6 +630,7 @@
             }
           },
           "permission": null,
+          "plugin": "core",
           "errors": [
             "unauthenticated",
             "not_found",
@@ -729,13 +729,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account",
           "mutation": "none",
           "permission": {
-            "capability": "people",
-            "action": "view"
+            "plugin": "core",
+            "action": "credentials.list",
+            "resource_type": null
           },
+          "plugin": "core",
           "errors": [
             "forbidden",
             "validation",
@@ -807,7 +808,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account",
           "mutation": {
             "permissioned": {
@@ -815,9 +815,11 @@
             }
           },
           "permission": {
-            "capability": "people",
-            "action": "write"
+            "plugin": "core",
+            "action": "credentials.manage",
+            "resource_type": null
           },
+          "plugin": "core",
           "errors": [
             "forbidden",
             "validation",
@@ -885,7 +887,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -893,9 +894,11 @@
             }
           },
           "permission": {
-            "capability": "people",
-            "action": "delete"
+            "plugin": "core",
+            "action": "credentials.revoke",
+            "resource_type": null
           },
+          "plugin": "core",
           "errors": [
             "forbidden",
             "not_found",
@@ -991,13 +994,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "people",
-            "action": "view"
+            "plugin": "core",
+            "action": "people.list",
+            "resource_type": null
           },
+          "plugin": "core",
           "errors": [
             "forbidden",
             "validation",
@@ -1089,7 +1093,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -1097,9 +1100,11 @@
             }
           },
           "permission": {
-            "capability": "people",
-            "action": "write"
+            "plugin": "core",
+            "action": "people.create",
+            "resource_type": null
           },
+          "plugin": "core",
           "errors": [
             "forbidden",
             "validation",
@@ -1206,7 +1211,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -1214,9 +1218,11 @@
             }
           },
           "permission": {
-            "capability": "people",
-            "action": "write"
+            "plugin": "core",
+            "action": "people.update",
+            "resource_type": null
           },
+          "plugin": "core",
           "errors": [
             "forbidden",
             "validation",
@@ -1323,7 +1329,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -1331,9 +1336,11 @@
             }
           },
           "permission": {
-            "capability": "people",
-            "action": "write"
+            "plugin": "core",
+            "action": "people.update",
+            "resource_type": null
           },
+          "plugin": "core",
           "errors": [
             "forbidden",
             "validation",
@@ -1423,13 +1430,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "people",
-            "action": "view"
+            "plugin": "core",
+            "action": "roles.list",
+            "resource_type": null
           },
+          "plugin": "core",
           "errors": [
             "forbidden",
             "validation",
@@ -1511,7 +1519,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -1519,9 +1526,11 @@
             }
           },
           "permission": {
-            "capability": "people",
-            "action": "write"
+            "plugin": "core",
+            "action": "roles.manage",
+            "resource_type": null
           },
+          "plugin": "core",
           "errors": [
             "forbidden",
             "validation",
@@ -1600,7 +1609,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -1608,9 +1616,11 @@
             }
           },
           "permission": {
-            "capability": "people",
-            "action": "delete"
+            "plugin": "core",
+            "action": "roles.manage",
+            "resource_type": null
           },
+          "plugin": "core",
           "errors": [
             "forbidden",
             "not_found",
@@ -1696,7 +1706,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -1704,9 +1713,11 @@
             }
           },
           "permission": {
-            "capability": "people",
-            "action": "write"
+            "plugin": "core",
+            "action": "roles.manage",
+            "resource_type": null
           },
+          "plugin": "core",
           "errors": [
             "forbidden",
             "not_found",
@@ -1806,13 +1817,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "content",
-            "action": "view"
+            "plugin": "writing",
+            "action": "content.entry.list",
+            "resource_type": null
           },
+          "plugin": "writing",
           "errors": [
             "internal"
           ]
@@ -1862,7 +1874,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -1870,9 +1881,11 @@
             }
           },
           "permission": {
-            "capability": "content",
-            "action": "write"
+            "plugin": "writing",
+            "action": "content.entry.update",
+            "resource_type": null
           },
+          "plugin": "writing",
           "errors": [
             "internal"
           ]
@@ -1925,13 +1938,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "content",
-            "action": "view"
+            "plugin": "writing",
+            "action": "content.entry.list",
+            "resource_type": null
           },
+          "plugin": "writing",
           "errors": [
             "internal"
           ]
@@ -1992,7 +2006,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -2000,9 +2013,11 @@
             }
           },
           "permission": {
-            "capability": "content",
-            "action": "write"
+            "plugin": "writing",
+            "action": "content.entry.update",
+            "resource_type": null
           },
+          "plugin": "writing",
           "errors": [
             "internal"
           ]
@@ -2046,7 +2061,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -2054,9 +2068,11 @@
             }
           },
           "permission": {
-            "capability": "trash",
-            "action": "delete"
+            "plugin": "governance",
+            "action": "trash.delete",
+            "resource_type": null
           },
+          "plugin": "governance",
           "errors": [
             "internal"
           ]
@@ -2109,7 +2125,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -2117,9 +2132,11 @@
             }
           },
           "permission": {
-            "capability": "publish",
-            "action": "write"
+            "plugin": "writing",
+            "action": "content.entry.publish",
+            "resource_type": null
           },
+          "plugin": "writing",
           "errors": [
             "internal"
           ]
@@ -2182,7 +2199,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -2190,9 +2206,11 @@
             }
           },
           "permission": {
-            "capability": "publish",
-            "action": "write"
+            "plugin": "writing",
+            "action": "content.entry.publish",
+            "resource_type": null
           },
+          "plugin": "writing",
           "errors": [
             "internal"
           ]
@@ -2245,7 +2263,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -2253,9 +2270,11 @@
             }
           },
           "permission": {
-            "capability": "publish",
-            "action": "write"
+            "plugin": "writing",
+            "action": "content.entry.publish",
+            "resource_type": null
           },
+          "plugin": "writing",
           "errors": [
             "internal"
           ]
@@ -2308,7 +2327,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -2316,9 +2334,11 @@
             }
           },
           "permission": {
-            "capability": "trash",
-            "action": "write"
+            "plugin": "governance",
+            "action": "trash.manage",
+            "resource_type": null
           },
+          "plugin": "governance",
           "errors": [
             "internal"
           ]
@@ -2380,10 +2400,10 @@
           {}
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "public",
           "mutation": "none",
           "permission": null,
+          "plugin": "writing",
           "errors": [
             "internal"
           ]
@@ -2469,13 +2489,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "content",
-            "action": "view"
+            "plugin": "writing",
+            "action": "content.entry.list",
+            "resource_type": null
           },
+          "plugin": "writing",
           "errors": [
             "forbidden",
             "validation",
@@ -2559,7 +2580,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -2567,9 +2587,11 @@
             }
           },
           "permission": {
-            "capability": "content",
-            "action": "write"
+            "plugin": "writing",
+            "action": "content.entry.update",
+            "resource_type": null
           },
+          "plugin": "writing",
           "errors": [
             "forbidden",
             "validation",
@@ -2634,7 +2656,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -2642,9 +2663,11 @@
             }
           },
           "permission": {
-            "capability": "content",
-            "action": "delete"
+            "plugin": "writing",
+            "action": "content.entry.delete",
+            "resource_type": null
           },
+          "plugin": "writing",
           "errors": [
             "forbidden",
             "not_found",
@@ -2751,13 +2774,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "content",
-            "action": "view"
+            "plugin": "writing",
+            "action": "content.entry.list",
+            "resource_type": null
           },
+          "plugin": "writing",
           "errors": [
             "forbidden",
             "validation",
@@ -2851,13 +2875,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "content",
-            "action": "view"
+            "plugin": "writing",
+            "action": "content.entry.list",
+            "resource_type": null
           },
+          "plugin": "writing",
           "errors": [
             "forbidden",
             "validation",
@@ -2961,7 +2986,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -2969,9 +2993,11 @@
             }
           },
           "permission": {
-            "capability": "content",
-            "action": "write"
+            "plugin": "writing",
+            "action": "content.entry.update",
+            "resource_type": null
           },
+          "plugin": "writing",
           "errors": [
             "forbidden",
             "validation",
@@ -3037,13 +3063,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "settings",
-            "action": "view"
+            "plugin": "core",
+            "action": "settings.view",
+            "resource_type": null
           },
+          "plugin": "core",
           "errors": [
             "forbidden",
             "not_found",
@@ -3125,7 +3152,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -3133,9 +3159,11 @@
             }
           },
           "permission": {
-            "capability": "settings",
-            "action": "write"
+            "plugin": "core",
+            "action": "settings.manage",
+            "resource_type": null
           },
+          "plugin": "core",
           "errors": [
             "forbidden",
             "validation",
@@ -3224,13 +3252,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "settings",
-            "action": "view"
+            "plugin": "core",
+            "action": "settings.view",
+            "resource_type": null
           },
+          "plugin": "core",
           "errors": [
             "forbidden",
             "validation",
@@ -3322,7 +3351,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -3330,9 +3358,11 @@
             }
           },
           "permission": {
-            "capability": "settings",
-            "action": "write"
+            "plugin": "core",
+            "action": "settings.manage",
+            "resource_type": null
           },
+          "plugin": "core",
           "errors": [
             "forbidden",
             "validation",
@@ -3438,7 +3468,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -3446,9 +3475,11 @@
             }
           },
           "permission": {
-            "capability": "settings",
-            "action": "write"
+            "plugin": "core",
+            "action": "settings.manage",
+            "resource_type": null
           },
+          "plugin": "core",
           "errors": [
             "forbidden",
             "validation",
@@ -3525,7 +3556,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -3533,9 +3563,11 @@
             }
           },
           "permission": {
-            "capability": "settings",
-            "action": "delete"
+            "plugin": "core",
+            "action": "settings.delete",
+            "resource_type": null
           },
+          "plugin": "core",
           "errors": [
             "forbidden",
             "conflict",
@@ -3664,13 +3696,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "taxonomy",
-            "action": "view"
+            "plugin": "writing",
+            "action": "taxonomy.term.view",
+            "resource_type": null
           },
+          "plugin": "writing",
           "errors": [
             "forbidden",
             "validation",
@@ -3762,7 +3795,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -3770,9 +3802,11 @@
             }
           },
           "permission": {
-            "capability": "taxonomy",
-            "action": "write"
+            "plugin": "writing",
+            "action": "taxonomy.term.manage",
+            "resource_type": null
           },
+          "plugin": "writing",
           "errors": [
             "forbidden",
             "validation",
@@ -3849,13 +3883,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "taxonomy",
-            "action": "view"
+            "plugin": "writing",
+            "action": "taxonomy.term.view",
+            "resource_type": null
           },
+          "plugin": "writing",
           "errors": [
             "forbidden",
             "not_found",
@@ -3958,7 +3993,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -3966,9 +4000,11 @@
             }
           },
           "permission": {
-            "capability": "taxonomy",
-            "action": "write"
+            "plugin": "writing",
+            "action": "taxonomy.term.manage",
+            "resource_type": null
           },
+          "plugin": "writing",
           "errors": [
             "forbidden",
             "validation",
@@ -4036,7 +4072,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -4044,9 +4079,11 @@
             }
           },
           "permission": {
-            "capability": "taxonomy",
-            "action": "delete"
+            "plugin": "writing",
+            "action": "taxonomy.term.delete",
+            "resource_type": null
           },
+          "plugin": "writing",
           "errors": [
             "forbidden",
             "not_found",
@@ -4160,10 +4197,10 @@
           {}
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "public",
           "mutation": "none",
           "permission": null,
+          "plugin": "writing",
           "errors": [
             "not_found",
             "validation",
@@ -4238,13 +4275,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "taxonomy",
-            "action": "view"
+            "plugin": "writing",
+            "action": "taxonomy.term.view",
+            "resource_type": null
           },
+          "plugin": "writing",
           "errors": [
             "forbidden",
             "not_found",
@@ -4337,7 +4375,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -4345,9 +4382,11 @@
             }
           },
           "permission": {
-            "capability": "taxonomy",
-            "action": "write"
+            "plugin": "writing",
+            "action": "taxonomy.term.manage",
+            "resource_type": null
           },
+          "plugin": "writing",
           "errors": [
             "forbidden",
             "validation",
@@ -4455,13 +4494,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "taxonomy",
-            "action": "view"
+            "plugin": "writing",
+            "action": "taxonomy.term.view",
+            "resource_type": null
           },
+          "plugin": "writing",
           "errors": [
             "forbidden",
             "validation",
@@ -4558,13 +4598,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "media",
-            "action": "view"
+            "plugin": "writing",
+            "action": "media.file.list",
+            "resource_type": null
           },
+          "plugin": "writing",
           "errors": [
             "forbidden",
             "validation",
@@ -4666,7 +4707,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -4674,9 +4714,11 @@
             }
           },
           "permission": {
-            "capability": "media",
-            "action": "write"
+            "plugin": "writing",
+            "action": "media.file.manage",
+            "resource_type": null
           },
+          "plugin": "writing",
           "errors": [
             "forbidden",
             "validation",
@@ -4752,13 +4794,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "media",
-            "action": "view"
+            "plugin": "writing",
+            "action": "media.file.list",
+            "resource_type": null
           },
+          "plugin": "writing",
           "errors": [
             "forbidden",
             "not_found",
@@ -4824,7 +4867,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -4832,9 +4874,11 @@
             }
           },
           "permission": {
-            "capability": "media",
-            "action": "delete"
+            "plugin": "writing",
+            "action": "media.file.delete",
+            "resource_type": null
           },
+          "plugin": "writing",
           "errors": [
             "forbidden",
             "not_found",
@@ -4909,13 +4953,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "media",
-            "action": "view"
+            "plugin": "writing",
+            "action": "media.file.list",
+            "resource_type": null
           },
+          "plugin": "writing",
           "errors": [
             "forbidden",
             "not_found",
@@ -5022,13 +5067,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "media",
-            "action": "view"
+            "plugin": "writing",
+            "action": "media.file.list",
+            "resource_type": null
           },
+          "plugin": "writing",
           "errors": [
             "forbidden",
             "not_found",
@@ -5122,13 +5168,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "media",
-            "action": "view"
+            "plugin": "writing",
+            "action": "media.file.list",
+            "resource_type": null
           },
+          "plugin": "writing",
           "errors": [
             "forbidden",
             "not_found",
@@ -5192,10 +5239,10 @@
           {}
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "public",
           "mutation": "none",
           "permission": null,
+          "plugin": "writing",
           "errors": [
             "not_found",
             "internal"
@@ -5275,10 +5322,10 @@
           {}
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "public",
           "mutation": "none",
           "permission": null,
+          "plugin": "writing",
           "errors": [
             "not_found",
             "validation",
@@ -5422,13 +5469,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "audit",
-            "action": "view"
+            "plugin": "governance",
+            "action": "audit.view",
+            "resource_type": null
           },
+          "plugin": "governance",
           "errors": [
             "forbidden",
             "validation",
@@ -5587,13 +5635,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "audit",
-            "action": "view"
+            "plugin": "governance",
+            "action": "audit.view",
+            "resource_type": null
           },
+          "plugin": "governance",
           "errors": [
             "forbidden",
             "validation",
@@ -5668,13 +5717,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "audit",
-            "action": "view"
+            "plugin": "governance",
+            "action": "audit.view",
+            "resource_type": null
           },
+          "plugin": "governance",
           "errors": [
             "forbidden",
             "not_found",
@@ -5770,13 +5820,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "trash",
-            "action": "view"
+            "plugin": "governance",
+            "action": "trash.view",
+            "resource_type": null
           },
+          "plugin": "governance",
           "errors": [
             "forbidden",
             "validation",
@@ -5862,7 +5913,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -5870,9 +5920,11 @@
             }
           },
           "permission": {
-            "capability": "trash",
-            "action": "write"
+            "plugin": "governance",
+            "action": "trash.manage",
+            "resource_type": null
           },
+          "plugin": "governance",
           "errors": [
             "forbidden",
             "conflict",
@@ -5959,7 +6011,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -5967,9 +6018,11 @@
             }
           },
           "permission": {
-            "capability": "trash",
-            "action": "delete"
+            "plugin": "governance",
+            "action": "trash.delete",
+            "resource_type": null
           },
+          "plugin": "governance",
           "errors": [
             "forbidden",
             "conflict",
@@ -6066,13 +6119,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "design",
-            "action": "view"
+            "plugin": "writing",
+            "action": "design.change.view",
+            "resource_type": null
           },
+          "plugin": "writing",
           "errors": [
             "forbidden",
             "validation",
@@ -6144,7 +6198,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -6152,9 +6205,11 @@
             }
           },
           "permission": {
-            "capability": "design",
-            "action": "write"
+            "plugin": "writing",
+            "action": "design.change.manage",
+            "resource_type": null
           },
+          "plugin": "writing",
           "errors": [
             "forbidden",
             "validation",
@@ -6229,13 +6284,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "design",
-            "action": "view"
+            "plugin": "writing",
+            "action": "design.change.view",
+            "resource_type": null
           },
+          "plugin": "writing",
           "errors": [
             "forbidden",
             "not_found",
@@ -6332,13 +6388,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "design",
-            "action": "view"
+            "plugin": "writing",
+            "action": "design.change.view",
+            "resource_type": null
           },
+          "plugin": "writing",
           "errors": [
             "forbidden",
             "validation",
@@ -6433,13 +6490,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "design",
-            "action": "view"
+            "plugin": "writing",
+            "action": "design.change.view",
+            "resource_type": null
           },
+          "plugin": "writing",
           "errors": [
             "forbidden",
             "not_found",
@@ -6543,7 +6601,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -6551,9 +6608,11 @@
             }
           },
           "permission": {
-            "capability": "design",
-            "action": "write"
+            "plugin": "writing",
+            "action": "design.change.manage",
+            "resource_type": null
           },
+          "plugin": "writing",
           "errors": [
             "forbidden",
             "conflict",
@@ -6651,7 +6710,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -6659,9 +6717,11 @@
             }
           },
           "permission": {
-            "capability": "design",
-            "action": "delete"
+            "plugin": "writing",
+            "action": "design.change.delete",
+            "resource_type": null
           },
+          "plugin": "writing",
           "errors": [
             "forbidden",
             "conflict",
@@ -6758,7 +6818,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -6766,9 +6825,11 @@
             }
           },
           "permission": {
-            "capability": "design",
-            "action": "write"
+            "plugin": "writing",
+            "action": "design.change.manage",
+            "resource_type": null
           },
+          "plugin": "writing",
           "errors": [
             "forbidden",
             "conflict",
@@ -6865,13 +6926,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "design",
-            "action": "view"
+            "plugin": "writing",
+            "action": "design.change.view",
+            "resource_type": null
           },
+          "plugin": "writing",
           "errors": [
             "forbidden",
             "validation",
@@ -6956,7 +7018,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -6964,9 +7025,11 @@
             }
           },
           "permission": {
-            "capability": "publish",
-            "action": "write"
+            "plugin": "writing",
+            "action": "content.entry.publish",
+            "resource_type": null
           },
+          "plugin": "writing",
           "errors": [
             "forbidden",
             "conflict",
@@ -7052,7 +7115,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -7060,9 +7122,11 @@
             }
           },
           "permission": {
-            "capability": "publish",
-            "action": "write"
+            "plugin": "writing",
+            "action": "content.entry.publish",
+            "resource_type": null
           },
+          "plugin": "writing",
           "errors": [
             "forbidden",
             "conflict",
@@ -7143,10 +7207,10 @@
           {}
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "public",
           "mutation": "none",
           "permission": null,
+          "plugin": "writing",
           "errors": [
             "not_found",
             "validation",
@@ -7218,10 +7282,10 @@
           {}
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "public",
           "mutation": "none",
           "permission": null,
+          "plugin": "writing",
           "errors": [
             "not_found",
             "validation",
@@ -7309,13 +7373,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "forms",
-            "action": "view"
+            "plugin": "forms",
+            "action": "submission.view",
+            "resource_type": null
           },
+          "plugin": "forms",
           "errors": [
             "forbidden",
             "validation",
@@ -7397,7 +7462,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -7405,9 +7469,11 @@
             }
           },
           "permission": {
-            "capability": "forms",
-            "action": "write"
+            "plugin": "forms",
+            "action": "form.manage",
+            "resource_type": null
           },
+          "plugin": "forms",
           "errors": [
             "forbidden",
             "validation",
@@ -7483,13 +7549,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "forms",
-            "action": "view"
+            "plugin": "forms",
+            "action": "submission.view",
+            "resource_type": null
           },
+          "plugin": "forms",
           "errors": [
             "forbidden",
             "not_found",
@@ -7592,7 +7659,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -7600,9 +7666,11 @@
             }
           },
           "permission": {
-            "capability": "forms",
-            "action": "write"
+            "plugin": "forms",
+            "action": "form.manage",
+            "resource_type": null
           },
+          "plugin": "forms",
           "errors": [
             "forbidden",
             "validation",
@@ -7670,7 +7738,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -7678,9 +7745,11 @@
             }
           },
           "permission": {
-            "capability": "forms",
-            "action": "delete"
+            "plugin": "forms",
+            "action": "form.delete",
+            "resource_type": null
           },
+          "plugin": "forms",
           "errors": [
             "forbidden",
             "not_found",
@@ -7795,13 +7864,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "forms",
-            "action": "view"
+            "plugin": "forms",
+            "action": "submission.view",
+            "resource_type": null
           },
+          "plugin": "forms",
           "errors": [
             "forbidden",
             "validation",
@@ -7909,13 +7979,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "forms",
-            "action": "view"
+            "plugin": "forms",
+            "action": "submission.view",
+            "resource_type": null
           },
+          "plugin": "forms",
           "errors": [
             "forbidden",
             "validation",
@@ -7991,7 +8062,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -7999,9 +8069,11 @@
             }
           },
           "permission": {
-            "capability": "forms",
-            "action": "write"
+            "plugin": "forms",
+            "action": "form.manage",
+            "resource_type": null
           },
+          "plugin": "forms",
           "errors": [
             "forbidden",
             "not_found",
@@ -8069,7 +8141,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -8077,9 +8148,11 @@
             }
           },
           "permission": {
-            "capability": "forms",
-            "action": "delete"
+            "plugin": "forms",
+            "action": "form.delete",
+            "resource_type": null
           },
+          "plugin": "forms",
           "errors": [
             "forbidden",
             "not_found",
@@ -8161,10 +8234,10 @@
           {}
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "public",
           "mutation": "none",
           "permission": null,
+          "plugin": "forms",
           "errors": [
             "not_found",
             "validation",
@@ -8247,7 +8320,6 @@
           {}
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "public",
           "mutation": {
             "public": {
@@ -8255,6 +8327,7 @@
             }
           },
           "permission": null,
+          "plugin": "forms",
           "errors": [
             "not_found",
             "validation",
@@ -8328,7 +8401,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -8336,9 +8408,11 @@
             }
           },
           "permission": {
-            "capability": "feedback",
-            "action": "write"
+            "plugin": "core",
+            "action": "feedback.submit",
+            "resource_type": null
           },
+          "plugin": "core",
           "errors": [
             "forbidden",
             "validation",
@@ -8432,13 +8506,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "feedback",
-            "action": "view"
+            "plugin": "core",
+            "action": "feedback.view",
+            "resource_type": null
           },
+          "plugin": "core",
           "errors": [
             "forbidden",
             "validation",
@@ -8526,13 +8601,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "mail",
-            "action": "view"
+            "plugin": "messaging",
+            "action": "delivery.view",
+            "resource_type": null
           },
+          "plugin": "messaging",
           "errors": [
             "forbidden",
             "validation",
@@ -8614,7 +8690,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -8622,9 +8697,11 @@
             }
           },
           "permission": {
-            "capability": "mail",
-            "action": "write"
+            "plugin": "messaging",
+            "action": "delivery.manage",
+            "resource_type": null
           },
+          "plugin": "messaging",
           "errors": [
             "forbidden",
             "validation",
@@ -8700,13 +8777,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "mail",
-            "action": "view"
+            "plugin": "messaging",
+            "action": "delivery.view",
+            "resource_type": null
           },
+          "plugin": "messaging",
           "errors": [
             "forbidden",
             "not_found",
@@ -8799,7 +8877,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -8807,9 +8884,11 @@
             }
           },
           "permission": {
-            "capability": "mail",
-            "action": "write"
+            "plugin": "messaging",
+            "action": "delivery.manage",
+            "resource_type": null
           },
+          "plugin": "messaging",
           "errors": [
             "forbidden",
             "validation",
@@ -8876,7 +8955,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -8884,9 +8962,11 @@
             }
           },
           "permission": {
-            "capability": "mail",
-            "action": "delete"
+            "plugin": "messaging",
+            "action": "delivery.delete",
+            "resource_type": null
           },
+          "plugin": "messaging",
           "errors": [
             "forbidden",
             "not_found",
@@ -8981,7 +9061,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -8989,9 +9068,11 @@
             }
           },
           "permission": {
-            "capability": "mail",
-            "action": "view"
+            "plugin": "messaging",
+            "action": "delivery.view",
+            "resource_type": null
           },
+          "plugin": "messaging",
           "errors": [
             "forbidden",
             "not_found",
@@ -9080,13 +9161,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "mail",
-            "action": "view"
+            "plugin": "messaging",
+            "action": "delivery.view",
+            "resource_type": null
           },
+          "plugin": "messaging",
           "errors": [
             "forbidden",
             "validation",
@@ -9168,7 +9250,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -9176,9 +9257,11 @@
             }
           },
           "permission": {
-            "capability": "mail",
-            "action": "write"
+            "plugin": "messaging",
+            "action": "delivery.manage",
+            "resource_type": null
           },
+          "plugin": "messaging",
           "errors": [
             "forbidden",
             "validation",
@@ -9254,13 +9337,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "mail",
-            "action": "view"
+            "plugin": "messaging",
+            "action": "delivery.view",
+            "resource_type": null
           },
+          "plugin": "messaging",
           "errors": [
             "forbidden",
             "not_found",
@@ -9353,7 +9437,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -9361,9 +9444,11 @@
             }
           },
           "permission": {
-            "capability": "mail",
-            "action": "write"
+            "plugin": "messaging",
+            "action": "delivery.manage",
+            "resource_type": null
           },
+          "plugin": "messaging",
           "errors": [
             "forbidden",
             "not_found",
@@ -9430,7 +9515,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -9438,9 +9522,11 @@
             }
           },
           "permission": {
-            "capability": "mail",
-            "action": "delete"
+            "plugin": "messaging",
+            "action": "delivery.delete",
+            "resource_type": null
           },
+          "plugin": "messaging",
           "errors": [
             "forbidden",
             "not_found",
@@ -9555,13 +9641,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "mail",
-            "action": "view"
+            "plugin": "messaging",
+            "action": "delivery.view",
+            "resource_type": null
           },
+          "plugin": "messaging",
           "errors": [
             "forbidden",
             "not_found",
@@ -9665,7 +9752,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -9673,9 +9759,11 @@
             }
           },
           "permission": {
-            "capability": "mail",
-            "action": "write"
+            "plugin": "messaging",
+            "action": "delivery.manage",
+            "resource_type": null
           },
+          "plugin": "messaging",
           "errors": [
             "forbidden",
             "not_found",
@@ -9745,7 +9833,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -9753,9 +9840,11 @@
             }
           },
           "permission": {
-            "capability": "mail",
-            "action": "delete"
+            "plugin": "messaging",
+            "action": "delivery.delete",
+            "resource_type": null
           },
+          "plugin": "messaging",
           "errors": [
             "forbidden",
             "not_found",
@@ -9817,7 +9906,6 @@
           {}
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "public",
           "mutation": {
             "public": {
@@ -9825,6 +9913,7 @@
             }
           },
           "permission": null,
+          "plugin": "messaging",
           "errors": [
             "validation",
             "internal"
@@ -9919,13 +10008,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "mail",
-            "action": "view"
+            "plugin": "messaging",
+            "action": "delivery.view",
+            "resource_type": null
           },
+          "plugin": "messaging",
           "errors": [
             "forbidden",
             "validation",
@@ -10017,7 +10107,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -10025,9 +10114,11 @@
             }
           },
           "permission": {
-            "capability": "mail",
-            "action": "write"
+            "plugin": "messaging",
+            "action": "delivery.manage",
+            "resource_type": null
           },
+          "plugin": "messaging",
           "errors": [
             "forbidden",
             "validation",
@@ -10104,13 +10195,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "mail",
-            "action": "view"
+            "plugin": "messaging",
+            "action": "delivery.view",
+            "resource_type": null
           },
+          "plugin": "messaging",
           "errors": [
             "forbidden",
             "not_found",
@@ -10205,7 +10297,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -10213,9 +10304,11 @@
             }
           },
           "permission": {
-            "capability": "mail",
-            "action": "write"
+            "plugin": "messaging",
+            "action": "delivery.manage",
+            "resource_type": null
           },
+          "plugin": "messaging",
           "errors": [
             "forbidden",
             "not_found",
@@ -10321,7 +10414,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -10329,9 +10421,11 @@
             }
           },
           "permission": {
-            "capability": "mail",
-            "action": "write"
+            "plugin": "messaging",
+            "action": "delivery.manage",
+            "resource_type": null
           },
+          "plugin": "messaging",
           "errors": [
             "forbidden",
             "not_found",
@@ -10417,7 +10511,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "webhook",
           "mutation": {
             "webhook": {
@@ -10425,6 +10518,7 @@
             }
           },
           "permission": null,
+          "plugin": "messaging",
           "errors": [
             "unauthenticated",
             "validation",
@@ -10513,13 +10607,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "shop",
-            "action": "view"
+            "plugin": "commerce",
+            "action": "shop.product.view",
+            "resource_type": null
           },
+          "plugin": "commerce",
           "errors": [
             "forbidden",
             "validation",
@@ -10601,7 +10696,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -10609,9 +10703,11 @@
             }
           },
           "permission": {
-            "capability": "shop",
-            "action": "write"
+            "plugin": "commerce",
+            "action": "shop.product.manage",
+            "resource_type": null
           },
+          "plugin": "commerce",
           "errors": [
             "forbidden",
             "validation",
@@ -10687,13 +10783,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "shop",
-            "action": "view"
+            "plugin": "commerce",
+            "action": "shop.product.view",
+            "resource_type": null
           },
+          "plugin": "commerce",
           "errors": [
             "forbidden",
             "not_found",
@@ -10786,7 +10883,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -10794,9 +10890,11 @@
             }
           },
           "permission": {
-            "capability": "shop",
-            "action": "write"
+            "plugin": "commerce",
+            "action": "shop.product.manage",
+            "resource_type": null
           },
+          "plugin": "commerce",
           "errors": [
             "forbidden",
             "validation",
@@ -10863,7 +10961,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -10871,9 +10968,11 @@
             }
           },
           "permission": {
-            "capability": "shop",
-            "action": "delete"
+            "plugin": "commerce",
+            "action": "shop.product.delete",
+            "resource_type": null
           },
+          "plugin": "commerce",
           "errors": [
             "forbidden",
             "not_found",
@@ -10949,10 +11048,10 @@
           {}
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "public",
           "mutation": "none",
           "permission": null,
+          "plugin": "commerce",
           "errors": [
             "validation",
             "internal"
@@ -11039,13 +11138,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "shop",
-            "action": "view"
+            "plugin": "commerce",
+            "action": "shop.product.view",
+            "resource_type": null
           },
+          "plugin": "commerce",
           "errors": [
             "forbidden",
             "validation",
@@ -11127,7 +11227,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -11135,9 +11234,11 @@
             }
           },
           "permission": {
-            "capability": "shop",
-            "action": "write"
+            "plugin": "commerce",
+            "action": "shop.product.manage",
+            "resource_type": null
           },
+          "plugin": "commerce",
           "errors": [
             "forbidden",
             "validation",
@@ -11206,7 +11307,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -11214,9 +11314,11 @@
             }
           },
           "permission": {
-            "capability": "shop",
-            "action": "delete"
+            "plugin": "commerce",
+            "action": "shop.product.delete",
+            "resource_type": null
           },
+          "plugin": "commerce",
           "errors": [
             "forbidden",
             "not_found",
@@ -11312,13 +11414,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "shop",
-            "action": "view"
+            "plugin": "commerce",
+            "action": "shop.product.view",
+            "resource_type": null
           },
+          "plugin": "commerce",
           "errors": [
             "forbidden",
             "validation",
@@ -11393,13 +11496,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "shop",
-            "action": "view"
+            "plugin": "commerce",
+            "action": "shop.product.view",
+            "resource_type": null
           },
+          "plugin": "commerce",
           "errors": [
             "forbidden",
             "not_found",
@@ -11504,7 +11608,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -11512,9 +11615,11 @@
             }
           },
           "permission": {
-            "capability": "shop",
-            "action": "write"
+            "plugin": "commerce",
+            "action": "shop.product.manage",
+            "resource_type": null
           },
+          "plugin": "commerce",
           "errors": [
             "forbidden",
             "not_found",
@@ -11598,7 +11703,6 @@
           {}
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "public",
           "mutation": {
             "public": {
@@ -11606,6 +11710,7 @@
             }
           },
           "permission": null,
+          "plugin": "commerce",
           "errors": [
             "validation",
             "not_found",
@@ -11702,13 +11807,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "courses",
-            "action": "view"
+            "plugin": "learning",
+            "action": "courses.course.view",
+            "resource_type": null
           },
+          "plugin": "learning",
           "errors": [
             "forbidden",
             "validation",
@@ -11790,7 +11896,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -11798,9 +11903,11 @@
             }
           },
           "permission": {
-            "capability": "courses",
-            "action": "write"
+            "plugin": "learning",
+            "action": "courses.course.manage",
+            "resource_type": null
           },
+          "plugin": "learning",
           "errors": [
             "forbidden",
             "validation",
@@ -11876,13 +11983,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "courses",
-            "action": "view"
+            "plugin": "learning",
+            "action": "courses.course.view",
+            "resource_type": null
           },
+          "plugin": "learning",
           "errors": [
             "forbidden",
             "not_found",
@@ -11986,7 +12094,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -11994,9 +12101,11 @@
             }
           },
           "permission": {
-            "capability": "courses",
-            "action": "write"
+            "plugin": "learning",
+            "action": "courses.course.manage",
+            "resource_type": null
           },
+          "plugin": "learning",
           "errors": [
             "forbidden",
             "validation",
@@ -12065,7 +12174,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -12073,9 +12181,11 @@
             }
           },
           "permission": {
-            "capability": "courses",
-            "action": "delete"
+            "plugin": "learning",
+            "action": "courses.course.delete",
+            "resource_type": null
           },
+          "plugin": "learning",
           "errors": [
             "forbidden",
             "not_found",
@@ -12181,7 +12291,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -12189,9 +12298,11 @@
             }
           },
           "permission": {
-            "capability": "courses",
-            "action": "write"
+            "plugin": "learning",
+            "action": "courses.course.manage",
+            "resource_type": null
           },
+          "plugin": "learning",
           "errors": [
             "forbidden",
             "not_found",
@@ -12299,7 +12410,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -12307,9 +12417,11 @@
             }
           },
           "permission": {
-            "capability": "courses",
-            "action": "write"
+            "plugin": "learning",
+            "action": "courses.course.manage",
+            "resource_type": null
           },
+          "plugin": "learning",
           "errors": [
             "forbidden",
             "not_found",
@@ -12387,13 +12499,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "courses",
-            "action": "view"
+            "plugin": "learning",
+            "action": "courses.course.view",
+            "resource_type": null
           },
+          "plugin": "learning",
           "errors": [
             "forbidden",
             "not_found",
@@ -12497,7 +12610,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -12505,9 +12617,11 @@
             }
           },
           "permission": {
-            "capability": "courses",
-            "action": "write"
+            "plugin": "learning",
+            "action": "courses.course.manage",
+            "resource_type": null
           },
+          "plugin": "learning",
           "errors": [
             "forbidden",
             "not_found",
@@ -12586,7 +12700,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -12594,9 +12707,11 @@
             }
           },
           "permission": {
-            "capability": "courses",
-            "action": "delete"
+            "plugin": "learning",
+            "action": "courses.course.delete",
+            "resource_type": null
           },
+          "plugin": "learning",
           "errors": [
             "forbidden",
             "not_found",
@@ -12705,13 +12820,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "courses",
-            "action": "view"
+            "plugin": "learning",
+            "action": "courses.course.view",
+            "resource_type": null
           },
+          "plugin": "learning",
           "errors": [
             "forbidden",
             "not_found",
@@ -12816,7 +12932,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -12824,9 +12939,11 @@
             }
           },
           "permission": {
-            "capability": "courses",
-            "action": "write"
+            "plugin": "learning",
+            "action": "courses.course.manage",
+            "resource_type": null
           },
+          "plugin": "learning",
           "errors": [
             "forbidden",
             "not_found",
@@ -12934,7 +13051,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -12942,9 +13058,11 @@
             }
           },
           "permission": {
-            "capability": "courses",
-            "action": "write"
+            "plugin": "learning",
+            "action": "courses.course.manage",
+            "resource_type": null
           },
+          "plugin": "learning",
           "errors": [
             "forbidden",
             "not_found",
@@ -13052,7 +13170,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -13060,9 +13177,11 @@
             }
           },
           "permission": {
-            "capability": "courses",
-            "action": "write"
+            "plugin": "learning",
+            "action": "courses.course.manage",
+            "resource_type": null
           },
+          "plugin": "learning",
           "errors": [
             "forbidden",
             "not_found",
@@ -13141,7 +13260,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -13149,9 +13267,11 @@
             }
           },
           "permission": {
-            "capability": "courses",
-            "action": "delete"
+            "plugin": "learning",
+            "action": "courses.course.delete",
+            "resource_type": null
           },
+          "plugin": "learning",
           "errors": [
             "forbidden",
             "not_found",
@@ -13259,13 +13379,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "courses",
-            "action": "view"
+            "plugin": "learning",
+            "action": "courses.course.view",
+            "resource_type": null
           },
+          "plugin": "learning",
           "errors": [
             "forbidden",
             "not_found",
@@ -13378,7 +13499,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -13386,9 +13506,11 @@
             }
           },
           "permission": {
-            "capability": "courses",
-            "action": "write"
+            "plugin": "learning",
+            "action": "courses.course.manage",
+            "resource_type": null
           },
+          "plugin": "learning",
           "errors": [
             "forbidden",
             "not_found",
@@ -13463,7 +13585,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -13471,9 +13592,11 @@
             }
           },
           "permission": {
-            "capability": "courses",
-            "action": "write"
+            "plugin": "learning",
+            "action": "courses.course.manage",
+            "resource_type": null
           },
+          "plugin": "learning",
           "errors": [
             "forbidden",
             "not_found",
@@ -13569,13 +13692,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "courses",
-            "action": "view"
+            "plugin": "learning",
+            "action": "courses.course.view",
+            "resource_type": null
           },
+          "plugin": "learning",
           "errors": [
             "forbidden",
             "validation",
@@ -13657,7 +13781,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -13665,9 +13788,11 @@
             }
           },
           "permission": {
-            "capability": "courses",
-            "action": "write"
+            "plugin": "learning",
+            "action": "courses.course.manage",
+            "resource_type": null
           },
+          "plugin": "learning",
           "errors": [
             "forbidden",
             "validation",
@@ -13753,7 +13878,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -13761,9 +13885,11 @@
             }
           },
           "permission": {
-            "capability": "courses",
-            "action": "write"
+            "plugin": "learning",
+            "action": "courses.course.manage",
+            "resource_type": null
           },
+          "plugin": "learning",
           "errors": [
             "forbidden",
             "not_found",
@@ -13869,7 +13995,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -13877,9 +14002,11 @@
             }
           },
           "permission": {
-            "capability": "courses",
-            "action": "write"
+            "plugin": "learning",
+            "action": "courses.course.manage",
+            "resource_type": null
           },
+          "plugin": "learning",
           "errors": [
             "forbidden",
             "validation",
@@ -13947,7 +14074,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -13955,9 +14081,11 @@
             }
           },
           "permission": {
-            "capability": "courses",
-            "action": "delete"
+            "plugin": "learning",
+            "action": "courses.course.delete",
+            "resource_type": null
           },
+          "plugin": "learning",
           "errors": [
             "forbidden",
             "not_found",
@@ -14063,13 +14191,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "courses",
-            "action": "view"
+            "plugin": "learning",
+            "action": "courses.course.view",
+            "resource_type": null
           },
+          "plugin": "learning",
           "errors": [
             "forbidden",
             "not_found",
@@ -14173,7 +14302,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -14181,9 +14309,11 @@
             }
           },
           "permission": {
-            "capability": "courses",
-            "action": "write"
+            "plugin": "learning",
+            "action": "courses.course.manage",
+            "resource_type": null
           },
+          "plugin": "learning",
           "errors": [
             "forbidden",
             "not_found",
@@ -14254,7 +14384,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -14262,9 +14391,11 @@
             }
           },
           "permission": {
-            "capability": "courses",
-            "action": "delete"
+            "plugin": "learning",
+            "action": "courses.course.delete",
+            "resource_type": null
           },
+          "plugin": "learning",
           "errors": [
             "forbidden",
             "not_found",
@@ -14357,7 +14488,6 @@
           {}
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "public",
           "mutation": {
             "public": {
@@ -14365,6 +14495,7 @@
             }
           },
           "permission": null,
+          "plugin": "learning",
           "errors": [
             "validation",
             "unauthenticated",
@@ -14438,7 +14569,6 @@
           {}
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "public",
           "mutation": {
             "public": {
@@ -14446,6 +14576,7 @@
             }
           },
           "permission": null,
+          "plugin": "learning",
           "errors": [
             "validation",
             "unauthenticated",
@@ -14502,7 +14633,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "student",
           "mutation": {
             "self_only": {
@@ -14510,6 +14640,7 @@
             }
           },
           "permission": null,
+          "plugin": "learning",
           "errors": [
             "unauthenticated",
             "not_found",
@@ -14597,10 +14728,10 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "student",
           "mutation": "none",
           "permission": null,
+          "plugin": "learning",
           "errors": [
             "unauthenticated",
             "validation",
@@ -14685,10 +14816,10 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "student",
           "mutation": "none",
           "permission": null,
+          "plugin": "learning",
           "errors": [
             "unauthenticated",
             "not_found",
@@ -14774,10 +14905,10 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "student",
           "mutation": "none",
           "permission": null,
+          "plugin": "learning",
           "errors": [
             "unauthenticated",
             "not_found",
@@ -14863,10 +14994,10 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "student",
           "mutation": "none",
           "permission": null,
+          "plugin": "learning",
           "errors": [
             "unauthenticated",
             "not_found",
@@ -14952,7 +15083,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "student",
           "mutation": {
             "self_only": {
@@ -14960,301 +15090,11 @@
             }
           },
           "permission": null,
+          "plugin": "learning",
           "errors": [
             "unauthenticated",
             "not_found",
             "forbidden",
-            "internal"
-          ]
-        }
-      }
-    },
-    "/api/v1/jobs": {
-      "get": {
-        "operationId": "jobs.list",
-        "summary": "List site jobs with an opaque cursor",
-        "tags": [
-          "jobs"
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/JobPage"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Request refused",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Request refused",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Request refused",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "after",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": [
-                "string",
-                "null"
-              ],
-              "maxLength": 512
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 100
-            }
-          },
-          {
-            "name": "state",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "$ref": "#/components/schemas/JobState"
-            }
-          },
-          {
-            "name": "kind",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": [
-                "string",
-                "null"
-              ],
-              "maxLength": 120
-            }
-          }
-        ],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "x-mavi": {
-          "scope": "site",
-          "authentication": "account_or_assistant",
-          "mutation": "none",
-          "permission": {
-            "capability": "automation",
-            "action": "view"
-          },
-          "errors": [
-            "forbidden",
-            "validation",
-            "internal"
-          ]
-        }
-      }
-    },
-    "/api/v1/jobs/{id}": {
-      "get": {
-        "operationId": "jobs.read",
-        "summary": "Read one site job",
-        "tags": [
-          "jobs"
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Job"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Request refused",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Request refused",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Request refused",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "x-mavi": {
-          "scope": "site",
-          "authentication": "account_or_assistant",
-          "mutation": "none",
-          "permission": {
-            "capability": "automation",
-            "action": "view"
-          },
-          "errors": [
-            "forbidden",
-            "not_found",
-            "internal"
-          ]
-        }
-      }
-    },
-    "/api/v1/jobs/{id}/retry": {
-      "post": {
-        "operationId": "jobs.retry",
-        "summary": "Retry a dead-letter job",
-        "tags": [
-          "jobs"
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Job"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Request refused",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Request refused",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Request refused",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Request refused",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "x-mavi": {
-          "scope": "site",
-          "authentication": "account_or_assistant",
-          "mutation": {
-            "permissioned": {
-              "idempotent": false
-            }
-          },
-          "permission": {
-            "capability": "automation",
-            "action": "write"
-          },
-          "errors": [
-            "forbidden",
-            "not_found",
-            "conflict",
             "internal"
           ]
         }
@@ -15305,13 +15145,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "automation",
-            "action": "view"
+            "plugin": "automation",
+            "action": "flow.view",
+            "resource_type": null
           },
+          "plugin": "automation",
           "errors": [
             "forbidden",
             "internal"
@@ -15424,13 +15265,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "automation",
-            "action": "view"
+            "plugin": "automation",
+            "action": "flow.view",
+            "resource_type": null
           },
+          "plugin": "automation",
           "errors": [
             "forbidden",
             "validation",
@@ -15512,7 +15354,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -15520,9 +15361,11 @@
             }
           },
           "permission": {
-            "capability": "automation",
-            "action": "write"
+            "plugin": "automation",
+            "action": "flow.manage",
+            "resource_type": null
           },
+          "plugin": "automation",
           "errors": [
             "forbidden",
             "validation",
@@ -15608,13 +15451,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "automation",
-            "action": "view"
+            "plugin": "automation",
+            "action": "flow.view",
+            "resource_type": null
           },
+          "plugin": "automation",
           "errors": [
             "forbidden",
             "not_found",
@@ -15718,7 +15562,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -15726,9 +15569,11 @@
             }
           },
           "permission": {
-            "capability": "automation",
-            "action": "write"
+            "plugin": "automation",
+            "action": "flow.manage",
+            "resource_type": null
           },
+          "plugin": "automation",
           "errors": [
             "forbidden",
             "validation",
@@ -15796,7 +15641,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -15804,9 +15648,11 @@
             }
           },
           "permission": {
-            "capability": "automation",
-            "action": "write"
+            "plugin": "automation",
+            "action": "flow.manage",
+            "resource_type": null
           },
+          "plugin": "automation",
           "errors": [
             "forbidden",
             "not_found",
@@ -15901,13 +15747,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "automation",
-            "action": "view"
+            "plugin": "automation",
+            "action": "flow.view",
+            "resource_type": null
           },
+          "plugin": "automation",
           "errors": [
             "forbidden",
             "not_found",
@@ -16030,13 +15877,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "automation",
-            "action": "view"
+            "plugin": "automation",
+            "action": "flow.view",
+            "resource_type": null
           },
+          "plugin": "automation",
           "errors": [
             "forbidden",
             "not_found",
@@ -16112,13 +15960,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "automation",
-            "action": "view"
+            "plugin": "automation",
+            "action": "flow.view",
+            "resource_type": null
           },
+          "plugin": "automation",
           "errors": [
             "forbidden",
             "not_found",
@@ -16217,13 +16066,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "boards",
-            "action": "view"
+            "plugin": "boards",
+            "action": "board.view",
+            "resource_type": null
           },
+          "plugin": "boards",
           "errors": [
             "forbidden",
             "validation",
@@ -16305,7 +16155,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -16313,9 +16162,11 @@
             }
           },
           "permission": {
-            "capability": "boards",
-            "action": "write"
+            "plugin": "boards",
+            "action": "board.manage",
+            "resource_type": null
           },
+          "plugin": "boards",
           "errors": [
             "forbidden",
             "validation",
@@ -16391,13 +16242,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "boards",
-            "action": "view"
+            "plugin": "boards",
+            "action": "board.view",
+            "resource_type": null
           },
+          "plugin": "boards",
           "errors": [
             "forbidden",
             "not_found",
@@ -16500,7 +16352,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -16508,9 +16359,11 @@
             }
           },
           "permission": {
-            "capability": "boards",
-            "action": "write"
+            "plugin": "boards",
+            "action": "board.manage",
+            "resource_type": null
           },
+          "plugin": "boards",
           "errors": [
             "forbidden",
             "not_found",
@@ -16578,7 +16431,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -16586,9 +16438,11 @@
             }
           },
           "permission": {
-            "capability": "boards",
-            "action": "delete"
+            "plugin": "boards",
+            "action": "board.delete",
+            "resource_type": null
           },
+          "plugin": "boards",
           "errors": [
             "forbidden",
             "not_found",
@@ -16695,13 +16549,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "boards",
-            "action": "view"
+            "plugin": "boards",
+            "action": "board.view",
+            "resource_type": null
           },
+          "plugin": "boards",
           "errors": [
             "forbidden",
             "not_found",
@@ -16805,7 +16660,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -16813,9 +16667,11 @@
             }
           },
           "permission": {
-            "capability": "boards",
-            "action": "write"
+            "plugin": "boards",
+            "action": "board.manage",
+            "resource_type": null
           },
+          "plugin": "boards",
           "errors": [
             "forbidden",
             "not_found",
@@ -16922,7 +16778,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -16930,9 +16785,11 @@
             }
           },
           "permission": {
-            "capability": "boards",
-            "action": "write"
+            "plugin": "boards",
+            "action": "board.manage",
+            "resource_type": null
           },
+          "plugin": "boards",
           "errors": [
             "forbidden",
             "not_found",
@@ -17053,13 +16910,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "boards",
-            "action": "view"
+            "plugin": "boards",
+            "action": "board.view",
+            "resource_type": null
           },
+          "plugin": "boards",
           "errors": [
             "forbidden",
             "not_found",
@@ -17163,7 +17021,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -17171,9 +17028,11 @@
             }
           },
           "permission": {
-            "capability": "boards",
-            "action": "write"
+            "plugin": "boards",
+            "action": "board.manage",
+            "resource_type": null
           },
+          "plugin": "boards",
           "errors": [
             "forbidden",
             "not_found",
@@ -17250,13 +17109,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "boards",
-            "action": "view"
+            "plugin": "boards",
+            "action": "board.view",
+            "resource_type": null
           },
+          "plugin": "boards",
           "errors": [
             "forbidden",
             "not_found",
@@ -17359,7 +17219,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -17367,9 +17226,11 @@
             }
           },
           "permission": {
-            "capability": "boards",
-            "action": "write"
+            "plugin": "boards",
+            "action": "board.manage",
+            "resource_type": null
           },
+          "plugin": "boards",
           "errors": [
             "forbidden",
             "not_found",
@@ -17437,7 +17298,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -17445,9 +17305,11 @@
             }
           },
           "permission": {
-            "capability": "boards",
-            "action": "delete"
+            "plugin": "boards",
+            "action": "board.delete",
+            "resource_type": null
           },
+          "plugin": "boards",
           "errors": [
             "forbidden",
             "not_found",
@@ -17552,7 +17414,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -17560,9 +17421,11 @@
             }
           },
           "permission": {
-            "capability": "boards",
-            "action": "write"
+            "plugin": "boards",
+            "action": "board.manage",
+            "resource_type": null
           },
+          "plugin": "boards",
           "errors": [
             "forbidden",
             "not_found",
@@ -17669,7 +17532,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -17677,9 +17539,11 @@
             }
           },
           "permission": {
-            "capability": "boards",
-            "action": "write"
+            "plugin": "boards",
+            "action": "board.manage",
+            "resource_type": null
           },
+          "plugin": "boards",
           "errors": [
             "forbidden",
             "not_found",
@@ -17788,13 +17652,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "boards",
-            "action": "view"
+            "plugin": "boards",
+            "action": "board.view",
+            "resource_type": null
           },
+          "plugin": "boards",
           "errors": [
             "forbidden",
             "not_found",
@@ -17888,7 +17753,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -17896,9 +17760,11 @@
             }
           },
           "permission": {
-            "capability": "boards",
-            "action": "write"
+            "plugin": "boards",
+            "action": "board.manage",
+            "resource_type": null
           },
+          "plugin": "boards",
           "errors": [
             "forbidden",
             "not_found",
@@ -18004,7 +17870,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -18012,9 +17877,11 @@
             }
           },
           "permission": {
-            "capability": "boards",
-            "action": "write"
+            "plugin": "boards",
+            "action": "board.manage",
+            "resource_type": null
           },
+          "plugin": "boards",
           "errors": [
             "forbidden",
             "not_found",
@@ -18082,7 +17949,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -18090,9 +17956,11 @@
             }
           },
           "permission": {
-            "capability": "boards",
-            "action": "delete"
+            "plugin": "boards",
+            "action": "board.delete",
+            "resource_type": null
           },
+          "plugin": "boards",
           "errors": [
             "forbidden",
             "not_found",
@@ -18211,13 +18079,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "boards",
-            "action": "view"
+            "plugin": "boards",
+            "action": "board.view",
+            "resource_type": null
           },
+          "plugin": "boards",
           "errors": [
             "forbidden",
             "not_found",
@@ -18290,7 +18159,6 @@
           {}
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "public",
           "mutation": {
             "public": {
@@ -18298,6 +18166,7 @@
             }
           },
           "permission": null,
+          "plugin": "analytics",
           "errors": [
             "validation",
             "rate_limited",
@@ -18409,13 +18278,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "analytics",
-            "action": "view"
+            "plugin": "analytics",
+            "action": "view",
+            "resource_type": null
           },
+          "plugin": "analytics",
           "errors": [
             "forbidden",
             "validation",
@@ -18527,13 +18397,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "analytics",
-            "action": "view"
+            "plugin": "analytics",
+            "action": "view",
+            "resource_type": null
           },
+          "plugin": "analytics",
           "errors": [
             "forbidden",
             "validation",
@@ -18607,7 +18478,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -18615,9 +18485,11 @@
             }
           },
           "permission": {
-            "capability": "analytics",
-            "action": "delete"
+            "plugin": "analytics",
+            "action": "manage",
+            "resource_type": null
           },
+          "plugin": "analytics",
           "errors": [
             "forbidden",
             "validation",
@@ -18691,13 +18563,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "portable",
-            "action": "view"
+            "plugin": "governance",
+            "action": "portable.export",
+            "resource_type": null
           },
+          "plugin": "governance",
           "errors": [
             "forbidden",
             "not_found",
@@ -18792,7 +18665,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -18800,9 +18672,11 @@
             }
           },
           "permission": {
-            "capability": "portable",
-            "action": "write"
+            "plugin": "governance",
+            "action": "portable.import",
+            "resource_type": null
           },
+          "plugin": "governance",
           "errors": [
             "forbidden",
             "conflict",
@@ -18892,13 +18766,14 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": "none",
           "permission": {
-            "capability": "credentials",
-            "action": "view"
+            "plugin": "core",
+            "action": "credentials.list",
+            "resource_type": null
           },
+          "plugin": "core",
           "errors": [
             "forbidden",
             "validation",
@@ -18980,7 +18855,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -18988,9 +18862,11 @@
             }
           },
           "permission": {
-            "capability": "credentials",
-            "action": "write"
+            "plugin": "core",
+            "action": "credentials.manage",
+            "resource_type": null
           },
+          "plugin": "core",
           "errors": [
             "forbidden",
             "validation",
@@ -19096,7 +18972,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -19104,9 +18979,11 @@
             }
           },
           "permission": {
-            "capability": "credentials",
-            "action": "write"
+            "plugin": "core",
+            "action": "credentials.manage",
+            "resource_type": null
           },
+          "plugin": "core",
           "errors": [
             "forbidden",
             "validation",
@@ -19174,7 +19051,6 @@
           }
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "account_or_assistant",
           "mutation": {
             "permissioned": {
@@ -19182,12 +19058,580 @@
             }
           },
           "permission": {
-            "capability": "credentials",
-            "action": "delete"
+            "plugin": "core",
+            "action": "credentials.revoke",
+            "resource_type": null
           },
+          "plugin": "core",
           "errors": [
             "forbidden",
             "not_found",
+            "internal"
+          ]
+        }
+      }
+    },
+    "/api/v1/plugins": {
+      "get": {
+        "operationId": "plugins.list",
+        "summary": "List compiled plugins and activation state",
+        "tags": [
+          "plugins"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PluginRecordPage"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-mavi": {
+          "authentication": "account",
+          "mutation": "none",
+          "permission": {
+            "plugin": "core",
+            "action": "plugins.list",
+            "resource_type": null
+          },
+          "plugin": "core",
+          "errors": [
+            "internal"
+          ]
+        }
+      }
+    },
+    "/api/v1/plugins/{id}/enable": {
+      "post": {
+        "operationId": "plugins.enable",
+        "summary": "Enable a compiled plugin",
+        "tags": [
+          "plugins"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PluginRecord"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-mavi": {
+          "authentication": "account",
+          "mutation": {
+            "permissioned": {
+              "idempotent": false
+            }
+          },
+          "permission": {
+            "plugin": "core",
+            "action": "plugins.activate",
+            "resource_type": null
+          },
+          "plugin": "core",
+          "errors": [
+            "internal"
+          ]
+        }
+      }
+    },
+    "/api/v1/plugins/{id}/disable": {
+      "post": {
+        "operationId": "plugins.disable",
+        "summary": "Disable a compiled plugin without deleting its data",
+        "tags": [
+          "plugins"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PluginRecord"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-mavi": {
+          "authentication": "account",
+          "mutation": {
+            "permissioned": {
+              "idempotent": false
+            }
+          },
+          "permission": {
+            "plugin": "core",
+            "action": "plugins.deactivate",
+            "resource_type": null
+          },
+          "plugin": "core",
+          "errors": [
+            "internal"
+          ]
+        }
+      }
+    },
+    "/api/v1/workflows/runs": {
+      "get": {
+        "operationId": "workflows.runs.list",
+        "summary": "List durable workflow runs",
+        "tags": [
+          "workflows"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowRunPage"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "maxLength": 512
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-mavi": {
+          "authentication": "account",
+          "mutation": "none",
+          "permission": {
+            "plugin": "automation",
+            "action": "workflow.view",
+            "resource_type": null
+          },
+          "plugin": "automation",
+          "errors": [
+            "internal"
+          ]
+        }
+      }
+    },
+    "/api/v1/workflows/runs/{id}": {
+      "get": {
+        "operationId": "workflows.runs.read",
+        "summary": "Read a durable workflow run",
+        "tags": [
+          "workflows"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowRun"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-mavi": {
+          "authentication": "account",
+          "mutation": "none",
+          "permission": {
+            "plugin": "automation",
+            "action": "workflow.view",
+            "resource_type": null
+          },
+          "plugin": "automation",
+          "errors": [
+            "internal"
+          ]
+        }
+      }
+    },
+    "/api/v1/workflows/runs/{id}/cancel": {
+      "post": {
+        "operationId": "workflows.runs.cancel",
+        "summary": "Cancel a durable workflow run",
+        "tags": [
+          "workflows"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowRun"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-mavi": {
+          "authentication": "account",
+          "mutation": {
+            "permissioned": {
+              "idempotent": false
+            }
+          },
+          "permission": {
+            "plugin": "automation",
+            "action": "workflow.control",
+            "resource_type": null
+          },
+          "plugin": "automation",
+          "errors": [
+            "internal"
+          ]
+        }
+      }
+    },
+    "/api/v1/workflows/runs/{id}/replay": {
+      "post": {
+        "operationId": "workflows.runs.replay",
+        "summary": "Replay a durable workflow run",
+        "tags": [
+          "workflows"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowRun"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-mavi": {
+          "authentication": "account",
+          "mutation": {
+            "permissioned": {
+              "idempotent": false
+            }
+          },
+          "permission": {
+            "plugin": "automation",
+            "action": "workflow.control",
+            "resource_type": null
+          },
+          "plugin": "automation",
+          "errors": [
+            "internal"
+          ]
+        }
+      }
+    },
+    "/api/v1/workflows/runs/{id}/pause": {
+      "post": {
+        "operationId": "workflows.runs.pause",
+        "summary": "Pause a durable workflow run",
+        "tags": [
+          "workflows"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowRun"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-mavi": {
+          "authentication": "account",
+          "mutation": {
+            "permissioned": {
+              "idempotent": false
+            }
+          },
+          "permission": {
+            "plugin": "automation",
+            "action": "workflow.control",
+            "resource_type": null
+          },
+          "plugin": "automation",
+          "errors": [
+            "internal"
+          ]
+        }
+      }
+    },
+    "/api/v1/workflows/runs/{id}/resume": {
+      "post": {
+        "operationId": "workflows.runs.resume",
+        "summary": "Resume a paused durable workflow run",
+        "tags": [
+          "workflows"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowRun"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Request refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-mavi": {
+          "authentication": "account",
+          "mutation": {
+            "permissioned": {
+              "idempotent": false
+            }
+          },
+          "permission": {
+            "plugin": "automation",
+            "action": "workflow.control",
+            "resource_type": null
+          },
+          "plugin": "automation",
+          "errors": [
             "internal"
           ]
         }
@@ -19226,10 +19670,10 @@
           {}
         ],
         "x-mavi": {
-          "scope": "site",
           "authentication": "public",
           "mutation": "none",
           "permission": null,
+          "plugin": "core",
           "errors": [
             "internal"
           ]
@@ -19548,6 +19992,7 @@
           "prefix",
           "token",
           "grants",
+          "permissions",
           "expires_at",
           "created_at"
         ],
@@ -19578,6 +20023,12 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Grant"
+            }
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Permission"
             }
           },
           "expires_at": {
@@ -19650,6 +20101,7 @@
           "name",
           "prefix",
           "grants",
+          "permissions",
           "expires_at",
           "revoked_at",
           "created_at"
@@ -19678,6 +20130,12 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Grant"
+            }
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Permission"
             }
           },
           "expires_at": {
@@ -21127,8 +21585,7 @@
         "type": "object",
         "additionalProperties": false,
         "required": [
-          "name",
-          "grants"
+          "name"
         ],
         "properties": {
           "name": {
@@ -21139,6 +21596,12 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Grant"
+            }
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Permission"
             }
           },
           "expires_at": {
@@ -21667,6 +22130,12 @@
             "items": {
               "$ref": "#/components/schemas/Grant"
             }
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Permission"
+            }
           }
         },
         "additionalProperties": false
@@ -21819,7 +22288,8 @@
         "additionalProperties": false,
         "required": [
           "person",
-          "grants"
+          "grants",
+          "permissions"
         ],
         "properties": {
           "person": {
@@ -21829,6 +22299,12 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Grant"
+            }
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Permission"
             }
           }
         }
@@ -23449,143 +23925,6 @@
           "upsert"
         ]
       },
-      "Job": {
-        "type": "object",
-        "required": [
-          "id",
-          "kind",
-          "payload",
-          "state",
-          "run_at",
-          "claimed_until",
-          "claimed_by",
-          "attempts",
-          "last_error",
-          "idempotency_key",
-          "created_at",
-          "finished_at"
-        ],
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "kind": {
-            "type": "string"
-          },
-          "payload": {
-            "type": "object",
-            "additionalProperties": true
-          },
-          "state": {
-            "$ref": "#/components/schemas/JobState"
-          },
-          "run_at": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "claimed_until": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "date-time"
-          },
-          "claimed_by": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "attempts": {
-            "type": "integer",
-            "minimum": 0
-          },
-          "last_error": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "idempotency_key": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "finished_at": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "date-time"
-          }
-        },
-        "additionalProperties": false
-      },
-      "JobListFilter": {
-        "type": "object",
-        "properties": {
-          "after": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "maxLength": 512
-          },
-          "limit": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 100
-          },
-          "state": {
-            "$ref": "#/components/schemas/JobState"
-          },
-          "kind": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "maxLength": 120
-          }
-        },
-        "additionalProperties": false
-      },
-      "JobPage": {
-        "type": "object",
-        "required": [
-          "items",
-          "next_cursor"
-        ],
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Job"
-            }
-          },
-          "next_cursor": {
-            "type": [
-              "string",
-              "null"
-            ]
-          }
-        },
-        "additionalProperties": false
-      },
-      "JobState": {
-        "type": "string",
-        "enum": [
-          "ready",
-          "running",
-          "done",
-          "dead"
-        ]
-      },
       "Language": {
         "type": "object",
         "required": [
@@ -24948,6 +25287,29 @@
         },
         "additionalProperties": false
       },
+      "Permission": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "plugin",
+          "action",
+          "resource_type"
+        ],
+        "properties": {
+          "plugin": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "resource_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
       "Person": {
         "type": "object",
         "additionalProperties": false,
@@ -25061,6 +25423,52 @@
             "type": "string",
             "format": "date-time"
           }
+        }
+      },
+      "PluginRecord": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "version",
+          "dependencies",
+          "default_enabled",
+          "enabled",
+          "config",
+          "updated_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "dependencies": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "default_enabled": {
+            "type": "boolean"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "config": {
+            "type": "object"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PluginRecordPage": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/PluginRecord"
         }
       },
       "PortableAssignment": {
@@ -26145,14 +26553,17 @@
       },
       "ReplaceRoleGrants": {
         "type": "object",
-        "required": [
-          "grants"
-        ],
         "properties": {
           "grants": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Grant"
+            }
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Permission"
             }
           }
         },
@@ -26205,6 +26616,7 @@
           "site_id",
           "name",
           "grants",
+          "permissions",
           "created_at",
           "protected"
         ],
@@ -26224,6 +26636,12 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Grant"
+            }
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Permission"
             }
           },
           "created_at": {
@@ -26344,8 +26762,8 @@
           "api_contract_version",
           "api_contract_hash",
           "storage_schema_version",
-          "runtime_mode",
           "site_id",
+          "active_plugins",
           "pagination"
         ],
         "properties": {
@@ -26368,16 +26786,15 @@
             "type": "integer",
             "minimum": 1
           },
-          "runtime_mode": {
-            "type": "string",
-            "enum": [
-              "fixed_site",
-              "shard"
-            ]
-          },
           "site_id": {
             "type": "string",
             "format": "uuid"
+          },
+          "active_plugins": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "pagination": {
             "$ref": "#/components/schemas/PaginationContract"
@@ -27654,6 +28071,93 @@
           "medium",
           "large"
         ]
+      },
+      "WorkflowRun": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "site_id",
+          "plugin",
+          "workflow",
+          "hatchet_run_id",
+          "status",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "site_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "plugin": {
+            "type": "string"
+          },
+          "workflow": {
+            "type": "string"
+          },
+          "hatchet_run_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "WorkflowRunListFilter": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "after": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 512
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          }
+        }
+      },
+      "WorkflowRunPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "next_cursor"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkflowRun"
+            }
+          },
+          "next_cursor": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 512
+          }
+        }
       }
     }
   }

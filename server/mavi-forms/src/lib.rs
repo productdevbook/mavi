@@ -9,26 +9,18 @@ use std::{collections::BTreeSet, fmt::Debug};
 
 use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
 use chrono::{DateTime, Utc};
+use mavi_application::{JobKind, WorkflowScheduler};
 use mavi_audit::{AuditEntry, AuditService};
 use mavi_contract::{Endpoint, Method, Permission, Shape};
 use mavi_core::{
     Action, Capability, Cursor, ErrorCode, FormId, FormSubmissionId, JobId, MaviError, Page,
     PageRequest, Result, SiteContext,
 };
-use mavi_jobs::{JobKind, JobsService};
 use mavi_storage::SiteTx;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
 use sqlx::Row;
 use uuid::Uuid;
-
-mod relocation;
-
-pub use relocation::{
-    FORMS_RELOCATION_CONFLICT, FORMS_RELOCATION_FORMAT, FORMS_RELOCATION_VERSION, FormRelocation,
-    FormSubmissionRelocation, FormsRelocation, MAX_FORMS_RELOCATION_BYTES,
-    MAX_FORMS_RELOCATION_RECORDS,
-};
 
 pub const FORM_NOT_FOUND: &str = "form_not_found";
 pub const FORM_SUBMISSION_NOT_FOUND: &str = "form_submission_not_found";
@@ -265,18 +257,9 @@ pub fn api() -> mavi_contract::Api {
 #[must_use]
 #[allow(clippy::too_many_lines)]
 pub fn endpoints() -> Vec<Endpoint> {
-    let view = Permission {
-        capability: Capability::Forms,
-        action: Action::View,
-    };
-    let write = Permission {
-        capability: Capability::Forms,
-        action: Action::Write,
-    };
-    let delete = Permission {
-        capability: Capability::Forms,
-        action: Action::Delete,
-    };
+    let view = Permission::from_legacy(Capability::Forms, Action::View);
+    let write = Permission::from_legacy(Capability::Forms, Action::Write);
+    let delete = Permission::from_legacy(Capability::Forms, Action::Delete);
 
     vec![
         Endpoint::new(
@@ -286,7 +269,7 @@ pub fn endpoints() -> Vec<Endpoint> {
             "List site forms with an opaque cursor",
         )
         .account_or_assistant()
-        .requires(view)
+        .requires(view.clone())
         .takes_query("FormListFilter")
         .returns(200, "FormPage")
         .refuses([
@@ -301,7 +284,7 @@ pub fn endpoints() -> Vec<Endpoint> {
             "Create a validated site form",
         )
         .account_or_assistant()
-        .requires(write)
+        .requires(write.clone())
         .takes("CreateForm")
         .returns(201, "Form")
         .changes(false)
@@ -318,7 +301,7 @@ pub fn endpoints() -> Vec<Endpoint> {
             "Read one site form",
         )
         .account_or_assistant()
-        .requires(view)
+        .requires(view.clone())
         .returns(200, "Form")
         .refuses([
             ErrorCode::Forbidden,
@@ -332,7 +315,7 @@ pub fn endpoints() -> Vec<Endpoint> {
             "Update a form declaration or open state",
         )
         .account_or_assistant()
-        .requires(write)
+        .requires(write.clone())
         .takes("UpdateForm")
         .returns(200, "Form")
         .changes(true)
@@ -350,7 +333,7 @@ pub fn endpoints() -> Vec<Endpoint> {
             "Move a form out of the active form catalog",
         )
         .account_or_assistant()
-        .requires(delete)
+        .requires(delete.clone())
         .returns(204, "Empty")
         .changes(false)
         .refuses([
@@ -365,7 +348,7 @@ pub fn endpoints() -> Vec<Endpoint> {
             "List form submissions with an opaque cursor",
         )
         .account_or_assistant()
-        .requires(view)
+        .requires(view.clone())
         .takes_query("SubmissionListFilter")
         .returns(200, "SubmissionPage")
         .refuses([
@@ -381,7 +364,7 @@ pub fn endpoints() -> Vec<Endpoint> {
             "Export bounded active form submissions in the versioned Mavi JSON format",
         )
         .account_or_assistant()
-        .requires(view)
+        .requires(view.clone())
         .takes_query("SubmissionExportFilter")
         .returns(200, "FormSubmissionExport")
         .refuses([
@@ -397,7 +380,7 @@ pub fn endpoints() -> Vec<Endpoint> {
             "Mark submissions received up to this transaction as read",
         )
         .account_or_assistant()
-        .requires(write)
+        .requires(write.clone())
         .returns(200, "SeenCount")
         .changes(false)
         .refuses([
@@ -412,7 +395,7 @@ pub fn endpoints() -> Vec<Endpoint> {
             "Forget one form submission",
         )
         .account_or_assistant()
-        .requires(delete)
+        .requires(delete.clone())
         .returns(204, "Empty")
         .changes(false)
         .refuses([
@@ -635,7 +618,7 @@ impl FormService {
         &self,
         tx: &mut SiteTx,
         context: &SiteContext,
-        jobs: &JobsService,
+        jobs: &WorkflowScheduler,
         now: DateTime<Utc>,
     ) -> Result<JobId> {
         let bucket = now.timestamp().div_euclid(FORM_RETENTION_BUCKET_SECONDS);

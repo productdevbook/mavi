@@ -20,8 +20,14 @@ async fn settings_languages_are_site_scoped_and_audited() {
 
     let first = SiteId::new();
     let second = SiteId::new();
-    database.ensure_site(first).await.expect("first site");
-    database.ensure_site(second).await.expect("second site");
+    database
+        .ensure_site_for_tests(first)
+        .await
+        .expect("first site");
+    database
+        .ensure_site_for_tests(second)
+        .await
+        .expect("second site");
     insert_settings(&database, first, "First site").await;
     insert_settings(&database, second, "Second site").await;
 

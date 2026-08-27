@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react"
 
 import type { Capability } from "@/lib/permissions"
+import type { PluginId } from "@/lib/plugins"
 import type { ContentType } from "@/lib/use-content-types"
 import type { Board } from "@api"
 
@@ -11,6 +12,7 @@ export interface DashboardNavItem {
   label: string
   icon: LucideIcon
   capability: Capability | null
+  plugin: PluginId
 }
 
 /** A named area of the panel. Empty groups are never rendered. */
@@ -68,6 +70,7 @@ export interface DashboardNavLabels {
   portability: string
   usage: string
   publish: string
+  plugins: string
 }
 
 interface CreateNavigationInput {
@@ -108,6 +111,7 @@ interface CreateNavigationInput {
     portability: LucideIcon
     usage: LucideIcon
     publish: LucideIcon
+    plugins: LucideIcon
   }
 }
 
@@ -134,8 +138,9 @@ export function createDashboardNavigation({
     to: string,
     label: string,
     icon: LucideIcon,
-    capability: Capability | null
-  ): DashboardNavItem => ({ id, to, label, icon, capability })
+    capability: Capability | null,
+    plugin: PluginId = "core",
+  ): DashboardNavItem => ({ id, to, label, icon, capability, plugin })
 
   const boardItems = boards.map((board) =>
     item(
@@ -143,7 +148,8 @@ export function createDashboardNavigation({
       `/dashboard/boards/${board.id}`,
       board.name,
       icons.boards,
-      "boards"
+      "boards",
+      "boards",
     )
   )
 
@@ -164,14 +170,16 @@ export function createDashboardNavigation({
           "/dashboard/visitors",
           labels.visitors,
           icons.visitors,
-          "settings"
+          "analytics",
+          "analytics",
         ),
         item(
           "performance",
           "/dashboard/performance",
           labels.performance,
           icons.performance,
-          "settings"
+          "analytics",
+          "analytics",
         ),
       ],
     },
@@ -184,16 +192,25 @@ export function createDashboardNavigation({
           "/dashboard/content/post",
           labels.posts,
           icons.posts,
-          "content"
+          "content",
+          "writing",
         ),
-        item("media", "/dashboard/media", labels.media, icons.media, "media"),
+        item(
+          "media",
+          "/dashboard/media",
+          labels.media,
+          icons.media,
+          "media",
+          "writing",
+        ),
         ...customContent.map((kind) =>
           item(
             `content-${kind.key}`,
             `/dashboard/content/${kind.key}`,
             calledIn(kind, locale, true),
             icons.customContent,
-            "content"
+            "content",
+            "writing",
           )
         ),
       ],
@@ -207,18 +224,47 @@ export function createDashboardNavigation({
           "/dashboard/categories",
           labels.categories,
           icons.categories,
-          "taxonomy"
+          "taxonomy",
+          "writing",
         ),
-        item("tags", "/dashboard/tags", labels.tags, icons.tags, "taxonomy"),
+        item(
+          "tags",
+          "/dashboard/tags",
+          labels.tags,
+          icons.tags,
+          "taxonomy",
+          "writing",
+        ),
       ],
     },
     {
       id: "automate",
       label: labels.automate,
       items: [
-        item("forms", "/dashboard/forms", labels.forms, icons.forms, "forms"),
-        item("mail", "/dashboard/mail", labels.mail, icons.mail, "mail"),
-        item("flows", "/dashboard/flows", labels.flows, icons.flows, "flows"),
+        item(
+          "forms",
+          "/dashboard/forms",
+          labels.forms,
+          icons.forms,
+          "forms",
+          "forms",
+        ),
+        item(
+          "mail",
+          "/dashboard/mail",
+          labels.mail,
+          icons.mail,
+          "mail",
+          "messaging",
+        ),
+        item(
+          "flows",
+          "/dashboard/flows",
+          labels.flows,
+          icons.flows,
+          "flows",
+          "automation",
+        ),
       ],
     },
     {
@@ -230,28 +276,32 @@ export function createDashboardNavigation({
           "/dashboard/products",
           labels.products,
           icons.products,
-          "shop"
+          "shop",
+          "commerce",
         ),
         item(
           "orders",
           "/dashboard/orders",
           labels.orders,
           icons.orders,
-          "shop"
+          "shop",
+          "commerce",
         ),
         item(
           "discounts",
           "/dashboard/coupons",
           labels.discounts,
           icons.discounts,
-          "shop"
+          "shop",
+          "commerce",
         ),
         item(
           "letters",
           "/dashboard/letters",
           labels.letters,
           icons.letters,
-          "mail"
+          "mail",
+          "messaging",
         ),
       ],
     },
@@ -264,21 +314,24 @@ export function createDashboardNavigation({
           "/dashboard/teaching/start",
           labels.startCourse,
           icons.startCourse,
-          "courses"
+          "courses",
+          "learning",
         ),
         item(
           "videos",
           "/dashboard/videos",
           labels.videos,
           icons.videos,
-          "courses"
+          "courses",
+          "learning",
         ),
         item(
           "students",
           "/dashboard/students",
           labels.students,
           icons.students,
-          "courses"
+          "courses",
+          "learning",
         ),
       ],
     },
@@ -287,8 +340,22 @@ export function createDashboardNavigation({
       label: labels.operations,
       items: [
         ...boardItems,
-        item("audit", "/dashboard/audit", labels.audit, icons.audit, "audit"),
-        item("trash", "/dashboard/trash", labels.trash, icons.trash, "content"),
+        item(
+          "audit",
+          "/dashboard/audit",
+          labels.audit,
+          icons.audit,
+          "audit",
+          "governance",
+        ),
+        item(
+          "trash",
+          "/dashboard/trash",
+          labels.trash,
+          icons.trash,
+          "trash",
+          "governance",
+        ),
       ],
     },
     {
@@ -300,58 +367,81 @@ export function createDashboardNavigation({
           "/dashboard/content-types",
           labels.contentTypes,
           icons.contentTypes,
-          "settings"
+          "content",
+          "writing",
         ),
         item(
           "languages",
           "/dashboard/languages",
           labels.languages,
           icons.languages,
-          "settings"
+          "settings",
+          "core",
         ),
         item(
           "people",
           "/dashboard/users",
           labels.people,
           icons.people,
-          "people"
+          "people",
+          "core",
         ),
-        item("roles", "/dashboard/roles", labels.roles, icons.roles, "people"),
-        item("api", "/dashboard/api", labels.api, icons.api, "settings"),
+        item(
+          "roles",
+          "/dashboard/roles",
+          labels.roles,
+          icons.roles,
+          "people",
+          "core",
+        ),
+        item("api", "/dashboard/api", labels.api, icons.api, "settings", "core"),
         item(
           "design",
           "/dashboard/design",
           labels.design,
           icons.design,
-          "design"
+          "design",
+          "writing",
         ),
         item(
           "settings",
           "/dashboard/settings",
           labels.settings,
           icons.settings,
-          "settings"
+          "settings",
+          "core",
         ),
         item(
           "portability",
           "/dashboard/portable",
           labels.portability,
           icons.portability,
-          "settings"
+          "portable",
+          "governance",
         ),
         item(
           "usage",
           "/dashboard/usage",
           labels.usage,
           icons.usage,
-          "settings"
+          "analytics",
+          "analytics",
         ),
         item(
           "publish",
           "/dashboard/publish",
           labels.publish,
           icons.publish,
-          "publish"
+          "publish",
+          "writing",
+        ),
+        item(
+          "plugins",
+          "/dashboard/plugins",
+          labels.plugins,
+          icons.plugins,
+          "plugins",
+          "core",
         ),
       ],
     },
@@ -361,13 +451,16 @@ export function createDashboardNavigation({
 /** Apply grants to a manifest without coupling the manifest to React. */
 export function visibleDashboardNavigation(
   groups: DashboardNavGroup[],
-  can: (capability: Capability) => boolean
+  can: (capability: Capability) => boolean,
+  activePlugins: ReadonlySet<PluginId> | null = null,
 ): DashboardNavGroup[] {
   return groups
     .map((group) => ({
       ...group,
       items: group.items.filter(
-        (item) => item.capability === null || can(item.capability)
+        (item) =>
+          (activePlugins?.has(item.plugin) ?? item.plugin === "core") &&
+          (item.capability === null || can(item.capability)),
       ),
     }))
     .filter((group) => group.items.length > 0)

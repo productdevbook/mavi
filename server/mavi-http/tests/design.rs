@@ -2,7 +2,12 @@ use axum::{
     Router,
     http::{Method, StatusCode},
 };
+use mavi_application::WorkflowIntent;
+use mavi_core::{PluginId, SiteContext, SiteId};
+use mavi_storage::Database;
+use mavi_worker::{WorkerConfig, WorkerSupervisor};
 use serde_json::json;
+use uuid::Uuid;
 
 mod support;
 use support::{bootstrap, login, response_bytes, response_json, send};
@@ -11,8 +16,20 @@ use support::{bootstrap, login, response_bytes, response_json, send};
 #[ignore = "requires TEST_DATABASE_URL and a non-superuser PostgreSQL role"]
 #[allow(clippy::too_many_lines)]
 async fn design_routes_use_opaque_cursors_build_immutable_previews_and_rollback() {
-    let app = support::build_app().await;
+    let (app, database, site_id, file_store) =
+        support::build_app_with_database_and_file_store().await;
     let owner_token = bootstrap(&app, "HTTP design test").await;
+    let worker = WorkerSupervisor::new(
+        database.clone(),
+        [site_id],
+        WorkerConfig::new(
+            "design-http-test-worker",
+            30,
+            std::time::Duration::from_millis(10),
+        )
+        .expect("worker config"),
+        file_store,
+    );
 
     let started = send(
         &app,
@@ -98,8 +115,10 @@ async fn design_routes_use_opaque_cursors_build_immutable_previews_and_rollback(
     .await;
     assert_eq!(build.status(), StatusCode::CREATED);
     let build = response_json(build).await;
-    assert_eq!(build["state"], "ready");
+    assert_eq!(build["state"], "queued");
     let build_id = build["id"].as_str().expect("build id").to_owned();
+
+    execute_design_build(&database, site_id, &worker, &build_id).await;
 
     let preview = send(
         &app,
@@ -174,7 +193,10 @@ async fn design_routes_use_opaque_cursors_build_immutable_previews_and_rollback(
     )
     .await;
     assert_eq!(second_build.status(), StatusCode::CREATED);
-    assert_eq!(response_json(second_build).await["state"], "ready");
+    let second_build = response_json(second_build).await;
+    assert_eq!(second_build["state"], "queued");
+    let second_build_id = second_build["id"].as_str().expect("second build id");
+    execute_design_build(&database, site_id, &worker, second_build_id).await;
     let second_published = send(
         &app,
         Method::POST,
@@ -244,6 +266,46 @@ async fn design_routes_use_opaque_cursors_build_immutable_previews_and_rollback(
     )
     .await;
     assert_eq!(forbidden.status(), StatusCode::FORBIDDEN);
+}
+
+async fn execute_design_build(
+    database: &Database,
+    site_id: SiteId,
+    worker: &WorkerSupervisor,
+    build_id: &str,
+) {
+    let build_id = Uuid::parse_str(build_id).expect("build uuid");
+    let context = SiteContext::system(site_id, "design-http-test-worker", Uuid::now_v7().into());
+    let mut transaction = database.begin(&context).await.expect("job lookup scope");
+    let job_id: Uuid = sqlx::query_scalar(
+        "select (o.payload->>'job_id')::uuid
+           from workflow_outbox o
+           join workflow_runs r on r.site_id = o.site_id
+                                and r.idempotency_key = o.idempotency_key
+          where o.site_id = $1 and o.workflow = 'design.build'
+            and coalesce(o.payload->'job_payload'->>'build_id', o.payload->>'build_id') = $2
+            and r.status not in ('completed', 'cancelled')
+          order by o.created_at desc limit 1",
+    )
+    .bind(site_id.into_uuid())
+    .bind(build_id.to_string())
+    .fetch_one(transaction.conn())
+    .await
+    .expect("design job");
+    transaction.commit().await.expect("job lookup commit");
+
+    let intent = WorkflowIntent::new(
+        site_id,
+        PluginId::Writing,
+        "design.build",
+        format!("design-build:{build_id}"),
+        json!({"job_id": job_id, "build_id": build_id}),
+    )
+    .expect("design intent");
+    worker
+        .execute_intent(intent)
+        .await
+        .expect("design execution");
 }
 
 async fn create_reader(app: &Router, owner_token: &str) -> String {

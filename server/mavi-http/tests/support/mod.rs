@@ -16,7 +16,7 @@ use mavi_http::{
     router_with_config_and_metrics_and_mail_webhook,
 };
 use mavi_observability::RuntimeMetrics;
-use mavi_runtime::{FixedSiteResolver, HostSiteResolver, Runtime};
+use mavi_runtime::SiteRuntime;
 use mavi_sealing::KeyringSealer;
 use mavi_storage::Database;
 use serde_json::{Value, json};
@@ -37,11 +37,12 @@ pub async fn build_app_with_mail_webhook_token(token: &str) -> Router {
     database.migrate().await.expect("migrations");
 
     let site_id = SiteId::new();
-    database.ensure_site(site_id).await.expect("site");
+    database.ensure_site_for_tests(site_id).await.expect("site");
+    enable_all_plugins(&database, site_id).await;
     let edge = EdgeSecurityConfig::new(TrustedProxySet::default(), EdgeThrottlePolicy::default())
         .expect("edge policy");
     router_with_config_and_metrics_and_mail_webhook(
-        Runtime::new(database, FixedSiteResolver::new(site_id)),
+        SiteRuntime::new(database, site_id),
         Arc::new(InMemoryFileStore::default()),
         Arc::new(StaticBuildEngine),
         Arc::new(KeyringSealer::from_key([42; 32])),
@@ -53,35 +54,32 @@ pub async fn build_app_with_mail_webhook_token(token: &str) -> Router {
 }
 
 pub async fn build_app_with_database() -> (Router, Database, SiteId) {
-    build_app_with_edge_policy(EdgeThrottlePolicy::default()).await
+    let (app, database, site_id, _) = build_app_with_database_and_file_store().await;
+    (app, database, site_id)
 }
 
-#[allow(dead_code)]
-pub async fn build_shard_app() -> Router {
-    let url = env::var("TEST_DATABASE_URL").expect("TEST_DATABASE_URL");
-    let database = Database::connect(&url, 2)
-        .await
-        .expect("database connection");
-    database.migrate().await.expect("migrations");
-
-    let site_id = SiteId::new();
-    database.ensure_site(site_id).await.expect("site");
-    let resolver =
-        HostSiteResolver::new([(String::from("site.example"), site_id)]).expect("host resolver");
-    let edge = EdgeSecurityConfig::new(TrustedProxySet::default(), EdgeThrottlePolicy::default())
-        .expect("edge policy");
-    router_with_config(
-        Runtime::new(database, resolver),
-        Arc::new(InMemoryFileStore::default()),
-        Arc::new(StaticBuildEngine),
-        Arc::new(KeyringSealer::from_key([42; 32])),
-        edge,
-    )
-    .expect("router")
+pub async fn build_app_with_database_and_file_store()
+-> (Router, Database, SiteId, Arc<InMemoryFileStore>) {
+    build_app_with_edge_policy_and_plugins(EdgeThrottlePolicy::default(), true).await
 }
 
 #[allow(dead_code)]
 pub async fn build_app_with_edge_policy(policy: EdgeThrottlePolicy) -> (Router, Database, SiteId) {
+    let (app, database, site_id, _) = build_app_with_edge_policy_and_plugins(policy, true).await;
+    (app, database, site_id)
+}
+
+#[allow(dead_code)]
+pub async fn build_app_with_default_plugins() -> Router {
+    build_app_with_edge_policy_and_plugins(EdgeThrottlePolicy::default(), false)
+        .await
+        .0
+}
+
+async fn build_app_with_edge_policy_and_plugins(
+    policy: EdgeThrottlePolicy,
+    all_plugins: bool,
+) -> (Router, Database, SiteId, Arc<InMemoryFileStore>) {
     let url = env::var("TEST_DATABASE_URL").expect("TEST_DATABASE_URL");
     let database = Database::connect(&url, 2)
         .await
@@ -89,17 +87,43 @@ pub async fn build_app_with_edge_policy(policy: EdgeThrottlePolicy) -> (Router, 
     database.migrate().await.expect("migrations");
 
     let site_id = SiteId::new();
-    database.ensure_site(site_id).await.expect("site");
+    database.ensure_site_for_tests(site_id).await.expect("site");
+    if all_plugins {
+        enable_all_plugins(&database, site_id).await;
+    } else {
+        disable_optional_plugins(&database, site_id).await;
+    }
     let edge = EdgeSecurityConfig::new(TrustedProxySet::default(), policy).expect("edge policy");
+    let file_store = Arc::new(InMemoryFileStore::default());
     let app = router_with_config(
-        Runtime::new(database.clone(), FixedSiteResolver::new(site_id)),
-        Arc::new(InMemoryFileStore::default()),
+        SiteRuntime::new(database.clone(), site_id),
+        file_store.clone(),
         Arc::new(StaticBuildEngine),
         Arc::new(KeyringSealer::from_key([42; 32])),
         edge,
     )
     .expect("router");
-    (app, database, site_id)
+    (app, database, site_id, file_store)
+}
+
+async fn enable_all_plugins(database: &Database, site_id: SiteId) {
+    let context = SiteContext::public(site_id);
+    let mut transaction = database.begin(&context).await.expect("plugin scope");
+    sqlx::query("update site_plugins set enabled = true, updated_at = now()")
+        .execute(transaction.conn())
+        .await
+        .expect("enable test plugins");
+    transaction.commit().await.expect("plugin commit");
+}
+
+async fn disable_optional_plugins(database: &Database, site_id: SiteId) {
+    let context = SiteContext::public(site_id);
+    let mut transaction = database.begin(&context).await.expect("plugin scope");
+    sqlx::query("update site_plugins set enabled = (plugin_id = 'core' or plugin_id = 'writing'), updated_at = now()")
+        .execute(transaction.conn())
+        .await
+        .expect("disable optional test plugins");
+    transaction.commit().await.expect("plugin commit");
 }
 
 #[allow(dead_code)]

@@ -12,8 +12,12 @@ scope, authorization, validation, and audit.
 - `src/components/ui/` contains shadcn/base primitives. Domain components do
   not add business rules to these primitives.
 - `src/lib/dashboard-navigation.ts` is the canonical panel information
-  architecture. Each destination declares its capability next to its URL;
-  the renderer only draws destinations the current grants allow.
+  architecture. Each destination declares its plugin and capability next to
+  its URL; the renderer only draws destinations whose compiled plugin is
+  active and whose Cedar grants allow them.
+- `src/lib/plugins.tsx` loads the active plugin set from the runtime manifest.
+  The owner-only catalog screen can then enable or disable compiled plugins;
+  it does not make the client an authorization authority.
 - `src/lib/api.ts` is the canonical HTTP boundary for the clean `/api/v1/*`
   contract. Screens migrating to the rewrite use generated operation IDs from
   `@api`; bearer session storage, refusal handling and
@@ -29,6 +33,10 @@ scope, authorization, validation, and audit.
   the current person and effective Cedar grants from `auth.session.current`.
   The client never rebuilds access by aggregating roles, and it never treats a
   cached session as authorization.
+- Plugin activation is a runtime capability gate, not a UI preference. The
+  server returns `404` for inactive plugin routes and emits only the active
+  plugin contract to OpenAPI/MCP; the panel uses the manifest only to avoid
+  rendering or downloading unavailable feature bundles.
 - `src/api/server.ts` is generated from
   `server/mavi-http/contracts/mavi.ts`. CI compares the files in both
   directions so the panel cannot silently drift from the Rust contract.
@@ -40,6 +48,9 @@ scope, authorization, validation, and audit.
   `forms`, `settings`, `content`, `media`, `taxonomy`, `shop`, `learning`,
   `automation`, `boards`, `design`, `analytics`, `governance`, `mail`,
   `integrations`, and `portability`.
+- Product route modules use `src/lib/lazy-route.tsx`, so domain feature
+  bundles are requested only when an active route is rendered. Core setup,
+  identity and plugin-management screens remain in the initial shell.
 
 ## Page contract
 

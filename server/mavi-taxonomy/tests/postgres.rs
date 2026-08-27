@@ -21,8 +21,14 @@ async fn taxonomy_terms_trees_assignments_and_filters_are_site_scoped() {
 
     let first = SiteId::new();
     let second = SiteId::new();
-    database.ensure_site(first).await.expect("first site");
-    database.ensure_site(second).await.expect("second site");
+    database
+        .ensure_site_for_tests(first)
+        .await
+        .expect("first site");
+    database
+        .ensure_site_for_tests(second)
+        .await
+        .expect("second site");
 
     let service = TaxonomyService;
     let context = SiteContext::public(first);

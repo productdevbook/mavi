@@ -23,13 +23,6 @@ use serde_json::{Value, json};
 use sqlx::{Postgres, QueryBuilder, Row};
 use uuid::Uuid;
 
-mod relocation;
-
-pub use relocation::{
-    BoardActivityRelocation, BoardCardRelocation, BoardCommentRelocation, BoardListRelocation,
-    BoardRelocation, BoardsRelocation,
-};
-
 pub const MAX_BOARD_NAME: usize = 200;
 pub const MAX_LIST_NAME: usize = 120;
 pub const MAX_CARD_TITLE: usize = 300;
@@ -203,18 +196,9 @@ pub struct BoardService;
 #[must_use]
 #[allow(clippy::too_many_lines)]
 pub fn api() -> mavi_contract::Api {
-    let view = Permission {
-        capability: Capability::Boards,
-        action: Action::View,
-    };
-    let write = Permission {
-        capability: Capability::Boards,
-        action: Action::Write,
-    };
-    let delete = Permission {
-        capability: Capability::Boards,
-        action: Action::Delete,
-    };
+    let view = Permission::from_legacy(Capability::Boards, Action::View);
+    let write = Permission::from_legacy(Capability::Boards, Action::Write);
+    let delete = Permission::from_legacy(Capability::Boards, Action::Delete);
     mavi_contract::Api::new(vec![
         Endpoint::new(
             Method::Get,
@@ -223,7 +207,7 @@ pub fn api() -> mavi_contract::Api {
             "List site boards with an opaque cursor",
         )
         .account_or_assistant()
-        .requires(view)
+        .requires(view.clone())
         .takes_query("BoardListFilter")
         .returns(200, "BoardPage")
         .refuses([
@@ -238,7 +222,7 @@ pub fn api() -> mavi_contract::Api {
             "Create a collaboration board",
         )
         .account_or_assistant()
-        .requires(write)
+        .requires(write.clone())
         .takes("CreateBoard")
         .returns(201, "Board")
         .changes(false)
@@ -255,7 +239,7 @@ pub fn api() -> mavi_contract::Api {
             "Read one collaboration board",
         )
         .account_or_assistant()
-        .requires(view)
+        .requires(view.clone())
         .returns(200, "Board")
         .refuses([
             ErrorCode::Forbidden,
@@ -269,7 +253,7 @@ pub fn api() -> mavi_contract::Api {
             "Update board metadata",
         )
         .account_or_assistant()
-        .requires(write)
+        .requires(write.clone())
         .takes("UpdateBoard")
         .returns(200, "Board")
         .changes(false)
@@ -287,7 +271,7 @@ pub fn api() -> mavi_contract::Api {
             "Move a board and its visible work to site trash",
         )
         .account_or_assistant()
-        .requires(delete)
+        .requires(delete.clone())
         .returns(204, "Empty")
         .changes(false)
         .refuses([
@@ -302,7 +286,7 @@ pub fn api() -> mavi_contract::Api {
             "List board columns in order",
         )
         .account_or_assistant()
-        .requires(view)
+        .requires(view.clone())
         .takes_query("ListPageFilter")
         .returns(200, "BoardListPage")
         .refuses([
@@ -318,7 +302,7 @@ pub fn api() -> mavi_contract::Api {
             "Create a board column",
         )
         .account_or_assistant()
-        .requires(write)
+        .requires(write.clone())
         .takes("CreateList")
         .returns(201, "BoardList")
         .changes(false)
@@ -336,7 +320,7 @@ pub fn api() -> mavi_contract::Api {
             "Reorder all board columns atomically",
         )
         .account_or_assistant()
-        .requires(write)
+        .requires(write.clone())
         .takes("ReorderLists")
         .returns(200, "BoardListPage")
         .changes(false)
@@ -354,7 +338,7 @@ pub fn api() -> mavi_contract::Api {
             "List cards in a column with an opaque cursor",
         )
         .account_or_assistant()
-        .requires(view)
+        .requires(view.clone())
         .takes_query("CardPageFilter")
         .returns(200, "CardPage")
         .refuses([
@@ -370,7 +354,7 @@ pub fn api() -> mavi_contract::Api {
             "Create a card in a column",
         )
         .account_or_assistant()
-        .requires(write)
+        .requires(write.clone())
         .takes("CreateCard")
         .returns(201, "Card")
         .changes(false)
@@ -388,7 +372,7 @@ pub fn api() -> mavi_contract::Api {
             "Read one card",
         )
         .account_or_assistant()
-        .requires(view)
+        .requires(view.clone())
         .returns(200, "Card")
         .refuses([
             ErrorCode::Forbidden,
@@ -402,7 +386,7 @@ pub fn api() -> mavi_contract::Api {
             "Update card content",
         )
         .account_or_assistant()
-        .requires(write)
+        .requires(write.clone())
         .takes("UpdateCard")
         .returns(200, "Card")
         .changes(false)
@@ -420,7 +404,7 @@ pub fn api() -> mavi_contract::Api {
             "Archive a card and its visible comments",
         )
         .account_or_assistant()
-        .requires(delete)
+        .requires(delete.clone())
         .returns(204, "Empty")
         .changes(false)
         .refuses([
@@ -435,7 +419,7 @@ pub fn api() -> mavi_contract::Api {
             "Move a card atomically between columns",
         )
         .account_or_assistant()
-        .requires(write)
+        .requires(write.clone())
         .takes("MoveCard")
         .returns(200, "Card")
         .changes(false)
@@ -453,7 +437,7 @@ pub fn api() -> mavi_contract::Api {
             "Assign or unassign a card",
         )
         .account_or_assistant()
-        .requires(write)
+        .requires(write.clone())
         .takes("AssignCard")
         .returns(200, "Card")
         .changes(false)
@@ -471,7 +455,7 @@ pub fn api() -> mavi_contract::Api {
             "List card comments with an opaque cursor",
         )
         .account_or_assistant()
-        .requires(view)
+        .requires(view.clone())
         .takes_query("CommentPageFilter")
         .returns(200, "CommentPage")
         .refuses([
@@ -487,7 +471,7 @@ pub fn api() -> mavi_contract::Api {
             "Add a card comment",
         )
         .account_or_assistant()
-        .requires(write)
+        .requires(write.clone())
         .takes("CreateComment")
         .returns(201, "Comment")
         .changes(false)
@@ -504,7 +488,7 @@ pub fn api() -> mavi_contract::Api {
             "Edit your card comment",
         )
         .account_or_assistant()
-        .requires(write)
+        .requires(write.clone())
         .takes("UpdateComment")
         .returns(200, "Comment")
         .changes(false)
@@ -522,7 +506,7 @@ pub fn api() -> mavi_contract::Api {
             "Delete a card comment",
         )
         .account_or_assistant()
-        .requires(delete)
+        .requires(delete.clone())
         .returns(204, "Empty")
         .changes(false)
         .refuses([
@@ -537,7 +521,7 @@ pub fn api() -> mavi_contract::Api {
             "List immutable board activity",
         )
         .account_or_assistant()
-        .requires(view)
+        .requires(view.clone())
         .takes_query("ActivityPageFilter")
         .returns(200, "ActivityPage")
         .refuses([

@@ -12,6 +12,7 @@ mod ids;
 mod mail_policy;
 mod money;
 mod pagination;
+mod plugins;
 pub mod ports;
 mod trash_retention;
 
@@ -35,6 +36,7 @@ pub use ids::{
 pub use mail_policy::{MailSender, MailSenderPolicy};
 pub use money::{Currency, Money};
 pub use pagination::{Cursor, Page, PageRequest};
+pub use plugins::{ActionId, Permission, PluginId};
 pub use trash_retention::{
     DEFAULT_TRASH_RETENTION_DAYS, MAX_TRASH_RETENTION_DAYS, TrashRetentionPolicy,
 };

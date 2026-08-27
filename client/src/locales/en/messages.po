@@ -936,7 +936,7 @@ msgstr "A new code"
 msgid "A new file"
 msgstr "A new file"
 
-#: src/features/automation/flows-page.tsx:243
+#: src/features/automation/flows-page.tsx:238
 msgid "A new flow"
 msgstr "A new flow"
 
@@ -1526,6 +1526,10 @@ msgstr "Alt text"
 msgid "Altogether"
 msgstr "Altogether"
 
+#: src/features/plugins/plugins-page.tsx:121
+msgid "Always on"
+msgstr "Always on"
+
 #. placeholder {0}: held.account_a_second ?? 0
 #: src/routes/dashboard.platform-mail.tsx:166
 #~ msgid "Amazon allows this account {0} a second"
@@ -1653,6 +1657,10 @@ msgstr "An image keeps its file while it is here, so a restored post still has i
 #~ msgid "An order is marked paid by the payment service, never from here. What you can do here is say a parcel has gone."
 #~ msgstr "An order is marked paid by the payment service, never from here. What you can do here is say a parcel has gone."
 
+#: src/features/people/roles-page.tsx:216
+msgid "Analytics"
+msgstr "Analytics"
+
 #: src/components/dashboard/content-type-editor.tsx:134
 #: src/features/forms/forms-page.tsx:389
 msgid "Another"
@@ -1670,7 +1678,7 @@ msgstr "Another"
 msgid "Another stage"
 msgstr "Another stage"
 
-#: src/features/automation/flows-page.tsx:293
+#: src/features/automation/flows-page.tsx:288
 msgid "Another step"
 msgstr "Another step"
 
@@ -1763,7 +1771,7 @@ msgstr "Anything this site works through in order: enquiries, repairs, applicati
 #~ msgid "Anything this site works through in stages: applications, enquiries, jobs. You decide what the stages are and what they are called."
 #~ msgstr "Anything this site works through in stages: applications, enquiries, jobs. You decide what the stages are and what they are called."
 
-#: src/components/dashboard/dashboard-shell.tsx:112
+#: src/components/dashboard/dashboard-shell.tsx:113
 #: src/features/integrations/api-page.tsx:120
 msgid "API"
 msgstr "API"
@@ -1835,7 +1843,7 @@ msgstr "Archived"
 #~ msgid "Archiving stops the public site and active usage charges, but keeps its data and media stored. Storage costs $9/month until you restore or delete the site."
 #~ msgstr "Archiving stops the public site and active usage charges, but keeps its data and media stored. Storage costs $9/month until you restore or delete the site."
 
-#: src/features/people/roles-page.tsx:339
+#: src/features/people/roles-page.tsx:383
 msgid "Area"
 msgstr "Area"
 
@@ -1882,6 +1890,10 @@ msgstr "As on a phone"
 #: src/routes/dashboard.billing.tsx:131
 #~ msgid "Ask about a charge"
 #~ msgstr "Ask about a charge"
+
+#: src/components/dashboard/allowed.tsx:38
+msgid "Ask an owner to enable this plugin under Plugins."
+msgstr "Ask an owner to enable this plugin under Plugins."
 
 #: src/components/ses-health.tsx:362
 #~ msgid "Ask for it"
@@ -1959,7 +1971,7 @@ msgstr "At least twelve characters. Everything else that was open closes when yo
 #~ msgid "Attempted"
 #~ msgstr "Attempted"
 
-#: src/components/dashboard/dashboard-shell.tsx:90
+#: src/components/dashboard/dashboard-shell.tsx:91
 msgid "Automate"
 msgstr "Automate"
 
@@ -2132,8 +2144,9 @@ msgstr "Being written"
 #~ msgid "Bills"
 #~ msgstr "Bills"
 
-#: src/components/dashboard/dashboard-shell.tsx:106
+#: src/components/dashboard/dashboard-shell.tsx:107
 #: src/features/governance/trash-page.tsx:129
+#: src/features/people/roles-page.tsx:217
 msgid "Bin"
 msgstr "Bin"
 
@@ -2170,10 +2183,10 @@ msgstr "Blue"
 msgid "board"
 msgstr "board"
 
-#: src/components/dashboard/dashboard-shell.tsx:104
+#: src/components/dashboard/dashboard-shell.tsx:105
 #: src/features/boards/board-page.tsx:129
 #: src/features/boards/boards-page.tsx:117
-#: src/features/people/roles-page.tsx:169
+#: src/features/people/roles-page.tsx:210
 msgid "Boards"
 msgstr "Boards"
 
@@ -2384,10 +2397,15 @@ msgstr "Campaign #{campaignId}"
 #~ msgid "Campaigns"
 #~ msgstr "Campaigns"
 
+#. placeholder {0}: visibleCapabilities.length
+#: src/features/people/roles-page.tsx:357
+msgid "Can open {summary} of {0} active areas."
+msgstr "Can open {summary} of {0} active areas."
+
 #. placeholder {0}: CAPABILITY_ORDER.length
 #: src/features/people/roles-page.tsx:313
-msgid "Can open {summary} of {0} areas."
-msgstr "Can open {summary} of {0} areas."
+#~ msgid "Can open {summary} of {0} areas."
+#~ msgstr "Can open {summary} of {0} areas."
 
 #: src/components/ses-account.tsx:543
 #~ msgid "can send"
@@ -2398,8 +2416,8 @@ msgstr "Can open {summary} of {0} areas."
 #: src/components/editor/dialogs.tsx:267
 #: src/components/editor/dialogs.tsx:357
 #: src/components/report-a-problem.tsx:178
-#: src/features/automation/flows-page.tsx:232
-#: src/features/automation/flows-page.tsx:363
+#: src/features/automation/flows-page.tsx:227
+#: src/features/automation/flows-page.tsx:358
 #: src/features/boards/board-page.tsx:240
 #: src/features/boards/boards-page.tsx:223
 #: src/features/boards/boards-page.tsx:245
@@ -2416,7 +2434,7 @@ msgstr "Can open {summary} of {0} areas."
 #: src/features/media/media-page.tsx:192
 #: src/features/people/people-page.tsx:334
 #: src/features/people/people-page.tsx:364
-#: src/features/people/roles-page.tsx:448
+#: src/features/people/roles-page.tsx:492
 #: src/features/shop/coupons-page.tsx:247
 #: src/features/shop/products-page.tsx:269
 #: src/features/taxonomy/categories-page.tsx:289
@@ -2458,13 +2476,13 @@ msgstr "Canonical URL"
 msgid "Case sensitive"
 msgstr "Case sensitive"
 
-#: src/components/dashboard/dashboard-shell.tsx:88
+#: src/components/dashboard/dashboard-shell.tsx:89
 #: src/components/editor/post-settings.tsx:253
 #: src/features/taxonomy/categories-page.tsx:148
 msgid "Categories"
 msgstr "Categories"
 
-#: src/features/people/roles-page.tsx:162
+#: src/features/people/roles-page.tsx:203
 msgid "Categories & tags"
 msgstr "Categories & tags"
 
@@ -2493,7 +2511,7 @@ msgid "Center the paragraph"
 msgstr "Center the paragraph"
 
 #. placeholder {0}: CAPABILITY_LABELS[capability]
-#: src/features/people/roles-page.tsx:404
+#: src/features/people/roles-page.tsx:448
 msgid "Change {0}"
 msgstr "Change {0}"
 
@@ -2724,7 +2742,7 @@ msgstr "Command menu"
 #~ msgid "Comments"
 #~ msgstr "Comments"
 
-#: src/components/dashboard/dashboard-shell.tsx:94
+#: src/components/dashboard/dashboard-shell.tsx:95
 msgid "Commerce"
 msgstr "Commerce"
 
@@ -2732,11 +2750,15 @@ msgstr "Commerce"
 #~ msgid "Compared how"
 #~ msgstr "Compared how"
 
+#: src/features/plugins/plugins-page.tsx:99
+msgid "Compiled Mavi feature package."
+msgstr "Compiled Mavi feature package."
+
 #: src/components/plugin-forms.tsx:462
 #~ msgid "Configuration set"
 #~ msgstr "Configuration set"
 
-#: src/components/dashboard/dashboard-shell.tsx:107
+#: src/components/dashboard/dashboard-shell.tsx:108
 msgid "Configure"
 msgstr "Configure"
 
@@ -2805,7 +2827,7 @@ msgstr "Connecting with a token instead, from a terminal"
 #~ msgid "contains"
 #~ msgstr "contains"
 
-#: src/features/people/roles-page.tsx:161
+#: src/features/people/roles-page.tsx:202
 msgid "Content"
 msgstr "Content"
 
@@ -2817,7 +2839,7 @@ msgstr "Content already written in this language blocks removal — you'll be to
 #~ msgid "Content deleted"
 #~ msgstr "Content deleted"
 
-#: src/components/dashboard/dashboard-shell.tsx:108
+#: src/components/dashboard/dashboard-shell.tsx:109
 msgid "Content types"
 msgstr "Content types"
 
@@ -3439,7 +3461,7 @@ msgstr "Course"
 #~ msgid "Crawlers, kept apart"
 #~ msgstr "Crawlers, kept apart"
 
-#: src/components/dashboard/dashboard-shell.tsx:83
+#: src/components/dashboard/dashboard-shell.tsx:84
 #: src/components/editor/mavi-editor.tsx:661
 #: src/components/editor/mavi-editor.tsx:921
 msgid "Create"
@@ -3465,7 +3487,7 @@ msgstr "Create a product before you start taking orders."
 msgid "Create a tag once and reuse it across content in this language."
 msgstr "Create a tag once and reuse it across content in this language."
 
-#: src/features/automation/flows-page.tsx:165
+#: src/features/automation/flows-page.tsx:160
 msgid "Create a trigger and steps to automate work on this site."
 msgstr "Create a trigger and steps to automate work on this site."
 
@@ -3531,7 +3553,7 @@ msgstr "Cursive"
 msgid "Custom"
 msgstr "Custom"
 
-#: src/components/dashboard/dashboard-shell.tsx:86
+#: src/components/dashboard/dashboard-shell.tsx:87
 msgid "Custom content"
 msgstr "Custom content"
 
@@ -3608,7 +3630,7 @@ msgstr "Default"
 #: src/features/content/languages-page.tsx:164
 #: src/features/media/media-page.tsx:169
 #: src/features/media/media-page.tsx:194
-#: src/features/people/roles-page.tsx:180
+#: src/features/people/roles-page.tsx:224
 #: src/features/taxonomy/categories-page.tsx:308
 #: src/features/taxonomy/categories-page.tsx:334
 #: src/features/taxonomy/tags-page.tsx:217
@@ -3625,7 +3647,7 @@ msgid "Delete column"
 msgstr "Delete column"
 
 #. placeholder {0}: CAPABILITY_LABELS[capability]
-#: src/features/people/roles-page.tsx:405
+#: src/features/people/roles-page.tsx:449
 msgid "Delete in {0}"
 msgstr "Delete in {0}"
 
@@ -3633,7 +3655,7 @@ msgstr "Delete in {0}"
 #~ msgid "Delete one, and any image left with no owner."
 #~ msgstr "Delete one, and any image left with no owner."
 
-#: src/features/people/roles-page.tsx:322
+#: src/features/people/roles-page.tsx:366
 msgid "Delete role"
 msgstr "Delete role"
 
@@ -3646,7 +3668,7 @@ msgid "Delete table"
 msgstr "Delete table"
 
 #. placeholder {0}: role.name
-#: src/features/people/roles-page.tsx:254
+#: src/features/people/roles-page.tsx:298
 msgid "Delete the \"{0}\" role? Move its people to another role first — this only removes the role, not the accounts."
 msgstr "Delete the \"{0}\" role? Move its people to another role first — this only removes the role, not the accounts."
 
@@ -3737,9 +3759,9 @@ msgstr "Deleted resources wait thirty days before they are removed permanently, 
 #~ msgid "Description text shown in search results."
 #~ msgstr "Description text shown in search results."
 
-#: src/components/dashboard/dashboard-shell.tsx:113
+#: src/components/dashboard/dashboard-shell.tsx:114
 #: src/features/design/design-page.tsx:62
-#: src/features/people/roles-page.tsx:170
+#: src/features/people/roles-page.tsx:211
 msgid "Design"
 msgstr "Design"
 
@@ -3768,9 +3790,13 @@ msgstr "Design"
 #~ msgid "Did not work"
 #~ msgstr "Did not work"
 
-#: src/routes/dashboard.plugins.tsx:118
-#~ msgid "Disabled"
-#~ msgstr "Disabled"
+#: src/features/plugins/plugins-page.tsx:130
+msgid "Disable"
+msgstr "Disable"
+
+#: src/features/plugins/plugins-page.tsx:105
+msgid "Disabled"
+msgstr "Disabled"
 
 #: src/components/assistant-connection.tsx:211
 #~ msgid "Disconnect"
@@ -3789,7 +3815,7 @@ msgstr "Design"
 #~ msgid "Discount code"
 #~ msgstr "Discount code"
 
-#: src/components/dashboard/dashboard-shell.tsx:97
+#: src/components/dashboard/dashboard-shell.tsx:98
 #: src/features/shop/coupons-page.tsx:71
 msgid "Discount codes"
 msgstr "Discount codes"
@@ -3982,11 +4008,13 @@ msgstr "Embed a video"
 msgid "Emoji"
 msgstr "Emoji"
 
-#: src/components/plugin-forms.tsx:171
-#: src/routes/dashboard.plugins_.backup.tsx:341
-#: src/routes/dashboard.plugins.tsx:116
-#~ msgid "Enabled"
-#~ msgstr "Enabled"
+#: src/features/plugins/plugins-page.tsx:130
+msgid "Enable"
+msgstr "Enable"
+
+#: src/features/plugins/plugins-page.tsx:105
+msgid "Enabled"
+msgstr "Enabled"
 
 #: src/components/plugin-forms.tsx:90
 #~ msgid "Endpoint"
@@ -4281,10 +4309,10 @@ msgstr "flow"
 #~ msgid "Flow written"
 #~ msgstr "Flow written"
 
-#: src/components/dashboard/dashboard-shell.tsx:93
-#: src/features/automation/flows-page.tsx:150
+#: src/components/dashboard/dashboard-shell.tsx:94
+#: src/features/automation/flows-page.tsx:145
 #: src/features/dashboard/home-page.tsx:132
-#: src/features/people/roles-page.tsx:166
+#: src/features/people/roles-page.tsx:207
 msgid "Flows"
 msgstr "Flows"
 
@@ -4373,11 +4401,11 @@ msgstr "Format"
 msgid "Formatting"
 msgstr "Formatting"
 
-#: src/components/dashboard/dashboard-shell.tsx:91
+#: src/components/dashboard/dashboard-shell.tsx:92
 #: src/features/dashboard/home-page.tsx:98
 #: src/features/forms/form-detail-page.tsx:126
 #: src/features/forms/forms-page.tsx:146
-#: src/features/people/roles-page.tsx:164
+#: src/features/people/roles-page.tsx:205
 msgid "Forms"
 msgstr "Forms"
 
@@ -4513,7 +4541,7 @@ msgstr "Give your post a title first"
 #~ msgid "Going out"
 #~ msgstr "Going out"
 
-#: src/features/people/roles-page.tsx:262
+#: src/features/people/roles-page.tsx:306
 msgid "Gone"
 msgstr "Gone"
 
@@ -4665,7 +4693,7 @@ msgstr "Highlight text with color"
 #~ msgid "History"
 #~ msgstr "History"
 
-#: src/components/dashboard/dashboard-shell.tsx:78
+#: src/components/dashboard/dashboard-shell.tsx:79
 msgid "Home"
 msgstr "Home"
 
@@ -4826,7 +4854,7 @@ msgstr "Import / export"
 #~ msgid "Import an archive"
 #~ msgstr "Import an archive"
 
-#: src/components/dashboard/dashboard-shell.tsx:115
+#: src/components/dashboard/dashboard-shell.tsx:116
 #: src/features/portability/portable-page.tsx:76
 msgid "Import and export"
 msgstr "Import and export"
@@ -4931,7 +4959,7 @@ msgstr "Insert a 3×3 table"
 msgid "Insert the current date as text"
 msgstr "Insert the current date as text"
 
-#: src/components/dashboard/dashboard-shell.tsx:80
+#: src/components/dashboard/dashboard-shell.tsx:81
 msgid "Insights"
 msgstr "Insights"
 
@@ -5092,7 +5120,7 @@ msgstr "It has gone"
 #~ msgid "It stopped before any step ran."
 #~ msgstr "It stopped before any step ran."
 
-#: src/features/automation/flows-page.tsx:228
+#: src/features/automation/flows-page.tsx:223
 msgid "It stops running and can be restored from the bin with its previous enabled state."
 msgstr "It stops running and can be restored from the bin with its previous enabled state."
 
@@ -5262,7 +5290,7 @@ msgstr "Keyboard shortcuts"
 msgid "Language"
 msgstr "Language"
 
-#: src/components/dashboard/dashboard-shell.tsx:109
+#: src/components/dashboard/dashboard-shell.tsx:110
 #: src/features/content/languages-page.tsx:95
 #: src/features/portability/portable-page.tsx:135
 msgid "Languages"
@@ -5317,7 +5345,7 @@ msgstr "Largest paint"
 msgid "Layout shift"
 msgstr "Layout shift"
 
-#: src/components/dashboard/dashboard-shell.tsx:99
+#: src/components/dashboard/dashboard-shell.tsx:100
 msgid "Learning"
 msgstr "Learning"
 
@@ -5410,7 +5438,7 @@ msgstr "Let back in"
 #~ msgid "Letterhead"
 #~ msgstr "Letterhead"
 
-#: src/components/dashboard/dashboard-shell.tsx:98
+#: src/components/dashboard/dashboard-shell.tsx:99
 #: src/features/mail/letters-page.tsx:94
 msgid "Letters"
 msgstr "Letters"
@@ -5528,10 +5556,10 @@ msgstr "Look in your email"
 #~ msgid "Made in the channel's own settings, under incoming webhooks. Anybody holding it can post to that channel, so it is treated as a password and kept out of the run record."
 #~ msgstr "Made in the channel's own settings, under incoming webhooks. Anybody holding it can post to that channel, so it is treated as a password and kept out of the run record."
 
-#: src/components/dashboard/dashboard-shell.tsx:92
+#: src/components/dashboard/dashboard-shell.tsx:93
 #: src/features/mail/campaign-page.tsx:23
 #: src/features/mail/mail-page.tsx:166
-#: src/features/people/roles-page.tsx:165
+#: src/features/people/roles-page.tsx:206
 msgid "Mail"
 msgstr "Mail"
 
@@ -5576,7 +5604,7 @@ msgstr "Make a key"
 #~ msgid "Make a link"
 #~ msgstr "Make a link"
 
-#: src/features/people/roles-page.tsx:429
+#: src/features/people/roles-page.tsx:473
 msgid "Make a role, then tick what it may do below."
 msgstr "Make a role, then tick what it may do below."
 
@@ -5596,10 +5624,10 @@ msgstr "Make a role, then tick what it may do below."
 msgid "Make default"
 msgstr "Make default"
 
-#: src/features/automation/flows-page.tsx:367
+#: src/features/automation/flows-page.tsx:362
 #: src/features/boards/boards-page.tsx:227
 #: src/features/mail/mail-page.tsx:302
-#: src/features/people/roles-page.tsx:455
+#: src/features/people/roles-page.tsx:499
 #: src/features/shop/products-page.tsx:276
 msgid "Make it"
 msgstr "Make it"
@@ -5661,7 +5689,7 @@ msgid "Marked as sent"
 msgstr "Marked as sent"
 
 #: src/components/dashboard/dashboard-header.tsx:38
-#: src/components/dashboard/dashboard-navigation.tsx:47
+#: src/components/dashboard/dashboard-navigation.tsx:53
 msgid "Mavi CMS"
 msgstr "Mavi CMS"
 
@@ -5694,8 +5722,8 @@ msgstr "max {0} uses"
 msgid "Measurements"
 msgstr "Measurements"
 
-#: src/components/dashboard/dashboard-shell.tsx:85
-#: src/features/people/roles-page.tsx:163
+#: src/components/dashboard/dashboard-shell.tsx:86
+#: src/features/people/roles-page.tsx:204
 msgid "Media"
 msgstr "Media"
 
@@ -5811,7 +5839,7 @@ msgstr "Move this board to the bin?"
 msgid "Move this course to the bin?"
 msgstr "Move this course to the bin?"
 
-#: src/features/automation/flows-page.tsx:226
+#: src/features/automation/flows-page.tsx:221
 msgid "Move this flow to the bin?"
 msgstr "Move this flow to the bin?"
 
@@ -5819,7 +5847,7 @@ msgstr "Move this flow to the bin?"
 msgid "Move this student to the bin?"
 msgstr "Move this student to the bin?"
 
-#: src/features/automation/flows-page.tsx:234
+#: src/features/automation/flows-page.tsx:229
 #: src/features/learning/course-page.tsx:159
 #: src/features/learning/course-page.tsx:268
 #: src/features/learning/students-page.tsx:192
@@ -5910,6 +5938,11 @@ msgstr "Navy"
 msgid "Needed to schedule"
 msgstr "Needed to schedule"
 
+#. placeholder {0}: plugin.dependencies .map((dependency) => pluginNames[dependency] ?? dependency) .join(", ")
+#: src/features/plugins/plugins-page.tsx:114
+msgid "Needs {0}"
+msgstr "Needs {0}"
+
 #: src/routes/dashboard.plugins_.video.tsx:270
 #~ msgid "Needs Stream read and edit, and nothing else."
 #~ msgstr "Needs Stream read and edit, and nothing else."
@@ -5967,8 +6000,8 @@ msgstr "New category"
 msgid "New code"
 msgstr "New code"
 
-#: src/features/automation/flows-page.tsx:154
-#: src/features/automation/flows-page.tsx:168
+#: src/features/automation/flows-page.tsx:149
+#: src/features/automation/flows-page.tsx:163
 msgid "New flow"
 msgstr "New flow"
 
@@ -5994,8 +6027,8 @@ msgstr "New list"
 msgid "New product"
 msgstr "New product"
 
-#: src/features/people/roles-page.tsx:284
-#: src/features/people/roles-page.tsx:427
+#: src/features/people/roles-page.tsx:328
+#: src/features/people/roles-page.tsx:471
 msgid "New role"
 msgstr "New role"
 
@@ -6174,7 +6207,7 @@ msgstr "no fields of its own"
 #~ msgid "No flows yet"
 #~ msgstr "No flows yet"
 
-#: src/features/automation/flows-page.tsx:164
+#: src/features/automation/flows-page.tsx:159
 msgid "No flows yet."
 msgstr "No flows yet."
 
@@ -6911,7 +6944,7 @@ msgstr "One of a few"
 #~ msgid "One of a list"
 #~ msgstr "One of a list"
 
-#: src/features/automation/flows-page.tsx:139
+#: src/features/automation/flows-page.tsx:134
 msgid "One of the steps is not written as JSON."
 msgstr "One of the steps is not written as JSON."
 
@@ -7071,7 +7104,7 @@ msgstr "Open it"
 #~ msgid "Opens the status page in a new tab"
 #~ msgstr "Opens the status page in a new tab"
 
-#: src/components/dashboard/dashboard-shell.tsx:103
+#: src/components/dashboard/dashboard-shell.tsx:104
 msgid "Operations"
 msgstr "Operations"
 
@@ -7114,7 +7147,7 @@ msgstr "Order #{0}"
 #~ msgid "Order received"
 #~ msgstr "Order received"
 
-#: src/components/dashboard/dashboard-shell.tsx:96
+#: src/components/dashboard/dashboard-shell.tsx:97
 #: src/features/dashboard/home-page.tsx:126
 #: src/features/shop/orders-page.tsx:136
 msgid "Orders"
@@ -7128,7 +7161,7 @@ msgstr "orders placed"
 msgid "Orders will appear here after a customer completes checkout."
 msgstr "Orders will appear here after a customer completes checkout."
 
-#: src/components/dashboard/dashboard-shell.tsx:87
+#: src/components/dashboard/dashboard-shell.tsx:88
 msgid "Organize"
 msgstr "Organize"
 
@@ -7157,7 +7190,7 @@ msgstr "Organize content into a hierarchy that is easy to browse."
 #~ msgid "over {0} days"
 #~ msgstr "over {0} days"
 
-#: src/components/dashboard/dashboard-shell.tsx:79
+#: src/components/dashboard/dashboard-shell.tsx:80
 #: src/features/dashboard/home-page.tsx:86
 msgid "Overview"
 msgstr "Overview"
@@ -7166,7 +7199,7 @@ msgstr "Overview"
 #~ msgid "Owed now"
 #~ msgstr "Owed now"
 
-#: src/features/people/roles-page.tsx:303
+#: src/features/people/roles-page.tsx:347
 msgid "Owner"
 msgstr "Owner"
 
@@ -7302,9 +7335,9 @@ msgstr "Paste the video link."
 #~ msgid "Payments"
 #~ msgstr "Payments"
 
-#: src/components/dashboard/dashboard-shell.tsx:110
+#: src/components/dashboard/dashboard-shell.tsx:111
 #: src/features/people/people-page.tsx:166
-#: src/features/people/roles-page.tsx:172
+#: src/features/people/roles-page.tsx:213
 msgid "People"
 msgstr "People"
 
@@ -7324,7 +7357,7 @@ msgstr "People join it from your own pages, and leave it from any letter this si
 #~ msgid "Per GB stored, monthly"
 #~ msgstr "Per GB stored, monthly"
 
-#: src/components/dashboard/dashboard-shell.tsx:82
+#: src/components/dashboard/dashboard-shell.tsx:83
 #: src/features/analytics/performance-page.tsx:54
 msgid "Performance"
 msgstr "Performance"
@@ -7399,10 +7432,18 @@ msgstr "Plain text block"
 #~ msgid "Play"
 #~ msgstr "Play"
 
-#: src/components/dashboard/dashboard-shell.tsx:111
-#: src/routes/dashboard.plugins.tsx:88
-#~ msgid "Plugins"
-#~ msgstr "Plugins"
+#: src/features/plugins/plugins-page.tsx:62
+msgid "Plugin disabled."
+msgstr "Plugin disabled."
+
+#: src/features/plugins/plugins-page.tsx:59
+msgid "Plugin enabled."
+msgstr "Plugin enabled."
+
+#: src/components/dashboard/dashboard-shell.tsx:119
+#: src/features/plugins/plugins-page.tsx:74
+msgid "Plugins"
+msgstr "Plugins"
 
 #: src/routes/dashboard.platform-billing.tsx:157
 #~ msgid "Point Stripe's webhook at /api/billing/payments/stripe on this server's own address."
@@ -7421,7 +7462,11 @@ msgstr "Plain text block"
 #~ msgid "Port"
 #~ msgstr "Port"
 
-#: src/components/dashboard/dashboard-shell.tsx:74
+#: src/features/people/roles-page.tsx:218
+msgid "Portability"
+msgstr "Portability"
+
+#: src/components/dashboard/dashboard-shell.tsx:75
 #: src/features/governance/trash-page.tsx:74
 msgid "post"
 msgstr "post"
@@ -7473,7 +7518,7 @@ msgstr "post-url"
 #~ msgid "Postcode"
 #~ msgstr "Postcode"
 
-#: src/components/dashboard/dashboard-shell.tsx:84
+#: src/components/dashboard/dashboard-shell.tsx:85
 #: src/lib/use-content-types.ts:72
 msgid "Posts"
 msgstr "Posts"
@@ -7515,7 +7560,7 @@ msgstr "Private"
 msgid "product"
 msgstr "product"
 
-#: src/components/dashboard/dashboard-shell.tsx:95
+#: src/components/dashboard/dashboard-shell.tsx:96
 #: src/features/shop/products-page.tsx:123
 msgid "Products"
 msgstr "Products"
@@ -7532,11 +7577,11 @@ msgstr "Public"
 msgid "Public identity"
 msgstr "Public identity"
 
-#: src/components/dashboard/dashboard-shell.tsx:117
+#: src/components/dashboard/dashboard-shell.tsx:118
 #: src/components/editor/mavi-editor.tsx:726
 #: src/features/design/design-page.tsx:78
 #: src/features/design/publish-page.tsx:45
-#: src/features/people/roles-page.tsx:171
+#: src/features/people/roles-page.tsx:212
 msgid "Publish"
 msgstr "Publish"
 
@@ -7645,11 +7690,11 @@ msgstr "Raise text above the line"
 #~ msgid "Ran out {0}"
 #~ msgstr "Ran out {0}"
 
-#: src/features/people/roles-page.tsx:308
+#: src/features/people/roles-page.tsx:352
 msgid "Reaches nothing"
 msgstr "Reaches nothing"
 
-#: src/features/people/roles-page.tsx:178
+#: src/features/people/roles-page.tsx:222
 msgid "Read"
 msgstr "Read"
 
@@ -7735,9 +7780,9 @@ msgstr "Ready to preview"
 #~ msgid "Recommended"
 #~ msgstr "Recommended"
 
-#: src/components/dashboard/dashboard-shell.tsx:105
+#: src/components/dashboard/dashboard-shell.tsx:106
 #: src/features/governance/audit-page.tsx:91
-#: src/features/people/roles-page.tsx:174
+#: src/features/people/roles-page.tsx:215
 msgid "Record"
 msgstr "Record"
 
@@ -7810,8 +7855,8 @@ msgstr "Release {0}"
 #: src/components/dashboard/content-type-editor.tsx:211
 #: src/components/editor/bubble-menus.tsx:201
 #: src/components/editor/bubble-menus.tsx:282
-#: src/features/automation/flows-page.tsx:196
-#: src/features/automation/flows-page.tsx:333
+#: src/features/automation/flows-page.tsx:191
+#: src/features/automation/flows-page.tsx:328
 #: src/features/boards/board-page.tsx:162
 #: src/features/boards/boards-page.tsx:154
 #: src/features/boards/boards-page.tsx:201
@@ -8034,16 +8079,16 @@ msgstr "Role"
 msgid "Role changed"
 msgstr "Role changed"
 
-#: src/features/people/roles-page.tsx:240
+#: src/features/people/roles-page.tsx:284
 msgid "Role made"
 msgstr "Role made"
 
-#: src/features/people/roles-page.tsx:434
+#: src/features/people/roles-page.tsx:478
 msgid "Role name"
 msgstr "Role name"
 
-#: src/components/dashboard/dashboard-shell.tsx:111
-#: src/features/people/roles-page.tsx:280
+#: src/components/dashboard/dashboard-shell.tsx:112
+#: src/features/people/roles-page.tsx:324
 msgid "Roles"
 msgstr "Roles"
 
@@ -8078,8 +8123,8 @@ msgstr "Run this. It notices that the address asks for a sign-in and opens one."
 
 #. placeholder {0}: manifest.runtime_mode
 #: src/components/dashboard/address-health.tsx:41
-msgid "Runtime {0}"
-msgstr "Runtime {0}"
+#~ msgid "Runtime {0}"
+#~ msgstr "Runtime {0}"
 
 #: src/components/plugin-forms.tsx:195
 #: src/components/plugin-forms.tsx:208
@@ -8310,7 +8355,7 @@ msgstr "Section title"
 #~ msgstr "Sections, and the lessons in them. A lesson's own notes are written in the editor like any other page; what is set here is its video, its order, and who may see it when."
 
 #. placeholder {0}: CAPABILITY_LABELS[capability]
-#: src/features/people/roles-page.tsx:402
+#: src/features/people/roles-page.tsx:446
 msgid "See {0}"
 msgstr "See {0}"
 
@@ -8594,8 +8639,8 @@ msgstr "Set up"
 #~ msgid "Setting it up, field by field:"
 #~ msgstr "Setting it up, field by field:"
 
-#: src/components/dashboard/dashboard-shell.tsx:114
-#: src/features/people/roles-page.tsx:173
+#: src/components/dashboard/dashboard-shell.tsx:115
+#: src/features/people/roles-page.tsx:214
 msgid "Settings"
 msgstr "Settings"
 
@@ -8637,7 +8682,7 @@ msgstr "Settings, then Tools & MCP, then New MCP Server — which opens the file
 #~ msgid "Shared mail"
 #~ msgstr "Shared mail"
 
-#: src/features/people/roles-page.tsx:168
+#: src/features/people/roles-page.tsx:209
 msgid "Shop"
 msgstr "Shop"
 
@@ -8733,6 +8778,10 @@ msgstr "Signed in"
 #~ msgid "signs in from the console"
 #~ msgstr "signs in from the console"
 
+#: src/components/dashboard/address-health.tsx:41
+msgid "Single-site runtime"
+msgstr "Single-site runtime"
+
 #: src/routes/dashboard.balances.tsx:134
 #: src/routes/dashboard.transfers.tsx:150
 #~ msgid "Site"
@@ -8771,7 +8820,7 @@ msgstr "Site name"
 #~ msgid "Site title"
 #~ msgstr "Site title"
 
-#: src/components/dashboard/dashboard-navigation.tsx:50
+#: src/components/dashboard/dashboard-navigation.tsx:56
 msgid "Site workspace"
 msgstr "Site workspace"
 
@@ -8907,7 +8956,7 @@ msgstr "Stages"
 #~ msgid "Start"
 #~ msgstr "Start"
 
-#: src/components/dashboard/dashboard-shell.tsx:100
+#: src/components/dashboard/dashboard-shell.tsx:101
 msgid "Start a course"
 msgstr "Start a course"
 
@@ -8935,7 +8984,7 @@ msgstr "Start writing, or type “/” for commands…"
 msgid "Status"
 msgstr "Status"
 
-#: src/features/automation/flows-page.tsx:282
+#: src/features/automation/flows-page.tsx:277
 msgid "Steps"
 msgstr "Steps"
 
@@ -9046,7 +9095,7 @@ msgstr "Strikethrough"
 msgid "student"
 msgstr "student"
 
-#: src/components/dashboard/dashboard-shell.tsx:102
+#: src/components/dashboard/dashboard-shell.tsx:103
 #: src/features/dashboard/home-page.tsx:120
 #: src/features/learning/course-page.tsx:297
 #: src/features/learning/students-page.tsx:102
@@ -9197,7 +9246,7 @@ msgstr "Table of contents"
 #~ msgid "Tagline"
 #~ msgstr "Tagline"
 
-#: src/components/dashboard/dashboard-shell.tsx:89
+#: src/components/dashboard/dashboard-shell.tsx:90
 #: src/components/editor/post-settings.tsx:305
 #: src/features/taxonomy/tags-page.tsx:119
 msgid "Tags"
@@ -9288,7 +9337,7 @@ msgstr "Taking answers"
 msgid "Task list"
 msgstr "Task list"
 
-#: src/features/people/roles-page.tsx:167
+#: src/features/people/roles-page.tsx:208
 msgid "Teaching"
 msgstr "Teaching"
 
@@ -9725,6 +9774,10 @@ msgstr "The numbers could not be read just now."
 #~ msgid "The only honest check. A key without permission, an address SES has not verified and an account still in the sandbox all look the same until something is actually sent."
 #~ msgstr "The only honest check. A key without permission, an address SES has not verified and an account still in the sandbox all look the same until something is actually sent."
 
+#: src/features/plugins/plugins-page.tsx:80
+msgid "The plugin catalog could not be read just now."
+msgstr "The plugin catalog could not be read just now."
+
 #: src/features/settings/settings-page.tsx:77
 msgid "The public identity and URL settings used by this site."
 msgstr "The public identity and URL settings used by this site."
@@ -9982,6 +10035,10 @@ msgstr "This address answers the Model Context Protocol, so an assistant can be 
 #~ msgid "This database holds more than one site and this version serves one. It has to be split before this version can serve it."
 #~ msgstr "This database holds more than one site and this version serves one. It has to be split before this version can serve it."
 
+#: src/components/dashboard/allowed.tsx:35
+msgid "This feature is not enabled"
+msgstr "This feature is not enabled"
+
 #. placeholder {0}: holds.format_version
 #: src/routes/dashboard.plugins_.backup.tsx:820
 #~ msgid "This file says it is version {0}, which this server does not read."
@@ -9999,7 +10056,7 @@ msgstr "This address answers the Model Context Protocol, so an assistant can be 
 #~ msgid "This is no longer for sale"
 #~ msgstr "This is no longer for sale"
 
-#: src/components/dashboard/allowed.tsx:34
+#: src/components/dashboard/allowed.tsx:49
 msgid "This is not yours to open"
 msgstr "This is not yours to open"
 
@@ -10075,7 +10132,7 @@ msgstr "This receipt is only available in the browser that placed the order."
 msgid "This request conflicts with the current site state."
 msgstr "This request conflicts with the current site state."
 
-#: src/features/people/roles-page.tsx:333
+#: src/features/people/roles-page.tsx:377
 msgid "This role came with the build and is not a site's to change."
 msgstr "This role came with the build and is not a site's to change."
 
@@ -10294,6 +10351,10 @@ msgstr "Trash retention"
 #~ msgid "Try it"
 #~ msgstr "Try it"
 
+#: src/features/plugins/plugins-page.tsx:75
+msgid "Turn compiled Mavi features on for this site. Disabling a plugin hides its routes and navigation without deleting its data."
+msgstr "Turn compiled Mavi features on for this site. Disabling a plugin hides its routes and navigation without deleting its data."
+
 #: src/components/editor/block-handle.tsx:163
 msgid "Turn into"
 msgstr "Turn into"
@@ -10453,7 +10514,7 @@ msgstr "Uploads"
 msgid "URL"
 msgstr "URL"
 
-#: src/components/dashboard/dashboard-shell.tsx:116
+#: src/components/dashboard/dashboard-shell.tsx:117
 msgid "Usage"
 msgstr "Usage"
 
@@ -10479,7 +10540,7 @@ msgstr "Use at least {MINIMUM_PASSWORD} characters. The owner can use the passwo
 #~ msgid "Use it"
 #~ msgstr "Use it"
 
-#: src/features/people/roles-page.tsx:442
+#: src/features/people/roles-page.tsx:486
 msgid "Use lower-case letters, digits, underscores or dashes."
 msgstr "Use lower-case letters, digits, underscores or dashes."
 
@@ -10529,6 +10590,11 @@ msgstr "Use lower-case letters, digits, underscores or dashes."
 #~ msgid "Verifying an address or a domain"
 #~ msgstr "Verifying an address or a domain"
 
+#. placeholder {0}: plugin.version
+#: src/features/plugins/plugins-page.tsx:111
+msgid "Version {0}"
+msgstr "Version {0}"
+
 #: src/routes/dashboard.trash.tsx:70
 #~ msgid "video"
 #~ msgstr "video"
@@ -10551,7 +10617,7 @@ msgstr "Use lower-case letters, digits, underscores or dashes."
 #~ msgid "Video settings"
 #~ msgstr "Video settings"
 
-#: src/components/dashboard/dashboard-shell.tsx:101
+#: src/components/dashboard/dashboard-shell.tsx:102
 #: src/features/media/videos-page.tsx:71
 msgid "Videos"
 msgstr "Videos"
@@ -10576,7 +10642,7 @@ msgstr "Views by day"
 msgid "Visibility"
 msgstr "Visibility"
 
-#: src/components/dashboard/dashboard-shell.tsx:81
+#: src/components/dashboard/dashboard-shell.tsx:82
 #: src/features/analytics/visitors-page.tsx:66
 msgid "Visitors"
 msgstr "Visitors"
@@ -10737,7 +10803,7 @@ msgstr "What a lesson plays. Nothing here is public: a video is watched by someb
 msgid "What comes in is kept as it was sent, so changing the fields later never rewrites it."
 msgstr "What comes in is kept as it was sent, so changing the fields later never rewrites it."
 
-#: src/features/people/roles-page.tsx:281
+#: src/features/people/roles-page.tsx:325
 msgid "What each role on this site may read, write and delete. Menus follow this — a screen a role cannot open is not shown to it."
 msgstr "What each role on this site may read, write and delete. Menus follow this — a screen a role cannot open is not shown to it."
 
@@ -10757,7 +10823,7 @@ msgstr "What each role on this site may read, write and delete. Menus follow thi
 #~ msgid "What happened"
 #~ msgstr "What happened"
 
-#: src/features/automation/flows-page.tsx:151
+#: src/features/automation/flows-page.tsx:146
 msgid "What happens by itself when something happens: a form comes in, an order is paid. One trigger, then steps in order."
 msgstr "What happens by itself when something happens: a form comes in, an order is paid. One trigger, then steps in order."
 
@@ -10831,7 +10897,7 @@ msgstr "What it is about"
 
 #: src/components/dashboard/content-type-editor.tsx:99
 #: src/components/dashboard/content-type-editor.tsx:146
-#: src/features/automation/flows-page.tsx:251
+#: src/features/automation/flows-page.tsx:246
 #: src/features/boards/boards-page.tsx:175
 #: src/features/forms/forms-page.tsx:401
 #: src/features/learning/start-teaching-page.tsx:70
@@ -10934,11 +11000,11 @@ msgstr "What one of these is made of, beyond its title and its text."
 #~ msgid "what somebody sent"
 #~ msgstr "what somebody sent"
 
-#: src/features/automation/flows-page.tsx:260
+#: src/features/automation/flows-page.tsx:255
 msgid "What starts it"
 msgstr "What starts it"
 
-#: src/features/automation/flows-page.tsx:245
+#: src/features/automation/flows-page.tsx:240
 msgid "What starts it, and what it does. Each step's settings are written as JSON, which is what the API keeps."
 msgstr "What starts it, and what it does. Each step's settings are written as JSON, which is what the API keeps."
 
@@ -11440,7 +11506,7 @@ msgstr "Works until"
 #~ msgid "Worth pursuing"
 #~ msgstr "Worth pursuing"
 
-#: src/features/people/roles-page.tsx:179
+#: src/features/people/roles-page.tsx:223
 msgid "Write"
 msgstr "Write"
 
@@ -11687,7 +11753,7 @@ msgstr "Your name"
 msgid "Your report was sent to whoever runs this server."
 msgstr "Your report was sent to whoever runs this server."
 
-#: src/components/dashboard/allowed.tsx:37
+#: src/components/dashboard/allowed.tsx:52
 msgid "Your role does not reach this screen. Whoever runs the site can change that under People."
 msgstr "Your role does not reach this screen. Whoever runs the site can change that under People."
 

@@ -20,6 +20,94 @@ services:
       timeout: 5s
       retries: 10
 
+  hatchet-postgres:
+    image: postgres:15.6
+    restart: unless-stopped
+    command: postgres -c max_connections=500
+    environment:
+      POSTGRES_USER: hatchet
+      POSTGRES_PASSWORD: ${HATCHET_POSTGRES_PASSWORD:?set HATCHET_POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: hatchet
+    volumes:
+      - hatchet-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hatchet -d hatchet"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  hatchet:
+    image: ghcr.io/hatchet-dev/hatchet/hatchet-lite:${HATCHET_VERSION:-v0.71.14}
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://hatchet:${HATCHET_POSTGRES_PASSWORD}@${HATCHET_POSTGRES_HOST:-hatchet-postgres}:5432/hatchet?sslmode=disable
+      SERVER_AUTH_COOKIE_DOMAIN: localhost
+      SERVER_AUTH_COOKIE_INSECURE: "t"
+      SERVER_GRPC_BIND_ADDRESS: 0.0.0.0
+      SERVER_GRPC_INSECURE: "t"
+      SERVER_GRPC_BROADCAST_ADDRESS: hatchet:7077
+      SERVER_GRPC_PORT: "7077"
+    ports:
+      - "${HATCHET_PORT:-8888}:8888"
+      - "${HATCHET_GRPC_PORT:-7077}:7077"
+    depends_on:
+      hatchet-postgres:
+        condition: service_healthy
+
+  hatchet-worker:
+    build:
+      context: ./integrations/hatchet-worker
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      MAVI_HATCHET_BRIDGE_SECRET: ${MAVI_HATCHET_BRIDGE_SECRET:?set MAVI_HATCHET_BRIDGE_SECRET in .env}
+      # The token is created in the Hatchet UI after the `postgres hatchet`
+      # bootstrap command. The Go bridge still refuses to start without it;
+      # keeping interpolation optional lets that first bootstrap command run.
+      MAVI_HATCHET_TOKEN: ${MAVI_HATCHET_TOKEN:-}
+      MAVI_HATCHET_TENANT_ID: ${MAVI_HATCHET_TENANT_ID:-707d0855-80ab-4e1f-a156-f1c4546cbf52}
+      MAVI_HATCHET_NAMESPACE: ${MAVI_HATCHET_NAMESPACE:-mavi}
+      MAVI_HATCHET_RATE_LIMIT_PER_MINUTE: ${MAVI_HATCHET_RATE_LIMIT_PER_MINUTE:-60}
+      MAVI_HATCHET_MAINTENANCE_CRON: ${MAVI_HATCHET_MAINTENANCE_CRON:-*/5 * * * *}
+      MAVI_SITE_ID: ${MAVI_SITE_ID:?set MAVI_SITE_ID in .env — see .env.example}
+      MAVI_HATCHET_GRPC_ADDRESS: hatchet:7077
+      MAVI_HATCHET_SERVER_URL: http://hatchet:8888
+      # The bundled Hatchet server deliberately uses plaintext gRPC. Set this
+      # to tls or mtls when the bridge targets a secured external Hatchet.
+      MAVI_HATCHET_TLS_STRATEGY: ${MAVI_HATCHET_TLS_STRATEGY:-none}
+      MAVI_RUST_EXECUTOR_URL: ${MAVI_RUST_EXECUTOR_URL:-http://api:8080}
+      MAVI_HATCHET_BRIDGE_LISTEN: 0.0.0.0:8090
+    expose:
+      - "8090"
+    depends_on:
+      - hatchet
+      - api
+
+  worker:
+    profiles: [split]
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+      secrets:
+        - sccache-env
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgres://${POSTGRES_USER:-mavi}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-mavi}}
+      MAVI_SITE_ID: ${MAVI_SITE_ID:?set MAVI_SITE_ID in .env — see .env.example}
+      MAVI_PROCESS_ROLE: worker
+      MAVI_EXECUTOR_LISTEN: 0.0.0.0:8091
+      MAVI_HATCHET_BRIDGE_URL: ${MAVI_HATCHET_BRIDGE_URL:-http://hatchet-worker:8090}
+      MAVI_HATCHET_NAMESPACE: ${MAVI_HATCHET_NAMESPACE:-mavi}
+      MAVI_HATCHET_BRIDGE_SECRET: ${MAVI_HATCHET_BRIDGE_SECRET:?set MAVI_HATCHET_BRIDGE_SECRET in .env}
+      MAVI_FILES_DIR: /data/files
+      MAVI_KEYS: ${MAVI_KEYS:?set MAVI_KEYS in .env — see .env.example}
+      RUST_LOG: ${RUST_LOG:-info}
+    volumes:
+      - api-data:/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   api:
     build:
       context: ./server
@@ -32,8 +120,11 @@ services:
       # service above is just the default.
       DATABASE_URL: ${DATABASE_URL:-postgres://${POSTGRES_USER:-mavi}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-mavi}}
       LISTEN: 0.0.0.0:8080
-      MAVI_RUNTIME_MODE: fixed_site
       MAVI_SITE_ID: ${MAVI_SITE_ID:?set MAVI_SITE_ID in .env — see .env.example}
+      MAVI_PROCESS_ROLE: ${MAVI_PROCESS_ROLE:-all}
+      MAVI_HATCHET_BRIDGE_URL: ${MAVI_HATCHET_BRIDGE_URL:-http://hatchet-worker:8090}
+      MAVI_HATCHET_NAMESPACE: ${MAVI_HATCHET_NAMESPACE:-mavi}
+      MAVI_HATCHET_BRIDGE_SECRET: ${MAVI_HATCHET_BRIDGE_SECRET:?set MAVI_HATCHET_BRIDGE_SECRET in .env}
       MAVI_FILES_DIR: /data/files
       RUST_LOG: ${RUST_LOG:-info}
       # What seals every secret a site keeps: its mail password, its payment
@@ -64,6 +155,7 @@ services:
 
 volumes:
   postgres-data:
+  hatchet-postgres-data:
   api-data:
 
 secrets:

@@ -10,24 +10,18 @@ use std::net::IpAddr;
 
 use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
 use chrono::{DateTime, Utc};
+use mavi_application::{JobKind, WorkflowScheduler};
 use mavi_audit::{AuditEntry, AuditService};
 use mavi_contract::{Endpoint, Method, Permission, Shape};
 use mavi_core::{
     Action, Capability, Cursor, ErrorCode, FlowId, FlowRunId, FlowRunStepId, FlowStepId, JobId,
     MaviError, Page, PageRequest, Result, SiteContext,
 };
-use mavi_jobs::{JobKind, JobsService};
 use mavi_storage::SiteTx;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use sqlx::{Postgres, QueryBuilder, Row};
 use uuid::Uuid;
-
-mod relocation;
-
-pub use relocation::{
-    FlowRelocation, FlowRunRelocation, FlowRunStepRelocation, FlowStepRelocation, FlowsRelocation,
-};
 
 pub const FLOW_START_KIND: JobKind = JobKind::new("automation.flow.start", 5);
 pub const FLOW_STEP_KIND: JobKind = JobKind::new("automation.flow.step", 5);
@@ -278,14 +272,8 @@ pub fn job_kinds() -> [JobKind; 2] {
 #[must_use]
 #[allow(clippy::too_many_lines)]
 pub fn api() -> mavi_contract::Api {
-    let view = Permission {
-        capability: Capability::Automation,
-        action: Action::View,
-    };
-    let write = Permission {
-        capability: Capability::Automation,
-        action: Action::Write,
-    };
+    let view = Permission::from_legacy(Capability::Automation, Action::View);
+    let write = Permission::from_legacy(Capability::Automation, Action::Write);
     mavi_contract::Api::new(vec![
         Endpoint::new(
             Method::Get,
@@ -294,7 +282,7 @@ pub fn api() -> mavi_contract::Api {
             "List supported automation triggers",
         )
         .account_or_assistant()
-        .requires(view)
+        .requires(view.clone())
         .returns(200, "TriggerList")
         .refuses([ErrorCode::Forbidden, ErrorCode::Internal]),
         Endpoint::new(
@@ -304,7 +292,7 @@ pub fn api() -> mavi_contract::Api {
             "List automation flows with an opaque cursor",
         )
         .account_or_assistant()
-        .requires(view)
+        .requires(view.clone())
         .takes_query("FlowListFilter")
         .returns(200, "FlowPage")
         .refuses([
@@ -319,7 +307,7 @@ pub fn api() -> mavi_contract::Api {
             "Create a validated automation flow",
         )
         .account_or_assistant()
-        .requires(write)
+        .requires(write.clone())
         .takes("CreateFlow")
         .returns(201, "Flow")
         .changes(false)
@@ -336,7 +324,7 @@ pub fn api() -> mavi_contract::Api {
             "Read one automation flow",
         )
         .account_or_assistant()
-        .requires(view)
+        .requires(view.clone())
         .returns(200, "Flow")
         .refuses([
             ErrorCode::Forbidden,
@@ -351,7 +339,7 @@ pub fn api() -> mavi_contract::Api {
             "Update a flow definition or enablement",
         )
         .account_or_assistant()
-        .requires(write)
+        .requires(write.clone())
         .takes("UpdateFlow")
         .returns(200, "Flow")
         .changes(false)
@@ -369,7 +357,7 @@ pub fn api() -> mavi_contract::Api {
             "Move a flow definition to site trash",
         )
         .account_or_assistant()
-        .requires(write)
+        .requires(write.clone())
         .returns(204, "Empty")
         .changes(false)
         .refuses([
@@ -384,7 +372,7 @@ pub fn api() -> mavi_contract::Api {
             "Preview flow steps without enqueueing work",
         )
         .account_or_assistant()
-        .requires(view)
+        .requires(view.clone())
         .takes("SimulateFlow")
         .returns(200, "Simulation")
         .refuses([
@@ -400,7 +388,7 @@ pub fn api() -> mavi_contract::Api {
             "List runs for a flow with an opaque cursor",
         )
         .account_or_assistant()
-        .requires(view)
+        .requires(view.clone())
         .takes_query("RunListFilter")
         .returns(200, "FlowRunPage")
         .refuses([
@@ -416,7 +404,7 @@ pub fn api() -> mavi_contract::Api {
             "Read one automation run and its step history",
         )
         .account_or_assistant()
-        .requires(view)
+        .requires(view.clone())
         .returns(200, "FlowRun")
         .refuses([
             ErrorCode::Forbidden,
@@ -740,7 +728,7 @@ impl FlowService {
         &self,
         tx: &mut SiteTx,
         context: &SiteContext,
-        jobs: &JobsService,
+        jobs: &WorkflowScheduler,
         trigger: Trigger,
         event: &Value,
         source_key: Option<&str>,
@@ -784,7 +772,7 @@ impl FlowService {
         &self,
         tx: &mut SiteTx,
         context: &SiteContext,
-        jobs: &JobsService,
+        jobs: &WorkflowScheduler,
         input: &StartFlowJob,
     ) -> Result<FlowRun> {
         let flow = self.get(tx, input.flow_id).await?;
@@ -864,7 +852,7 @@ impl FlowService {
         &self,
         tx: &mut SiteTx,
         context: &SiteContext,
-        jobs: &JobsService,
+        jobs: &WorkflowScheduler,
         input: &RecordStep,
     ) -> Result<FlowRun> {
         let row = sqlx::query(
@@ -1174,7 +1162,7 @@ async fn read_steps(tx: &mut SiteTx, flow_id: FlowId) -> Result<Vec<FlowStep>> {
 async fn enqueue_step(
     tx: &mut SiteTx,
     context: &SiteContext,
-    jobs: &JobsService,
+    jobs: &WorkflowScheduler,
     run_id: FlowRunId,
     position: i32,
     run_at: Option<DateTime<Utc>>,
@@ -1211,11 +1199,16 @@ fn validate_steps(steps: &[FlowStepInput]) -> Result<()> {
             .ok_or_else(|| MaviError::validation("flow_step_config_invalid"))?;
         match step.kind {
             StepKind::SendMail => {
-                validate_config_keys(object, &["template_id"])?;
+                validate_config_keys(object, &["template_id", "recipient", "variables"])?;
                 require_uuid(object, "template_id", "flow_mail_template_required")?;
+                if let Some(variables) = object.get("variables")
+                    && !variables.is_object()
+                {
+                    return Err(MaviError::validation("flow_mail_variables_invalid"));
+                }
             }
             StepKind::AddToMailList => {
-                validate_config_keys(object, &["list_id"])?;
+                validate_config_keys(object, &["list_id", "email", "name"])?;
                 require_uuid(object, "list_id", "flow_mail_list_required")?;
             }
             StepKind::Wait => {

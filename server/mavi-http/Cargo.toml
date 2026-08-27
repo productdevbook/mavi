@@ -11,6 +11,7 @@ axum.workspace = true
 base64.workspace = true
 chrono.workspace = true
 form_urlencoded = "1.2.2"
+mavi-application = { path = "../mavi-application" }
 mavi-analytics = { path = "../mavi-analytics" }
 mavi-authz = { path = "../mavi-authz" }
 mavi-audit = { path = "../mavi-audit" }
@@ -23,7 +24,6 @@ mavi-design = { path = "../mavi-design" }
 mavi-flows = { path = "../mavi-flows" }
 mavi-forms = { path = "../mavi-forms" }
 mavi-feedback = { path = "../mavi-feedback" }
- mavi-jobs = { path = "../mavi-jobs" }
 mavi-mail = { path = "../mavi-mail" }
 mavi-media = { path = "../mavi-media" }
 mavi-observability = { path = "../mavi-observability" }
@@ -35,12 +35,12 @@ mavi-secrets = { path = "../mavi-secrets" }
 mavi-settings = { path = "../mavi-settings" }
 mavi-storage = { path = "../mavi-storage" }
 mavi-taxonomy = { path = "../mavi-taxonomy" }
-mavi-trash = { path = "../mavi-trash" }
 serde.workspace = true
 serde_ignored = "0.1.14"
 serde_json.workspace = true
 serde_urlencoded = "0.7.1"
 sha2.workspace = true
+tokio.workspace = true
 tower.workspace = true
 tracing.workspace = true
 uuid.workspace = true
@@ -51,6 +51,7 @@ workspace = true
 [dev-dependencies]
 mavi-files = { path = "../mavi-files" }
 mavi-design = { path = "../mavi-design" }
+mavi-worker = { path = "../mavi-worker" }
 mavi-sealing = { path = "../mavi-sealing" }
 mavi-storage = { path = "../mavi-storage" }
 sqlx.workspace = true

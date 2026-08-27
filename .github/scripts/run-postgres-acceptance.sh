@@ -8,6 +8,7 @@ set -Eeuo pipefail
 
 database_base_url=${TEST_DATABASE_URL_BASE:?TEST_DATABASE_URL_BASE is required}
 runner_temp=${RUNNER_TEMP:-/tmp}
+mkdir -p "$runner_temp"
 
 run_shard() {
   local shard=$1
@@ -51,7 +52,7 @@ run_shard() {
         cargo nextest run -p mavi-http --test shop --run-ignored all
         cargo nextest run -p mavi-courses --test postgres --run-ignored all
         cargo nextest run -p mavi-http --test courses --run-ignored all
-        cargo nextest run -p mavi-jobs --test postgres --run-ignored all
+        cargo nextest run -p mavi-application --test jobs --run-ignored all
         cargo nextest run -p mavi-worker --test postgres --run-ignored all
         cargo nextest run -p mavi-worker --test mail --run-ignored all
         cargo nextest run -p mavi-flows --test postgres --run-ignored all
@@ -64,8 +65,8 @@ run_shard() {
         cargo nextest run -p mavi-portable --test postgres --run-ignored all
         cargo nextest run -p mavi-http --test portable --run-ignored all
         cargo nextest run -p mavi-http --test runtime --run-ignored all
-        cargo nextest run -p mavi-http --test write_fence --run-ignored all
         cargo nextest run -p mavi-http --test mcp --run-ignored all
+        cargo nextest run -p mavi-http --test plugins --run-ignored all
         cargo nextest run -p mavi-http --test audit_trash --run-ignored all
         ;;
       *)

@@ -18,7 +18,7 @@ What is worth reporting, most severe first:
 
 - **A way around a grant** — something reachable by one route that another
   route guards more tightly. An endpoint with no `Guard`, a write that answers
-  before its audit row, a job kind two things answer for.
+  before its audit row, a workflow kind two things answer for.
 - **Anything that leaves the process that must not** — a sealed secret, a
   credential, somebody's personal data in a log line or an error body.
 - **The private half in the public one** — a flag, a branch or a column that

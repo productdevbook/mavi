@@ -191,18 +191,9 @@ pub fn api() -> mavi_contract::Api {
 
 #[allow(clippy::too_many_lines)]
 fn endpoints() -> Vec<Endpoint> {
-    let view = Permission {
-        capability: Capability::Courses,
-        action: Action::View,
-    };
-    let write = Permission {
-        capability: Capability::Courses,
-        action: Action::Write,
-    };
-    let delete = Permission {
-        capability: Capability::Courses,
-        action: Action::Delete,
-    };
+    let view = Permission::from_legacy(Capability::Courses, Action::View);
+    let write = Permission::from_legacy(Capability::Courses, Action::Write);
+    let delete = Permission::from_legacy(Capability::Courses, Action::Delete);
     vec![
         Endpoint::new(
             Method::Get,
@@ -211,7 +202,7 @@ fn endpoints() -> Vec<Endpoint> {
             "List site courses with an opaque cursor",
         )
         .account_or_assistant()
-        .requires(view)
+        .requires(view.clone())
         .takes_query("CourseListFilter")
         .returns(200, "CourseSummaryPage")
         .refuses([
@@ -226,7 +217,7 @@ fn endpoints() -> Vec<Endpoint> {
             "Create a draft course",
         )
         .account_or_assistant()
-        .requires(write)
+        .requires(write.clone())
         .takes("CreateCourse")
         .returns(201, "Course")
         .changes(false)
@@ -243,7 +234,7 @@ fn endpoints() -> Vec<Endpoint> {
             "Read a course with ordered modules and lessons",
         )
         .account_or_assistant()
-        .requires(view)
+        .requires(view.clone())
         .resource_scoped()
         .returns(200, "Course")
         .refuses([
@@ -258,7 +249,7 @@ fn endpoints() -> Vec<Endpoint> {
             "Update course metadata or move its lifecycle state",
         )
         .account_or_assistant()
-        .requires(write)
+        .requires(write.clone())
         .resource_scoped()
         .takes("UpdateCourse")
         .returns(200, "Course")
@@ -277,7 +268,7 @@ fn endpoints() -> Vec<Endpoint> {
             "Move a course and its curriculum to site trash",
         )
         .account_or_assistant()
-        .requires(delete)
+        .requires(delete.clone())
         .resource_scoped()
         .returns(204, "Empty")
         .changes(false)
@@ -293,7 +284,7 @@ fn endpoints() -> Vec<Endpoint> {
             "Replace a course module order atomically",
         )
         .account_or_assistant()
-        .requires(write)
+        .requires(write.clone())
         .resource_scoped()
         .takes("ReorderModules")
         .returns(200, "Course")
@@ -312,7 +303,7 @@ fn endpoints() -> Vec<Endpoint> {
             "Append a module to a course",
         )
         .account_or_assistant()
-        .requires(write)
+        .requires(write.clone())
         .resource_scoped()
         .takes("CreateModule")
         .returns(201, "Module")
@@ -331,7 +322,7 @@ fn endpoints() -> Vec<Endpoint> {
             "Read a module with ordered lessons",
         )
         .account_or_assistant()
-        .requires(view)
+        .requires(view.clone())
         .resource_scoped()
         .returns(200, "Module")
         .refuses([
@@ -346,7 +337,7 @@ fn endpoints() -> Vec<Endpoint> {
             "Rename a module",
         )
         .account_or_assistant()
-        .requires(write)
+        .requires(write.clone())
         .resource_scoped()
         .takes("UpdateModule")
         .returns(200, "Module")
@@ -365,7 +356,7 @@ fn endpoints() -> Vec<Endpoint> {
             "Delete a module and its lessons",
         )
         .account_or_assistant()
-        .requires(delete)
+        .requires(delete.clone())
         .resource_scoped()
         .returns(204, "Empty")
         .changes(false)
@@ -382,7 +373,7 @@ fn endpoints() -> Vec<Endpoint> {
             "List lessons in a module with an opaque cursor",
         )
         .account_or_assistant()
-        .requires(view)
+        .requires(view.clone())
         .resource_scoped()
         .takes_query("LessonListFilter")
         .returns(200, "LessonPage")
@@ -399,7 +390,7 @@ fn endpoints() -> Vec<Endpoint> {
             "Replace a module lesson order atomically",
         )
         .account_or_assistant()
-        .requires(write)
+        .requires(write.clone())
         .resource_scoped()
         .takes("ReorderLessons")
         .returns(200, "Module")
@@ -418,7 +409,7 @@ fn endpoints() -> Vec<Endpoint> {
             "Append a lesson to a module",
         )
         .account_or_assistant()
-        .requires(write)
+        .requires(write.clone())
         .resource_scoped()
         .takes("CreateLesson")
         .returns(201, "Lesson")
@@ -437,7 +428,7 @@ fn endpoints() -> Vec<Endpoint> {
             "Update lesson text or its media attachment",
         )
         .account_or_assistant()
-        .requires(write)
+        .requires(write.clone())
         .resource_scoped()
         .takes("UpdateLesson")
         .returns(200, "Lesson")
@@ -456,7 +447,7 @@ fn endpoints() -> Vec<Endpoint> {
             "Delete a lesson and its progress records",
         )
         .account_or_assistant()
-        .requires(delete)
+        .requires(delete.clone())
         .resource_scoped()
         .returns(204, "Empty")
         .changes(false)

@@ -1,7 +1,13 @@
 /* eslint-disable react-refresh/only-export-components -- file-based route convention */
 import { createFileRoute } from "@tanstack/react-router"
 
-import { StartTeachingPage } from "@/features/learning/start-teaching-page"
+import { lazyRoute } from "@/lib/lazy-route"
+
+const StartTeachingPage = lazyRoute(() =>
+  import("@/features/learning/start-teaching-page").then(({ StartTeachingPage }) => ({
+    default: StartTeachingPage,
+  })),
+)
 
 export const Route = createFileRoute("/dashboard/teaching/start")({
   component: StartTeachingPage,

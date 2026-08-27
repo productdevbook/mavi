@@ -1,6 +1,8 @@
 import * as React from "react"
 import { useLingui } from "@lingui/react/macro"
 import {
+  Archive,
+  BarChart3,
   Eye,
   FileText,
   FolderTree,
@@ -11,6 +13,7 @@ import {
   Loader2,
   Mails,
   Palette,
+  PackageOpen,
   Pencil,
   Plug,
   Plus,
@@ -25,7 +28,9 @@ import { toast } from "sonner"
 
 import { api, every } from "@/lib/api"
 import { apiMessage } from "@/lib/auth"
-import type { Grant, Role } from "@api"
+import { permissionForCapability } from "@/lib/permissions"
+import { type PluginId, usePlugins } from "@/lib/plugins"
+import type { Grant, Permission, Role } from "@api"
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -79,13 +84,73 @@ type Capability =
   | "people"
   | "settings"
   | "audit"
+  | "analytics"
+  | "trash"
+  | "portable"
 
 const grantKey = (grant: Grant) => `${grant.capability}:${grant.action}`
 
-const holds = (role: Role, capability: Capability, access: Access) =>
-  role.grants.some(
-    (grant) => grant.capability === capability && grant.action === access
+function permissionFromGrant(grant: Grant): Permission | null {
+  const capability = grant.capability as Capability
+  if (!(capability in CAPABILITY_PLUGIN)) return null
+  const needed = permissionForCapability(capability, grant.action as Access)
+  return { ...needed, resource_type: null }
+}
+
+const permissionKey = (permission: Permission) =>
+  `${permission.plugin}:${permission.action}:${permission.resource_type ?? "*"}`
+
+/**
+ * Keeps canonical permissions that have no legacy capability/action pair.
+ * The role screen still edits the compact compatibility matrix, but saving a
+ * row must not silently delete newer permissions such as sessions.revoke or
+ * a resource-scoped grant that the matrix cannot represent.
+ */
+function permissionsForGrantSelection(
+  role: Role,
+  grants: Grant[],
+): Permission[] {
+  const representedByLegacy = new Set(
+    role.grants
+      .flatMap((grant) => {
+        const permission = permissionFromGrant(grant)
+        return permission ? [permissionKey(permission)] : []
+      }),
   )
+  const preserved = role.permissions.filter(
+    (permission) => !representedByLegacy.has(permissionKey(permission)),
+  )
+  const selected = grants.flatMap((grant) => {
+    const permission = permissionFromGrant(grant)
+    return permission ? [permission] : []
+  })
+  return [
+    ...new Map(
+      [...preserved, ...selected].map((permission) => [
+        permissionKey(permission),
+        permission,
+      ]),
+    ).values(),
+  ]
+}
+
+const permissionsForRole = (role: Role): Permission[] => {
+  if (role.permissions.length > 0) return role.permissions
+  return role.grants.flatMap((grant) => {
+    const permission = permissionFromGrant(grant)
+    return permission ? [permission] : []
+  })
+}
+
+const holds = (role: Role, capability: Capability, access: Access) => {
+  const needed = permissionForCapability(capability, access)
+  return permissionsForRole(role).some(
+    (permission) =>
+      permission.plugin === needed.plugin &&
+      permission.action === needed.action &&
+      permission.resource_type === null,
+  )
+}
 
 function grantFromKey(key: string): Grant {
   const [capability, action] = key.split(":")
@@ -107,7 +172,30 @@ const CAPABILITY_ORDER: Capability[] = [
   "people",
   "settings",
   "audit",
+  "analytics",
+  "trash",
+  "portable",
 ]
+
+const CAPABILITY_PLUGIN: Record<Capability, PluginId> = {
+  content: "writing",
+  taxonomy: "writing",
+  media: "writing",
+  forms: "forms",
+  mail: "messaging",
+  flows: "automation",
+  courses: "learning",
+  shop: "commerce",
+  boards: "boards",
+  design: "writing",
+  publish: "writing",
+  people: "core",
+  settings: "core",
+  audit: "governance",
+  analytics: "analytics",
+  trash: "governance",
+  portable: "governance",
+}
 
 const CAPABILITY_ICONS: Record<
   Capability,
@@ -127,6 +215,9 @@ const CAPABILITY_ICONS: Record<
   people: UsersRound,
   settings: Plug,
   audit: ScrollText,
+  analytics: BarChart3,
+  trash: Archive,
+  portable: PackageOpen,
 }
 
 /**
@@ -140,6 +231,14 @@ const CAPABILITY_ICONS: Record<
  */
 export function RolesPage() {
   const { t } = useLingui()
+  const { activePlugins } = usePlugins()
+  const visibleCapabilities = React.useMemo(
+    () =>
+      CAPABILITY_ORDER.filter((capability) =>
+        activePlugins.has(CAPABILITY_PLUGIN[capability]),
+      ),
+    [activePlugins],
+  )
   const [roles, setRoles] = React.useState<Role[] | null>(null)
   const [creating, setCreating] = React.useState(false)
   const [name, setName] = React.useState("")
@@ -172,6 +271,9 @@ export function RolesPage() {
     people: t`People`,
     settings: t`Settings`,
     audit: t`Record`,
+    analytics: t`Analytics`,
+    trash: t`Bin`,
+    portable: t`Portability`,
   }
 
   const ACCESS_LABELS: Record<Access, string> = {
@@ -210,16 +312,19 @@ export function RolesPage() {
     setPending(`${role.id}:${capability}:${access}`)
 
     // Optimistic: reflect the tick at once, reconcile on the reload.
+    const permissions = permissionsForGrantSelection(role, grants)
     setRoles(
       (held) =>
-        held?.map((one) => (one.id === role.id ? { ...one, grants } : one)) ??
+        held?.map((one) =>
+          one.id === role.id ? { ...one, grants, permissions } : one,
+        ) ??
         held
     )
 
     try {
       await api("roles.grants.replace", {
         path: { id: role.id },
-        body: { grants },
+        body: { grants, permissions },
       })
       load()
     } catch (why) {
@@ -235,7 +340,7 @@ export function RolesPage() {
 
     try {
       await api("roles.create", {
-        body: { name: slug(name), grants: [] },
+        body: { name: slug(name), grants: [], permissions: [] },
       })
       toast.success(t`Role made`)
       setCreating(false)
@@ -289,7 +394,7 @@ export function RolesPage() {
       <div className="flex flex-col gap-5">
         {roles.map((role) => {
           const locked = role.protected
-          const summary = CAPABILITY_ORDER.filter((capability) =>
+          const summary = visibleCapabilities.filter((capability) =>
             holds(role, capability, "view")
           ).length
 
@@ -303,14 +408,14 @@ export function RolesPage() {
                       {t`Owner`}
                     </Badge>
                   )}
-                  {role.grants.length === 0 && (
+                  {permissionsForRole(role).length === 0 && (
                     <Badge variant="secondary" className="font-normal">
                       {t`Reaches nothing`}
                     </Badge>
                   )}
                 </CardTitle>
                 <CardDescription>
-                  {t`Can open ${summary} of ${CAPABILITY_ORDER.length} areas.`}
+                  {t`Can open ${summary} of ${visibleCapabilities.length} active areas.`}
                 </CardDescription>
                 {!role.protected && (
                   <CardAction>
@@ -356,7 +461,7 @@ export function RolesPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {CAPABILITY_ORDER.map((capability) => {
+                      {visibleCapabilities.map((capability) => {
                         const Icon = CAPABILITY_ICONS[capability]
                         return (
                           <TableRow key={capability}>

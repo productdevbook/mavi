@@ -3,7 +3,7 @@
 //! The media domain stores ownership and metadata in `PostgreSQL`, while this
 //! crate stores the bytes behind the [`mavi_core::ports::FileStore`] port.
 //! Every adapter receives a [`SiteContext`] and namespaces its key by site so
-//! a storage key can never accidentally address another tenant's object.
+//! a storage key can never accidentally address another site's object.
 
 use std::{
     collections::BTreeMap,

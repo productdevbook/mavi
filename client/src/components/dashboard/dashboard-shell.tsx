@@ -18,6 +18,7 @@ import {
   LayoutDashboard,
   Mails,
   Palette,
+  Puzzle,
   Receipt,
   Rocket,
   ScrollText,
@@ -115,6 +116,7 @@ function AuthenticatedShell({ children }: { children: React.ReactNode }) {
     portability: t`Import and export`,
     usage: t`Usage`,
     publish: t`Publish`,
+    plugins: t`Plugins`,
   }
 
   const navigation = createDashboardNavigation({
@@ -155,6 +157,7 @@ function AuthenticatedShell({ children }: { children: React.ReactNode }) {
       portability: Database,
       usage: Database,
       publish: Rocket,
+      plugins: Puzzle,
     },
   })
 

@@ -172,7 +172,7 @@ impl TrustedProxySet {
     }
 }
 
-/// HTTP security configuration shared by fixed-site and shard runtimes.
+/// HTTP security configuration for the fixed-site runtime.
 #[derive(Clone, Debug)]
 pub struct EdgeSecurityConfig {
     pub trusted_proxies: TrustedProxySet,
@@ -304,10 +304,9 @@ impl EdgeDecision {
 
 /// A bounded in-process fixed-window limiter.
 ///
-/// A shard process is the edge boundary for its configured sites. Deployments
-/// with multiple edge processes can replace this adapter at the composition
-/// root later without changing domain or API code; the key and policy remain
-/// site-aware either way.
+/// The edge limiter is intentionally process-local. A deployment that needs
+/// distributed throttling can replace this adapter at the composition root;
+/// the key and policy remain site-aware either way.
 #[derive(Debug)]
 pub struct EdgeRateLimiter {
     policy: EdgeThrottlePolicy,

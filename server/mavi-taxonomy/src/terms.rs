@@ -44,10 +44,7 @@ pub fn endpoints() -> Vec<Endpoint> {
             "List site taxonomy terms",
         )
         .account_or_assistant()
-        .requires(Permission {
-            capability: Capability::Taxonomy,
-            action: Action::View,
-        })
+        .requires(Permission::from_legacy(Capability::Taxonomy, Action::View))
         .takes_query("TermListFilter")
         .returns(200, "TermPage")
         .refuses([
@@ -62,10 +59,7 @@ pub fn endpoints() -> Vec<Endpoint> {
             "Create a site taxonomy term",
         )
         .account_or_assistant()
-        .requires(Permission {
-            capability: Capability::Taxonomy,
-            action: Action::Write,
-        })
+        .requires(Permission::from_legacy(Capability::Taxonomy, Action::Write))
         .takes("CreateTerm")
         .returns(201, "Term")
         .changes(false)
@@ -83,10 +77,7 @@ pub fn endpoints() -> Vec<Endpoint> {
             "Read one site taxonomy term",
         )
         .account_or_assistant()
-        .requires(Permission {
-            capability: Capability::Taxonomy,
-            action: Action::View,
-        })
+        .requires(Permission::from_legacy(Capability::Taxonomy, Action::View))
         .returns(200, "Term")
         .refuses([
             ErrorCode::Forbidden,
@@ -100,10 +91,7 @@ pub fn endpoints() -> Vec<Endpoint> {
             "Update a site taxonomy term",
         )
         .account_or_assistant()
-        .requires(Permission {
-            capability: Capability::Taxonomy,
-            action: Action::Write,
-        })
+        .requires(Permission::from_legacy(Capability::Taxonomy, Action::Write))
         .takes("UpdateTerm")
         .returns(200, "Term")
         .changes(true)
@@ -121,10 +109,10 @@ pub fn endpoints() -> Vec<Endpoint> {
             "Move a site taxonomy term to trash",
         )
         .account_or_assistant()
-        .requires(Permission {
-            capability: Capability::Taxonomy,
-            action: Action::Delete,
-        })
+        .requires(Permission::from_legacy(
+            Capability::Taxonomy,
+            Action::Delete,
+        ))
         .returns(204, "Empty")
         .changes(false)
         .refuses([

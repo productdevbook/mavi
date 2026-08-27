@@ -1,19 +1,109 @@
+// Core identity entities are intentionally declared separately from the
+// request principal. A caller may be an Account, Assistant or Student while
+// every decision still carries an explicit site boundary.
+entity Site = {
+    "site_id": __cedar::String,
+    "active_plugins": Set<__cedar::String>
+};
+
+entity Role = {
+    "site_id": __cedar::String,
+    "permissions": Set<__cedar::String>
+};
+
+entity Account = {
+    "site_id": __cedar::String,
+    "person_id": __cedar::String,
+    "role_ids": Set<__cedar::String>
+};
+
+entity Assistant = {
+    "site_id": __cedar::String,
+    "key_id": __cedar::String,
+    "permissions": Set<__cedar::String>
+};
+
+entity Student = {
+    "site_id": __cedar::String,
+    "student_id": __cedar::String,
+    "course_ids": Set<__cedar::String>
+};
+
 entity Principal = {
     "site_id": __cedar::String,
-    "grants": Set<__cedar::String>
+    "grants": Set<__cedar::String>,
+    "permissions": Set<__cedar::String>,
+    "plugins": Set<__cedar::String>
 };
 
 entity Resource = {
     "site_id": __cedar::String,
     "kind": __cedar::String,
-    "grants": Set<__cedar::String>
+    "grants": Set<__cedar::String>,
+    "permissions": Set<__cedar::String>,
+    "plugins": Set<__cedar::String>
 };
 
+entity PluginResource = {
+    "site_id": __cedar::String,
+    "kind": __cedar::String,
+    "grants": Set<__cedar::String>,
+    "permissions": Set<__cedar::String>,
+    "plugins": Set<__cedar::String>,
+    "plugin_id": __cedar::String
+};
+
+// Business actions are declared explicitly so Cedar validation catches a
+// typo in a plugin policy or application permission at CI/startup time.
+action "plugins.list", "plugins.activate", "plugins.deactivate",
+       "people.list", "people.view", "people.create", "people.update",
+       "people.delete", "roles.list", "roles.manage", "sessions.revoke",
+       "credentials.list", "credentials.manage", "credentials.revoke",
+       "settings.view", "settings.manage", "settings.delete",
+       "feedback.view", "feedback.submit", "feedback.delete",
+       "content.entry.list", "content.entry.create", "content.entry.update",
+       "content.entry.delete", "content.entry.publish", "content.type.manage",
+       "taxonomy.term.view", "taxonomy.term.manage", "taxonomy.term.delete",
+       "media.file.list", "media.file.manage", "media.file.delete",
+       "design.change.view", "design.change.manage", "design.change.delete",
+       "design.build",
+       "design.publish", "site.view", "site.publish",
+       "shop.product.view", "shop.product.manage", "shop.product.delete", "shop.order.view",
+       "shop.order.manage", "shop.order.fulfill", "shop.coupon.manage",
+       "courses.course.view", "courses.course.manage", "courses.course.delete",
+       "courses.module.manage",
+       "courses.lesson.view", "courses.lesson.manage", "courses.student.view",
+       "courses.student.manage", "courses.enrollment.manage",
+       "courses.progress.view", "form.manage", "form.delete",
+       "submission.view", "submission.manage", "template.manage",
+       "list.manage", "delivery.view", "delivery.manage", "delivery.delete",
+       "flow.view", "flow.manage", "flow.delete", "flow.start",
+       "flow.run.view", "workflow.view", "workflow.control", "board.view",
+       "board.manage", "board.delete",
+       "card.manage", "view", "manage",
+       "audit.view", "audit.manage",
+       "trash.view", "trash.manage",
+       "trash.delete", "portable.export",
+       "portable.import", "portable.delete"
+appliesTo {
+    principal: [Principal],
+    resource: [Resource, PluginResource],
+    context: {
+        "site_id": __cedar::String,
+        "plugin": __cedar::String,
+        "permission": __cedar::String,
+        "resource_type": __cedar::String
+    }
+};
+
+// Kept solely for old role rows during the forward-only grant migration.
 action authorize appliesTo {
     principal: [Principal],
     resource: [Resource],
     context: {
         "site_id": __cedar::String,
-        "grant": __cedar::String
+        "plugin": __cedar::String,
+        "permission": __cedar::String,
+        "resource_type": __cedar::String
     }
 };

@@ -10,6 +10,7 @@ description = "Site-scoped mail templates, subscriber lists and provider-neutral
 base64.workspace = true
 chrono.workspace = true
 mavi-audit = { path = "../mavi-audit" }
+mavi-application = { path = "../mavi-application" }
 mavi-contract = { path = "../mavi-contract" }
 mavi-core = { path = "../mavi-core" }
 mavi-storage = { path = "../mavi-storage" }

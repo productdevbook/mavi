@@ -1,11 +1,11 @@
 use std::env;
 
+use mavi_application::JobsService;
 use mavi_core::{PageRequest, SiteContext, SiteId};
 use mavi_flows::{
     CreateFlow, FlowListFilter, FlowService, FlowStepInput, RecordStep, SimulateFlow, StartFlowJob,
     StepKind, StepOutcome, Trigger, UpdateFlow,
 };
-use mavi_jobs::JobsService;
 use mavi_storage::Database;
 use serde_json::json;
 
@@ -18,9 +18,12 @@ async fn flows_snapshot_events_and_steps_are_site_scoped() {
     database.migrate().await.expect("migrations");
     let first_site = SiteId::new();
     let second_site = SiteId::new();
-    database.ensure_site(first_site).await.expect("first site");
     database
-        .ensure_site(second_site)
+        .ensure_site_for_tests(first_site)
+        .await
+        .expect("first site");
+    database
+        .ensure_site_for_tests(second_site)
         .await
         .expect("second site");
 

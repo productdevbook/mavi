@@ -98,14 +98,8 @@ struct ReportCursor {
 
 #[must_use]
 pub fn api() -> mavi_contract::Api {
-    let write = Permission {
-        capability: Capability::Feedback,
-        action: Action::Write,
-    };
-    let view = Permission {
-        capability: Capability::Feedback,
-        action: Action::View,
-    };
+    let write = Permission::from_legacy(Capability::Feedback, Action::Write);
+    let view = Permission::from_legacy(Capability::Feedback, Action::View);
 
     mavi_contract::Api::new([
         Endpoint::new(
@@ -115,7 +109,7 @@ pub fn api() -> mavi_contract::Api {
             "Create a site feedback report",
         )
         .account_or_assistant()
-        .requires(write)
+        .requires(write.clone())
         .takes("CreateReport")
         .returns(201, "FeedbackReport")
         .changes(false)
@@ -131,7 +125,7 @@ pub fn api() -> mavi_contract::Api {
             "List site feedback reports with an opaque cursor",
         )
         .account_or_assistant()
-        .requires(view)
+        .requires(view.clone())
         .takes_query("ReportListFilter")
         .returns(200, "FeedbackReportPage")
         .refuses([

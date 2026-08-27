@@ -5,8 +5,8 @@ use mavi_analytics::{
     ANALYTICS_RETENTION_JOB, AnalyticsEventBatch, AnalyticsEventInput, AnalyticsService,
     DailyListFilter, EventListFilter, PruneAnalytics,
 };
+use mavi_application::{JobListFilter, JobsService};
 use mavi_core::{PageRequest, SiteContext, SiteId};
-use mavi_jobs::{JobListFilter, JobsService};
 use mavi_storage::Database;
 
 fn database_url() -> Option<String> {
@@ -22,9 +22,12 @@ async fn analytics_are_bounded_aggregated_cursor_only_and_site_scoped() {
     database.migrate().await.expect("migrations");
     let first_site = SiteId::new();
     let second_site = SiteId::new();
-    database.ensure_site(first_site).await.expect("first site");
     database
-        .ensure_site(second_site)
+        .ensure_site_for_tests(first_site)
+        .await
+        .expect("first site");
+    database
+        .ensure_site_for_tests(second_site)
         .await
         .expect("second site");
 
@@ -157,9 +160,12 @@ async fn analytics_retention_enqueue_is_idempotent_per_site_and_day() {
     database.migrate().await.expect("migrations");
     let first_site = SiteId::new();
     let second_site = SiteId::new();
-    database.ensure_site(first_site).await.expect("first site");
     database
-        .ensure_site(second_site)
+        .ensure_site_for_tests(first_site)
+        .await
+        .expect("first site");
+    database
+        .ensure_site_for_tests(second_site)
         .await
         .expect("second site");
 

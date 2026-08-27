@@ -42,10 +42,7 @@ pub fn api() -> Api {
             "Read site settings",
         )
         .account_or_assistant()
-        .requires(Permission {
-            capability: Capability::Settings,
-            action: Action::View,
-        })
+        .requires(Permission::from_legacy(Capability::Settings, Action::View))
         .returns(200, "SiteSettings")
         .refuses([
             ErrorCode::Forbidden,
@@ -59,10 +56,7 @@ pub fn api() -> Api {
             "Update site settings",
         )
         .account_or_assistant()
-        .requires(Permission {
-            capability: Capability::Settings,
-            action: Action::Write,
-        })
+        .requires(Permission::from_legacy(Capability::Settings, Action::Write))
         .takes("UpdateSiteSettings")
         .returns(200, "SiteSettings")
         .changes(true)
@@ -79,10 +73,7 @@ pub fn api() -> Api {
             "List site languages",
         )
         .account_or_assistant()
-        .requires(Permission {
-            capability: Capability::Settings,
-            action: Action::View,
-        })
+        .requires(Permission::from_legacy(Capability::Settings, Action::View))
         .takes_query("LanguageListFilter")
         .returns(200, "LanguagePage")
         .refuses([
@@ -97,10 +88,7 @@ pub fn api() -> Api {
             "Create a site language",
         )
         .account_or_assistant()
-        .requires(Permission {
-            capability: Capability::Settings,
-            action: Action::Write,
-        })
+        .requires(Permission::from_legacy(Capability::Settings, Action::Write))
         .takes("CreateLanguage")
         .returns(201, "Language")
         .changes(false)
@@ -118,10 +106,7 @@ pub fn api() -> Api {
             "Update a site language",
         )
         .account_or_assistant()
-        .requires(Permission {
-            capability: Capability::Settings,
-            action: Action::Write,
-        })
+        .requires(Permission::from_legacy(Capability::Settings, Action::Write))
         .takes("UpdateLanguage")
         .returns(200, "Language")
         .changes(true)
@@ -139,10 +124,10 @@ pub fn api() -> Api {
             "Delete a site language",
         )
         .account_or_assistant()
-        .requires(Permission {
-            capability: Capability::Settings,
-            action: Action::Delete,
-        })
+        .requires(Permission::from_legacy(
+            Capability::Settings,
+            Action::Delete,
+        ))
         .returns(204, "Empty")
         .changes(false)
         .refuses([
@@ -1276,10 +1261,7 @@ mod tests {
         );
         assert_eq!(
             catalog.endpoints[0].permission,
-            Some(Permission {
-                capability: Capability::Settings,
-                action: Action::View,
-            })
+            Some(Permission::from_legacy(Capability::Settings, Action::View))
         );
     }
 }

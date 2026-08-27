@@ -28,10 +28,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "core",
         "permission": {
-          "capability": "people",
-          "action": "delete"
+          "plugin": "core",
+          "action": "credentials.revoke",
+          "resource_type": null
         }
       }
     },
@@ -78,10 +79,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "core",
         "permission": {
-          "capability": "people",
-          "action": "view"
+          "plugin": "core",
+          "action": "people.list",
+          "resource_type": null
         }
       }
     },
@@ -133,10 +135,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "core",
         "permission": {
-          "capability": "people",
-          "action": "write"
+          "plugin": "core",
+          "action": "people.create",
+          "resource_type": null
         }
       }
     },
@@ -186,10 +189,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "core",
         "permission": {
-          "capability": "people",
-          "action": "write"
+          "plugin": "core",
+          "action": "people.update",
+          "resource_type": null
         }
       }
     },
@@ -238,10 +242,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "core",
         "permission": {
-          "capability": "people",
-          "action": "write"
+          "plugin": "core",
+          "action": "people.update",
+          "resource_type": null
         }
       }
     },
@@ -280,10 +285,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "core",
         "permission": {
-          "capability": "people",
-          "action": "view"
+          "plugin": "core",
+          "action": "roles.list",
+          "resource_type": null
         }
       }
     },
@@ -321,6 +327,32 @@
                   },
                   "additionalProperties": false
                 }
+              },
+              "permissions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "plugin",
+                    "action",
+                    "resource_type"
+                  ],
+                  "properties": {
+                    "plugin": {
+                      "type": "string"
+                    },
+                    "action": {
+                      "type": "string"
+                    },
+                    "resource_type": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
               }
             },
             "additionalProperties": false
@@ -336,10 +368,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "core",
         "permission": {
-          "capability": "people",
-          "action": "write"
+          "plugin": "core",
+          "action": "roles.manage",
+          "resource_type": null
         }
       }
     },
@@ -371,10 +404,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "core",
         "permission": {
-          "capability": "people",
-          "action": "delete"
+          "plugin": "core",
+          "action": "roles.manage",
+          "resource_type": null
         }
       }
     },
@@ -397,9 +431,6 @@
           },
           "body": {
             "type": "object",
-            "required": [
-              "grants"
-            ],
             "properties": {
               "grants": {
                 "type": "array",
@@ -419,6 +450,32 @@
                   },
                   "additionalProperties": false
                 }
+              },
+              "permissions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "plugin",
+                    "action",
+                    "resource_type"
+                  ],
+                  "properties": {
+                    "plugin": {
+                      "type": "string"
+                    },
+                    "action": {
+                      "type": "string"
+                    },
+                    "resource_type": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
               }
             },
             "additionalProperties": false
@@ -435,10 +492,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "core",
         "permission": {
-          "capability": "people",
-          "action": "write"
+          "plugin": "core",
+          "action": "roles.manage",
+          "resource_type": null
         }
       }
     },
@@ -500,10 +558,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "writing",
         "permission": {
-          "capability": "content",
-          "action": "view"
+          "plugin": "writing",
+          "action": "content.entry.list",
+          "resource_type": null
         }
       }
     },
@@ -535,10 +594,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "writing",
         "permission": {
-          "capability": "content",
-          "action": "view"
+          "plugin": "writing",
+          "action": "content.entry.list",
+          "resource_type": null
         }
       }
     },
@@ -624,10 +684,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "writing",
         "permission": {
-          "capability": "content",
-          "action": "write"
+          "plugin": "writing",
+          "action": "content.entry.update",
+          "resource_type": null
         }
       }
     },
@@ -723,10 +784,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "writing",
         "permission": {
-          "capability": "content",
-          "action": "write"
+          "plugin": "writing",
+          "action": "content.entry.update",
+          "resource_type": null
         }
       }
     },
@@ -758,10 +820,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "writing",
         "permission": {
-          "capability": "publish",
-          "action": "write"
+          "plugin": "writing",
+          "action": "content.entry.publish",
+          "resource_type": null
         }
       }
     },
@@ -807,10 +870,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "writing",
         "permission": {
-          "capability": "publish",
-          "action": "write"
+          "plugin": "writing",
+          "action": "content.entry.publish",
+          "resource_type": null
         }
       }
     },
@@ -842,10 +906,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "writing",
         "permission": {
-          "capability": "publish",
-          "action": "write"
+          "plugin": "writing",
+          "action": "content.entry.publish",
+          "resource_type": null
         }
       }
     },
@@ -877,10 +942,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "governance",
         "permission": {
-          "capability": "trash",
-          "action": "delete"
+          "plugin": "governance",
+          "action": "trash.delete",
+          "resource_type": null
         }
       }
     },
@@ -912,10 +978,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "governance",
         "permission": {
-          "capability": "trash",
-          "action": "write"
+          "plugin": "governance",
+          "action": "trash.manage",
+          "resource_type": null
         }
       }
     },
@@ -954,10 +1021,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "writing",
         "permission": {
-          "capability": "content",
-          "action": "view"
+          "plugin": "writing",
+          "action": "content.entry.list",
+          "resource_type": null
         }
       }
     },
@@ -1049,10 +1117,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "writing",
         "permission": {
-          "capability": "content",
-          "action": "write"
+          "plugin": "writing",
+          "action": "content.entry.update",
+          "resource_type": null
         }
       }
     },
@@ -1084,10 +1153,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "writing",
         "permission": {
-          "capability": "content",
-          "action": "delete"
+          "plugin": "writing",
+          "action": "content.entry.delete",
+          "resource_type": null
         }
       }
     },
@@ -1138,10 +1208,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "writing",
         "permission": {
-          "capability": "content",
-          "action": "view"
+          "plugin": "writing",
+          "action": "content.entry.list",
+          "resource_type": null
         }
       }
     },
@@ -1177,10 +1248,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "writing",
         "permission": {
-          "capability": "content",
-          "action": "view"
+          "plugin": "writing",
+          "action": "content.entry.list",
+          "resource_type": null
         }
       }
     },
@@ -1216,10 +1288,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "writing",
         "permission": {
-          "capability": "content",
-          "action": "write"
+          "plugin": "writing",
+          "action": "content.entry.update",
+          "resource_type": null
         }
       }
     },
@@ -1237,10 +1310,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "core",
         "permission": {
-          "capability": "settings",
-          "action": "view"
+          "plugin": "core",
+          "action": "settings.view",
+          "resource_type": null
         }
       }
     },
@@ -1353,10 +1427,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "core",
         "permission": {
-          "capability": "settings",
-          "action": "write"
+          "plugin": "core",
+          "action": "settings.manage",
+          "resource_type": null
         }
       }
     },
@@ -1395,10 +1470,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "core",
         "permission": {
-          "capability": "settings",
-          "action": "view"
+          "plugin": "core",
+          "action": "settings.view",
+          "resource_type": null
         }
       }
     },
@@ -1440,10 +1516,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "core",
         "permission": {
-          "capability": "settings",
-          "action": "write"
+          "plugin": "core",
+          "action": "settings.manage",
+          "resource_type": null
         }
       }
     },
@@ -1495,10 +1572,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "core",
         "permission": {
-          "capability": "settings",
-          "action": "write"
+          "plugin": "core",
+          "action": "settings.manage",
+          "resource_type": null
         }
       }
     },
@@ -1530,10 +1608,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "core",
         "permission": {
-          "capability": "settings",
-          "action": "delete"
+          "plugin": "core",
+          "action": "settings.delete",
+          "resource_type": null
         }
       }
     },
@@ -1596,10 +1675,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "writing",
         "permission": {
-          "capability": "taxonomy",
-          "action": "view"
+          "plugin": "writing",
+          "action": "taxonomy.term.view",
+          "resource_type": null
         }
       }
     },
@@ -1658,10 +1738,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "writing",
         "permission": {
-          "capability": "taxonomy",
-          "action": "write"
+          "plugin": "writing",
+          "action": "taxonomy.term.manage",
+          "resource_type": null
         }
       }
     },
@@ -1693,10 +1774,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "writing",
         "permission": {
-          "capability": "taxonomy",
-          "action": "view"
+          "plugin": "writing",
+          "action": "taxonomy.term.view",
+          "resource_type": null
         }
       }
     },
@@ -1749,10 +1831,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "writing",
         "permission": {
-          "capability": "taxonomy",
-          "action": "write"
+          "plugin": "writing",
+          "action": "taxonomy.term.manage",
+          "resource_type": null
         }
       }
     },
@@ -1784,10 +1867,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "writing",
         "permission": {
-          "capability": "taxonomy",
-          "action": "delete"
+          "plugin": "writing",
+          "action": "taxonomy.term.delete",
+          "resource_type": null
         }
       }
     },
@@ -1819,10 +1903,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "writing",
         "permission": {
-          "capability": "taxonomy",
-          "action": "view"
+          "plugin": "writing",
+          "action": "taxonomy.term.view",
+          "resource_type": null
         }
       }
     },
@@ -1872,10 +1957,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "writing",
         "permission": {
-          "capability": "taxonomy",
-          "action": "write"
+          "plugin": "writing",
+          "action": "taxonomy.term.manage",
+          "resource_type": null
         }
       }
     },
@@ -1926,10 +2012,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "writing",
         "permission": {
-          "capability": "taxonomy",
-          "action": "view"
+          "plugin": "writing",
+          "action": "taxonomy.term.view",
+          "resource_type": null
         }
       }
     },
@@ -1977,10 +2064,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "writing",
         "permission": {
-          "capability": "media",
-          "action": "view"
+          "plugin": "writing",
+          "action": "media.file.list",
+          "resource_type": null
         }
       }
     },
@@ -2027,10 +2115,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "writing",
         "permission": {
-          "capability": "media",
-          "action": "write"
+          "plugin": "writing",
+          "action": "media.file.manage",
+          "resource_type": null
         }
       }
     },
@@ -2062,10 +2151,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "writing",
         "permission": {
-          "capability": "media",
-          "action": "view"
+          "plugin": "writing",
+          "action": "media.file.list",
+          "resource_type": null
         }
       }
     },
@@ -2097,10 +2187,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "writing",
         "permission": {
-          "capability": "media",
-          "action": "view"
+          "plugin": "writing",
+          "action": "media.file.list",
+          "resource_type": null
         }
       }
     },
@@ -2151,10 +2242,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "writing",
         "permission": {
-          "capability": "media",
-          "action": "view"
+          "plugin": "writing",
+          "action": "media.file.list",
+          "resource_type": null
         }
       }
     },
@@ -2190,10 +2282,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "writing",
         "permission": {
-          "capability": "media",
-          "action": "view"
+          "plugin": "writing",
+          "action": "media.file.list",
+          "resource_type": null
         }
       }
     },
@@ -2225,10 +2318,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "writing",
         "permission": {
-          "capability": "media",
-          "action": "delete"
+          "plugin": "writing",
+          "action": "media.file.delete",
+          "resource_type": null
         }
       }
     },
@@ -2305,10 +2399,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "governance",
         "permission": {
-          "capability": "audit",
-          "action": "view"
+          "plugin": "governance",
+          "action": "audit.view",
+          "resource_type": null
         }
       }
     },
@@ -2395,10 +2490,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "governance",
         "permission": {
-          "capability": "audit",
-          "action": "view"
+          "plugin": "governance",
+          "action": "audit.view",
+          "resource_type": null
         }
       }
     },
@@ -2430,10 +2526,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "governance",
         "permission": {
-          "capability": "audit",
-          "action": "view"
+          "plugin": "governance",
+          "action": "audit.view",
+          "resource_type": null
         }
       }
     },
@@ -2487,10 +2584,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "governance",
         "permission": {
-          "capability": "trash",
-          "action": "view"
+          "plugin": "governance",
+          "action": "trash.view",
+          "resource_type": null
         }
       }
     },
@@ -2526,10 +2624,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "governance",
         "permission": {
-          "capability": "trash",
-          "action": "write"
+          "plugin": "governance",
+          "action": "trash.manage",
+          "resource_type": null
         }
       }
     },
@@ -2565,10 +2664,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "governance",
         "permission": {
-          "capability": "trash",
-          "action": "delete"
+          "plugin": "governance",
+          "action": "trash.delete",
+          "resource_type": null
         }
       }
     },
@@ -2617,10 +2717,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "writing",
         "permission": {
-          "capability": "design",
-          "action": "view"
+          "plugin": "writing",
+          "action": "design.change.view",
+          "resource_type": null
         }
       }
     },
@@ -2655,10 +2756,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "writing",
         "permission": {
-          "capability": "design",
-          "action": "write"
+          "plugin": "writing",
+          "action": "design.change.manage",
+          "resource_type": null
         }
       }
     },
@@ -2690,10 +2792,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "writing",
         "permission": {
-          "capability": "design",
-          "action": "view"
+          "plugin": "writing",
+          "action": "design.change.view",
+          "resource_type": null
         }
       }
     },
@@ -2744,10 +2847,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "writing",
         "permission": {
-          "capability": "design",
-          "action": "view"
+          "plugin": "writing",
+          "action": "design.change.view",
+          "resource_type": null
         }
       }
     },
@@ -2794,10 +2898,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "writing",
         "permission": {
-          "capability": "design",
-          "action": "view"
+          "plugin": "writing",
+          "action": "design.change.view",
+          "resource_type": null
         }
       }
     },
@@ -2849,10 +2954,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "writing",
         "permission": {
-          "capability": "design",
-          "action": "write"
+          "plugin": "writing",
+          "action": "design.change.manage",
+          "resource_type": null
         }
       }
     },
@@ -2899,10 +3005,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "writing",
         "permission": {
-          "capability": "design",
-          "action": "delete"
+          "plugin": "writing",
+          "action": "design.change.delete",
+          "resource_type": null
         }
       }
     },
@@ -2934,10 +3041,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "writing",
         "permission": {
-          "capability": "design",
-          "action": "write"
+          "plugin": "writing",
+          "action": "design.change.manage",
+          "resource_type": null
         }
       }
     },
@@ -2988,10 +3096,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "writing",
         "permission": {
-          "capability": "design",
-          "action": "view"
+          "plugin": "writing",
+          "action": "design.change.view",
+          "resource_type": null
         }
       }
     },
@@ -3023,10 +3132,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "writing",
         "permission": {
-          "capability": "publish",
-          "action": "write"
+          "plugin": "writing",
+          "action": "content.entry.publish",
+          "resource_type": null
         }
       }
     },
@@ -3058,10 +3168,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "writing",
         "permission": {
-          "capability": "publish",
-          "action": "write"
+          "plugin": "writing",
+          "action": "content.entry.publish",
+          "resource_type": null
         }
       }
     },
@@ -3100,10 +3211,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "forms",
         "permission": {
-          "capability": "forms",
-          "action": "view"
+          "plugin": "forms",
+          "action": "submission.view",
+          "resource_type": null
         }
       }
     },
@@ -3201,10 +3313,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "forms",
         "permission": {
-          "capability": "forms",
-          "action": "write"
+          "plugin": "forms",
+          "action": "form.manage",
+          "resource_type": null
         }
       }
     },
@@ -3236,10 +3349,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "forms",
         "permission": {
-          "capability": "forms",
-          "action": "view"
+          "plugin": "forms",
+          "action": "submission.view",
+          "resource_type": null
         }
       }
     },
@@ -3351,10 +3465,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "forms",
         "permission": {
-          "capability": "forms",
-          "action": "write"
+          "plugin": "forms",
+          "action": "form.manage",
+          "resource_type": null
         }
       }
     },
@@ -3386,10 +3501,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "forms",
         "permission": {
-          "capability": "forms",
-          "action": "delete"
+          "plugin": "forms",
+          "action": "form.delete",
+          "resource_type": null
         }
       }
     },
@@ -3443,10 +3559,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "forms",
         "permission": {
-          "capability": "forms",
-          "action": "view"
+          "plugin": "forms",
+          "action": "submission.view",
+          "resource_type": null
         }
       }
     },
@@ -3497,10 +3614,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "forms",
         "permission": {
-          "capability": "forms",
-          "action": "view"
+          "plugin": "forms",
+          "action": "submission.view",
+          "resource_type": null
         }
       }
     },
@@ -3532,10 +3650,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "forms",
         "permission": {
-          "capability": "forms",
-          "action": "write"
+          "plugin": "forms",
+          "action": "form.manage",
+          "resource_type": null
         }
       }
     },
@@ -3567,10 +3686,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "forms",
         "permission": {
-          "capability": "forms",
-          "action": "delete"
+          "plugin": "forms",
+          "action": "form.delete",
+          "resource_type": null
         }
       }
     },
@@ -3622,10 +3742,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "core",
         "permission": {
-          "capability": "feedback",
-          "action": "write"
+          "plugin": "core",
+          "action": "feedback.submit",
+          "resource_type": null
         }
       }
     },
@@ -3671,10 +3792,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "core",
         "permission": {
-          "capability": "feedback",
-          "action": "view"
+          "plugin": "core",
+          "action": "feedback.view",
+          "resource_type": null
         }
       }
     },
@@ -3713,10 +3835,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "messaging",
         "permission": {
-          "capability": "mail",
-          "action": "view"
+          "plugin": "messaging",
+          "action": "delivery.view",
+          "resource_type": null
         }
       }
     },
@@ -3776,10 +3899,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "messaging",
         "permission": {
-          "capability": "mail",
-          "action": "write"
+          "plugin": "messaging",
+          "action": "delivery.manage",
+          "resource_type": null
         }
       }
     },
@@ -3811,10 +3935,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "messaging",
         "permission": {
-          "capability": "mail",
-          "action": "view"
+          "plugin": "messaging",
+          "action": "delivery.view",
+          "resource_type": null
         }
       }
     },
@@ -3881,10 +4006,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "messaging",
         "permission": {
-          "capability": "mail",
-          "action": "write"
+          "plugin": "messaging",
+          "action": "delivery.manage",
+          "resource_type": null
         }
       }
     },
@@ -3916,10 +4042,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "messaging",
         "permission": {
-          "capability": "mail",
-          "action": "delete"
+          "plugin": "messaging",
+          "action": "delivery.delete",
+          "resource_type": null
         }
       }
     },
@@ -3962,10 +4089,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "messaging",
         "permission": {
-          "capability": "mail",
-          "action": "view"
+          "plugin": "messaging",
+          "action": "delivery.view",
+          "resource_type": null
         }
       }
     },
@@ -4004,10 +4132,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "messaging",
         "permission": {
-          "capability": "mail",
-          "action": "view"
+          "plugin": "messaging",
+          "action": "delivery.view",
+          "resource_type": null
         }
       }
     },
@@ -4048,10 +4177,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "messaging",
         "permission": {
-          "capability": "mail",
-          "action": "write"
+          "plugin": "messaging",
+          "action": "delivery.manage",
+          "resource_type": null
         }
       }
     },
@@ -4083,10 +4213,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "messaging",
         "permission": {
-          "capability": "mail",
-          "action": "view"
+          "plugin": "messaging",
+          "action": "delivery.view",
+          "resource_type": null
         }
       }
     },
@@ -4132,10 +4263,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "messaging",
         "permission": {
-          "capability": "mail",
-          "action": "write"
+          "plugin": "messaging",
+          "action": "delivery.manage",
+          "resource_type": null
         }
       }
     },
@@ -4167,10 +4299,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "messaging",
         "permission": {
-          "capability": "mail",
-          "action": "delete"
+          "plugin": "messaging",
+          "action": "delivery.delete",
+          "resource_type": null
         }
       }
     },
@@ -4230,10 +4363,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "messaging",
         "permission": {
-          "capability": "mail",
-          "action": "view"
+          "plugin": "messaging",
+          "action": "delivery.view",
+          "resource_type": null
         }
       }
     },
@@ -4289,10 +4423,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "messaging",
         "permission": {
-          "capability": "mail",
-          "action": "write"
+          "plugin": "messaging",
+          "action": "delivery.manage",
+          "resource_type": null
         }
       }
     },
@@ -4324,10 +4459,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "messaging",
         "permission": {
-          "capability": "mail",
-          "action": "delete"
+          "plugin": "messaging",
+          "action": "delivery.delete",
+          "resource_type": null
         }
       }
     },
@@ -4377,10 +4513,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "messaging",
         "permission": {
-          "capability": "mail",
-          "action": "view"
+          "plugin": "messaging",
+          "action": "delivery.view",
+          "resource_type": null
         }
       }
     },
@@ -4430,10 +4567,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "messaging",
         "permission": {
-          "capability": "mail",
-          "action": "write"
+          "plugin": "messaging",
+          "action": "delivery.manage",
+          "resource_type": null
         }
       }
     },
@@ -4465,10 +4603,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "messaging",
         "permission": {
-          "capability": "mail",
-          "action": "view"
+          "plugin": "messaging",
+          "action": "delivery.view",
+          "resource_type": null
         }
       }
     },
@@ -4505,10 +4644,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "messaging",
         "permission": {
-          "capability": "mail",
-          "action": "write"
+          "plugin": "messaging",
+          "action": "delivery.manage",
+          "resource_type": null
         }
       }
     },
@@ -4565,10 +4705,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "messaging",
         "permission": {
-          "capability": "mail",
-          "action": "write"
+          "plugin": "messaging",
+          "action": "delivery.manage",
+          "resource_type": null
         }
       }
     },
@@ -4607,10 +4748,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "commerce",
         "permission": {
-          "capability": "shop",
-          "action": "view"
+          "plugin": "commerce",
+          "action": "shop.product.view",
+          "resource_type": null
         }
       }
     },
@@ -4687,10 +4829,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "commerce",
         "permission": {
-          "capability": "shop",
-          "action": "write"
+          "plugin": "commerce",
+          "action": "shop.product.manage",
+          "resource_type": null
         }
       }
     },
@@ -4722,10 +4865,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "commerce",
         "permission": {
-          "capability": "shop",
-          "action": "view"
+          "plugin": "commerce",
+          "action": "shop.product.view",
+          "resource_type": null
         }
       }
     },
@@ -4800,10 +4944,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "commerce",
         "permission": {
-          "capability": "shop",
-          "action": "write"
+          "plugin": "commerce",
+          "action": "shop.product.manage",
+          "resource_type": null
         }
       }
     },
@@ -4835,10 +4980,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "commerce",
         "permission": {
-          "capability": "shop",
-          "action": "delete"
+          "plugin": "commerce",
+          "action": "shop.product.delete",
+          "resource_type": null
         }
       }
     },
@@ -4877,10 +5023,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "commerce",
         "permission": {
-          "capability": "shop",
-          "action": "view"
+          "plugin": "commerce",
+          "action": "shop.product.view",
+          "resource_type": null
         }
       }
     },
@@ -4953,10 +5100,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "commerce",
         "permission": {
-          "capability": "shop",
-          "action": "write"
+          "plugin": "commerce",
+          "action": "shop.product.manage",
+          "resource_type": null
         }
       }
     },
@@ -4988,10 +5136,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "commerce",
         "permission": {
-          "capability": "shop",
-          "action": "delete"
+          "plugin": "commerce",
+          "action": "shop.product.delete",
+          "resource_type": null
         }
       }
     },
@@ -5040,10 +5189,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "commerce",
         "permission": {
-          "capability": "shop",
-          "action": "view"
+          "plugin": "commerce",
+          "action": "shop.product.view",
+          "resource_type": null
         }
       }
     },
@@ -5075,10 +5225,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "commerce",
         "permission": {
-          "capability": "shop",
-          "action": "view"
+          "plugin": "commerce",
+          "action": "shop.product.view",
+          "resource_type": null
         }
       }
     },
@@ -5157,10 +5308,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "commerce",
         "permission": {
-          "capability": "shop",
-          "action": "write"
+          "plugin": "commerce",
+          "action": "shop.product.manage",
+          "resource_type": null
         }
       }
     },
@@ -5207,10 +5359,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "learning",
         "permission": {
-          "capability": "courses",
-          "action": "view"
+          "plugin": "learning",
+          "action": "courses.course.view",
+          "resource_type": null
         }
       }
     },
@@ -5258,10 +5411,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "learning",
         "permission": {
-          "capability": "courses",
-          "action": "write"
+          "plugin": "learning",
+          "action": "courses.course.manage",
+          "resource_type": null
         }
       }
     },
@@ -5293,10 +5447,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "learning",
         "permission": {
-          "capability": "courses",
-          "action": "view"
+          "plugin": "learning",
+          "action": "courses.course.view",
+          "resource_type": null
         },
         "resourceScoped": true
       }
@@ -5365,10 +5520,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "learning",
         "permission": {
-          "capability": "courses",
-          "action": "write"
+          "plugin": "learning",
+          "action": "courses.course.manage",
+          "resource_type": null
         },
         "resourceScoped": true
       }
@@ -5401,10 +5557,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "learning",
         "permission": {
-          "capability": "courses",
-          "action": "delete"
+          "plugin": "learning",
+          "action": "courses.course.delete",
+          "resource_type": null
         },
         "resourceScoped": true
       }
@@ -5456,10 +5613,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "learning",
         "permission": {
-          "capability": "courses",
-          "action": "write"
+          "plugin": "learning",
+          "action": "courses.course.manage",
+          "resource_type": null
         },
         "resourceScoped": true
       }
@@ -5507,10 +5665,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "learning",
         "permission": {
-          "capability": "courses",
-          "action": "write"
+          "plugin": "learning",
+          "action": "courses.course.manage",
+          "resource_type": null
         },
         "resourceScoped": true
       }
@@ -5543,10 +5702,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "learning",
         "permission": {
-          "capability": "courses",
-          "action": "view"
+          "plugin": "learning",
+          "action": "courses.course.view",
+          "resource_type": null
         },
         "resourceScoped": true
       }
@@ -5593,10 +5753,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "learning",
         "permission": {
-          "capability": "courses",
-          "action": "write"
+          "plugin": "learning",
+          "action": "courses.course.manage",
+          "resource_type": null
         },
         "resourceScoped": true
       }
@@ -5629,10 +5790,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "learning",
         "permission": {
-          "capability": "courses",
-          "action": "delete"
+          "plugin": "learning",
+          "action": "courses.course.delete",
+          "resource_type": null
         },
         "resourceScoped": true
       }
@@ -5684,10 +5846,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "learning",
         "permission": {
-          "capability": "courses",
-          "action": "view"
+          "plugin": "learning",
+          "action": "courses.course.view",
+          "resource_type": null
         },
         "resourceScoped": true
       }
@@ -5739,10 +5902,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "learning",
         "permission": {
-          "capability": "courses",
-          "action": "write"
+          "plugin": "learning",
+          "action": "courses.course.manage",
+          "resource_type": null
         },
         "resourceScoped": true
       }
@@ -5801,10 +5965,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "learning",
         "permission": {
-          "capability": "courses",
-          "action": "write"
+          "plugin": "learning",
+          "action": "courses.course.manage",
+          "resource_type": null
         },
         "resourceScoped": true
       }
@@ -5865,10 +6030,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "learning",
         "permission": {
-          "capability": "courses",
-          "action": "write"
+          "plugin": "learning",
+          "action": "courses.course.manage",
+          "resource_type": null
         },
         "resourceScoped": true
       }
@@ -5901,10 +6067,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "learning",
         "permission": {
-          "capability": "courses",
-          "action": "delete"
+          "plugin": "learning",
+          "action": "courses.course.delete",
+          "resource_type": null
         },
         "resourceScoped": true
       }
@@ -5956,10 +6123,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "learning",
         "permission": {
-          "capability": "courses",
-          "action": "view"
+          "plugin": "learning",
+          "action": "courses.course.view",
+          "resource_type": null
         }
       }
     },
@@ -6018,10 +6186,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "learning",
         "permission": {
-          "capability": "courses",
-          "action": "write"
+          "plugin": "learning",
+          "action": "courses.course.manage",
+          "resource_type": null
         }
       }
     },
@@ -6057,10 +6226,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "learning",
         "permission": {
-          "capability": "courses",
-          "action": "write"
+          "plugin": "learning",
+          "action": "courses.course.manage",
+          "resource_type": null
         }
       }
     },
@@ -6107,10 +6277,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "learning",
         "permission": {
-          "capability": "courses",
-          "action": "view"
+          "plugin": "learning",
+          "action": "courses.course.view",
+          "resource_type": null
         }
       }
     },
@@ -6150,10 +6321,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "learning",
         "permission": {
-          "capability": "courses",
-          "action": "write"
+          "plugin": "learning",
+          "action": "courses.course.manage",
+          "resource_type": null
         }
       }
     },
@@ -6185,10 +6357,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "learning",
         "permission": {
-          "capability": "courses",
-          "action": "write"
+          "plugin": "learning",
+          "action": "courses.course.manage",
+          "resource_type": null
         }
       }
     },
@@ -6249,10 +6422,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "learning",
         "permission": {
-          "capability": "courses",
-          "action": "write"
+          "plugin": "learning",
+          "action": "courses.course.manage",
+          "resource_type": null
         }
       }
     },
@@ -6284,10 +6458,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "learning",
         "permission": {
-          "capability": "courses",
-          "action": "delete"
+          "plugin": "learning",
+          "action": "courses.course.delete",
+          "resource_type": null
         }
       }
     },
@@ -6338,10 +6513,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "learning",
         "permission": {
-          "capability": "courses",
-          "action": "view"
+          "plugin": "learning",
+          "action": "courses.course.view",
+          "resource_type": null
         },
         "resourceScoped": true
       }
@@ -6388,10 +6564,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "learning",
         "permission": {
-          "capability": "courses",
-          "action": "write"
+          "plugin": "learning",
+          "action": "courses.course.manage",
+          "resource_type": null
         },
         "resourceScoped": true
       }
@@ -6424,140 +6601,13 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "learning",
         "permission": {
-          "capability": "courses",
-          "action": "delete"
+          "plugin": "learning",
+          "action": "courses.course.delete",
+          "resource_type": null
         },
         "resourceScoped": true
-      }
-    },
-    {
-      "name": "jobs.list",
-      "description": "List site jobs with an opaque cursor",
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "query": {
-            "type": "object",
-            "properties": {
-              "after": {
-                "type": [
-                  "string",
-                  "null"
-                ],
-                "maxLength": 512
-              },
-              "limit": {
-                "type": "integer",
-                "minimum": 1,
-                "maximum": 100
-              },
-              "state": {
-                "type": "string",
-                "enum": [
-                  "ready",
-                  "running",
-                  "done",
-                  "dead"
-                ]
-              },
-              "kind": {
-                "type": [
-                  "string",
-                  "null"
-                ],
-                "maxLength": 120
-              }
-            },
-            "additionalProperties": false
-          }
-        },
-        "required": [
-          "query"
-        ],
-        "additionalProperties": false
-      },
-      "annotations": {
-        "readOnlyHint": true
-      },
-      "x-mavi": {
-        "authentication": "account_or_assistant",
-        "scope": "site",
-        "permission": {
-          "capability": "automation",
-          "action": "view"
-        }
-      }
-    },
-    {
-      "name": "jobs.read",
-      "description": "Read one site job",
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "path": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "id"
-            ]
-          }
-        },
-        "required": [
-          "path"
-        ],
-        "additionalProperties": false
-      },
-      "annotations": {
-        "readOnlyHint": true
-      },
-      "x-mavi": {
-        "authentication": "account_or_assistant",
-        "scope": "site",
-        "permission": {
-          "capability": "automation",
-          "action": "view"
-        }
-      }
-    },
-    {
-      "name": "jobs.retry",
-      "description": "Retry a dead-letter job",
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "path": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "id"
-            ]
-          }
-        },
-        "required": [
-          "path"
-        ],
-        "additionalProperties": false
-      },
-      "annotations": {
-        "readOnlyHint": false
-      },
-      "x-mavi": {
-        "authentication": "account_or_assistant",
-        "scope": "site",
-        "permission": {
-          "capability": "automation",
-          "action": "write"
-        }
       }
     },
     {
@@ -6574,10 +6624,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "automation",
         "permission": {
-          "capability": "automation",
-          "action": "view"
+          "plugin": "automation",
+          "action": "flow.view",
+          "resource_type": null
         }
       }
     },
@@ -6640,10 +6691,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "automation",
         "permission": {
-          "capability": "automation",
-          "action": "view"
+          "plugin": "automation",
+          "action": "flow.view",
+          "resource_type": null
         }
       }
     },
@@ -6719,10 +6771,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "automation",
         "permission": {
-          "capability": "automation",
-          "action": "write"
+          "plugin": "automation",
+          "action": "flow.manage",
+          "resource_type": null
         }
       }
     },
@@ -6754,10 +6807,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "automation",
         "permission": {
-          "capability": "automation",
-          "action": "view"
+          "plugin": "automation",
+          "action": "flow.view",
+          "resource_type": null
         }
       }
     },
@@ -6857,10 +6911,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "automation",
         "permission": {
-          "capability": "automation",
-          "action": "write"
+          "plugin": "automation",
+          "action": "flow.manage",
+          "resource_type": null
         }
       }
     },
@@ -6892,10 +6947,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "automation",
         "permission": {
-          "capability": "automation",
-          "action": "write"
+          "plugin": "automation",
+          "action": "flow.manage",
+          "resource_type": null
         }
       }
     },
@@ -6938,10 +6994,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "automation",
         "permission": {
-          "capability": "automation",
-          "action": "view"
+          "plugin": "automation",
+          "action": "flow.view",
+          "resource_type": null
         }
       }
     },
@@ -7008,10 +7065,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "automation",
         "permission": {
-          "capability": "automation",
-          "action": "view"
+          "plugin": "automation",
+          "action": "flow.view",
+          "resource_type": null
         }
       }
     },
@@ -7043,10 +7101,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "automation",
         "permission": {
-          "capability": "automation",
-          "action": "view"
+          "plugin": "automation",
+          "action": "flow.view",
+          "resource_type": null
         }
       }
     },
@@ -7091,10 +7150,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "boards",
         "permission": {
-          "capability": "boards",
-          "action": "view"
+          "plugin": "boards",
+          "action": "board.view",
+          "resource_type": null
         }
       }
     },
@@ -7136,10 +7196,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "boards",
         "permission": {
-          "capability": "boards",
-          "action": "write"
+          "plugin": "boards",
+          "action": "board.manage",
+          "resource_type": null
         }
       }
     },
@@ -7171,10 +7232,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "boards",
         "permission": {
-          "capability": "boards",
-          "action": "view"
+          "plugin": "boards",
+          "action": "board.view",
+          "resource_type": null
         }
       }
     },
@@ -7232,10 +7294,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "boards",
         "permission": {
-          "capability": "boards",
-          "action": "write"
+          "plugin": "boards",
+          "action": "board.manage",
+          "resource_type": null
         }
       }
     },
@@ -7267,10 +7330,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "boards",
         "permission": {
-          "capability": "boards",
-          "action": "delete"
+          "plugin": "boards",
+          "action": "board.delete",
+          "resource_type": null
         }
       }
     },
@@ -7321,10 +7385,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "boards",
         "permission": {
-          "capability": "boards",
-          "action": "view"
+          "plugin": "boards",
+          "action": "board.view",
+          "resource_type": null
         }
       }
     },
@@ -7371,10 +7436,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "boards",
         "permission": {
-          "capability": "boards",
-          "action": "write"
+          "plugin": "boards",
+          "action": "board.manage",
+          "resource_type": null
         }
       }
     },
@@ -7423,10 +7489,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "boards",
         "permission": {
-          "capability": "boards",
-          "action": "write"
+          "plugin": "boards",
+          "action": "board.manage",
+          "resource_type": null
         }
       }
     },
@@ -7484,10 +7551,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "boards",
         "permission": {
-          "capability": "boards",
-          "action": "view"
+          "plugin": "boards",
+          "action": "board.view",
+          "resource_type": null
         }
       }
     },
@@ -7550,10 +7618,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "boards",
         "permission": {
-          "capability": "boards",
-          "action": "write"
+          "plugin": "boards",
+          "action": "board.manage",
+          "resource_type": null
         }
       }
     },
@@ -7585,10 +7654,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "boards",
         "permission": {
-          "capability": "boards",
-          "action": "view"
+          "plugin": "boards",
+          "action": "board.view",
+          "resource_type": null
         }
       }
     },
@@ -7640,10 +7710,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "boards",
         "permission": {
-          "capability": "boards",
-          "action": "write"
+          "plugin": "boards",
+          "action": "board.manage",
+          "resource_type": null
         }
       }
     },
@@ -7675,10 +7746,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "boards",
         "permission": {
-          "capability": "boards",
-          "action": "delete"
+          "plugin": "boards",
+          "action": "board.delete",
+          "resource_type": null
         }
       }
     },
@@ -7732,10 +7804,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "boards",
         "permission": {
-          "capability": "boards",
-          "action": "write"
+          "plugin": "boards",
+          "action": "board.manage",
+          "resource_type": null
         }
       }
     },
@@ -7784,10 +7857,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "boards",
         "permission": {
-          "capability": "boards",
-          "action": "write"
+          "plugin": "boards",
+          "action": "board.manage",
+          "resource_type": null
         }
       }
     },
@@ -7838,10 +7912,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "boards",
         "permission": {
-          "capability": "boards",
-          "action": "view"
+          "plugin": "boards",
+          "action": "board.view",
+          "resource_type": null
         }
       }
     },
@@ -7888,10 +7963,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "boards",
         "permission": {
-          "capability": "boards",
-          "action": "write"
+          "plugin": "boards",
+          "action": "board.manage",
+          "resource_type": null
         }
       }
     },
@@ -7938,10 +8014,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "boards",
         "permission": {
-          "capability": "boards",
-          "action": "write"
+          "plugin": "boards",
+          "action": "board.manage",
+          "resource_type": null
         }
       }
     },
@@ -7973,10 +8050,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "boards",
         "permission": {
-          "capability": "boards",
-          "action": "delete"
+          "plugin": "boards",
+          "action": "board.delete",
+          "resource_type": null
         }
       }
     },
@@ -8034,10 +8112,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "boards",
         "permission": {
-          "capability": "boards",
-          "action": "view"
+          "plugin": "boards",
+          "action": "board.view",
+          "resource_type": null
         }
       }
     },
@@ -8090,10 +8169,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "analytics",
         "permission": {
-          "capability": "analytics",
-          "action": "view"
+          "plugin": "analytics",
+          "action": "view",
+          "resource_type": null
         }
       }
     },
@@ -8146,10 +8226,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "analytics",
         "permission": {
-          "capability": "analytics",
-          "action": "view"
+          "plugin": "analytics",
+          "action": "view",
+          "resource_type": null
         }
       }
     },
@@ -8190,10 +8271,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "analytics",
         "permission": {
-          "capability": "analytics",
-          "action": "delete"
+          "plugin": "analytics",
+          "action": "manage",
+          "resource_type": null
         }
       }
     },
@@ -8211,10 +8293,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "governance",
         "permission": {
-          "capability": "portable",
-          "action": "view"
+          "plugin": "governance",
+          "action": "portable.export",
+          "resource_type": null
         }
       }
     },
@@ -8691,10 +8774,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "governance",
         "permission": {
-          "capability": "portable",
-          "action": "write"
+          "plugin": "governance",
+          "action": "portable.import",
+          "resource_type": null
         }
       }
     },
@@ -8733,10 +8817,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "core",
         "permission": {
-          "capability": "credentials",
-          "action": "view"
+          "plugin": "core",
+          "action": "credentials.list",
+          "resource_type": null
         }
       }
     },
@@ -8783,10 +8868,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "core",
         "permission": {
-          "capability": "credentials",
-          "action": "write"
+          "plugin": "core",
+          "action": "credentials.manage",
+          "resource_type": null
         }
       }
     },
@@ -8840,10 +8926,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "core",
         "permission": {
-          "capability": "credentials",
-          "action": "write"
+          "plugin": "core",
+          "action": "credentials.manage",
+          "resource_type": null
         }
       }
     },
@@ -8875,10 +8962,11 @@
       },
       "x-mavi": {
         "authentication": "account_or_assistant",
-        "scope": "site",
+        "plugin": "core",
         "permission": {
-          "capability": "credentials",
-          "action": "delete"
+          "plugin": "core",
+          "action": "credentials.revoke",
+          "resource_type": null
         }
       }
     }

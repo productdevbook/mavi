@@ -10,9 +10,9 @@ description = "Content domain, application commands and site-scoped repository."
 base64.workspace = true
 chrono.workspace = true
 mavi-audit = { path = "../mavi-audit" }
+mavi-application = { path = "../mavi-application" }
 mavi-core = { path = "../mavi-core" }
 mavi-contract = { path = "../mavi-contract" }
-mavi-jobs = { path = "../mavi-jobs" }
 mavi-storage = { path = "../mavi-storage" }
 serde.workspace = true
 serde_json.workspace = true

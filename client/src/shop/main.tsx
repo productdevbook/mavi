@@ -6,6 +6,7 @@ import { I18nProvider } from "@lingui/react"
 import "@/index.css"
 import { activate, i18n } from "@/shop/i18n"
 import { App } from "@/shop/app"
+import { bootstrapActivePlugins } from "@/lib/api"
 import { reloadOnStaleChunk } from "@/lib/stale-chunk"
 
 /**
@@ -18,6 +19,7 @@ import { reloadOnStaleChunk } from "@/lib/stale-chunk"
 async function start() {
   reloadOnStaleChunk()
   await activate()
+  await bootstrapActivePlugins().catch(() => undefined)
 
   createRoot(document.getElementById("root")!).render(
     <StrictMode>

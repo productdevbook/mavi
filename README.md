@@ -13,8 +13,8 @@ shard lifecycle belong in `mavi-operator`.
 
 MIT. Run it, change it, sell it.
 
-- **Clean site boundary** — self-host uses one `FixedSiteResolver`; cloud uses
-  one shared shard router and resolves the site from an allowlisted host.
+- **Clean site boundary** — every process is one fixed `MAVI_SITE_ID`; host
+  routing and tenant lifecycle stay in the external control plane.
 - **Canonical API** — `/api/v1`, `/public/v1` and `/mcp` are described once and
   generate OpenAPI, TypeScript/Rust artifacts and MCP tool metadata.
 - **Cursor-only lists** — every public list uses opaque keyset cursors; page
@@ -24,7 +24,7 @@ MIT. Run it, change it, sell it.
 - **Observable runtime** — `/healthz`, `/readyz` and Prometheus `/metrics` are
   global operational endpoints, outside site admission.
 - **Everything is written down** — mutations are audited and background work
-  uses fenced, site-scoped queue leases.
+  uses transactional workflow intents relayed to Hatchet.
 
 ## Quick start
 
@@ -36,7 +36,12 @@ curl -O https://raw.githubusercontent.com/productdevbook/mavi/main/Caddyfile
   echo "POSTGRES_PASSWORD=$(openssl rand -hex 24)"
   echo "MAVI_KEYS=1:$(openssl rand -base64 32)"
   echo "MAVI_SITE_ID=$(uuidgen)"
+  echo "HATCHET_POSTGRES_PASSWORD=$(openssl rand -hex 24)"
+  echo "MAVI_HATCHET_BRIDGE_SECRET=$(openssl rand -hex 32)"
 } > .env
+docker compose up -d postgres hatchet
+# Create a Hatchet token at http://localhost:8888, append it to .env, then:
+echo "MAVI_HATCHET_TOKEN=replace-with-the-hatchet-token" >> .env
 docker compose up -d
 ```
 
@@ -81,8 +86,9 @@ password if they contain reserved URI characters.
 |---|---|
 | API | `ghcr.io/productdevbook/mavi` |
 | Panel | `ghcr.io/productdevbook/mavi-panel` |
+| Hatchet bridge | `ghcr.io/productdevbook/mavi-hatchet-worker` |
 
-Both are built for `linux/amd64` and `linux/arm64`.
+All published images are built for `linux/amd64` and `linux/arm64`.
 
 ### Configuration
 
@@ -93,7 +99,7 @@ The clean API reads these at its binary boundary:
 | `DATABASE_URL` | — | PostgreSQL. Required. |
 | `MAVI_KEYS` | — | What seals a site's secrets. `1:<thirty-two bytes, base64>`, and a version and comma for each older key. Required; the process refuses to start without it, and refuses to start on one it cannot read rather than making one up. |
 | `MAVI_SITE_ID` | — | Fixed-site UUID. Required and stable for the lifetime of the installation. |
-| `MAVI_RUNTIME_MODE` | `fixed_site` | `fixed_site` for self-host; `shard` is the cloud-shaped runtime. |
+| `MAVI_PROCESS_ROLE` | `all` | `all` runs API and outbox relay; `api` and `worker` split the processes. |
 | `MAVI_FILES_DIR` | `./mavi-files` / `/data/files` in the image | Persistent site-scoped binary storage. |
 | `LISTEN` | `0.0.0.0:8080` | HTTP listener address. |
 | `DATABASE_CONNECTIONS` | `10` | PostgreSQL pool size. |
@@ -107,20 +113,58 @@ The clean API reads these at its binary boundary:
 | `MAVI_MAIL_FROM` | — | Required when outbound mail is enabled; deployment default sender address. |
 | `MAVI_MAIL_FROM_NAME` | none | Optional deployment default display name. |
 | `MAVI_MAIL_ALLOWED_SENDER_DOMAINS` | default sender domain | Comma-separated domains allowed for site-configured sender identities. |
+| `MAVI_HATCHET_BRIDGE_URL` | bundled bridge | Private Go Hatchet adapter URL; use a private external bridge when supplied by the tenant repository. The published Compose topology pulls the versioned `mavi-hatchet-worker` image; the development topology builds it locally. |
+| `MAVI_HATCHET_BRIDGE_SECRET` | — | Shared secret between Rust and the private bridge; never sent to the browser. |
+| `MAVI_HATCHET_TOKEN` | — | Hatchet API token used only by the Go bridge. Create it in the Hatchet dashboard after first start. |
+| `MAVI_HATCHET_TENANT_ID` | — | Hatchet tenant UUID encoded by the token. |
+| `MAVI_HATCHET_NAMESPACE` | `mavi` | Hatchet namespace used by the bridge. |
+| `HATCHET_VERSION` | `v0.71.14` | Pinned bundled Hatchet image tag; override only with a tested compatible release. |
+| `MAVI_HATCHET_TLS_STRATEGY` | `none` for bundled Hatchet | Hatchet gRPC transport: `none`, `tls` or `mtls`. The bundled compose server is plaintext; secured external Hatchet deployments must provide the SDK certificate settings. |
+| `MAVI_HATCHET_RATE_LIMIT_PER_MINUTE` | `60` | Hatchet-side calls per minute from the bridge to the Rust executor. |
+| `MAVI_HATCHET_MAINTENANCE_CRON` | `*/5 * * * *` | Hatchet cron expression for the site-scoped maintenance tick. |
+| `MAVI_RUST_EXECUTOR_URL` | `http://api:8080` | Private Rust executor URL used by the Go bridge; in split mode use `http://worker:8091`. |
+| `MAVI_EXECUTOR_LISTEN` | `0.0.0.0:8091` | Private listener used by `MAVI_PROCESS_ROLE=worker`. |
 | `RUST_LOG` | `info` | |
 
-## Self-host and cloud boundary
+### Split API and worker processes
 
-Self-host is one fixed site, selected by `MAVI_SITE_ID` and admitted through a
-`FixedSiteResolver`. Cloud hosting is not part of this repository: the private
-operator owns organization and shard lifecycle, and mounts the same Mavi
-router with an allowlisted host-to-site snapshot.
+The default `all` role is enough for a single container. For separate
+deployment units, run the API and private Rust executor with the `split`
+profile; the Go bridge remains the only process that talks to Hatchet:
 
-Both modes use the same site-scoped application services and PostgreSQL
-transactions. No request can select an arbitrary site ID, and no cloud mode
-constructs a router or process per site. See the clean workspace
+```bash
+MAVI_PROCESS_ROLE=api \
+MAVI_RUST_EXECUTOR_URL=http://worker:8091 \
+docker compose -f docker-compose.yml --profile split up -d
+```
+
+The API and worker share the same `MAVI_SITE_ID`, database, files volume and
+sealing key. The worker's port `8091` is internal-only; expose the API, not the
+executor. The same topology is available from source with
+`docker-compose.dev.yml` and `--build`.
+
+## Single-site and tenant boundary
+
+Every Mavi process is one fixed site, selected by `MAVI_SITE_ID`. Host-to-site
+routing, shard runtime, billing, placement and lifecycle are outside this
+repository. A tenant/control-plane repository may provision and operate Mavi
+through its container and versioned HTTP/OpenAPI boundary.
+
+Site IDs, PostgreSQL RLS, composite foreign keys and site-bound encryption are
+still enforced because they are data-isolation and security boundaries, not
+tenant routing. See the clean workspace
 [`server/README.md`](server/README.md) for the runtime and contract
 details.
+
+Compiled product features are plugins. Fresh setup enables only `core` and
+`writing`; the Plugins screen enables or disables the other packages without
+deleting their data. The active registry gates routes, OpenAPI, MCP,
+navigation and workflow triggers at runtime.
+
+Durable work is relayed through the private Go Hatchet adapter. Rust writes a
+workflow intent in the same transaction as the domain mutation, and Hatchet
+receives only small IDs and idempotency keys. Hatchet uses a PostgreSQL
+database separate from Mavi's database.
 
 ## More than posts
 
@@ -233,7 +277,9 @@ server/         the clean API/runtime rewrite
   mavi-storage/      scoped PostgreSQL transactions and migrations
   mavi-contract/     canonical endpoint declarations and generators
   mavi-http/         request admission and API composition
-  mavi-runtime/      fixed-site and shared-shard runtime boundaries
+  mavi-runtime/      fixed single-site runtime boundary
+  mavi-application/   cross-domain use cases, plugins, Cedar and workflows
+  integrations/       private Hatchet bridge adapters
   mavi-<domain>/     one application/service boundary per site feature
 client/              generated-contract administrative panel and student area
 wordpress-plugin/    the WordPress migration plugin (GPLv2+)
@@ -247,7 +293,7 @@ writes in.
 
 | | |
 |---|---|
-| [ports.md](docs/ports.md) | what this software asks a host for, and why there is no plugins table |
+| [ports.md](docs/ports.md) | what this software asks a host for, and why integrations are ports |
 | [describing.md](docs/describing.md) | how the API describes itself, and what the panel is generated from |
 | [assistant.md](docs/assistant.md) | what an assistant can do here, and why there is no list of tools |
 | [serving.md](docs/serving.md) | what a visitor sees, and why a build is a folder and going live is a row |

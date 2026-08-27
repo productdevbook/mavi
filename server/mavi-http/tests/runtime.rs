@@ -11,7 +11,7 @@ use uuid::Uuid;
 #[tokio::test]
 #[ignore = "requires TEST_DATABASE_URL and a non-superuser PostgreSQL role"]
 async fn runtime_manifest_is_public_site_scoped_and_cursor_only() {
-    let app = support::build_app().await;
+    let app = support::build_app_with_default_plugins().await;
     let response = send(&app, Method::GET, "/api/v1/runtime/manifest", None, None).await;
 
     assert_eq!(response.status(), StatusCode::OK);
@@ -25,14 +25,18 @@ async fn runtime_manifest_is_public_site_scoped_and_cursor_only() {
     );
     assert_eq!(manifest["pagination"]["style"], "cursor");
     assert_eq!(manifest["pagination"]["max_limit"], 100);
+    assert_eq!(
+        manifest["active_plugins"],
+        serde_json::json!(["core", "writing"])
+    );
     assert!(manifest.get("page").is_none());
     assert!(manifest.get("offset").is_none());
 }
 
 #[tokio::test]
 #[ignore = "requires TEST_DATABASE_URL and a non-superuser PostgreSQL role"]
-async fn liveness_and_readiness_are_global_in_shard_mode() {
-    let app = support::build_shard_app().await;
+async fn liveness_and_readiness_are_global_in_single_site_mode() {
+    let app = support::build_app().await;
 
     let liveness = support::send(&app, Method::GET, "/healthz", None, None).await;
     assert_eq!(liveness.status(), StatusCode::OK);

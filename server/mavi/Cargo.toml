@@ -12,6 +12,8 @@ path = "src/main.rs"
 
 [dependencies]
 axum.workspace = true
+mavi-application = { path = "../mavi-application" }
+mavi-authz = { path = "../mavi-authz" }
 mavi-core = { path = "../mavi-core" }
 mavi-design = { path = "../mavi-design" }
 mavi-files = { path = "../mavi-files" }

@@ -16,7 +16,7 @@ use mavi_audit::{AuditEntry, AuditService};
 use mavi_contract::{Api, Endpoint, Method, Permission, Shape};
 use mavi_core::{
     Action, ApiKeyId, Caller, Capability, Cursor, EmailVerificationTokenId, ErrorCode, Grant,
-    Grants, MaviError, Page, PageRequest, PasswordResetTokenId, PersonId, Result, RoleId,
+    Grants, MaviError, Page, PageRequest, PasswordResetTokenId, PersonId, PluginId, Result, RoleId,
     SessionId, SiteContext, SiteId,
 };
 use mavi_storage::SiteTx;
@@ -190,10 +190,7 @@ pub fn api() -> Api {
             "auth.api_key.list",
             "List assistant API key metadata",
         )
-        .requires(Permission {
-            capability: Capability::People,
-            action: Action::View,
-        })
+        .requires(Permission::new(PluginId::Core, "credentials.list"))
         .takes_query("ApiKeyListFilter")
         .returns(200, "ApiKeyPage")
         .refuses([
@@ -207,10 +204,7 @@ pub fn api() -> Api {
             "auth.api_key.create",
             "Create an assistant API key",
         )
-        .requires(Permission {
-            capability: Capability::People,
-            action: Action::Write,
-        })
+        .requires(Permission::new(PluginId::Core, "credentials.manage"))
         .takes("CreateApiKey")
         .returns(201, "ApiKeyCreated")
         .changes(false)
@@ -226,10 +220,7 @@ pub fn api() -> Api {
             "Revoke an assistant API key",
         )
         .account_or_assistant()
-        .requires(Permission {
-            capability: Capability::People,
-            action: Action::Delete,
-        })
+        .requires(Permission::new(PluginId::Core, "credentials.revoke"))
         .returns(204, "Empty")
         .changes(false)
         .refuses([
@@ -244,10 +235,7 @@ pub fn api() -> Api {
             "List site people",
         )
         .account_or_assistant()
-        .requires(Permission {
-            capability: Capability::People,
-            action: Action::View,
-        })
+        .requires(Permission::new(PluginId::Core, "people.list"))
         .takes_query("PeopleListFilter")
         .returns(200, "PersonPage")
         .refuses([
@@ -262,10 +250,7 @@ pub fn api() -> Api {
             "Create a site person",
         )
         .account_or_assistant()
-        .requires(Permission {
-            capability: Capability::People,
-            action: Action::Write,
-        })
+        .requires(Permission::new(PluginId::Core, "people.create"))
         .takes("CreatePerson")
         .returns(201, "PersonRecord")
         .changes(false)
@@ -283,10 +268,7 @@ pub fn api() -> Api {
             "Update a person's status",
         )
         .account_or_assistant()
-        .requires(Permission {
-            capability: Capability::People,
-            action: Action::Write,
-        })
+        .requires(Permission::new(PluginId::Core, "people.update"))
         .takes("UpdatePersonStatus")
         .returns(200, "PersonRecord")
         .changes(true)
@@ -304,10 +286,7 @@ pub fn api() -> Api {
             "Replace a person's roles",
         )
         .account_or_assistant()
-        .requires(Permission {
-            capability: Capability::People,
-            action: Action::Write,
-        })
+        .requires(Permission::new(PluginId::Core, "people.update"))
         .takes("ReplacePersonRoles")
         .returns(200, "PersonRecord")
         .changes(true)
@@ -325,10 +304,7 @@ pub fn api() -> Api {
             "List site roles",
         )
         .account_or_assistant()
-        .requires(Permission {
-            capability: Capability::People,
-            action: Action::View,
-        })
+        .requires(Permission::new(PluginId::Core, "roles.list"))
         .takes_query("RoleListFilter")
         .returns(200, "RolePage")
         .refuses([
@@ -343,10 +319,7 @@ pub fn api() -> Api {
             "Create a site role",
         )
         .account_or_assistant()
-        .requires(Permission {
-            capability: Capability::People,
-            action: Action::Write,
-        })
+        .requires(Permission::new(PluginId::Core, "roles.manage"))
         .takes("CreateRole")
         .returns(201, "Role")
         .changes(false)
@@ -363,10 +336,7 @@ pub fn api() -> Api {
             "Delete an unassigned site role",
         )
         .account_or_assistant()
-        .requires(Permission {
-            capability: Capability::People,
-            action: Action::Delete,
-        })
+        .requires(Permission::new(PluginId::Core, "roles.manage"))
         .returns(204, "Empty")
         .changes(true)
         .refuses([
@@ -382,10 +352,7 @@ pub fn api() -> Api {
             "Replace a role grants set",
         )
         .account_or_assistant()
-        .requires(Permission {
-            capability: Capability::People,
-            action: Action::Write,
-        })
+        .requires(Permission::new(PluginId::Core, "roles.manage"))
         .takes("ReplaceRoleGrants")
         .returns(200, "Role")
         .changes(true)
@@ -524,10 +491,24 @@ fn identity_shapes() -> Vec<Shape> {
             json!({
                 "type": "object",
                 "additionalProperties": false,
-                "required": ["person", "grants"],
+                "required": ["person", "grants", "permissions"],
                 "properties": {
                     "person": {"$ref": "#/components/schemas/PersonRecord"},
                     "grants": {"type": "array", "items": {"$ref": "#/components/schemas/Grant"}},
+                    "permissions": {"type": "array", "items": {"$ref": "#/components/schemas/Permission"}},
+                },
+            }),
+        ),
+        Shape::new(
+            "Permission",
+            json!({
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["plugin", "action", "resource_type"],
+                "properties": {
+                    "plugin": {"type": "string"},
+                    "action": {"type": "string"},
+                    "resource_type": {"type": ["string", "null"]},
                 },
             }),
         ),
@@ -547,10 +528,11 @@ fn identity_shapes() -> Vec<Shape> {
             json!({
                 "type": "object",
                 "additionalProperties": false,
-                "required": ["name", "grants"],
+                "required": ["name"],
                 "properties": {
                     "name": {"type": "string", "maxLength": 120},
                     "grants": {"type": "array", "items": {"$ref": "#/components/schemas/Grant"}},
+                    "permissions": {"type": "array", "items": {"$ref": "#/components/schemas/Permission"}},
                     "expires_at": {"type": ["string", "null"], "format": "date-time"},
                 },
             }),
@@ -560,7 +542,7 @@ fn identity_shapes() -> Vec<Shape> {
             json!({
                 "type": "object",
                 "additionalProperties": false,
-                "required": ["id", "site_id", "person_id", "name", "prefix", "token", "grants", "expires_at", "created_at"],
+                "required": ["id", "site_id", "person_id", "name", "prefix", "token", "grants", "permissions", "expires_at", "created_at"],
                 "properties": {
                     "id": {"type": "string", "format": "uuid"},
                     "site_id": {"type": "string", "format": "uuid"},
@@ -569,6 +551,7 @@ fn identity_shapes() -> Vec<Shape> {
                     "prefix": {"type": "string", "maxLength": 16},
                     "token": {"type": "string"},
                     "grants": {"type": "array", "items": {"$ref": "#/components/schemas/Grant"}},
+                    "permissions": {"type": "array", "items": {"$ref": "#/components/schemas/Permission"}},
                     "expires_at": {"type": ["string", "null"], "format": "date-time"},
                     "created_at": {"type": "string", "format": "date-time"},
                 },
@@ -591,7 +574,7 @@ fn identity_shapes() -> Vec<Shape> {
             json!({
                 "type": "object",
                 "additionalProperties": false,
-                "required": ["id", "site_id", "person_id", "name", "prefix", "grants", "expires_at", "revoked_at", "created_at"],
+                "required": ["id", "site_id", "person_id", "name", "prefix", "grants", "permissions", "expires_at", "revoked_at", "created_at"],
                 "properties": {
                     "id": {"type": "string", "format": "uuid"},
                     "site_id": {"type": "string", "format": "uuid"},
@@ -599,6 +582,7 @@ fn identity_shapes() -> Vec<Shape> {
                     "name": {"type": "string"},
                     "prefix": {"type": "string", "maxLength": 16},
                     "grants": {"type": "array", "items": {"$ref": "#/components/schemas/Grant"}},
+                    "permissions": {"type": "array", "items": {"$ref": "#/components/schemas/Permission"}},
                     "expires_at": {"type": ["string", "null"], "format": "date-time"},
                     "revoked_at": {"type": ["string", "null"], "format": "date-time"},
                     "created_at": {"type": "string", "format": "date-time"},
@@ -706,12 +690,13 @@ fn identity_shapes() -> Vec<Shape> {
             "Role",
             json!({
                 "type": "object",
-                "required": ["id", "site_id", "name", "grants", "created_at", "protected"],
+                "required": ["id", "site_id", "name", "grants", "permissions", "created_at", "protected"],
                 "properties": {
                     "id": {"type": "string", "format": "uuid"},
                     "site_id": {"type": "string", "format": "uuid"},
                     "name": {"type": "string"},
                     "grants": {"type": "array", "items": {"$ref": "#/components/schemas/Grant"}},
+                    "permissions": {"type": "array", "items": {"$ref": "#/components/schemas/Permission"}},
                     "created_at": {"type": "string", "format": "date-time"},
                     "protected": {"type": "boolean"},
                 },
@@ -736,6 +721,7 @@ fn identity_shapes() -> Vec<Shape> {
                 "properties": {
                     "name": {"type": "string", "maxLength": 64},
                     "grants": {"type": "array", "items": {"$ref": "#/components/schemas/Grant"}},
+                    "permissions": {"type": "array", "items": {"$ref": "#/components/schemas/Permission"}},
                 },
             }),
         ),
@@ -743,9 +729,9 @@ fn identity_shapes() -> Vec<Shape> {
             "ReplaceRoleGrants",
             json!({
                 "type": "object",
-                "required": ["grants"],
                 "properties": {
                     "grants": {"type": "array", "items": {"$ref": "#/components/schemas/Grant"}},
+                    "permissions": {"type": "array", "items": {"$ref": "#/components/schemas/Permission"}},
                 },
             }),
         ),
@@ -1051,6 +1037,9 @@ pub struct Role {
     pub site_id: SiteId,
     pub name: RoleName,
     pub grants: Grants,
+    /// Canonical Cedar permissions. `grants` remains a wire-compatible
+    /// projection for older panel clients during the forward-only migration.
+    pub permissions: Vec<Permission>,
     pub created_at: DateTime<Utc>,
     pub protected: bool,
 }
@@ -1060,11 +1049,16 @@ pub struct CreateRole {
     pub name: String,
     #[serde(default)]
     pub grants: Vec<Grant>,
+    #[serde(default)]
+    pub permissions: Vec<Permission>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct ReplaceRoleGrants {
+    #[serde(default)]
     pub grants: Vec<Grant>,
+    #[serde(default)]
+    pub permissions: Vec<Permission>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -1078,6 +1072,7 @@ pub struct SessionCreated {
 pub struct CurrentSession {
     pub person: PersonRecord,
     pub grants: Grants,
+    pub permissions: Vec<Permission>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -1139,7 +1134,10 @@ impl fmt::Debug for EmailVerificationNotification {
 #[derive(Clone, Debug, Deserialize)]
 pub struct CreateApiKey {
     pub name: String,
+    #[serde(default)]
     pub grants: Vec<Grant>,
+    #[serde(default)]
+    pub permissions: Vec<Permission>,
     #[serde(default)]
     pub expires_at: Option<DateTime<Utc>>,
 }
@@ -1160,6 +1158,7 @@ pub struct ApiKeyCreated {
     pub prefix: String,
     pub token: String,
     pub grants: Grants,
+    pub permissions: Vec<Permission>,
     pub expires_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
 }
@@ -1172,11 +1171,15 @@ pub struct ApiKeyRecord {
     pub name: String,
     pub prefix: String,
     pub grants: Grants,
+    pub permissions: Vec<Permission>,
     pub expires_at: Option<DateTime<Utc>>,
     pub revoked_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
 }
 
+/// Site identity persistence and invariants. Authentication and authorization
+/// are application concerns: HTTP/application callers must authorize through
+/// Cedar before invoking these domain operations.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct IdentityService;
 
@@ -1274,13 +1277,17 @@ impl IdentityService {
         for capability in Capability::ALL {
             for action in Action::ALL {
                 sqlx::query(
-                    "insert into role_grants (site_id, role_id, capability, action)
-                     values ($1, $2, $3, $4)",
+                    "insert into role_grants
+                        (site_id, role_id, capability, action, permission, resource_type)
+                     values ($1, $2, $3, $4, $5, $6)
+                     on conflict (site_id, role_id, permission, resource_type) do nothing",
                 )
                 .bind(context.site_id.into_uuid())
                 .bind(role_id.into_uuid())
                 .bind(capability.as_str())
                 .bind(action.as_str())
+                .bind(Permission::from_legacy(capability, action).capability_key())
+                .bind("*")
                 .execute(tx.conn())
                 .await
                 .map_err(|_| MaviError::Internal)?;
@@ -1948,6 +1955,7 @@ impl IdentityService {
         Ok(CurrentSession {
             person: self.get_person(tx, context, *person_id).await?,
             grants: grants.clone(),
+            permissions: grants.permissions().to_vec(),
         })
     }
 
@@ -1984,7 +1992,6 @@ impl IdentityService {
         context: &SiteContext,
         filter: &PeopleListFilter,
     ) -> Result<Page<PersonRecord>> {
-        require_context_grant(context, Grant::new(Capability::People, Action::View))?;
         let after = filter
             .page
             .after
@@ -2050,7 +2057,6 @@ impl IdentityService {
         context: &SiteContext,
         input: &CreatePerson,
     ) -> Result<PersonRecord> {
-        require_context_grant(context, Grant::new(Capability::People, Action::Write))?;
         let email = Email::parse(&input.email)?;
         let name = PersonName::parse(&input.name)?;
         let password = Password::parse(input.password.clone())?;
@@ -2110,7 +2116,6 @@ impl IdentityService {
         input: &UpdatePersonStatus,
         now: DateTime<Utc>,
     ) -> Result<PersonRecord> {
-        require_context_grant(context, Grant::new(Capability::People, Action::Write))?;
         if matches!(
             context.caller,
             Caller::Account {
@@ -2185,7 +2190,6 @@ impl IdentityService {
         input: &ReplacePersonRoles,
         now: DateTime<Utc>,
     ) -> Result<PersonRecord> {
-        require_context_grant(context, Grant::new(Capability::People, Action::Write))?;
         let changes_current_person = match &context.caller {
             Caller::Account {
                 person_id: current_id,
@@ -2268,7 +2272,6 @@ impl IdentityService {
         context: &SiteContext,
         filter: &RoleListFilter,
     ) -> Result<Page<Role>> {
-        require_context_grant(context, Grant::new(Capability::People, Action::View))?;
         let after = filter
             .page
             .after
@@ -2323,9 +2326,9 @@ impl IdentityService {
         context: &SiteContext,
         input: &CreateRole,
     ) -> Result<Role> {
-        require_context_grant(context, Grant::new(Capability::People, Action::Write))?;
         let name = RoleName::parse(&input.name)?;
-        let grants = delegated_grants(context, &input.grants)?;
+        let permissions = requested_permissions(&input.permissions, &input.grants)?;
+        let grants = delegated_permission_grants(context, &permissions)?;
         let role_id = RoleId::new();
         let row = sqlx::query(
             "insert into roles (site_id, id, name) values ($1, $2, $3)
@@ -2337,8 +2340,11 @@ impl IdentityService {
         .fetch_one(tx.conn())
         .await
         .map_err(map_identity_write_error)?;
-        insert_role_grants(tx, context.site_id, role_id, &grants).await?;
-        let role = role_from_row(&row, Grants::new(grants.clone()))?;
+        insert_role_permissions(tx, context.site_id, role_id, &permissions).await?;
+        let role = role_from_row(
+            &row,
+            Grants::with_permissions(grants.clone(), permissions.clone()),
+        )?;
         AuditService
             .record(
                 tx,
@@ -2347,7 +2353,7 @@ impl IdentityService {
                     action: "people.role.created".to_owned(),
                     resource_type: "Role".to_owned(),
                     resource_id: Some(role_id.into_uuid()),
-                    payload: serde_json::json!({"grant_count": grants.len()}),
+                    payload: serde_json::json!({"permission_count": permissions.len()}),
                 },
             )
             .await?;
@@ -2360,8 +2366,6 @@ impl IdentityService {
         context: &SiteContext,
         role_id: RoleId,
     ) -> Result<()> {
-        require_context_grant(context, Grant::new(Capability::People, Action::Delete))?;
-
         let row = sqlx::query(
             "select name, system_role
                from roles
@@ -2435,8 +2439,8 @@ impl IdentityService {
         role_id: RoleId,
         input: &ReplaceRoleGrants,
     ) -> Result<Role> {
-        require_context_grant(context, Grant::new(Capability::People, Action::Write))?;
-        let grants = delegated_grants(context, &input.grants)?;
+        let permissions = requested_permissions(&input.permissions, &input.grants)?;
+        let _ = delegated_permission_grants(context, &permissions)?;
         let row = sqlx::query(
             "select name, system_role
                from roles
@@ -2464,7 +2468,7 @@ impl IdentityService {
             .execute(tx.conn())
             .await
             .map_err(|_| MaviError::Internal)?;
-        insert_role_grants(tx, context.site_id, role_id, &grants).await?;
+        insert_role_permissions(tx, context.site_id, role_id, &permissions).await?;
         let role = get_role(tx, context.site_id, role_id).await?;
         AuditService
             .record(
@@ -2474,7 +2478,7 @@ impl IdentityService {
                     action: "people.role.grants_replaced".to_owned(),
                     resource_type: "Role".to_owned(),
                     resource_id: Some(role_id.into_uuid()),
-                    payload: serde_json::json!({"grant_count": grants.len()}),
+                    payload: serde_json::json!({"permission_count": permissions.len()}),
                 },
             )
             .await?;
@@ -2490,7 +2494,6 @@ impl IdentityService {
         if !matches!(context.caller, Caller::Account { .. }) {
             return Err(MaviError::Forbidden);
         }
-        require_context_grant(context, Grant::new(Capability::People, Action::View))?;
         let after = filter
             .page
             .after
@@ -2551,7 +2554,6 @@ impl IdentityService {
         input: &CreateApiKey,
         now: DateTime<Utc>,
     ) -> Result<ApiKeyCreated> {
-        require_context_grant(context, Grant::new(Capability::People, Action::Write))?;
         let Caller::Account {
             person_id, grants, ..
         } = &context.caller
@@ -2562,18 +2564,11 @@ impl IdentityService {
         if name.is_empty() || name.chars().count() > 120 {
             return Err(MaviError::validation(API_KEY_NAME_INVALID));
         }
-        if input.grants.is_empty() {
+        let permissions = requested_permissions(&input.permissions, &input.grants)?;
+        if permissions.is_empty() {
             return Err(MaviError::validation(API_KEY_GRANTS_INVALID));
         }
-        let mut requested = Vec::new();
-        for grant in &input.grants {
-            if !grants.allows(*grant) {
-                return Err(MaviError::Forbidden);
-            }
-            if !requested.contains(grant) {
-                requested.push(*grant);
-            }
-        }
+        let requested = delegated_permission_grants_from(grants, &permissions)?;
         if input.expires_at.is_some_and(|expires_at| expires_at <= now) {
             return Err(MaviError::validation("api_key_expiry_invalid"));
         }
@@ -2597,15 +2592,21 @@ impl IdentityService {
         .await
         .map_err(|_| MaviError::Internal)?;
 
-        for grant in &requested {
+        for permission in &permissions {
+            let (capability, action) = permission.to_legacy().map_or((None, None), |grant| {
+                (Some(grant.capability.as_str()), Some(grant.action.as_str()))
+            });
             sqlx::query(
-                "insert into api_key_grants (site_id, key_id, capability, action)
-                 values ($1, $2, $3, $4)",
+                "insert into api_key_grants
+                    (site_id, key_id, capability, action, permission, resource_type)
+                 values ($1, $2, $3, $4, $5, $6)",
             )
             .bind(context.site_id.into_uuid())
             .bind(api_key_id.into_uuid())
-            .bind(grant.capability.as_str())
-            .bind(grant.action.as_str())
+            .bind(capability)
+            .bind(action)
+            .bind(permission.capability_key())
+            .bind(permission.resource_type.as_deref().unwrap_or("*"))
             .execute(tx.conn())
             .await
             .map_err(|_| MaviError::Internal)?;
@@ -2631,7 +2632,8 @@ impl IdentityService {
             name: name.to_owned(),
             prefix: prefix.to_owned(),
             token,
-            grants: Grants::new(requested),
+            grants: Grants::with_permissions(requested, permissions.clone()),
+            permissions,
             expires_at: input.expires_at,
             created_at: row.try_get("created_at").map_err(|_| MaviError::Internal)?,
         })
@@ -2644,7 +2646,6 @@ impl IdentityService {
         key_id: ApiKeyId,
         now: DateTime<Utc>,
     ) -> Result<()> {
-        require_context_grant(context, Grant::new(Capability::People, Action::Delete))?;
         match &context.caller {
             Caller::Assistant {
                 key_id: caller_key_id,
@@ -2775,6 +2776,7 @@ fn role_from_row(row: &sqlx::postgres::PgRow, grants: Grants) -> Result<Role> {
         id: RoleId::from_uuid(row.try_get("id").map_err(|_| MaviError::Internal)?),
         site_id: SiteId::from_uuid(row.try_get("site_id").map_err(|_| MaviError::Internal)?),
         name: RoleName::parse(&name).map_err(|_| MaviError::Internal)?,
+        permissions: grants.permissions().to_vec(),
         grants,
         created_at: row.try_get("created_at").map_err(|_| MaviError::Internal)?,
         protected: row.try_get("protected").map_err(|_| MaviError::Internal)?,
@@ -2788,6 +2790,7 @@ fn api_key_from_row(row: &sqlx::postgres::PgRow, grants: Grants) -> Result<ApiKe
         person_id: PersonId::from_uuid(row.try_get("person_id").map_err(|_| MaviError::Internal)?),
         name: row.try_get("name").map_err(|_| MaviError::Internal)?,
         prefix: row.try_get("prefix").map_err(|_| MaviError::Internal)?,
+        permissions: grants.permissions().to_vec(),
         grants,
         expires_at: row.try_get("expires_at").map_err(|_| MaviError::Internal)?,
         revoked_at: row.try_get("revoked_at").map_err(|_| MaviError::Internal)?,
@@ -2815,7 +2818,7 @@ async fn get_role(tx: &mut SiteTx, site_id: SiteId, role_id: RoleId) -> Result<R
 
 async fn grants_for_role(tx: &mut SiteTx, site_id: SiteId, role_id: RoleId) -> Result<Grants> {
     let rows = sqlx::query(
-        "select capability, action from role_grants
+        "select capability, action, permission, resource_type from role_grants
           where site_id = $1 and role_id = $2",
     )
     .bind(site_id.into_uuid())
@@ -2826,6 +2829,7 @@ async fn grants_for_role(tx: &mut SiteTx, site_id: SiteId, role_id: RoleId) -> R
     parse_grant_rows(rows)
 }
 
+#[cfg(test)]
 fn delegated_grants(context: &SiteContext, requested: &[Grant]) -> Result<Vec<Grant>> {
     let held = context.caller.grants().ok_or(MaviError::Forbidden)?;
     let mut grants = Vec::new();
@@ -2835,6 +2839,58 @@ fn delegated_grants(context: &SiteContext, requested: &[Grant]) -> Result<Vec<Gr
         }
         if !grants.contains(grant) {
             grants.push(*grant);
+        }
+    }
+    Ok(grants)
+}
+
+fn requested_permissions(permissions: &[Permission], grants: &[Grant]) -> Result<Vec<Permission>> {
+    let permissions = if permissions.is_empty() {
+        grants
+            .iter()
+            .map(|grant| Permission::from_legacy(grant.capability, grant.action))
+            .collect()
+    } else {
+        permissions.to_vec()
+    };
+    let mut unique = Vec::with_capacity(permissions.len());
+    for permission in permissions {
+        if !permission.is_valid()
+            || !permission
+                .plugin
+                .business_actions()
+                .contains(&permission.action.as_str())
+        {
+            return Err(MaviError::validation("permission_invalid"));
+        }
+        if !unique.contains(&permission) {
+            unique.push(permission);
+        }
+    }
+    Ok(unique)
+}
+
+fn delegated_permission_grants(
+    context: &SiteContext,
+    permissions: &[Permission],
+) -> Result<Vec<Grant>> {
+    let held = context.caller.grants().ok_or(MaviError::Forbidden)?;
+    delegated_permission_grants_from(held, permissions)
+}
+
+fn delegated_permission_grants_from(
+    held: &Grants,
+    permissions: &[Permission],
+) -> Result<Vec<Grant>> {
+    let mut grants = Vec::with_capacity(permissions.len());
+    for permission in permissions {
+        if !held.allows_permission(permission) {
+            return Err(MaviError::Forbidden);
+        }
+        if let Some(grant) = permission.to_legacy()
+            && !grants.contains(&grant)
+        {
+            grants.push(grant);
         }
     }
     Ok(grants)
@@ -2877,7 +2933,7 @@ async fn ensure_roles_are_delegable(
 
     let role_uuids: Vec<Uuid> = role_ids.iter().map(|role_id| role_id.into_uuid()).collect();
     let rows = sqlx::query(
-        "select capability, action from role_grants
+        "select capability, action, permission, resource_type from role_grants
           where site_id = $1 and role_id = any($2::uuid[])",
     )
     .bind(context.site_id.into_uuid())
@@ -2885,37 +2941,38 @@ async fn ensure_roles_are_delegable(
     .fetch_all(tx.conn())
     .await
     .map_err(|_| MaviError::Internal)?;
-    let grants = parse_grant_rows(rows)?;
-    if grants.as_slice().iter().any(|grant| !held.allows(*grant)) {
+    let permissions = parse_grant_rows(rows)?;
+    if permissions
+        .permissions()
+        .iter()
+        .any(|permission| !held.allows_permission(permission))
+    {
         return Err(MaviError::Forbidden);
     }
     Ok(())
 }
 
-fn require_context_grant(context: &SiteContext, grant: Grant) -> Result<()> {
-    context
-        .caller
-        .grants()
-        .filter(|grants| grants.allows(grant))
-        .map(|_| ())
-        .ok_or(MaviError::Forbidden)
-}
-
-async fn insert_role_grants(
+async fn insert_role_permissions(
     tx: &mut SiteTx,
     site_id: SiteId,
     role_id: RoleId,
-    grants: &[Grant],
+    permissions: &[Permission],
 ) -> Result<()> {
-    for grant in grants {
+    for permission in permissions {
+        let (capability, action) = permission.to_legacy().map_or((None, None), |grant| {
+            (Some(grant.capability.as_str()), Some(grant.action.as_str()))
+        });
         sqlx::query(
-            "insert into role_grants (site_id, role_id, capability, action)
-             values ($1, $2, $3, $4)",
+            "insert into role_grants
+                (site_id, role_id, capability, action, permission, resource_type)
+             values ($1, $2, $3, $4, $5, $6)",
         )
         .bind(site_id.into_uuid())
         .bind(role_id.into_uuid())
-        .bind(grant.capability.as_str())
-        .bind(grant.action.as_str())
+        .bind(capability)
+        .bind(action)
+        .bind(permission.capability_key())
+        .bind(permission.resource_type.as_deref().unwrap_or("*"))
         .execute(tx.conn())
         .await
         .map_err(|_| MaviError::Internal)?;
@@ -2956,7 +3013,7 @@ async fn grants_for_person(
     person_id: PersonId,
 ) -> Result<Grants> {
     let rows = sqlx::query(
-        "select rg.capability, rg.action from person_roles pr
+        "select rg.capability, rg.action, rg.permission, rg.resource_type from person_roles pr
            join role_grants rg on rg.site_id = pr.site_id and rg.role_id = pr.role_id
           where pr.site_id = $1 and pr.person_id = $2",
     )
@@ -2975,7 +3032,7 @@ async fn grants_for_api_key(
     key_id: ApiKeyId,
 ) -> Result<Grants> {
     let rows = sqlx::query(
-        "select capability, action from api_key_grants
+        "select capability, action, permission, resource_type from api_key_grants
           where site_id = $1 and key_id = $2",
     )
     .bind(site_id.into_uuid())
@@ -2989,20 +3046,43 @@ async fn grants_for_api_key(
 
 fn parse_grant_rows(rows: Vec<sqlx::postgres::PgRow>) -> Result<Grants> {
     let mut grants = Vec::with_capacity(rows.len());
+    let mut permissions = Vec::with_capacity(rows.len());
     for row in rows {
-        let capability: String = row.try_get("capability").map_err(|_| MaviError::Internal)?;
-        let action: String = row.try_get("action").map_err(|_| MaviError::Internal)?;
-        let capability = Capability::ALL
-            .into_iter()
-            .find(|candidate| candidate.as_str() == capability)
-            .ok_or(MaviError::Internal)?;
-        let action = Action::ALL
-            .into_iter()
-            .find(|candidate| candidate.as_str() == action)
-            .ok_or(MaviError::Internal)?;
-        grants.push(Grant::new(capability, action));
+        let capability: Option<String> =
+            row.try_get("capability").map_err(|_| MaviError::Internal)?;
+        let action: Option<String> = row.try_get("action").map_err(|_| MaviError::Internal)?;
+        let legacy = match (capability, action) {
+            (None, None) => None,
+            (Some(capability), Some(action)) => {
+                let capability = Capability::ALL
+                    .into_iter()
+                    .find(|candidate| candidate.as_str() == capability)
+                    .ok_or(MaviError::Internal)?;
+                let action = Action::ALL
+                    .into_iter()
+                    .find(|candidate| candidate.as_str() == action)
+                    .ok_or(MaviError::Internal)?;
+                Some((capability, action))
+            }
+            _ => return Err(MaviError::Internal),
+        };
+        let permission_key: String = row.try_get("permission").map_err(|_| MaviError::Internal)?;
+        let mut permission = Permission::from_key(&permission_key).ok_or(MaviError::Internal)?;
+        if let Some((capability, action)) = legacy {
+            if Permission::from_legacy(capability, action).capability_key() != permission_key {
+                return Err(MaviError::Internal);
+            }
+            grants.push(Grant::new(capability, action));
+        }
+        let resource_type: String = row
+            .try_get("resource_type")
+            .map_err(|_| MaviError::Internal)?;
+        if resource_type != "*" {
+            permission = permission.for_resource(resource_type);
+        }
+        permissions.push(permission);
     }
-    Ok(Grants::new(grants))
+    Ok(Grants::with_permissions(grants, permissions))
 }
 
 fn new_token() -> String {

@@ -26,9 +26,12 @@ async fn feedback_is_site_scoped_cursor_listable_and_audited() {
     database.migrate().await.expect("migrations");
     let first_site = SiteId::new();
     let second_site = SiteId::new();
-    database.ensure_site(first_site).await.expect("first site");
     database
-        .ensure_site(second_site)
+        .ensure_site_for_tests(first_site)
+        .await
+        .expect("first site");
+    database
+        .ensure_site_for_tests(second_site)
         .await
         .expect("second site");
 

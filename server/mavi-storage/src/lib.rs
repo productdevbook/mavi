@@ -5,8 +5,8 @@
 //! connection returned to the pool cannot carry one request's site into the
 //! next request.
 
-use mavi_core::{MaviError, Result, SiteContext, SiteId};
-use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+use mavi_core::{MaviError, PluginId, Result, SiteContext, SiteId};
+use sqlx::postgres::{PgConnectOptions, PgListener, PgPoolOptions};
 use sqlx::{PgPool, Postgres, Transaction};
 use uuid::Uuid;
 
@@ -15,28 +15,7 @@ use uuid::Uuid;
 /// It is part of the runtime compatibility contract exposed to the operator.
 /// Keep it next to the migration runner so a release cannot advertise a
 /// storage version independently from the migrations it ships.
-pub const CURRENT_SCHEMA_VERSION: u32 = 42;
-
-/// The lifecycle state stored in the shared shard catalog.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum SiteStatus {
-    Provisioning,
-    Active,
-    Suspended,
-    Removed,
-}
-
-impl SiteStatus {
-    #[must_use]
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::Provisioning => "provisioning",
-            Self::Active => "active",
-            Self::Suspended => "suspended",
-            Self::Removed => "removed",
-        }
-    }
-}
+pub const CURRENT_SCHEMA_VERSION: u32 = 57;
 
 #[derive(Clone, Debug)]
 pub struct Database {
@@ -65,7 +44,7 @@ impl Database {
     /// Checks the database connection used by runtime readiness probes.
     ///
     /// This intentionally does not open a site-scoped transaction: readiness
-    /// is a process/shard concern, not a request for one site's data.
+    /// is a process concern, not a request for one site's data.
     pub async fn health_check(&self) -> Result<()> {
         sqlx::query("select 1")
             .execute(&self.pool)
@@ -74,112 +53,106 @@ impl Database {
             .map_err(|_| MaviError::Internal)
     }
 
-    /// Creates a site catalog row without exposing an unscoped transaction to domains.
-    pub async fn ensure_site(&self, site_id: SiteId) -> Result<()> {
-        self.reconcile_sites([(site_id, SiteStatus::Active)]).await
+    /// Opens a dedicated `PostgreSQL` notification connection. Listeners are
+    /// intentionally not borrowed from request transactions: a long-lived
+    /// `LISTEN` connection must never hold a site mutation transaction open.
+    pub async fn listen(&self, channel: &str) -> Result<PgListener> {
+        let mut listener = PgListener::connect_with(&self.pool)
+            .await
+            .map_err(|_| MaviError::Internal)?;
+        listener
+            .listen(channel)
+            .await
+            .map_err(|_| MaviError::Internal)?;
+        Ok(listener)
     }
 
-    /// Applies a control-plane lifecycle snapshot as one catalog transaction.
-    ///
-    /// The caller owns host routing; this method only makes the shard's
-    /// durable status agree with the authoritative control snapshot. Existing
-    /// rows are updated instead of being deleted so removed sites remain
-    /// valid parents for retained audit and financial records.
-    pub async fn reconcile_sites(
-        &self,
-        sites: impl IntoIterator<Item = (SiteId, SiteStatus)>,
-    ) -> Result<()> {
-        let mut transaction = self.pool.begin().await.map_err(|_| MaviError::Internal)?;
+    /// Creates the one configured site and seeds the compiled plugin registry.
+    pub async fn ensure_site(&self, site_id: SiteId) -> Result<()> {
+        self.assert_single_site(site_id).await?;
+        self.ensure_site_row(site_id).await
+    }
 
-        for (site_id, status) in sites {
+    /// Creates a site for legacy PostgreSQL integration fixtures that need to
+    /// exercise RLS across multiple sites. Test fixtures also opt every
+    /// compiled plugin in so older domain acceptance tests can exercise their
+    /// worker paths explicitly; fresh runtime startup uses [`Self::ensure_site`]
+    /// and enables only core and writing.
+    ///
+    /// This is deliberately not used by runtime startup. It is available only
+    /// in debug builds and requires `TEST_DATABASE_URL`, so a production build
+    /// cannot accidentally bypass the single-site invariant.
+    #[doc(hidden)]
+    pub async fn ensure_site_for_tests(&self, site_id: SiteId) -> Result<()> {
+        if !cfg!(debug_assertions) || std::env::var_os("TEST_DATABASE_URL").is_none() {
+            return Err(MaviError::validation(
+                "test_site_helper_requires_test_database",
+            ));
+        }
+
+        sqlx::query("drop index if exists site_catalog_single_instance")
+            .execute(&self.pool)
+            .await
+            .map_err(|_| MaviError::Internal)?;
+        self.ensure_site_row(site_id).await?;
+        let context = SiteContext::public(site_id);
+        let mut transaction = self.begin(&context).await?;
+        sqlx::query("update site_plugins set enabled = true, updated_at = now()")
+            .execute(transaction.conn())
+            .await
+            .map_err(|_| MaviError::Internal)?;
+        transaction.commit().await
+    }
+
+    async fn ensure_site_row(&self, site_id: SiteId) -> Result<()> {
+        let mut transaction = self.pool.begin().await.map_err(|_| MaviError::Internal)?;
+        sqlx::query(
+            "insert into site_catalog (site_id)
+             values ($1)
+             on conflict (site_id) do nothing",
+        )
+        .bind(site_id.into_uuid())
+        .execute(&mut *transaction)
+        .await
+        .map_err(|_| MaviError::Internal)?;
+        sqlx::query("select set_config('app.site_id', $1, true)")
+            .bind(site_id.to_string())
+            .execute(&mut *transaction)
+            .await
+            .map_err(|_| MaviError::Internal)?;
+        for plugin_id in PluginId::ALL {
+            let enabled = PluginId::DEFAULT_ENABLED.contains(&plugin_id);
             sqlx::query(
-                "insert into site_catalog (site_id, status)
-                 values ($1, $2)
-                 on conflict (site_id) do update set status = excluded.status",
+                "insert into site_plugins (site_id, plugin_id, enabled)
+                 values ($1, $2, $3)
+                 on conflict (site_id, plugin_id) do nothing",
             )
             .bind(site_id.into_uuid())
-            .bind(status.as_str())
+            .bind(plugin_id.as_str())
+            .bind(enabled)
             .execute(&mut *transaction)
             .await
             .map_err(|_| MaviError::Internal)?;
         }
-
-        transaction
-            .commit()
-            .await
-            .map_err(|_| MaviError::Internal)?;
-
-        Ok(())
-    }
-
-    /// Acquires a site write fence for a relocation operation.
-    ///
-    /// A fence is token-owned. Repeating the same acquisition is idempotent;
-    /// a different token is refused so an old worker cannot take over or
-    /// replace a newer cutover operation.
-    pub async fn acquire_write_fence(
-        &self,
-        site_id: SiteId,
-        fence_token: Uuid,
-        reason: &str,
-    ) -> Result<()> {
-        if !(1..=120).contains(&reason.len()) || reason.chars().any(char::is_control) {
-            return Err(MaviError::validation("site_write_fence_reason_invalid"));
-        }
-
-        let mut transaction = self.pool.begin().await.map_err(|_| MaviError::Internal)?;
-        let existing: Option<Uuid> = sqlx::query_scalar(
-            "select fence_token from site_write_fences where site_id = $1 for update",
-        )
-        .bind(site_id.into_uuid())
-        .fetch_optional(&mut *transaction)
-        .await
-        .map_err(|_| MaviError::Internal)?;
-
-        match existing {
-            Some(existing) if existing != fence_token => {
-                return Err(MaviError::conflict("site_write_fence_owned"));
-            }
-            Some(_) => {}
-            None => {
-                sqlx::query(
-                    "insert into site_write_fences (site_id, fence_token, reason)
-                     values ($1, $2, $3)",
-                )
-                .bind(site_id.into_uuid())
-                .bind(fence_token)
-                .bind(reason)
-                .execute(&mut *transaction)
-                .await
-                .map_err(|_| MaviError::Internal)?;
-            }
-        }
-
         transaction.commit().await.map_err(|_| MaviError::Internal)
     }
 
-    /// Releases only the fence owned by `fence_token`. Releasing an already
-    /// gone fence is idempotent; a different active fence is left untouched.
-    pub async fn release_write_fence(&self, site_id: SiteId, fence_token: Uuid) -> Result<()> {
-        sqlx::query(
-            "delete from site_write_fences
-              where site_id = $1 and fence_token = $2",
-        )
-        .bind(site_id.into_uuid())
-        .bind(fence_token)
-        .execute(&self.pool)
-        .await
-        .map_err(|_| MaviError::Internal)?;
+    /// Refuses a database that still contains another site. This is the
+    /// single-site runtime preflight; tenant routing/provisioning belongs to
+    /// the external control-plane repository.
+    pub async fn assert_single_site(&self, site_id: SiteId) -> Result<()> {
+        let existing: Option<Uuid> =
+            sqlx::query_scalar("select site_id from site_catalog where site_id <> $1 limit 1")
+                .bind(site_id.into_uuid())
+                .fetch_optional(&self.pool)
+                .await
+                .map_err(|_| MaviError::Internal)?;
+        if existing.is_some() {
+            return Err(MaviError::validation(
+                "mavi_single_site_invariant_multiple_sites",
+            ));
+        }
         Ok(())
-    }
-
-    /// Reads the durable fence without opening a site-scoped transaction.
-    pub async fn is_write_fenced(&self, site_id: SiteId) -> Result<bool> {
-        sqlx::query_scalar("select exists(select 1 from site_write_fences where site_id = $1)")
-            .bind(site_id.into_uuid())
-            .fetch_one(&self.pool)
-            .await
-            .map_err(|_| MaviError::Internal)
     }
 
     pub async fn begin(&self, context: &SiteContext) -> Result<SiteTx> {
@@ -190,16 +163,25 @@ impl Database {
             .await
             .map_err(|_| MaviError::Internal)?;
 
-        Ok(SiteTx { transaction })
+        Ok(SiteTx {
+            transaction,
+            site_id: context.site_id,
+        })
     }
 }
 
 #[derive(Debug)]
 pub struct SiteTx {
     transaction: Transaction<'static, Postgres>,
+    site_id: SiteId,
 }
 
 impl SiteTx {
+    #[must_use]
+    pub const fn site_id(&self) -> SiteId {
+        self.site_id
+    }
+
     #[must_use]
     pub fn conn(&mut self) -> &mut sqlx::PgConnection {
         &mut self.transaction
@@ -215,16 +197,8 @@ impl SiteTx {
 
 #[cfg(test)]
 mod tests {
-    use crate::{CURRENT_SCHEMA_VERSION, SiteStatus};
+    use crate::CURRENT_SCHEMA_VERSION;
     use mavi_core::Capability;
-
-    #[test]
-    fn site_statuses_match_the_catalog_contract() {
-        assert_eq!(SiteStatus::Provisioning.as_str(), "provisioning");
-        assert_eq!(SiteStatus::Active.as_str(), "active");
-        assert_eq!(SiteStatus::Suspended.as_str(), "suspended");
-        assert_eq!(SiteStatus::Removed.as_str(), "removed");
-    }
 
     #[test]
     #[allow(clippy::too_many_lines)]
@@ -392,6 +366,15 @@ mod tests {
         let write_fence_migration = include_str!("../migrations/0024_site_write_fences.sql");
         assert!(write_fence_migration.contains("create table site_write_fences"));
         assert!(write_fence_migration.contains("fence_token uuid not null"));
+        let single_site_cleanup = include_str!("../migrations/0047_single_site_cleanup.sql");
+        assert!(single_site_cleanup.contains("drop table if exists site_write_fences"));
+        assert!(single_site_cleanup.contains("drop column if exists status"));
+        let workflow_migration = include_str!("../migrations/0044_workflows.sql");
+        assert!(workflow_migration.contains("unique (site_id, idempotency_key)"));
+        assert!(workflow_migration.contains("foreign key (site_id, idempotency_key)"));
+        let workflow_key_migration =
+            include_str!("../migrations/0048_site_scoped_workflow_keys.sql");
+        assert!(workflow_key_migration.contains("primary key (site_id, idempotency_key)"));
 
         let password_recovery_migration = include_str!("../migrations/0025_password_recovery.sql");
         assert!(password_recovery_migration.contains("create table password_reset_tokens"));
@@ -489,7 +472,29 @@ mod tests {
             boards_flows_trash_migration
                 .contains("where archived_at is null and deleted_at is null")
         );
-        assert_eq!(CURRENT_SCHEMA_VERSION, 42);
+        let workflow_fencing_migration =
+            include_str!("../migrations/0052_workflow_execution_fencing.sql");
+        assert!(workflow_fencing_migration.contains("add column if not exists attempts integer"));
+        assert!(workflow_fencing_migration.contains("claim_token uuid"));
+        assert!(workflow_fencing_migration.contains("workflow_runs_claim_expiry"));
+        let namespaced_permission_migration =
+            include_str!("../migrations/0053_namespaced_permissions.sql");
+        assert!(namespaced_permission_migration.contains("role_grants_permission_check"));
+        assert!(namespaced_permission_migration.contains("api_key_grants_permission_check"));
+        assert!(namespaced_permission_migration.contains("writing.content.entry.list"));
+        let permission_scope_migration =
+            include_str!("../migrations/0054_permission_resource_scope.sql");
+        assert!(permission_scope_migration.contains("resource_type"));
+        assert!(permission_scope_migration.contains("permission, resource_type"));
+        let permission_namespace_migration =
+            include_str!("../migrations/0055_normalize_namespaced_permissions.sql");
+        assert!(permission_namespace_migration.contains("canonical storage key"));
+        assert!(permission_namespace_migration.contains("governance."));
+        let nullable_projection_migration =
+            include_str!("../migrations/0056_nullable_legacy_permission_projection.sql");
+        assert!(nullable_projection_migration.contains("drop not null"));
+        assert!(nullable_projection_migration.contains("legacy_projection_check"));
+        assert_eq!(CURRENT_SCHEMA_VERSION, 57);
     }
 
     #[test]

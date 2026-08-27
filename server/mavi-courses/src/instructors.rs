@@ -74,14 +74,8 @@ pub struct CourseInstructor {
 
 #[allow(clippy::too_many_lines)]
 pub fn api() -> mavi_contract::Api {
-    let view = Permission {
-        capability: Capability::Courses,
-        action: Action::View,
-    };
-    let write = Permission {
-        capability: Capability::Courses,
-        action: Action::Write,
-    };
+    let view = Permission::from_legacy(Capability::Courses, Action::View);
+    let write = Permission::from_legacy(Capability::Courses, Action::Write);
     mavi_contract::Api::new(vec![
         Endpoint::new(
             Method::Get,
@@ -90,7 +84,7 @@ pub fn api() -> mavi_contract::Api {
             "List resource-scoped instructors for a course",
         )
         .account_or_assistant()
-        .requires(view)
+        .requires(view.clone())
         .takes_query("CourseInstructorListFilter")
         .returns(200, "CourseInstructorPage")
         .refuses([
@@ -106,7 +100,7 @@ pub fn api() -> mavi_contract::Api {
             "Replace one instructor's resource-scoped course grants",
         )
         .account_or_assistant()
-        .requires(write)
+        .requires(write.clone())
         .takes("ReplaceCourseInstructor")
         .returns(200, "CourseInstructor")
         .changes(true)
@@ -124,7 +118,7 @@ pub fn api() -> mavi_contract::Api {
             "Remove one instructor from a course",
         )
         .account_or_assistant()
-        .requires(write)
+        .requires(write.clone())
         .returns(204, "Empty")
         .changes(true)
         .refuses([

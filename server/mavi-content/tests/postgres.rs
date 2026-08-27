@@ -21,8 +21,14 @@ async fn content_types_are_site_scoped_and_validate_content_fields() {
 
     let first = SiteId::new();
     let second = SiteId::new();
-    database.ensure_site(first).await.expect("first site");
-    database.ensure_site(second).await.expect("second site");
+    database
+        .ensure_site_for_tests(first)
+        .await
+        .expect("first site");
+    database
+        .ensure_site_for_tests(second)
+        .await
+        .expect("second site");
 
     let service = ContentService;
     let first_context = SiteContext::public(first);
@@ -182,8 +188,14 @@ async fn content_revisions_and_slug_history_are_site_scoped() {
 
     let first = SiteId::new();
     let second = SiteId::new();
-    database.ensure_site(first).await.expect("first site");
-    database.ensure_site(second).await.expect("second site");
+    database
+        .ensure_site_for_tests(first)
+        .await
+        .expect("first site");
+    database
+        .ensure_site_for_tests(second)
+        .await
+        .expect("second site");
 
     let service = ContentService;
     let first_context = SiteContext::public(first);
@@ -362,7 +374,7 @@ async fn restoring_a_revision_creates_a_new_draft_and_audit_receipt() {
     database.migrate().await.expect("migrations");
 
     let site_id = SiteId::new();
-    database.ensure_site(site_id).await.expect("site");
+    database.ensure_site_for_tests(site_id).await.expect("site");
     let context = SiteContext::public(site_id);
     let service = ContentService;
     let mut tx = database.begin(&context).await.expect("scope");

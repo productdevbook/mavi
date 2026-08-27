@@ -1,7 +1,13 @@
 /* eslint-disable react-refresh/only-export-components -- file-based route convention */
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 
-import { BoardPage } from "@/features/boards/board-page"
+import { lazyRoute } from "@/lib/lazy-route"
+
+const BoardPage = lazyRoute(() =>
+  import("@/features/boards/board-page").then(({ BoardPage }) => ({
+    default: BoardPage,
+  })),
+)
 
 export const Route = createFileRoute("/dashboard/boards_/$boardId")({
   component: BoardRoute,

@@ -2,7 +2,16 @@
 import { createFileRoute } from "@tanstack/react-router"
 
 import { requireAuth } from "@/lib/auth-guard"
-import { MaviEditor } from "@/components/editor/mavi-editor"
+import { lazyRoute } from "@/lib/lazy-route"
+import { Allowed } from "@/components/dashboard/allowed"
+import { PermissionProvider } from "@/lib/permissions"
+import { PluginProvider } from "@/lib/plugins"
+
+const MaviEditor = lazyRoute(() =>
+  import("@/components/editor/mavi-editor").then(({ MaviEditor }) => ({
+    default: MaviEditor,
+  })),
+)
 
 export const Route = createFileRoute("/editor/new")({
   // The language has to be settled before the first autosave creates the row —
@@ -26,12 +35,19 @@ export const Route = createFileRoute("/editor/new")({
 
 function NewPostRoute() {
   const { locale, translationOf, kind } = Route.useSearch()
+  const { user } = Route.useRouteContext()
   return (
-    <MaviEditor
-      postId={null}
-      locale={locale}
-      translationOf={translationOf}
-      kind={kind}
-    />
+    <PluginProvider>
+      <PermissionProvider grants={user.grants} permissions={user.permissions}>
+        <Allowed>
+          <MaviEditor
+            postId={null}
+            locale={locale}
+            translationOf={translationOf}
+            kind={kind}
+          />
+        </Allowed>
+      </PermissionProvider>
+    </PluginProvider>
   )
 }

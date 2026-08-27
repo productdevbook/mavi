@@ -8,22 +8,18 @@
 
 use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
 use chrono::{DateTime, NaiveDate, Utc};
+use mavi_application::{JobKind, WorkflowScheduler};
 use mavi_audit::{AuditEntry, AuditService};
 use mavi_contract::{Endpoint, Method, Permission, Shape};
 use mavi_core::{
     Action, AnalyticsEventId, AnalyticsRetentionPolicy, Capability, Cursor, ErrorCode, JobId,
     MaviError, Page, PageRequest, Result, SiteContext,
 };
-use mavi_jobs::{JobKind, JobsService};
 use mavi_storage::SiteTx;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sqlx::{Postgres, QueryBuilder, Row};
 use uuid::Uuid;
-
-mod relocation;
-
-pub use relocation::{AnalyticsDailyRelocation, AnalyticsEventRelocation, AnalyticsRelocation};
 
 pub const MAX_BATCH: usize = 100;
 pub const MAX_EVENT_NAME: usize = 120;
@@ -118,14 +114,8 @@ pub struct AnalyticsService;
 #[must_use]
 #[allow(clippy::too_many_lines)]
 pub fn api() -> mavi_contract::Api {
-    let view = Permission {
-        capability: Capability::Analytics,
-        action: Action::View,
-    };
-    let delete = Permission {
-        capability: Capability::Analytics,
-        action: Action::Delete,
-    };
+    let view = Permission::from_legacy(Capability::Analytics, Action::View);
+    let delete = Permission::from_legacy(Capability::Analytics, Action::Delete);
     mavi_contract::Api::new(vec![
         Endpoint::new(
             Method::Post,
@@ -148,7 +138,7 @@ pub fn api() -> mavi_contract::Api {
             "Export recent raw analytics events",
         )
         .account_or_assistant()
-        .requires(view)
+        .requires(view.clone())
         .takes_query("EventListFilter")
         .returns(200, "AnalyticsEventPage")
         .refuses([
@@ -163,7 +153,7 @@ pub fn api() -> mavi_contract::Api {
             "List daily analytics aggregates",
         )
         .account_or_assistant()
-        .requires(view)
+        .requires(view.clone())
         .takes_query("DailyListFilter")
         .returns(200, "DailyAggregatePage")
         .refuses([
@@ -178,7 +168,7 @@ pub fn api() -> mavi_contract::Api {
             "Delete raw and aggregate analytics data outside retention windows",
         )
         .account_or_assistant()
-        .requires(delete)
+        .requires(delete.clone())
         .takes("PruneAnalytics")
         .returns(200, "PruneReceipt")
         .changes(false)
@@ -268,7 +258,7 @@ impl AnalyticsService {
         &self,
         tx: &mut SiteTx,
         context: &SiteContext,
-        jobs: &JobsService,
+        jobs: &WorkflowScheduler,
         now: DateTime<Utc>,
     ) -> Result<JobId> {
         let bucket = now

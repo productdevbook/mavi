@@ -15,6 +15,8 @@ use std::{
     },
 };
 
+use mavi_core::ports::{AuthorizationObserver, AuthorizationOutcome};
+
 /// Counters owned by one Mavi process.
 #[derive(Clone, Debug, Default)]
 pub struct RuntimeMetrics {
@@ -23,8 +25,24 @@ pub struct RuntimeMetrics {
 
 #[derive(Debug, Default)]
 struct RuntimeMetricCounters {
+    authorization: Arc<AuthorizationMetricCounters>,
     http: HttpMetricCounters,
     worker: Arc<WorkerMetricCounters>,
+}
+
+#[derive(Debug, Default)]
+struct AuthorizationMetricCounters {
+    allowed: AtomicU64,
+    denied: AtomicU64,
+    errors: AtomicU64,
+}
+
+/// A copyable view of low-cardinality Cedar decisions.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct AuthorizationMetricsSnapshot {
+    pub allowed: u64,
+    pub denied: u64,
+    pub errors: u64,
 }
 
 #[derive(Debug, Default)]
@@ -82,11 +100,31 @@ pub struct WorkerMetricsSnapshot {
 /// A consistent view of all metrics exported by one process.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct RuntimeMetricsSnapshot {
+    pub authorization: AuthorizationMetricsSnapshot,
     pub http: HttpMetricsSnapshot,
     pub worker: WorkerMetricsSnapshot,
 }
 
 impl RuntimeMetrics {
+    /// Records one Cedar decision without retaining request-specific labels.
+    pub fn record_authorization(&self, outcome: AuthorizationOutcome) {
+        match outcome {
+            AuthorizationOutcome::Allowed => increment(&self.inner.authorization.allowed),
+            AuthorizationOutcome::Denied => increment(&self.inner.authorization.denied),
+            AuthorizationOutcome::EvaluationError => increment(&self.inner.authorization.errors),
+        }
+    }
+
+    /// Returns the current authorization decision counters.
+    #[must_use]
+    pub fn authorization_metrics(&self) -> AuthorizationMetricsSnapshot {
+        AuthorizationMetricsSnapshot {
+            allowed: load(&self.inner.authorization.allowed),
+            denied: load(&self.inner.authorization.denied),
+            errors: load(&self.inner.authorization.errors),
+        }
+    }
+
     /// Returns the worker handle backed by this registry.
     #[must_use]
     pub fn worker_metrics(&self) -> WorkerMetrics {
@@ -112,6 +150,7 @@ impl RuntimeMetrics {
     #[must_use]
     pub fn snapshot(&self) -> RuntimeMetricsSnapshot {
         RuntimeMetricsSnapshot {
+            authorization: self.authorization_metrics(),
             http: HttpMetricsSnapshot {
                 requests: load(&self.inner.http.requests),
                 responses_2xx: load(&self.inner.http.responses_2xx),
@@ -128,6 +167,25 @@ impl RuntimeMetrics {
     pub fn prometheus(&self) -> String {
         let snapshot = self.snapshot();
         let mut output = String::new();
+
+        counter(
+            &mut output,
+            "mavi_authorization_allowed_total",
+            "Cedar authorization decisions allowed.",
+            snapshot.authorization.allowed,
+        );
+        counter(
+            &mut output,
+            "mavi_authorization_denied_total",
+            "Cedar authorization decisions denied.",
+            snapshot.authorization.denied,
+        );
+        counter(
+            &mut output,
+            "mavi_authorization_errors_total",
+            "Cedar authorization evaluation errors.",
+            snapshot.authorization.errors,
+        );
 
         counter(
             &mut output,
@@ -187,6 +245,12 @@ impl RuntimeMetrics {
         );
 
         output
+    }
+}
+
+impl AuthorizationObserver for RuntimeMetrics {
+    fn record_authorization(&self, outcome: AuthorizationOutcome) {
+        self.record_authorization(outcome);
     }
 }
 
@@ -289,9 +353,15 @@ mod tests {
     fn prometheus_output_has_stable_counter_families() {
         let metrics = RuntimeMetrics::default();
         metrics.record_http_response(503);
+        metrics.record_authorization(AuthorizationOutcome::Allowed);
+        metrics.record_authorization(AuthorizationOutcome::Denied);
+        metrics.record_authorization(AuthorizationOutcome::EvaluationError);
         metrics.worker_metrics().record_error();
 
         let output = metrics.prometheus();
+        assert!(output.contains("# TYPE mavi_authorization_allowed_total counter"));
+        assert!(output.contains("mavi_authorization_denied_total 1"));
+        assert!(output.contains("mavi_authorization_errors_total 1"));
         assert!(output.contains("# TYPE mavi_http_requests_total counter"));
         assert!(output.contains("mavi_http_responses_total{status_class=\"5xx\"} 1"));
         assert!(output.contains("# TYPE mavi_worker_errors_total counter"));

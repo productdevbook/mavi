@@ -52,10 +52,7 @@ pub fn endpoints() -> Vec<Endpoint> {
             "List site content types",
         )
         .account_or_assistant()
-        .requires(Permission {
-            capability: Capability::Content,
-            action: Action::View,
-        })
+        .requires(Permission::from_legacy(Capability::Content, Action::View))
         .takes_query("ContentTypeListFilter")
         .returns(200, "ContentTypePage")
         .refuses([
@@ -70,10 +67,7 @@ pub fn endpoints() -> Vec<Endpoint> {
             "Create or update a site content type",
         )
         .account_or_assistant()
-        .requires(Permission {
-            capability: Capability::Content,
-            action: Action::Write,
-        })
+        .requires(Permission::from_legacy(Capability::Content, Action::Write))
         .takes("DeclareContentType")
         .returns(200, "ContentType")
         .changes(true)
@@ -89,10 +83,7 @@ pub fn endpoints() -> Vec<Endpoint> {
             "Delete a site content type declaration",
         )
         .account_or_assistant()
-        .requires(Permission {
-            capability: Capability::Content,
-            action: Action::Delete,
-        })
+        .requires(Permission::from_legacy(Capability::Content, Action::Delete))
         .returns(204, "Empty")
         .changes(false)
         .refuses([

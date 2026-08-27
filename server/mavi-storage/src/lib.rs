@@ -35,10 +35,74 @@ impl Database {
     }
 
     pub async fn migrate(&self) -> Result<()> {
-        sqlx::migrate!("./migrations")
-            .run(&self.pool)
+        // Migration 0053 backfills the canonical permission projection for
+        // legacy role grants. System-role rows are normally immutable, so
+        // their protection trigger has to be bypassed for this one-time
+        // compatibility transition. Keep the old migration file immutable:
+        // this guard also works for databases that already ran earlier
+        // migrations and therefore cannot safely receive a checksum change.
+        let legacy_permission_backfill = self.prepare_legacy_permission_backfill().await?;
+        let migration_result = sqlx::migrate!("./migrations").run(&self.pool).await;
+
+        if legacy_permission_backfill {
+            sqlx::query(
+                "alter table role_grants
+                 enable trigger role_grants_system_role_protected",
+            )
+            .execute(&self.pool)
             .await
-            .map_err(|_| MaviError::Internal)
+            .map_err(|_| MaviError::Internal)?;
+        }
+
+        migration_result.map_err(|_| MaviError::Internal)
+    }
+
+    async fn prepare_legacy_permission_backfill(&self) -> Result<bool> {
+        let migrations_exist: bool =
+            sqlx::query_scalar("select to_regclass('public._sqlx_migrations') is not null")
+                .fetch_one(&self.pool)
+                .await
+                .map_err(|_| MaviError::Internal)?;
+        if !migrations_exist {
+            return Ok(false);
+        }
+
+        let needs_backfill: bool = sqlx::query_scalar(
+            "select exists (
+                 select 1
+                   from _sqlx_migrations
+                  where version = 52 and success
+             )
+             and not exists (
+                 select 1
+                   from _sqlx_migrations
+                  where version = 53 and success
+             )
+             and exists (select 1 from role_grants)
+             and exists (
+                 select 1
+                   from pg_trigger
+                  where tgrelid = 'public.role_grants'::regclass
+                    and tgname = 'role_grants_system_role_protected'
+                    and not tgisinternal
+             )",
+        )
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|_| MaviError::Internal)?;
+        if !needs_backfill {
+            return Ok(false);
+        }
+
+        sqlx::query(
+            "alter table role_grants
+             disable trigger role_grants_system_role_protected",
+        )
+        .execute(&self.pool)
+        .await
+        .map_err(|_| MaviError::Internal)?;
+
+        Ok(true)
     }
 
     /// Checks the database connection used by runtime readiness probes.

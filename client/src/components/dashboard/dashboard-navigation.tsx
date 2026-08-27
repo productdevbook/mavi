@@ -19,6 +19,7 @@ import {
 } from "@/lib/dashboard-navigation"
 import { surfaceMark } from "@/lib/surface"
 import { usePermissions } from "@/lib/permissions"
+import { usePlugins } from "@/lib/plugins"
 
 interface DashboardNavigationProps {
   siteName?: string
@@ -32,8 +33,13 @@ export function DashboardNavigation({
 }: DashboardNavigationProps) {
   const { t } = useLingui()
   const { can } = usePermissions()
+  const { activePlugins, ready: pluginsReady } = usePlugins()
   const matchRoute = useMatchRoute()
-  const visibleGroups = visibleDashboardNavigation(groups, can)
+  const visibleGroups = visibleDashboardNavigation(
+    groups,
+    can,
+    pluginsReady ? activePlugins : new Set(),
+  )
 
   return (
     <Sidebar collapsible="icon">

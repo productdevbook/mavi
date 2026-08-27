@@ -28,9 +28,12 @@ async fn trash_lists_restores_and_permanently_deletes_site_resources() {
 
     let first_site = SiteId::new();
     let second_site = SiteId::new();
-    database.ensure_site(first_site).await.expect("first site");
     database
-        .ensure_site(second_site)
+        .ensure_site_for_tests(first_site)
+        .await
+        .expect("first site");
+    database
+        .ensure_site_for_tests(second_site)
         .await
         .expect("second site");
 
@@ -105,80 +108,6 @@ async fn trash_lists_restores_and_permanently_deletes_site_resources() {
         .await
         .expect("trash file");
     transaction.commit().await.expect("commit");
-
-    let relocation_site = SiteId::new();
-    database
-        .ensure_site(relocation_site)
-        .await
-        .expect("relocation site");
-    let mut transaction = database.begin(&context).await.expect("export transaction");
-    let relocation = trash_service
-        .export_for_relocation(&mut transaction, &context, &store)
-        .await
-        .expect("export trash relocation");
-    assert_eq!(relocation.source_site_id, first_site);
-    assert_eq!(relocation.content.len(), 1);
-    assert!(!relocation.revisions.is_empty());
-    assert_eq!(relocation.terms.len(), 1);
-    assert_eq!(relocation.files.len(), 1);
-    assert_eq!(relocation.files[0].id, file.id.into_uuid());
-    transaction.commit().await.expect("export commit");
-
-    let relocation_context = SiteContext::public(relocation_site);
-    let mut relocation = relocation;
-    relocation.source_site_id = relocation_site;
-    let mut transaction = database
-        .begin(&relocation_context)
-        .await
-        .expect("relocation transaction");
-    trash_service
-        .import_for_relocation(&mut transaction, &relocation_context, &store, &relocation)
-        .await
-        .expect("import trash relocation");
-    let imported = trash_service
-        .list(
-            &mut transaction,
-            &relocation_context,
-            &TrashListFilter::default(),
-        )
-        .await
-        .expect("imported trash list");
-    assert_eq!(imported.items.len(), 3);
-    trash_service
-        .restore(
-            &mut transaction,
-            &relocation_context,
-            TrashKind::Content,
-            content_entry.id.into_uuid(),
-        )
-        .await
-        .expect("restore imported content");
-    trash_service
-        .restore(
-            &mut transaction,
-            &relocation_context,
-            TrashKind::Term,
-            term.id.into_uuid(),
-        )
-        .await
-        .expect("restore imported term");
-    trash_service
-        .restore(
-            &mut transaction,
-            &relocation_context,
-            TrashKind::File,
-            file.id.into_uuid(),
-        )
-        .await
-        .expect("restore imported file");
-    assert_eq!(
-        store
-            .get(&relocation_context, &relocation.files[0].storage_key)
-            .await
-            .expect("imported file bytes"),
-        PNG
-    );
-    transaction.commit().await.expect("relocation commit");
 
     let mut transaction = database.begin(&context).await.expect("transaction");
     let first_page = trash_service
@@ -332,9 +261,9 @@ async fn board_and_flow_trash_restore_preserves_state_and_purges_children() {
 
     let site_id = SiteId::new();
     let other_site_id = SiteId::new();
-    database.ensure_site(site_id).await.expect("site");
+    database.ensure_site_for_tests(site_id).await.expect("site");
     database
-        .ensure_site(other_site_id)
+        .ensure_site_for_tests(other_site_id)
         .await
         .expect("other site");
     let context = SiteContext::public(site_id);
@@ -620,9 +549,9 @@ async fn form_trash_restores_and_permanently_deletes_submissions_with_the_form()
 
     let site_id = SiteId::new();
     let other_site_id = SiteId::new();
-    database.ensure_site(site_id).await.expect("site");
+    database.ensure_site_for_tests(site_id).await.expect("site");
     database
-        .ensure_site(other_site_id)
+        .ensure_site_for_tests(other_site_id)
         .await
         .expect("other site");
 
@@ -765,9 +694,9 @@ async fn shop_trash_restores_and_permanently_deletes_products_and_coupons() {
 
     let site_id = SiteId::new();
     let other_site_id = SiteId::new();
-    database.ensure_site(site_id).await.expect("site");
+    database.ensure_site_for_tests(site_id).await.expect("site");
     database
-        .ensure_site(other_site_id)
+        .ensure_site_for_tests(other_site_id)
         .await
         .expect("other site");
 
@@ -963,7 +892,7 @@ async fn shop_product_trash_refuses_permanent_delete_while_stock_is_held() {
     let database = Database::connect(&url, 2).await.expect("database");
     database.migrate().await.expect("migrations");
     let site_id = SiteId::new();
-    database.ensure_site(site_id).await.expect("site");
+    database.ensure_site_for_tests(site_id).await.expect("site");
     let context = SiteContext::public(site_id);
     let shop = ShopService;
     let trash = TrashService;
@@ -1058,9 +987,9 @@ async fn course_and_student_trash_preserves_learning_state_until_purge() {
 
     let site_id = SiteId::new();
     let other_site_id = SiteId::new();
-    database.ensure_site(site_id).await.expect("site");
+    database.ensure_site_for_tests(site_id).await.expect("site");
     database
-        .ensure_site(other_site_id)
+        .ensure_site_for_tests(other_site_id)
         .await
         .expect("other site");
     let context = SiteContext::public(site_id);

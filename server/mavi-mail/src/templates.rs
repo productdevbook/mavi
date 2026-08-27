@@ -89,18 +89,9 @@ pub fn api() -> mavi_contract::Api {
 
 #[allow(clippy::too_many_lines)]
 fn endpoints() -> Vec<Endpoint> {
-    let view = Permission {
-        capability: Capability::Mail,
-        action: Action::View,
-    };
-    let write = Permission {
-        capability: Capability::Mail,
-        action: Action::Write,
-    };
-    let delete = Permission {
-        capability: Capability::Mail,
-        action: Action::Delete,
-    };
+    let view = Permission::from_legacy(Capability::Mail, Action::View);
+    let write = Permission::from_legacy(Capability::Mail, Action::Write);
+    let delete = Permission::from_legacy(Capability::Mail, Action::Delete);
     vec![
         Endpoint::new(
             Method::Get,
@@ -109,7 +100,7 @@ fn endpoints() -> Vec<Endpoint> {
             "List site mail templates with an opaque cursor",
         )
         .account_or_assistant()
-        .requires(view)
+        .requires(view.clone())
         .takes_query("MailTemplateListFilter")
         .returns(200, "MailTemplatePage")
         .refuses([
@@ -124,7 +115,7 @@ fn endpoints() -> Vec<Endpoint> {
             "Create a validated site mail template",
         )
         .account_or_assistant()
-        .requires(write)
+        .requires(write.clone())
         .takes("CreateMailTemplate")
         .returns(201, "MailTemplate")
         .changes(false)
@@ -141,7 +132,7 @@ fn endpoints() -> Vec<Endpoint> {
             "Read one site mail template",
         )
         .account_or_assistant()
-        .requires(view)
+        .requires(view.clone())
         .returns(200, "MailTemplate")
         .refuses([
             ErrorCode::Forbidden,
@@ -155,7 +146,7 @@ fn endpoints() -> Vec<Endpoint> {
             "Update mail template wording without changing its identity",
         )
         .account_or_assistant()
-        .requires(write)
+        .requires(write.clone())
         .takes("UpdateMailTemplate")
         .returns(200, "MailTemplate")
         .changes(true)
@@ -172,7 +163,7 @@ fn endpoints() -> Vec<Endpoint> {
             "Remove a site mail template from the active catalog",
         )
         .account_or_assistant()
-        .requires(delete)
+        .requires(delete.clone())
         .returns(204, "Empty")
         .changes(false)
         .refuses([
@@ -187,7 +178,7 @@ fn endpoints() -> Vec<Endpoint> {
             "Render a mail template without enqueueing or sending it",
         )
         .account_or_assistant()
-        .requires(view)
+        .requires(view.clone())
         .takes("MailTemplatePreview")
         .returns(200, "RenderedMail")
         .changes(false)

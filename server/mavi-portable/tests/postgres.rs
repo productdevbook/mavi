@@ -1,16 +1,14 @@
 use std::env;
 
 use chrono::Utc;
-use mavi_core::{SiteContext, SiteId, ports::FileStore};
+use mavi_core::{SiteContext, SiteId};
 use mavi_design::{
     BuildEngine, DesignFileInput, DesignService, StartDesignChange, StaticBuildEngine,
 };
 use mavi_files::InMemoryFileStore;
-use mavi_identity::{IdentityService, LoginInput, SetupInput};
+use mavi_identity::{IdentityService, SetupInput};
 use mavi_media::{FileVisibility, MediaService};
-use mavi_portable::{
-    ImportStrategy, PortableImportRequest, PortableRelocationRequest, PortableService,
-};
+use mavi_portable::{ImportStrategy, PortableImportRequest, PortableService};
 use mavi_storage::Database;
 use serde_json::json;
 use uuid::Uuid;
@@ -29,11 +27,11 @@ async fn portable_bundles_export_cross_site_import_and_reject_conflicts() {
     let source_site = SiteId::new();
     let target_site = SiteId::new();
     database
-        .ensure_site(source_site)
+        .ensure_site_for_tests(source_site)
         .await
         .expect("source site");
     database
-        .ensure_site(target_site)
+        .ensure_site_for_tests(target_site)
         .await
         .expect("target site");
 
@@ -136,7 +134,7 @@ async fn portable_bundles_export_cross_site_import_and_reject_conflicts() {
         )
         .await
         .expect("source media");
-    let live_media_file = MediaService
+    let _live_media_file = MediaService
         .upload(
             &mut tx,
             &source_context,
@@ -240,26 +238,6 @@ async fn portable_bundles_export_cross_site_import_and_reject_conflicts() {
     .await
     .expect("trash source media");
 
-    let relocation_bundle = portable
-        .export_for_relocation(&mut tx, &source_context, &files)
-        .await
-        .expect("identity relocation export");
-    assert_eq!(relocation_bundle.identity.people.len(), 1);
-    assert_eq!(relocation_bundle.identity.roles.len(), 1);
-    assert_eq!(relocation_bundle.credentials.len(), 1);
-    assert_eq!(relocation_bundle.media.files.len(), 1);
-    assert_eq!(relocation_bundle.media.files[0].id, live_media_file.id);
-    assert_eq!(relocation_bundle.design.changes.len(), 1);
-    assert_eq!(relocation_bundle.design.files.len(), 1);
-    assert_eq!(relocation_bundle.design.builds.len(), 1);
-    assert_eq!(relocation_bundle.design.artifacts.len(), 1);
-    assert!(!relocation_bundle.audit.events.is_empty());
-    assert_eq!(relocation_bundle.trash.content.len(), 1);
-    assert!(!relocation_bundle.trash.revisions.is_empty());
-    assert_eq!(relocation_bundle.trash.terms.len(), 1);
-    assert_eq!(relocation_bundle.trash.assignments.len(), 1);
-    assert_eq!(relocation_bundle.trash.files.len(), 1);
-    let source_audit = relocation_bundle.audit.events.clone();
     tx.commit().await.expect("source commit");
 
     let target_context = SiteContext::public(target_site);
@@ -331,129 +309,4 @@ async fn portable_bundles_export_cross_site_import_and_reject_conflicts() {
         .await
         .expect_err("create-only import must reject existing rows");
     assert!(matches!(conflict, mavi_core::MaviError::Conflict { .. }));
-
-    let relocation_site = SiteId::new();
-    database
-        .ensure_site(relocation_site)
-        .await
-        .expect("relocation site");
-    let relocation_context = SiteContext::public(relocation_site);
-    let mut relocation_bundle = relocation_bundle;
-    relocation_bundle.bundle.manifest.source_site_id = relocation_site;
-    relocation_bundle.audit.source_site_id = relocation_site;
-    relocation_bundle.trash.source_site_id = relocation_site;
-    relocation_bundle.forms.source_site_id = relocation_site;
-    relocation_bundle.mail.source_site_id = relocation_site;
-    relocation_bundle.shop.source_site_id = relocation_site;
-    relocation_bundle.courses.source_site_id = relocation_site;
-    relocation_bundle.jobs.source_site_id = relocation_site;
-    relocation_bundle.flows.source_site_id = relocation_site;
-    relocation_bundle.boards.source_site_id = relocation_site;
-    relocation_bundle.analytics.source_site_id = relocation_site;
-    let mut relocation_tx = database
-        .begin(&relocation_context)
-        .await
-        .expect("relocation scope");
-    // A real rollback targets the original source site, where the protected
-    // owner role and its grants already exist. Keep that state in this
-    // integration fixture so relocation proves it is idempotent for system
-    // grants instead of only working against an empty site.
-    let owner_role = &relocation_bundle.identity.roles[0];
-    let owner_grant = &relocation_bundle.identity.role_grants[0];
-    sqlx::query(
-        "insert into roles (site_id, id, name, created_at, system_role)
-         values ($1, $2, $3, $4, true)",
-    )
-    .bind(relocation_site.into_uuid())
-    .bind(owner_role.id)
-    .bind(&owner_role.name)
-    .bind(owner_role.created_at)
-    .execute(relocation_tx.conn())
-    .await
-    .expect("existing protected owner role");
-    sqlx::query(
-        "insert into role_grants (site_id, role_id, capability, action)
-         values ($1, $2, $3, $4)",
-    )
-    .bind(relocation_site.into_uuid())
-    .bind(owner_grant.role_id)
-    .bind(&owner_grant.capability)
-    .bind(&owner_grant.action)
-    .execute(relocation_tx.conn())
-    .await
-    .expect("existing protected owner grant");
-    portable
-        .relocate(
-            &mut relocation_tx,
-            &relocation_context,
-            &PortableRelocationRequest {
-                bundle: relocation_bundle,
-                strategy: ImportStrategy::Upsert,
-            },
-            &files,
-        )
-        .await
-        .expect("relocation into a fresh site");
-    let relocated = portable
-        .export_for_relocation(&mut relocation_tx, &relocation_context, &files)
-        .await
-        .expect("relocated export");
-    assert_eq!(relocated.bundle.site.name, "Source site");
-    assert_eq!(relocated.identity.people.len(), 1);
-    assert_eq!(relocated.identity.roles.len(), 1);
-    assert!(relocated.identity.roles[0].system_role);
-    assert_eq!(relocated.credentials.len(), 1);
-    assert_eq!(relocated.media.files.len(), 1);
-    assert_eq!(
-        files
-            .get(&relocation_context, &relocated.media.files[0].storage_key)
-            .await
-            .expect("relocated media"),
-        b"\x89PNG\r\n\x1a\nlive"
-    );
-    assert_eq!(relocated.media.files[0].id, live_media_file.id);
-    assert_eq!(relocated.trash.content.len(), 1);
-    assert_eq!(relocated.trash.terms.len(), 1);
-    assert_eq!(relocated.trash.assignments.len(), 1);
-    assert_eq!(relocated.trash.files.len(), 1);
-    assert_eq!(
-        files
-            .get(&relocation_context, &relocated.trash.files[0].storage_key)
-            .await
-            .expect("relocated trashed media"),
-        b"\x89PNG\r\n\x1a\n\x00\x00"
-    );
-    assert_eq!(relocated.design.changes.len(), 1);
-    assert_eq!(
-        relocated.design.changes[0].state,
-        mavi_design::DesignState::Published
-    );
-    assert_eq!(relocated.design.artifacts.len(), 1);
-    assert!(!relocated.audit.events.is_empty());
-    for event in source_audit {
-        assert!(relocated.audit.events.contains(&event));
-    }
-    assert_eq!(
-        files
-            .get(
-                &relocation_context,
-                &relocated.design.artifacts[0].storage_key
-            )
-            .await
-            .expect("relocated design artifact"),
-        b"<h1>Source design</h1>"
-    );
-    IdentityService
-        .create_session(
-            &mut relocation_tx,
-            &relocation_context,
-            &LoginInput {
-                email: "owner@example.com".to_owned(),
-                password: "a-test-password-that-is-long-enough".to_owned(),
-            },
-            Utc::now(),
-        )
-        .await
-        .expect("relocated owner can log in");
-    relocation_tx.commit().await.expect("relocation commit");
 }

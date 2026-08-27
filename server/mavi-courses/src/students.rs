@@ -118,18 +118,9 @@ pub struct Enrollment {
 #[must_use]
 #[allow(clippy::too_many_lines)]
 pub fn api() -> mavi_contract::Api {
-    let view = Permission {
-        capability: Capability::Courses,
-        action: Action::View,
-    };
-    let write = Permission {
-        capability: Capability::Courses,
-        action: Action::Write,
-    };
-    let delete = Permission {
-        capability: Capability::Courses,
-        action: Action::Delete,
-    };
+    let view = Permission::from_legacy(Capability::Courses, Action::View);
+    let write = Permission::from_legacy(Capability::Courses, Action::Write);
+    let delete = Permission::from_legacy(Capability::Courses, Action::Delete);
     mavi_contract::Api::new([
         Endpoint::new(
             Method::Get,
@@ -138,7 +129,7 @@ pub fn api() -> mavi_contract::Api {
             "List course students with an opaque cursor",
         )
         .account_or_assistant()
-        .requires(view)
+        .requires(view.clone())
         .takes_query("StudentListFilter")
         .returns(200, "StudentPage")
         .refuses([ErrorCode::Forbidden, ErrorCode::Validation, ErrorCode::Internal]),
@@ -149,7 +140,7 @@ pub fn api() -> mavi_contract::Api {
             "Create a student invitation",
         )
         .account_or_assistant()
-        .requires(write)
+        .requires(write.clone())
         .takes("CreateStudent")
         .returns(201, "StudentInvitation")
         .changes(false)
@@ -166,7 +157,7 @@ pub fn api() -> mavi_contract::Api {
             "Rotate an unanswered student invitation",
         )
         .account_or_assistant()
-        .requires(write)
+        .requires(write.clone())
         .returns(200, "StudentInvitation")
         .changes(false)
         .refuses([
@@ -182,7 +173,7 @@ pub fn api() -> mavi_contract::Api {
             "Update a student name or standing",
         )
         .account_or_assistant()
-        .requires(write)
+        .requires(write.clone())
         .takes("UpdateStudent")
         .returns(200, "Student")
         .changes(false)
@@ -200,7 +191,7 @@ pub fn api() -> mavi_contract::Api {
             "Move a student and learning history to site trash",
         )
         .account_or_assistant()
-        .requires(delete)
+        .requires(delete.clone())
         .returns(204, "Empty")
         .changes(false)
         .refuses([
@@ -215,7 +206,7 @@ pub fn api() -> mavi_contract::Api {
             "List enrollments for a course with an opaque cursor",
         )
         .account_or_assistant()
-        .requires(view)
+        .requires(view.clone())
         .resource_scoped()
         .takes_query("EnrollmentListFilter")
         .returns(200, "EnrollmentPage")
@@ -227,7 +218,7 @@ pub fn api() -> mavi_contract::Api {
             "Enroll a learning student idempotently",
         )
         .account_or_assistant()
-        .requires(write)
+        .requires(write.clone())
         .resource_scoped()
         .takes("EnrollStudent")
         .returns(201, "Enrollment")
@@ -246,7 +237,7 @@ pub fn api() -> mavi_contract::Api {
             "Remove an enrollment while retaining lesson progress",
         )
         .account_or_assistant()
-        .requires(delete)
+        .requires(delete.clone())
         .resource_scoped()
         .returns(204, "Empty")
         .changes(false)

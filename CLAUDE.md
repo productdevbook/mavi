@@ -66,16 +66,16 @@ set inside the transaction, never on the pooled connection:
 
     select set_config('app.site_id', $1, true)
 
-That is the belt to `fixed_site`'s braces, and it is what lets the same crates
-serve a shard where one process does hold many sites.
+That is the belt around `fixed_site`'s braces: each process owns one configured
+site, while any multi-site hosting product stays outside this repository.
 
 Running many sites on one machine is a hosting product built on top of this,
 not a mode inside it.
 
 `mavi-core` is what every other crate is built out of: the identifiers, the
 errors, cursor pages, and the site vocabulary. `mavi-storage` owns the pool and
-the site-scoped transaction, `mavi-audit` the receipt, `mavi-jobs` the fenced
-queue.
+the site-scoped transaction, `mavi-audit` the receipt, and Hatchet owns durable
+workflow delivery through the Rust outbox and Go bridge.
 
 What a hosting business needs — metering, billing, a console over many sites —
 is built on this rather than in it, and lives in its own repository.

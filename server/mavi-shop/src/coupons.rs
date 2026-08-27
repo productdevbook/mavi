@@ -91,18 +91,9 @@ pub fn api() -> mavi_contract::Api {
 }
 
 fn endpoints() -> Vec<Endpoint> {
-    let view = Permission {
-        capability: Capability::Shop,
-        action: Action::View,
-    };
-    let write = Permission {
-        capability: Capability::Shop,
-        action: Action::Write,
-    };
-    let delete = Permission {
-        capability: Capability::Shop,
-        action: Action::Delete,
-    };
+    let view = Permission::from_legacy(Capability::Shop, Action::View);
+    let write = Permission::from_legacy(Capability::Shop, Action::Write);
+    let delete = Permission::from_legacy(Capability::Shop, Action::Delete);
     vec![
         Endpoint::new(
             Method::Get,
@@ -111,7 +102,7 @@ fn endpoints() -> Vec<Endpoint> {
             "List site coupons with an opaque cursor",
         )
         .account_or_assistant()
-        .requires(view)
+        .requires(view.clone())
         .takes_query("CouponListFilter")
         .returns(200, "CouponPage")
         .refuses([
@@ -126,7 +117,7 @@ fn endpoints() -> Vec<Endpoint> {
             "Create a percentage or amount coupon",
         )
         .account_or_assistant()
-        .requires(write)
+        .requires(write.clone())
         .takes("CreateCoupon")
         .returns(201, "Coupon")
         .changes(false)
@@ -143,7 +134,7 @@ fn endpoints() -> Vec<Endpoint> {
             "Remove a coupon from the active catalog",
         )
         .account_or_assistant()
-        .requires(delete)
+        .requires(delete.clone())
         .returns(204, "Empty")
         .changes(true)
         .refuses([

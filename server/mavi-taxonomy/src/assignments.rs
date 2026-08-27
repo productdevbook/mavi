@@ -28,10 +28,7 @@ pub fn endpoints() -> Vec<Endpoint> {
             "List terms assigned to content",
         )
         .account_or_assistant()
-        .requires(Permission {
-            capability: Capability::Taxonomy,
-            action: Action::View,
-        })
+        .requires(Permission::from_legacy(Capability::Taxonomy, Action::View))
         .returns(200, "TermList")
         .refuses([
             ErrorCode::Forbidden,
@@ -45,10 +42,7 @@ pub fn endpoints() -> Vec<Endpoint> {
             "Replace terms assigned to content",
         )
         .account_or_assistant()
-        .requires(Permission {
-            capability: Capability::Taxonomy,
-            action: Action::Write,
-        })
+        .requires(Permission::from_legacy(Capability::Taxonomy, Action::Write))
         .takes("ReplaceContentTerms")
         .returns(200, "TermList")
         .changes(true)
@@ -65,10 +59,7 @@ pub fn endpoints() -> Vec<Endpoint> {
             "List content assigned to a term",
         )
         .account_or_assistant()
-        .requires(Permission {
-            capability: Capability::Taxonomy,
-            action: Action::View,
-        })
+        .requires(Permission::from_legacy(Capability::Taxonomy, Action::View))
         .takes_query("ContentTermAssignmentListFilter")
         .returns(200, "ContentTermAssignmentPage")
         .refuses([

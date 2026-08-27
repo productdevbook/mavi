@@ -130,18 +130,9 @@ pub fn api() -> mavi_contract::Api {
 
 #[allow(clippy::too_many_lines)]
 fn endpoints() -> Vec<Endpoint> {
-    let view = Permission {
-        capability: Capability::Mail,
-        action: Action::View,
-    };
-    let write = Permission {
-        capability: Capability::Mail,
-        action: Action::Write,
-    };
-    let delete = Permission {
-        capability: Capability::Mail,
-        action: Action::Delete,
-    };
+    let view = Permission::from_legacy(Capability::Mail, Action::View);
+    let write = Permission::from_legacy(Capability::Mail, Action::Write);
+    let delete = Permission::from_legacy(Capability::Mail, Action::Delete);
     vec![
         Endpoint::new(
             Method::Get,
@@ -150,7 +141,7 @@ fn endpoints() -> Vec<Endpoint> {
             "List site mailing lists with an opaque cursor",
         )
         .account_or_assistant()
-        .requires(view)
+        .requires(view.clone())
         .takes_query("MailListListFilter")
         .returns(200, "MailListPage")
         .refuses([
@@ -165,7 +156,7 @@ fn endpoints() -> Vec<Endpoint> {
             "Create a site mailing list",
         )
         .account_or_assistant()
-        .requires(write)
+        .requires(write.clone())
         .takes("CreateMailList")
         .returns(201, "MailList")
         .changes(false)
@@ -182,7 +173,7 @@ fn endpoints() -> Vec<Endpoint> {
             "Read one site mailing list",
         )
         .account_or_assistant()
-        .requires(view)
+        .requires(view.clone())
         .returns(200, "MailList")
         .refuses([
             ErrorCode::Forbidden,
@@ -196,7 +187,7 @@ fn endpoints() -> Vec<Endpoint> {
             "Rename a site mailing list",
         )
         .account_or_assistant()
-        .requires(write)
+        .requires(write.clone())
         .takes("UpdateMailList")
         .returns(200, "MailList")
         .changes(true)
@@ -213,7 +204,7 @@ fn endpoints() -> Vec<Endpoint> {
             "Remove a site mailing list from the active catalog",
         )
         .account_or_assistant()
-        .requires(delete)
+        .requires(delete.clone())
         .returns(204, "Empty")
         .changes(false)
         .refuses([
@@ -228,7 +219,7 @@ fn endpoints() -> Vec<Endpoint> {
             "List one mailing list's readers with an opaque cursor",
         )
         .account_or_assistant()
-        .requires(view)
+        .requires(view.clone())
         .takes_query("ReaderListFilter")
         .returns(200, "MailReaderPage")
         .refuses([
@@ -244,7 +235,7 @@ fn endpoints() -> Vec<Endpoint> {
             "Add or find a reader on a mailing list",
         )
         .account_or_assistant()
-        .requires(write)
+        .requires(write.clone())
         .takes("AddReader")
         .returns(201, "MailReaderCreated")
         .changes(false)
@@ -262,7 +253,7 @@ fn endpoints() -> Vec<Endpoint> {
             "Forget a site reader and their list memberships",
         )
         .account_or_assistant()
-        .requires(delete)
+        .requires(delete.clone())
         .returns(204, "Empty")
         .changes(false)
         .refuses([

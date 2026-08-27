@@ -1,7 +1,13 @@
 /* eslint-disable react-refresh/only-export-components -- file-based route convention */
 import { createFileRoute } from "@tanstack/react-router"
 
-import { FormDetailPage } from "@/features/forms/form-detail-page"
+import { lazyRoute } from "@/lib/lazy-route"
+
+const FormDetailPage = lazyRoute(() =>
+  import("@/features/forms/form-detail-page").then(({ FormDetailPage }) => ({
+    default: FormDetailPage,
+  })),
+)
 
 export const Route = createFileRoute("/dashboard/forms_/$formId")({
   component: FormDetailRoute,

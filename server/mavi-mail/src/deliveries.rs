@@ -1,8 +1,9 @@
 use chrono::{DateTime, Utc};
+use mavi_application::{WorkflowIntent, WorkflowService};
 use mavi_contract::{Endpoint, Method, Permission, Shape};
 use mavi_core::{
     Action, Capability, ErrorCode, MailDeliveryId, MailListId, MailSender, MailTemplateId,
-    MaviError, Page, PageRequest, Result, SiteContext,
+    MaviError, Page, PageRequest, PluginId, Result, SiteContext,
     ports::{MailContentType, MailDeliveryReceipt, MailMessage, Seals},
 };
 use mavi_storage::SiteTx;
@@ -194,14 +195,8 @@ pub fn api() -> mavi_contract::Api {
 }
 
 fn endpoints() -> Vec<Endpoint> {
-    let view = Permission {
-        capability: Capability::Mail,
-        action: Action::View,
-    };
-    let write = Permission {
-        capability: Capability::Mail,
-        action: Action::Write,
-    };
+    let view = Permission::from_legacy(Capability::Mail, Action::View);
+    let write = Permission::from_legacy(Capability::Mail, Action::Write);
     vec![
         Endpoint::new(
             Method::Get,
@@ -210,7 +205,7 @@ fn endpoints() -> Vec<Endpoint> {
             "List site mail deliveries with an opaque cursor",
         )
         .account_or_assistant()
-        .requires(view)
+        .requires(view.clone())
         .takes_query("DeliveryListFilter")
         .returns(200, "MailDeliveryPage")
         .refuses([
@@ -225,7 +220,7 @@ fn endpoints() -> Vec<Endpoint> {
             "Render a template and enqueue one provider-neutral delivery",
         )
         .account_or_assistant()
-        .requires(write)
+        .requires(write.clone())
         .takes("EnqueueDelivery")
         .returns(202, "MailDelivery")
         .changes(false)
@@ -243,7 +238,7 @@ fn endpoints() -> Vec<Endpoint> {
             "Read one queued or completed mail delivery",
         )
         .account_or_assistant()
-        .requires(view)
+        .requires(view.clone())
         .returns(200, "MailDelivery")
         .refuses([
             ErrorCode::Forbidden,
@@ -257,7 +252,7 @@ fn endpoints() -> Vec<Endpoint> {
             "Requeue a dead or cancelled mail delivery",
         )
         .account_or_assistant()
-        .requires(write)
+        .requires(write.clone())
         .takes("RetryDelivery")
         .returns(202, "MailDelivery")
         .changes(false)
@@ -274,7 +269,7 @@ fn endpoints() -> Vec<Endpoint> {
             "Expand one template into queued deliveries for subscribed readers",
         )
         .account_or_assistant()
-        .requires(write)
+        .requires(write.clone())
         .takes("SendCampaign")
         .returns(202, "SendCount")
         .changes(false)
@@ -464,7 +459,9 @@ impl MailService {
                 .await
                 .map_err(|_| MaviError::Internal)?
         {
-            return from_row(&row);
+            let delivery = from_row(&row)?;
+            enqueue_delivery_workflow(tx, context, delivery.id, PluginId::Messaging).await?;
+            return Ok(delivery);
         }
         let message = self
             .render_for_delivery(
@@ -518,6 +515,7 @@ impl MailService {
             json!({"template_id": input.template_id, "purpose": "transactional"}),
         )
         .await?;
+        enqueue_delivery_workflow(tx, context, delivery.id, PluginId::Messaging).await?;
         Ok(delivery)
     }
 
@@ -536,6 +534,7 @@ impl MailService {
         if let Some(delivery) =
             find_delivery_by_idempotency_key(tx, context, idempotency_key.as_deref()).await?
         {
+            enqueue_delivery_workflow(tx, context, delivery.id, PluginId::Core).await?;
             return Ok(delivery);
         }
 
@@ -582,6 +581,7 @@ impl MailService {
             json!({"purpose": "transactional", "system": true}),
         )
         .await?;
+        enqueue_delivery_workflow(tx, context, delivery.id, PluginId::Core).await?;
         Ok(delivery)
     }
 
@@ -604,6 +604,7 @@ impl MailService {
         if let Some(delivery) =
             find_delivery_by_idempotency_key(tx, context, idempotency_key.as_deref()).await?
         {
+            enqueue_delivery_workflow(tx, context, delivery.id, PluginId::Core).await?;
             return Ok(delivery);
         }
 
@@ -663,6 +664,7 @@ impl MailService {
             json!({"purpose": "transactional", "system": true, "body_protected": true}),
         )
         .await?;
+        enqueue_delivery_workflow(tx, context, delivery.id, PluginId::Core).await?;
         Ok(delivery)
     }
 
@@ -772,6 +774,13 @@ impl MailService {
             sealer,
         )
         .await?;
+        enqueue_delivery_workflow(
+            tx,
+            context,
+            mavi_core::MailDeliveryId::from_uuid(inserted),
+            PluginId::Messaging,
+        )
+        .await?;
         Ok(true)
     }
 
@@ -837,6 +846,19 @@ impl MailService {
             json!({}),
         )
         .await?;
+        let plugin = if delivery.template_id.is_some() {
+            PluginId::Messaging
+        } else {
+            PluginId::Core
+        };
+        enqueue_delivery_workflow_with_key(
+            tx,
+            context,
+            id,
+            plugin,
+            format!("mail.delivery:{id}:retry:{}", Uuid::now_v7()),
+        )
+        .await?;
         Ok(delivery)
     }
 
@@ -865,6 +887,62 @@ impl MailService {
     ) -> Result<Option<ClaimedDelivery>> {
         self.claim_next_inner(tx, context, worker_id, lease_until, Some(sealer))
             .await
+    }
+
+    /// Claims one specific delivery for a Hatchet-delivered workflow. The
+    /// status/lease predicates are identical to the normal outbox claim, so a
+    /// duplicate task either gets the row once or observes its terminal state
+    /// and can be acknowledged idempotently.
+    pub async fn claim_by_id_with_sealer(
+        &self,
+        tx: &mut SiteTx,
+        context: &SiteContext,
+        worker_id: &str,
+        id: MailDeliveryId,
+        lease_until: DateTime<Utc>,
+        sealer: &dyn Seals,
+    ) -> Result<Option<ClaimedDelivery>> {
+        if worker_id.trim().is_empty() || worker_id.len() > 128 {
+            return Err(MaviError::validation("invalid_worker_id"));
+        }
+        if lease_until <= Utc::now() {
+            return Err(MaviError::validation("invalid_lease_until"));
+        }
+        let Some(candidate) = claim_candidate_by_id(tx, context, id).await? else {
+            return Ok(None);
+        };
+        if candidate.attempts >= MAX_DELIVERY_ATTEMPTS {
+            mark_exhausted_delivery(tx, context, candidate.id, candidate.attempts).await?;
+            return Ok(None);
+        }
+        let protected_body = unseal_delivery_body(
+            tx,
+            context,
+            candidate.id,
+            candidate.body_protected,
+            Some(sealer),
+        )
+        .await?;
+        let unsubscribe_url = unseal_delivery_link(tx, context, candidate.id, Some(sealer)).await?;
+        let delivery =
+            open_delivery_attempt(tx, context, &candidate, worker_id, lease_until).await?;
+        let attempt_number = i16::try_from(delivery.attempts).map_err(|_| MaviError::Internal)?;
+        record_delivery_attempt(tx, context, candidate.id, attempt_number).await?;
+        let message = MailMessage {
+            recipient: delivery.recipient.clone(),
+            subject: delivery.subject.clone(),
+            body: protected_body.unwrap_or_else(|| delivery.body.clone()),
+            content_type: delivery.content_type,
+            unsubscribe_url,
+        };
+        let sender = delivery.sender.clone();
+        Ok(Some(ClaimedDelivery {
+            delivery,
+            message,
+            sender,
+            attempt_number,
+            idempotency_key: candidate.idempotency_key,
+        }))
     }
 
     async fn claim_next_inner(
@@ -1055,6 +1133,39 @@ impl MailService {
     }
 }
 
+async fn enqueue_delivery_workflow(
+    tx: &mut SiteTx,
+    context: &SiteContext,
+    delivery_id: MailDeliveryId,
+    plugin: PluginId,
+) -> Result<()> {
+    enqueue_delivery_workflow_with_key(
+        tx,
+        context,
+        delivery_id,
+        plugin,
+        format!("mail.delivery:{delivery_id}"),
+    )
+    .await
+}
+
+async fn enqueue_delivery_workflow_with_key(
+    tx: &mut SiteTx,
+    context: &SiteContext,
+    delivery_id: MailDeliveryId,
+    plugin: PluginId,
+    idempotency_key: String,
+) -> Result<()> {
+    let intent = WorkflowIntent::new(
+        context.site_id,
+        plugin,
+        "mail.delivery",
+        idempotency_key,
+        json!({"delivery_id": delivery_id}),
+    )?;
+    WorkflowService.enqueue(tx, &intent).await
+}
+
 async fn campaign_list_exists(
     tx: &mut SiteTx,
     context: &SiteContext,
@@ -1200,6 +1311,47 @@ async fn claim_candidate(
     )
     .bind(context.site_id.into_uuid())
     .bind(has_sealer)
+    .fetch_optional(tx.conn())
+    .await
+    .map_err(|_| MaviError::Internal)?;
+    row.map(|row| {
+        Ok(ClaimCandidate {
+            id: row.try_get("id").map_err(|_| MaviError::Internal)?,
+            previous_status: row.try_get("status").map_err(|_| MaviError::Internal)?,
+            attempts: row.try_get("attempts").map_err(|_| MaviError::Internal)?,
+            body_protected: row
+                .try_get("body_protected")
+                .map_err(|_| MaviError::Internal)?,
+            idempotency_key: row
+                .try_get("idempotency_key")
+                .map_err(|_| MaviError::Internal)?,
+        })
+    })
+    .transpose()
+}
+
+async fn claim_candidate_by_id(
+    tx: &mut SiteTx,
+    context: &SiteContext,
+    id: MailDeliveryId,
+) -> Result<Option<ClaimCandidate>> {
+    let row = sqlx::query(
+        "select id, status, attempts, body_protected, idempotency_key
+           from mail_deliveries
+          where site_id = $1 and id = $2
+            and ($3 or not exists (
+                select 1 from mail_delivery_links
+                 where site_id = mail_deliveries.site_id
+                   and delivery_id = mail_deliveries.id
+            )) and (
+                (status in ('queued', 'retry') and available_at <= clock_timestamp())
+             or (status = 'sending' and lease_until <= clock_timestamp())
+          )
+          for update skip locked",
+    )
+    .bind(context.site_id.into_uuid())
+    .bind(id.into_uuid())
+    .bind(true)
     .fetch_optional(tx.conn())
     .await
     .map_err(|_| MaviError::Internal)?;

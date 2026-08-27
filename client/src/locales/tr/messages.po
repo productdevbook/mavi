@@ -936,7 +936,7 @@ msgstr "Yeni bir kod"
 msgid "A new file"
 msgstr "Yeni bir dosya"
 
-#: src/features/automation/flows-page.tsx:243
+#: src/features/automation/flows-page.tsx:238
 msgid "A new flow"
 msgstr "Yeni bir akış"
 
@@ -1526,6 +1526,10 @@ msgstr "Alternatif metin"
 msgid "Altogether"
 msgstr "Toplam"
 
+#: src/features/plugins/plugins-page.tsx:121
+msgid "Always on"
+msgstr ""
+
 #. placeholder {0}: held.account_a_second ?? 0
 #: src/routes/dashboard.platform-mail.tsx:166
 #~ msgid "Amazon allows this account {0} a second"
@@ -1653,6 +1657,10 @@ msgstr "Bir görsel burada durduğu sürece dosyasını korur; böylece geri al�
 #~ msgid "An order is marked paid by the payment service, never from here. What you can do here is say a parcel has gone."
 #~ msgstr "Bir siparişi ödenmiş yapan ödeme servisidir, burası değil. Buradan yapabileceğiniz şey kargonun çıktığını söylemek."
 
+#: src/features/people/roles-page.tsx:216
+msgid "Analytics"
+msgstr ""
+
 #: src/components/dashboard/content-type-editor.tsx:134
 #: src/features/forms/forms-page.tsx:389
 msgid "Another"
@@ -1670,7 +1678,7 @@ msgstr "Bir tane daha"
 msgid "Another stage"
 msgstr "Bir aşama daha"
 
-#: src/features/automation/flows-page.tsx:293
+#: src/features/automation/flows-page.tsx:288
 msgid "Another step"
 msgstr "Bir adım daha"
 
@@ -1763,7 +1771,7 @@ msgstr "Bu sitenin sırayla işlediği her şey: talepler, onarımlar, başvurul
 #~ msgid "Anything this site works through in stages: applications, enquiries, jobs. You decide what the stages are and what they are called."
 #~ msgstr "Bu sitenin aşama aşama yürüttüğü her şey: başvurular, talepler, işler. Aşamaların neler olduğuna ve nasıl adlandırılacağına siz karar verirsiniz."
 
-#: src/components/dashboard/dashboard-shell.tsx:112
+#: src/components/dashboard/dashboard-shell.tsx:113
 #: src/features/integrations/api-page.tsx:120
 msgid "API"
 msgstr "API"
@@ -1835,7 +1843,7 @@ msgstr "Arşivlendi"
 #~ msgid "Archiving stops the public site and active usage charges, but keeps its data and media stored. Storage costs $9/month until you restore or delete the site."
 #~ msgstr "Arşivlemek herkese açık siteyi ve aktif kullanım ücretlerini durdurur; ancak verileri ve medyaları saklamaya devam eder. Siteyi geri yükleyene veya silene kadar depolama ayda 9 $ tutar."
 
-#: src/features/people/roles-page.tsx:339
+#: src/features/people/roles-page.tsx:383
 msgid "Area"
 msgstr "Alan"
 
@@ -1882,6 +1890,10 @@ msgstr "Telefondaki gibi"
 #: src/routes/dashboard.billing.tsx:131
 #~ msgid "Ask about a charge"
 #~ msgstr "Bir fatura hakkında sor"
+
+#: src/components/dashboard/allowed.tsx:38
+msgid "Ask an owner to enable this plugin under Plugins."
+msgstr ""
 
 #: src/components/ses-health.tsx:362
 #~ msgid "Ask for it"
@@ -1959,7 +1971,7 @@ msgstr "En az on iki karakter. Bunu yaptığınızda açık olan diğer her şey
 #~ msgid "Attempted"
 #~ msgstr "Denenen"
 
-#: src/components/dashboard/dashboard-shell.tsx:90
+#: src/components/dashboard/dashboard-shell.tsx:91
 msgid "Automate"
 msgstr "Otomasyon"
 
@@ -2132,8 +2144,9 @@ msgstr "Yazılıyor"
 #~ msgid "Bills"
 #~ msgstr "Faturalar"
 
-#: src/components/dashboard/dashboard-shell.tsx:106
+#: src/components/dashboard/dashboard-shell.tsx:107
 #: src/features/governance/trash-page.tsx:129
+#: src/features/people/roles-page.tsx:217
 msgid "Bin"
 msgstr "Çöp kutusu"
 
@@ -2170,10 +2183,10 @@ msgstr "Mavi"
 msgid "board"
 msgstr "pano"
 
-#: src/components/dashboard/dashboard-shell.tsx:104
+#: src/components/dashboard/dashboard-shell.tsx:105
 #: src/features/boards/board-page.tsx:129
 #: src/features/boards/boards-page.tsx:117
-#: src/features/people/roles-page.tsx:169
+#: src/features/people/roles-page.tsx:210
 msgid "Boards"
 msgstr "Panolar"
 
@@ -2384,10 +2397,15 @@ msgstr ""
 #~ msgid "Campaigns"
 #~ msgstr "Kampanyalar"
 
+#. placeholder {0}: visibleCapabilities.length
+#: src/features/people/roles-page.tsx:357
+msgid "Can open {summary} of {0} active areas."
+msgstr ""
+
 #. placeholder {0}: CAPABILITY_ORDER.length
 #: src/features/people/roles-page.tsx:313
-msgid "Can open {summary} of {0} areas."
-msgstr "{0} alanın {summary} tanesini açabilir."
+#~ msgid "Can open {summary} of {0} areas."
+#~ msgstr "{0} alanın {summary} tanesini açabilir."
 
 #: src/components/ses-account.tsx:543
 #~ msgid "can send"
@@ -2398,8 +2416,8 @@ msgstr "{0} alanın {summary} tanesini açabilir."
 #: src/components/editor/dialogs.tsx:267
 #: src/components/editor/dialogs.tsx:357
 #: src/components/report-a-problem.tsx:178
-#: src/features/automation/flows-page.tsx:232
-#: src/features/automation/flows-page.tsx:363
+#: src/features/automation/flows-page.tsx:227
+#: src/features/automation/flows-page.tsx:358
 #: src/features/boards/board-page.tsx:240
 #: src/features/boards/boards-page.tsx:223
 #: src/features/boards/boards-page.tsx:245
@@ -2416,7 +2434,7 @@ msgstr "{0} alanın {summary} tanesini açabilir."
 #: src/features/media/media-page.tsx:192
 #: src/features/people/people-page.tsx:334
 #: src/features/people/people-page.tsx:364
-#: src/features/people/roles-page.tsx:448
+#: src/features/people/roles-page.tsx:492
 #: src/features/shop/coupons-page.tsx:247
 #: src/features/shop/products-page.tsx:269
 #: src/features/taxonomy/categories-page.tsx:289
@@ -2458,13 +2476,13 @@ msgstr "Canonical URL"
 msgid "Case sensitive"
 msgstr "Büyük/küçük harf duyarlı"
 
-#: src/components/dashboard/dashboard-shell.tsx:88
+#: src/components/dashboard/dashboard-shell.tsx:89
 #: src/components/editor/post-settings.tsx:253
 #: src/features/taxonomy/categories-page.tsx:148
 msgid "Categories"
 msgstr "Kategoriler"
 
-#: src/features/people/roles-page.tsx:162
+#: src/features/people/roles-page.tsx:203
 msgid "Categories & tags"
 msgstr "Kategoriler ve etiketler"
 
@@ -2493,7 +2511,7 @@ msgid "Center the paragraph"
 msgstr "Paragrafı ortala"
 
 #. placeholder {0}: CAPABILITY_LABELS[capability]
-#: src/features/people/roles-page.tsx:404
+#: src/features/people/roles-page.tsx:448
 msgid "Change {0}"
 msgstr "{0} değiştir"
 
@@ -2724,7 +2742,7 @@ msgstr "Komut menüsü"
 #~ msgid "Comments"
 #~ msgstr "Yorumlar"
 
-#: src/components/dashboard/dashboard-shell.tsx:94
+#: src/components/dashboard/dashboard-shell.tsx:95
 msgid "Commerce"
 msgstr "Ticaret"
 
@@ -2732,11 +2750,15 @@ msgstr "Ticaret"
 #~ msgid "Compared how"
 #~ msgstr "Nasıl karşılaştırılsın"
 
+#: src/features/plugins/plugins-page.tsx:99
+msgid "Compiled Mavi feature package."
+msgstr ""
+
 #: src/components/plugin-forms.tsx:462
 #~ msgid "Configuration set"
 #~ msgstr "Yapılandırma kümesi"
 
-#: src/components/dashboard/dashboard-shell.tsx:107
+#: src/components/dashboard/dashboard-shell.tsx:108
 msgid "Configure"
 msgstr "Yapılandır"
 
@@ -2805,7 +2827,7 @@ msgstr "Bunun yerine terminalden, jetonla bağlanmak"
 #~ msgid "contains"
 #~ msgstr "içeriyor"
 
-#: src/features/people/roles-page.tsx:161
+#: src/features/people/roles-page.tsx:202
 msgid "Content"
 msgstr "İçerik"
 
@@ -2817,7 +2839,7 @@ msgstr "Bu dilde yazılmış içerik varsa silme engellenir — ne kadar olduğu
 #~ msgid "Content deleted"
 #~ msgstr "İçerik silindi"
 
-#: src/components/dashboard/dashboard-shell.tsx:108
+#: src/components/dashboard/dashboard-shell.tsx:109
 msgid "Content types"
 msgstr "İçerik türleri"
 
@@ -3439,7 +3461,7 @@ msgstr "Eğitim"
 #~ msgid "Crawlers, kept apart"
 #~ msgstr "Tarayıcı botlar, ayrı tutulur"
 
-#: src/components/dashboard/dashboard-shell.tsx:83
+#: src/components/dashboard/dashboard-shell.tsx:84
 #: src/components/editor/mavi-editor.tsx:661
 #: src/components/editor/mavi-editor.tsx:921
 msgid "Create"
@@ -3465,7 +3487,7 @@ msgstr ""
 msgid "Create a tag once and reuse it across content in this language."
 msgstr ""
 
-#: src/features/automation/flows-page.tsx:165
+#: src/features/automation/flows-page.tsx:160
 msgid "Create a trigger and steps to automate work on this site."
 msgstr ""
 
@@ -3531,7 +3553,7 @@ msgstr "El yazısı"
 msgid "Custom"
 msgstr "Özel"
 
-#: src/components/dashboard/dashboard-shell.tsx:86
+#: src/components/dashboard/dashboard-shell.tsx:87
 msgid "Custom content"
 msgstr "Özel içerik"
 
@@ -3608,7 +3630,7 @@ msgstr "Varsayılan"
 #: src/features/content/languages-page.tsx:164
 #: src/features/media/media-page.tsx:169
 #: src/features/media/media-page.tsx:194
-#: src/features/people/roles-page.tsx:180
+#: src/features/people/roles-page.tsx:224
 #: src/features/taxonomy/categories-page.tsx:308
 #: src/features/taxonomy/categories-page.tsx:334
 #: src/features/taxonomy/tags-page.tsx:217
@@ -3625,7 +3647,7 @@ msgid "Delete column"
 msgstr "Sütunu sil"
 
 #. placeholder {0}: CAPABILITY_LABELS[capability]
-#: src/features/people/roles-page.tsx:405
+#: src/features/people/roles-page.tsx:449
 msgid "Delete in {0}"
 msgstr "{0} içinde sil"
 
@@ -3633,7 +3655,7 @@ msgstr "{0} içinde sil"
 #~ msgid "Delete one, and any image left with no owner."
 #~ msgstr "Bir yazıyı ve sahipsiz kalan resimlerini siler."
 
-#: src/features/people/roles-page.tsx:322
+#: src/features/people/roles-page.tsx:366
 msgid "Delete role"
 msgstr "Rolü sil"
 
@@ -3646,7 +3668,7 @@ msgid "Delete table"
 msgstr "Tabloyu sil"
 
 #. placeholder {0}: role.name
-#: src/features/people/roles-page.tsx:254
+#: src/features/people/roles-page.tsx:298
 msgid "Delete the \"{0}\" role? Move its people to another role first — this only removes the role, not the accounts."
 msgstr "\"{0}\" rolü silinsin mi? Önce kişilerini başka bir role taşıyın — bu yalnızca rolü kaldırır, hesapları değil."
 
@@ -3737,9 +3759,9 @@ msgstr "Silinen kaynaklar kalıcı olarak kaldırılmadan önce otuz gün beklet
 #~ msgid "Description text shown in search results."
 #~ msgstr "Arama sonuçlarında görünecek açıklama metni."
 
-#: src/components/dashboard/dashboard-shell.tsx:113
+#: src/components/dashboard/dashboard-shell.tsx:114
 #: src/features/design/design-page.tsx:62
-#: src/features/people/roles-page.tsx:170
+#: src/features/people/roles-page.tsx:211
 msgid "Design"
 msgstr "Tasarım"
 
@@ -3768,9 +3790,13 @@ msgstr "Tasarım"
 #~ msgid "Did not work"
 #~ msgstr "Olmadı"
 
-#: src/routes/dashboard.plugins.tsx:118
-#~ msgid "Disabled"
-#~ msgstr "Devre dışı"
+#: src/features/plugins/plugins-page.tsx:130
+msgid "Disable"
+msgstr ""
+
+#: src/features/plugins/plugins-page.tsx:105
+msgid "Disabled"
+msgstr "Devre dışı"
 
 #: src/components/assistant-connection.tsx:211
 #~ msgid "Disconnect"
@@ -3789,7 +3815,7 @@ msgstr "Tasarım"
 #~ msgid "Discount code"
 #~ msgstr "İndirim kodu"
 
-#: src/components/dashboard/dashboard-shell.tsx:97
+#: src/components/dashboard/dashboard-shell.tsx:98
 #: src/features/shop/coupons-page.tsx:71
 msgid "Discount codes"
 msgstr "İndirim kodları"
@@ -3982,11 +4008,13 @@ msgstr "Video gömme ekle"
 msgid "Emoji"
 msgstr "Emoji"
 
-#: src/components/plugin-forms.tsx:171
-#: src/routes/dashboard.plugins_.backup.tsx:341
-#: src/routes/dashboard.plugins.tsx:116
-#~ msgid "Enabled"
-#~ msgstr "Etkin"
+#: src/features/plugins/plugins-page.tsx:130
+msgid "Enable"
+msgstr ""
+
+#: src/features/plugins/plugins-page.tsx:105
+msgid "Enabled"
+msgstr "Etkin"
 
 #: src/components/plugin-forms.tsx:90
 #~ msgid "Endpoint"
@@ -4281,10 +4309,10 @@ msgstr "akış"
 #~ msgid "Flow written"
 #~ msgstr "Akış yazıldı"
 
-#: src/components/dashboard/dashboard-shell.tsx:93
-#: src/features/automation/flows-page.tsx:150
+#: src/components/dashboard/dashboard-shell.tsx:94
+#: src/features/automation/flows-page.tsx:145
 #: src/features/dashboard/home-page.tsx:132
-#: src/features/people/roles-page.tsx:166
+#: src/features/people/roles-page.tsx:207
 msgid "Flows"
 msgstr "Akışlar"
 
@@ -4373,11 +4401,11 @@ msgstr "Biçim"
 msgid "Formatting"
 msgstr "Biçimlendirme"
 
-#: src/components/dashboard/dashboard-shell.tsx:91
+#: src/components/dashboard/dashboard-shell.tsx:92
 #: src/features/dashboard/home-page.tsx:98
 #: src/features/forms/form-detail-page.tsx:126
 #: src/features/forms/forms-page.tsx:146
-#: src/features/people/roles-page.tsx:164
+#: src/features/people/roles-page.tsx:205
 msgid "Forms"
 msgstr "Formlar"
 
@@ -4513,7 +4541,7 @@ msgstr "Önce yazıya bir başlık verin"
 #~ msgid "Going out"
 #~ msgstr "Gönderiliyor"
 
-#: src/features/people/roles-page.tsx:262
+#: src/features/people/roles-page.tsx:306
 msgid "Gone"
 msgstr "Kaldırıldı"
 
@@ -4665,7 +4693,7 @@ msgstr "Metni renkli vurgula"
 #~ msgid "History"
 #~ msgstr "Geçmiş"
 
-#: src/components/dashboard/dashboard-shell.tsx:78
+#: src/components/dashboard/dashboard-shell.tsx:79
 msgid "Home"
 msgstr "Ana sayfa"
 
@@ -4826,7 +4854,7 @@ msgstr "İçe / dışa aktar"
 #~ msgid "Import an archive"
 #~ msgstr "Arşiv içe aktar"
 
-#: src/components/dashboard/dashboard-shell.tsx:115
+#: src/components/dashboard/dashboard-shell.tsx:116
 #: src/features/portability/portable-page.tsx:76
 msgid "Import and export"
 msgstr ""
@@ -4931,7 +4959,7 @@ msgstr "3x3 tablo ekle"
 msgid "Insert the current date as text"
 msgstr "Tarihi metne yaz"
 
-#: src/components/dashboard/dashboard-shell.tsx:80
+#: src/components/dashboard/dashboard-shell.tsx:81
 msgid "Insights"
 msgstr "İçgörüler"
 
@@ -5092,7 +5120,7 @@ msgstr "Kargoya verildi"
 #~ msgid "It stopped before any step ran."
 #~ msgstr "Hiçbir adım çalışmadan durdu."
 
-#: src/features/automation/flows-page.tsx:228
+#: src/features/automation/flows-page.tsx:223
 msgid "It stops running and can be restored from the bin with its previous enabled state."
 msgstr "Çalışmayı durdurur; önceki etkin durumu korunarak çöp kutusundan geri yüklenebilir."
 
@@ -5262,7 +5290,7 @@ msgstr "Klavye kısayolları"
 msgid "Language"
 msgstr "Dil"
 
-#: src/components/dashboard/dashboard-shell.tsx:109
+#: src/components/dashboard/dashboard-shell.tsx:110
 #: src/features/content/languages-page.tsx:95
 #: src/features/portability/portable-page.tsx:135
 msgid "Languages"
@@ -5317,7 +5345,7 @@ msgstr "En büyük boyama"
 msgid "Layout shift"
 msgstr "Yerleşim kayması"
 
-#: src/components/dashboard/dashboard-shell.tsx:99
+#: src/components/dashboard/dashboard-shell.tsx:100
 msgid "Learning"
 msgstr "Eğitim"
 
@@ -5410,7 +5438,7 @@ msgstr "Yeniden içeri al"
 #~ msgid "Letterhead"
 #~ msgstr "Antet"
 
-#: src/components/dashboard/dashboard-shell.tsx:98
+#: src/components/dashboard/dashboard-shell.tsx:99
 #: src/features/mail/letters-page.tsx:94
 msgid "Letters"
 msgstr "Mektuplar"
@@ -5528,10 +5556,10 @@ msgstr "E-postanıza bakın"
 #~ msgid "Made in the channel's own settings, under incoming webhooks. Anybody holding it can post to that channel, so it is treated as a password and kept out of the run record."
 #~ msgstr "Kanalın kendi ayarlarında, gelen webhook'lar altında üretilir. Elinde tutan herkes o kanala mesaj atabilir; bu yüzden parola gibi davranılır ve çalıştırma kaydına yazılmaz."
 
-#: src/components/dashboard/dashboard-shell.tsx:92
+#: src/components/dashboard/dashboard-shell.tsx:93
 #: src/features/mail/campaign-page.tsx:23
 #: src/features/mail/mail-page.tsx:166
-#: src/features/people/roles-page.tsx:165
+#: src/features/people/roles-page.tsx:206
 msgid "Mail"
 msgstr "Posta"
 
@@ -5576,7 +5604,7 @@ msgstr ""
 #~ msgid "Make a link"
 #~ msgstr "Bağlantı üret"
 
-#: src/features/people/roles-page.tsx:429
+#: src/features/people/roles-page.tsx:473
 msgid "Make a role, then tick what it may do below."
 msgstr "Bir rol oluşturun, sonra aşağıda neler yapabileceğini işaretleyin."
 
@@ -5596,10 +5624,10 @@ msgstr "Bir rol oluşturun, sonra aşağıda neler yapabileceğini işaretleyin.
 msgid "Make default"
 msgstr "Varsayılan yap"
 
-#: src/features/automation/flows-page.tsx:367
+#: src/features/automation/flows-page.tsx:362
 #: src/features/boards/boards-page.tsx:227
 #: src/features/mail/mail-page.tsx:302
-#: src/features/people/roles-page.tsx:455
+#: src/features/people/roles-page.tsx:499
 #: src/features/shop/products-page.tsx:276
 msgid "Make it"
 msgstr "Oluştur"
@@ -5661,7 +5689,7 @@ msgid "Marked as sent"
 msgstr "Kargoya verildi olarak işaretlendi"
 
 #: src/components/dashboard/dashboard-header.tsx:38
-#: src/components/dashboard/dashboard-navigation.tsx:47
+#: src/components/dashboard/dashboard-navigation.tsx:53
 msgid "Mavi CMS"
 msgstr ""
 
@@ -5694,8 +5722,8 @@ msgstr ""
 msgid "Measurements"
 msgstr "Ölçümler"
 
-#: src/components/dashboard/dashboard-shell.tsx:85
-#: src/features/people/roles-page.tsx:163
+#: src/components/dashboard/dashboard-shell.tsx:86
+#: src/features/people/roles-page.tsx:204
 msgid "Media"
 msgstr "Medya"
 
@@ -5811,7 +5839,7 @@ msgstr "Bu pano çöp kutusuna taşınsın mı?"
 msgid "Move this course to the bin?"
 msgstr "Bu kurs çöp kutusuna taşınsın mı?"
 
-#: src/features/automation/flows-page.tsx:226
+#: src/features/automation/flows-page.tsx:221
 msgid "Move this flow to the bin?"
 msgstr "Bu akış çöp kutusuna taşınsın mı?"
 
@@ -5819,7 +5847,7 @@ msgstr "Bu akış çöp kutusuna taşınsın mı?"
 msgid "Move this student to the bin?"
 msgstr "Bu öğrenci çöp kutusuna taşınsın mı?"
 
-#: src/features/automation/flows-page.tsx:234
+#: src/features/automation/flows-page.tsx:229
 #: src/features/learning/course-page.tsx:159
 #: src/features/learning/course-page.tsx:268
 #: src/features/learning/students-page.tsx:192
@@ -5910,6 +5938,11 @@ msgstr "Lacivert"
 msgid "Needed to schedule"
 msgstr "Zamanlamak için gerekli"
 
+#. placeholder {0}: plugin.dependencies .map((dependency) => pluginNames[dependency] ?? dependency) .join(", ")
+#: src/features/plugins/plugins-page.tsx:114
+msgid "Needs {0}"
+msgstr ""
+
 #: src/routes/dashboard.plugins_.video.tsx:270
 #~ msgid "Needs Stream read and edit, and nothing else."
 #~ msgstr "Stream okuma ve düzenleme yetkisi yeter, başka bir şey gerekmez."
@@ -5967,8 +6000,8 @@ msgstr "Yeni kategori"
 msgid "New code"
 msgstr "Yeni kod"
 
-#: src/features/automation/flows-page.tsx:154
-#: src/features/automation/flows-page.tsx:168
+#: src/features/automation/flows-page.tsx:149
+#: src/features/automation/flows-page.tsx:163
 msgid "New flow"
 msgstr "Yeni akış"
 
@@ -5994,8 +6027,8 @@ msgstr "Yeni liste"
 msgid "New product"
 msgstr "Yeni ürün"
 
-#: src/features/people/roles-page.tsx:284
-#: src/features/people/roles-page.tsx:427
+#: src/features/people/roles-page.tsx:328
+#: src/features/people/roles-page.tsx:471
 msgid "New role"
 msgstr "Yeni rol"
 
@@ -6174,7 +6207,7 @@ msgstr "kendine ait alanı yok"
 #~ msgid "No flows yet"
 #~ msgstr "Henüz akış yok"
 
-#: src/features/automation/flows-page.tsx:164
+#: src/features/automation/flows-page.tsx:159
 msgid "No flows yet."
 msgstr "Henüz akış yok."
 
@@ -6911,7 +6944,7 @@ msgstr "Birkaç seçenekten biri"
 #~ msgid "One of a list"
 #~ msgstr "Listeden biri"
 
-#: src/features/automation/flows-page.tsx:139
+#: src/features/automation/flows-page.tsx:134
 msgid "One of the steps is not written as JSON."
 msgstr "Adımlardan biri JSON olarak yazılmamış."
 
@@ -7071,7 +7104,7 @@ msgstr "Hesabı aç"
 #~ msgid "Opens the status page in a new tab"
 #~ msgstr "Durum sayfasını yeni sekmede açar"
 
-#: src/components/dashboard/dashboard-shell.tsx:103
+#: src/components/dashboard/dashboard-shell.tsx:104
 msgid "Operations"
 msgstr "İşlemler"
 
@@ -7114,7 +7147,7 @@ msgstr "Sipariş #{0}"
 #~ msgid "Order received"
 #~ msgstr "Sipariş alındı"
 
-#: src/components/dashboard/dashboard-shell.tsx:96
+#: src/components/dashboard/dashboard-shell.tsx:97
 #: src/features/dashboard/home-page.tsx:126
 #: src/features/shop/orders-page.tsx:136
 msgid "Orders"
@@ -7128,7 +7161,7 @@ msgstr ""
 msgid "Orders will appear here after a customer completes checkout."
 msgstr ""
 
-#: src/components/dashboard/dashboard-shell.tsx:87
+#: src/components/dashboard/dashboard-shell.tsx:88
 msgid "Organize"
 msgstr "Düzenle"
 
@@ -7157,7 +7190,7 @@ msgstr ""
 #~ msgid "over {0} days"
 #~ msgstr "{0} gün içinde"
 
-#: src/components/dashboard/dashboard-shell.tsx:79
+#: src/components/dashboard/dashboard-shell.tsx:80
 #: src/features/dashboard/home-page.tsx:86
 msgid "Overview"
 msgstr "Özet"
@@ -7166,7 +7199,7 @@ msgstr "Özet"
 #~ msgid "Owed now"
 #~ msgstr "Şu an borç"
 
-#: src/features/people/roles-page.tsx:303
+#: src/features/people/roles-page.tsx:347
 msgid "Owner"
 msgstr ""
 
@@ -7302,9 +7335,9 @@ msgstr "Video bağlantısını yapıştır."
 #~ msgid "Payments"
 #~ msgstr "Ödemeler"
 
-#: src/components/dashboard/dashboard-shell.tsx:110
+#: src/components/dashboard/dashboard-shell.tsx:111
 #: src/features/people/people-page.tsx:166
-#: src/features/people/roles-page.tsx:172
+#: src/features/people/roles-page.tsx:213
 msgid "People"
 msgstr "Kişiler"
 
@@ -7324,7 +7357,7 @@ msgstr "Kişiler kendi sayfalarınızdan katılır ve sitenin gönderdiği herha
 #~ msgid "Per GB stored, monthly"
 #~ msgstr "Depolanan GB başına, aylık"
 
-#: src/components/dashboard/dashboard-shell.tsx:82
+#: src/components/dashboard/dashboard-shell.tsx:83
 #: src/features/analytics/performance-page.tsx:54
 msgid "Performance"
 msgstr "Performans"
@@ -7399,10 +7432,18 @@ msgstr "Düz metin bloğu"
 #~ msgid "Play"
 #~ msgstr "Oynat"
 
-#: src/components/dashboard/dashboard-shell.tsx:111
-#: src/routes/dashboard.plugins.tsx:88
-#~ msgid "Plugins"
-#~ msgstr "Eklentiler"
+#: src/features/plugins/plugins-page.tsx:62
+msgid "Plugin disabled."
+msgstr ""
+
+#: src/features/plugins/plugins-page.tsx:59
+msgid "Plugin enabled."
+msgstr ""
+
+#: src/components/dashboard/dashboard-shell.tsx:119
+#: src/features/plugins/plugins-page.tsx:74
+msgid "Plugins"
+msgstr "Eklentiler"
 
 #: src/routes/dashboard.platform-billing.tsx:157
 #~ msgid "Point Stripe's webhook at /api/billing/payments/stripe on this server's own address."
@@ -7421,7 +7462,11 @@ msgstr "Düz metin bloğu"
 #~ msgid "Port"
 #~ msgstr "Port"
 
-#: src/components/dashboard/dashboard-shell.tsx:74
+#: src/features/people/roles-page.tsx:218
+msgid "Portability"
+msgstr ""
+
+#: src/components/dashboard/dashboard-shell.tsx:75
 #: src/features/governance/trash-page.tsx:74
 msgid "post"
 msgstr "yazı"
@@ -7473,7 +7518,7 @@ msgstr "yazi-adresi"
 #~ msgid "Postcode"
 #~ msgstr "Posta kodu"
 
-#: src/components/dashboard/dashboard-shell.tsx:84
+#: src/components/dashboard/dashboard-shell.tsx:85
 #: src/lib/use-content-types.ts:72
 msgid "Posts"
 msgstr "Yazılar"
@@ -7515,7 +7560,7 @@ msgstr ""
 msgid "product"
 msgstr "ürün"
 
-#: src/components/dashboard/dashboard-shell.tsx:95
+#: src/components/dashboard/dashboard-shell.tsx:96
 #: src/features/shop/products-page.tsx:123
 msgid "Products"
 msgstr "Ürünler"
@@ -7532,11 +7577,11 @@ msgstr ""
 msgid "Public identity"
 msgstr ""
 
-#: src/components/dashboard/dashboard-shell.tsx:117
+#: src/components/dashboard/dashboard-shell.tsx:118
 #: src/components/editor/mavi-editor.tsx:726
 #: src/features/design/design-page.tsx:78
 #: src/features/design/publish-page.tsx:45
-#: src/features/people/roles-page.tsx:171
+#: src/features/people/roles-page.tsx:212
 msgid "Publish"
 msgstr "Yayınla"
 
@@ -7645,11 +7690,11 @@ msgstr "Metni üst simge yap"
 #~ msgid "Ran out {0}"
 #~ msgstr "{0} tarihinde süresi doldu"
 
-#: src/features/people/roles-page.tsx:308
+#: src/features/people/roles-page.tsx:352
 msgid "Reaches nothing"
 msgstr "Hiçbir şeye erişemez"
 
-#: src/features/people/roles-page.tsx:178
+#: src/features/people/roles-page.tsx:222
 msgid "Read"
 msgstr "Oku"
 
@@ -7735,9 +7780,9 @@ msgstr ""
 #~ msgid "Recommended"
 #~ msgstr "Önerilen"
 
-#: src/components/dashboard/dashboard-shell.tsx:105
+#: src/components/dashboard/dashboard-shell.tsx:106
 #: src/features/governance/audit-page.tsx:91
-#: src/features/people/roles-page.tsx:174
+#: src/features/people/roles-page.tsx:215
 msgid "Record"
 msgstr "Kayıt"
 
@@ -7810,8 +7855,8 @@ msgstr ""
 #: src/components/dashboard/content-type-editor.tsx:211
 #: src/components/editor/bubble-menus.tsx:201
 #: src/components/editor/bubble-menus.tsx:282
-#: src/features/automation/flows-page.tsx:196
-#: src/features/automation/flows-page.tsx:333
+#: src/features/automation/flows-page.tsx:191
+#: src/features/automation/flows-page.tsx:328
 #: src/features/boards/board-page.tsx:162
 #: src/features/boards/boards-page.tsx:154
 #: src/features/boards/boards-page.tsx:201
@@ -8034,16 +8079,16 @@ msgstr "Rol"
 msgid "Role changed"
 msgstr "Rol değiştirildi"
 
-#: src/features/people/roles-page.tsx:240
+#: src/features/people/roles-page.tsx:284
 msgid "Role made"
 msgstr "Rol oluşturuldu"
 
-#: src/features/people/roles-page.tsx:434
+#: src/features/people/roles-page.tsx:478
 msgid "Role name"
 msgstr ""
 
-#: src/components/dashboard/dashboard-shell.tsx:111
-#: src/features/people/roles-page.tsx:280
+#: src/components/dashboard/dashboard-shell.tsx:112
+#: src/features/people/roles-page.tsx:324
 msgid "Roles"
 msgstr "Roller"
 
@@ -8078,8 +8123,8 @@ msgstr "Bunu çalıştırın. Adresin giriş istediğini fark edip girişi kendi
 
 #. placeholder {0}: manifest.runtime_mode
 #: src/components/dashboard/address-health.tsx:41
-msgid "Runtime {0}"
-msgstr ""
+#~ msgid "Runtime {0}"
+#~ msgstr ""
 
 #: src/components/plugin-forms.tsx:195
 #: src/components/plugin-forms.tsx:208
@@ -8310,7 +8355,7 @@ msgstr "Bölüm başlığı"
 #~ msgstr "Bölümler ve içlerindeki dersler. Bir dersin notları, başka herhangi bir sayfa gibi editörde yazılır; burada belirlenen şey videosu, sırası ve kimin ne zaman görebileceğidir."
 
 #. placeholder {0}: CAPABILITY_LABELS[capability]
-#: src/features/people/roles-page.tsx:402
+#: src/features/people/roles-page.tsx:446
 msgid "See {0}"
 msgstr "{0} gör"
 
@@ -8594,8 +8639,8 @@ msgstr "Kur"
 #~ msgid "Setting it up, field by field:"
 #~ msgstr "Alan alan kurulumu:"
 
-#: src/components/dashboard/dashboard-shell.tsx:114
-#: src/features/people/roles-page.tsx:173
+#: src/components/dashboard/dashboard-shell.tsx:115
+#: src/features/people/roles-page.tsx:214
 msgid "Settings"
 msgstr "Ayarlar"
 
@@ -8637,7 +8682,7 @@ msgstr "Ayarlar, sonra Tools & MCP, sonra New MCP Server — aşağıdaki dosyay
 #~ msgid "Shared mail"
 #~ msgstr "Ortak e-posta"
 
-#: src/features/people/roles-page.tsx:168
+#: src/features/people/roles-page.tsx:209
 msgid "Shop"
 msgstr "Mağaza"
 
@@ -8733,6 +8778,10 @@ msgstr "Giriş yapıldı"
 #~ msgid "signs in from the console"
 #~ msgstr "konsoldan giriyor"
 
+#: src/components/dashboard/address-health.tsx:41
+msgid "Single-site runtime"
+msgstr ""
+
 #: src/routes/dashboard.balances.tsx:134
 #: src/routes/dashboard.transfers.tsx:150
 #~ msgid "Site"
@@ -8771,7 +8820,7 @@ msgstr ""
 #~ msgid "Site title"
 #~ msgstr "Site başlığı"
 
-#: src/components/dashboard/dashboard-navigation.tsx:50
+#: src/components/dashboard/dashboard-navigation.tsx:56
 msgid "Site workspace"
 msgstr "Site çalışma alanı"
 
@@ -8907,7 +8956,7 @@ msgstr "Aşamalar"
 #~ msgid "Start"
 #~ msgstr "Başla"
 
-#: src/components/dashboard/dashboard-shell.tsx:100
+#: src/components/dashboard/dashboard-shell.tsx:101
 msgid "Start a course"
 msgstr "Bir eğitim başlatın"
 
@@ -8935,7 +8984,7 @@ msgstr "Yazmaya başla veya komutlar için “/” yaz…"
 msgid "Status"
 msgstr "Durum"
 
-#: src/features/automation/flows-page.tsx:282
+#: src/features/automation/flows-page.tsx:277
 msgid "Steps"
 msgstr "Adımlar"
 
@@ -9046,7 +9095,7 @@ msgstr "Üstü çizili"
 msgid "student"
 msgstr "öğrenci"
 
-#: src/components/dashboard/dashboard-shell.tsx:102
+#: src/components/dashboard/dashboard-shell.tsx:103
 #: src/features/dashboard/home-page.tsx:120
 #: src/features/learning/course-page.tsx:297
 #: src/features/learning/students-page.tsx:102
@@ -9197,7 +9246,7 @@ msgstr "İçindekiler"
 #~ msgid "Tagline"
 #~ msgstr "Slogan"
 
-#: src/components/dashboard/dashboard-shell.tsx:89
+#: src/components/dashboard/dashboard-shell.tsx:90
 #: src/components/editor/post-settings.tsx:305
 #: src/features/taxonomy/tags-page.tsx:119
 msgid "Tags"
@@ -9288,7 +9337,7 @@ msgstr "Yanıt alıyor"
 msgid "Task list"
 msgstr "Görev listesi"
 
-#: src/features/people/roles-page.tsx:167
+#: src/features/people/roles-page.tsx:208
 msgid "Teaching"
 msgstr "Eğitim"
 
@@ -9725,6 +9774,10 @@ msgstr "Sayılar şu anda okunamadı."
 #~ msgid "The only honest check. A key without permission, an address SES has not verified and an account still in the sandbox all look the same until something is actually sent."
 #~ msgstr "Tek dürüst kontrol. Yetkisi olmayan bir anahtar, SES'in doğrulamadığı bir adres ve hâlâ kum havuzundaki bir hesap — gerçekten bir şey gönderilene kadar üçü de aynı görünür."
 
+#: src/features/plugins/plugins-page.tsx:80
+msgid "The plugin catalog could not be read just now."
+msgstr ""
+
 #: src/features/settings/settings-page.tsx:77
 msgid "The public identity and URL settings used by this site."
 msgstr ""
@@ -9982,6 +10035,10 @@ msgstr "Bu adres Model Context Protocol konuşur; bir asistanı buraya yöneltip
 #~ msgid "This database holds more than one site and this version serves one. It has to be split before this version can serve it."
 #~ msgstr "Bu veritabanı birden fazla site barındırıyor, bu sürüm ise tek bir siteye hizmet ediyor. Bu sürümün hizmet verebilmesi için önce ayrılması gerekir."
 
+#: src/components/dashboard/allowed.tsx:35
+msgid "This feature is not enabled"
+msgstr ""
+
 #. placeholder {0}: holds.format_version
 #: src/routes/dashboard.plugins_.backup.tsx:820
 #~ msgid "This file says it is version {0}, which this server does not read."
@@ -9999,7 +10056,7 @@ msgstr "Bu adres Model Context Protocol konuşur; bir asistanı buraya yöneltip
 #~ msgid "This is no longer for sale"
 #~ msgstr "Bu artık satışta değil"
 
-#: src/components/dashboard/allowed.tsx:34
+#: src/components/dashboard/allowed.tsx:49
 msgid "This is not yours to open"
 msgstr "Bunu açmak sizin yetkinizde değil"
 
@@ -10075,7 +10132,7 @@ msgstr ""
 msgid "This request conflicts with the current site state."
 msgstr ""
 
-#: src/features/people/roles-page.tsx:333
+#: src/features/people/roles-page.tsx:377
 msgid "This role came with the build and is not a site's to change."
 msgstr "Bu rol yazılımla birlikte gelir; site tarafından değiştirilemez."
 
@@ -10294,6 +10351,10 @@ msgstr "Çöp kutusu saklama süresi"
 #~ msgid "Try it"
 #~ msgstr "Dene"
 
+#: src/features/plugins/plugins-page.tsx:75
+msgid "Turn compiled Mavi features on for this site. Disabling a plugin hides its routes and navigation without deleting its data."
+msgstr ""
+
 #: src/components/editor/block-handle.tsx:163
 msgid "Turn into"
 msgstr "Şuna dönüştür"
@@ -10453,7 +10514,7 @@ msgstr "Yüklenenler"
 msgid "URL"
 msgstr "URL"
 
-#: src/components/dashboard/dashboard-shell.tsx:116
+#: src/components/dashboard/dashboard-shell.tsx:117
 msgid "Usage"
 msgstr "Kullanım"
 
@@ -10479,7 +10540,7 @@ msgstr ""
 #~ msgid "Use it"
 #~ msgstr "Uygula"
 
-#: src/features/people/roles-page.tsx:442
+#: src/features/people/roles-page.tsx:486
 msgid "Use lower-case letters, digits, underscores or dashes."
 msgstr ""
 
@@ -10529,6 +10590,11 @@ msgstr ""
 #~ msgid "Verifying an address or a domain"
 #~ msgstr "Adres ya da alan adı doğrulamak"
 
+#. placeholder {0}: plugin.version
+#: src/features/plugins/plugins-page.tsx:111
+msgid "Version {0}"
+msgstr ""
+
 #: src/routes/dashboard.trash.tsx:70
 #~ msgid "video"
 #~ msgstr "video"
@@ -10551,7 +10617,7 @@ msgstr ""
 #~ msgid "Video settings"
 #~ msgstr "Video ayarları"
 
-#: src/components/dashboard/dashboard-shell.tsx:101
+#: src/components/dashboard/dashboard-shell.tsx:102
 #: src/features/media/videos-page.tsx:71
 msgid "Videos"
 msgstr "Videolar"
@@ -10576,7 +10642,7 @@ msgstr "Güne göre görüntülenme"
 msgid "Visibility"
 msgstr ""
 
-#: src/components/dashboard/dashboard-shell.tsx:81
+#: src/components/dashboard/dashboard-shell.tsx:82
 #: src/features/analytics/visitors-page.tsx:66
 msgid "Visitors"
 msgstr "Ziyaretçiler"
@@ -10737,7 +10803,7 @@ msgstr "Bir dersin oynattığı şey. Buradakiler herkese açık değildir: vide
 msgid "What comes in is kept as it was sent, so changing the fields later never rewrites it."
 msgstr "Gelenler gönderildiği gibi saklanır; alanları sonradan değiştirmek geleni yeniden yazmaz."
 
-#: src/features/people/roles-page.tsx:281
+#: src/features/people/roles-page.tsx:325
 msgid "What each role on this site may read, write and delete. Menus follow this — a screen a role cannot open is not shown to it."
 msgstr "Bu sitedeki her rolün neyi okuyabileceği, yazabileceği ve silebileceği. Menüler buna uyar — bir rolün açamadığı ekran ona gösterilmez."
 
@@ -10757,7 +10823,7 @@ msgstr "Bu sitedeki her rolün neyi okuyabileceği, yazabileceği ve silebilece�
 #~ msgid "What happened"
 #~ msgstr "Ne oldu"
 
-#: src/features/automation/flows-page.tsx:151
+#: src/features/automation/flows-page.tsx:146
 msgid "What happens by itself when something happens: a form comes in, an order is paid. One trigger, then steps in order."
 msgstr "Bir şey olduğunda kendiliğinden olanlar: form gelir, sipariş ödenir. Tek tetikleyici, sonra sırayla adımlar."
 
@@ -10831,7 +10897,7 @@ msgstr "Neyle ilgili"
 
 #: src/components/dashboard/content-type-editor.tsx:99
 #: src/components/dashboard/content-type-editor.tsx:146
-#: src/features/automation/flows-page.tsx:251
+#: src/features/automation/flows-page.tsx:246
 #: src/features/boards/boards-page.tsx:175
 #: src/features/forms/forms-page.tsx:401
 #: src/features/learning/start-teaching-page.tsx:70
@@ -10934,11 +11000,11 @@ msgstr "Bunlardan birinin, başlığı ve metninin ötesinde nelerden oluştuğu
 #~ msgid "what somebody sent"
 #~ msgstr "birinin gönderdiği"
 
-#: src/features/automation/flows-page.tsx:260
+#: src/features/automation/flows-page.tsx:255
 msgid "What starts it"
 msgstr "Onu ne başlatır"
 
-#: src/features/automation/flows-page.tsx:245
+#: src/features/automation/flows-page.tsx:240
 msgid "What starts it, and what it does. Each step's settings are written as JSON, which is what the API keeps."
 msgstr "Onu ne başlatır ve ne yapar. Her adımın ayarları JSON olarak yazılır; API de böyle saklar."
 
@@ -11440,7 +11506,7 @@ msgstr "Şu tarihe kadar"
 #~ msgid "Worth pursuing"
 #~ msgstr "Peşine düşmeye değer"
 
-#: src/features/people/roles-page.tsx:179
+#: src/features/people/roles-page.tsx:223
 msgid "Write"
 msgstr "Yaz"
 
@@ -11687,7 +11753,7 @@ msgstr "Adınız"
 msgid "Your report was sent to whoever runs this server."
 msgstr ""
 
-#: src/components/dashboard/allowed.tsx:37
+#: src/components/dashboard/allowed.tsx:52
 msgid "Your role does not reach this screen. Whoever runs the site can change that under People."
 msgstr "Rolünüz bu ekrana erişmiyor. Siteyi yöneten kişi bunu Kişiler bölümünden değiştirebilir."
 

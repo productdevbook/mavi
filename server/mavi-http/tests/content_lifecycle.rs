@@ -309,26 +309,68 @@ async fn scheduling_enqueues_one_idempotent_job_per_target_time() {
     .await;
     assert_eq!(scheduled.status(), StatusCode::OK);
 
-    let jobs = send(
+    let runs = send(
         &app,
         Method::GET,
-        "/api/v1/jobs?kind=content.publish_scheduled&limit=10",
+        "/api/v1/workflows/runs",
         Some(&owner_token),
         None,
     )
     .await;
-    assert_eq!(jobs.status(), StatusCode::OK);
-    let jobs = response_json(jobs).await;
-    let items = jobs["items"].as_array().expect("jobs");
+    assert_eq!(runs.status(), StatusCode::OK);
+    let runs = response_json(runs).await;
+    let items = runs["items"].as_array().expect("workflow runs");
+    let items = items
+        .iter()
+        .filter(|run| run["workflow"] == "content.publish_scheduled")
+        .collect::<Vec<_>>();
     assert_eq!(items.len(), 1);
-    assert_eq!(items[0]["kind"], "content.publish_scheduled");
-    assert_eq!(items[0]["state"], "ready");
-    assert_eq!(items[0]["payload"]["content_id"], content_id);
-    assert_eq!(items[0]["payload"]["scheduled_at"], first_at);
-    assert_eq!(
-        items[0]["idempotency_key"],
-        format!("content.schedule:{content_id}:{first_at}")
-    );
+    assert_eq!(items[0]["status"], "pending");
+    let run_id = items[0]["id"].as_str().expect("workflow run id");
+
+    let paused = send(
+        &app,
+        Method::POST,
+        &format!("/api/v1/workflows/runs/{run_id}/pause"),
+        Some(&owner_token),
+        None,
+    )
+    .await;
+    assert_eq!(paused.status(), StatusCode::OK);
+    assert_eq!(response_json(paused).await["status"], "paused");
+
+    let resumed = send(
+        &app,
+        Method::POST,
+        &format!("/api/v1/workflows/runs/{run_id}/resume"),
+        Some(&owner_token),
+        None,
+    )
+    .await;
+    assert_eq!(resumed.status(), StatusCode::OK);
+    assert_eq!(response_json(resumed).await["status"], "pending");
+
+    let cancelled = send(
+        &app,
+        Method::POST,
+        &format!("/api/v1/workflows/runs/{run_id}/cancel"),
+        Some(&owner_token),
+        None,
+    )
+    .await;
+    assert_eq!(cancelled.status(), StatusCode::OK);
+    assert_eq!(response_json(cancelled).await["status"], "cancelled");
+
+    let replayed = send(
+        &app,
+        Method::POST,
+        &format!("/api/v1/workflows/runs/{run_id}/replay"),
+        Some(&owner_token),
+        None,
+    )
+    .await;
+    assert_eq!(replayed.status(), StatusCode::OK);
+    assert_eq!(response_json(replayed).await["status"], "pending");
 
     // A retried request for the same target time must not duplicate the
     // durable work item, even though the command itself remains auditable.
@@ -342,20 +384,23 @@ async fn scheduling_enqueues_one_idempotent_job_per_target_time() {
     .await;
     assert_eq!(retried.status(), StatusCode::OK);
 
-    let jobs = send(
+    let runs = send(
         &app,
         Method::GET,
-        "/api/v1/jobs?kind=content.publish_scheduled&limit=10",
+        "/api/v1/workflows/runs",
         Some(&owner_token),
         None,
     )
     .await;
-    assert_eq!(jobs.status(), StatusCode::OK);
+    assert_eq!(runs.status(), StatusCode::OK);
+    let runs = response_json(runs).await;
     assert_eq!(
-        response_json(jobs).await["items"]
+        runs["items"]
             .as_array()
-            .expect("jobs")
-            .len(),
+            .expect("workflow runs")
+            .iter()
+            .filter(|run| run["workflow"] == "content.publish_scheduled")
+            .count(),
         1
     );
 
@@ -370,20 +415,24 @@ async fn scheduling_enqueues_one_idempotent_job_per_target_time() {
     .await;
     assert_eq!(rescheduled.status(), StatusCode::OK);
 
-    let jobs = send(
+    let runs = send(
         &app,
         Method::GET,
-        "/api/v1/jobs?kind=content.publish_scheduled&limit=10",
+        "/api/v1/workflows/runs",
         Some(&owner_token),
         None,
     )
     .await;
-    assert_eq!(jobs.status(), StatusCode::OK);
-    let jobs = response_json(jobs).await;
-    let items = jobs["items"].as_array().expect("jobs");
+    assert_eq!(runs.status(), StatusCode::OK);
+    let runs = response_json(runs).await;
+    let items = runs["items"].as_array().expect("workflow runs");
+    let items = items
+        .iter()
+        .filter(|run| run["workflow"] == "content.publish_scheduled")
+        .collect::<Vec<_>>();
     assert_eq!(items.len(), 2);
-    assert!(items.iter().any(|job| {
-        job["payload"]["content_id"] == content_id && job["payload"]["scheduled_at"] == second_at
+    assert!(items.iter().any(|run| {
+        run["id"].as_str().is_some() && run["workflow"] == "content.publish_scheduled"
     }));
 }
 

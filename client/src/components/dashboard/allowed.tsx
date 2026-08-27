@@ -3,7 +3,7 @@ import { useLocation } from "@tanstack/react-router"
 import { Trans } from "@lingui/react/macro"
 import { Lock } from "lucide-react"
 
-import { capabilityOf, usePermissions } from "@/lib/permissions"
+import { capabilityOf, pluginOf, usePermissions } from "@/lib/permissions"
 
 /**
  * A screen a role cannot open is not drawn.
@@ -16,14 +16,29 @@ import { capabilityOf, usePermissions } from "@/lib/permissions"
  */
 export function Allowed({ children }: { children: React.ReactNode }) {
   const { pathname } = useLocation()
-  const { can, ready } = usePermissions()
+  const { can, ready, hasPlugin, pluginReady } = usePermissions()
 
   const capability = capabilityOf(pathname)
+  const plugin = pluginOf(pathname)
 
   // Until the grants arrive nothing is drawn: a flash of a screen somebody may
   // not open is the same mistake, one frame long.
-  if (!ready) {
+  if (!ready || !pluginReady) {
     return null
+  }
+
+  if (!hasPlugin(plugin)) {
+    return (
+      <div className="mx-auto flex max-w-md flex-col items-center gap-2 py-24 text-center">
+        <Lock className="size-8 text-muted-foreground" />
+        <h1 className="font-medium">
+          <Trans>This feature is not enabled</Trans>
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          <Trans>Ask an owner to enable this plugin under Plugins.</Trans>
+        </p>
+      </div>
+    )
   }
 
   if (capability && !can(capability)) {

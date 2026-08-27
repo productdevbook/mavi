@@ -1,6 +1,7 @@
 import * as React from "react"
 
 import { every } from "@/lib/api"
+import { usePlugins } from "@/lib/plugins"
 import type { Board } from "@api"
 
 /**
@@ -11,8 +12,14 @@ import type { Board } from "@api"
  */
 export function useBoards() {
   const [boards, setBoards] = React.useState<Board[]>([])
+  const { activePlugins, ready: pluginsReady } = usePlugins()
 
   React.useEffect(() => {
+    if (!pluginsReady || !activePlugins.has("boards")) {
+      setBoards([])
+      return undefined
+    }
+
     let alive = true
 
     every("boards.list", { query: {} })
@@ -22,7 +29,7 @@ export function useBoards() {
     return () => {
       alive = false
     }
-  }, [])
+  }, [activePlugins, pluginsReady])
 
   return boards
 }

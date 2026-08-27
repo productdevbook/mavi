@@ -38,7 +38,7 @@ export function AddressHealth() {
 
       <div className="flex flex-col divide-y divide-border">
         <div className="flex items-center justify-between py-2 text-sm">
-          <span>{t`Runtime ${manifest.runtime_mode}`}</span>
+          <span>{t`Single-site runtime`}</span>
           <Badge variant="outline">{t`Healthy`}</Badge>
         </div>
         <div className="flex items-center justify-between py-2 text-sm">

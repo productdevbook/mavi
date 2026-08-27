@@ -7,38 +7,13 @@
 //! cannot leave a partially migrated site behind.
 
 use std::collections::BTreeSet;
-use std::fmt::{self, Write as _};
+use std::fmt::Write as _;
 
 use chrono::{DateTime, Utc};
-pub use mavi_analytics::AnalyticsRelocation;
-use mavi_analytics::AnalyticsService;
-pub use mavi_audit::AuditRelocation;
 use mavi_audit::{AuditEntry, AuditService};
-use mavi_boards::BoardService;
-pub use mavi_boards::BoardsRelocation;
 use mavi_contract::{Endpoint, Method, Permission, Shape};
-use mavi_core::{
-    Action, Capability, ErrorCode, MaviError, Result, SiteContext, SiteId, ports::FileStore,
-};
-pub use mavi_courses::CoursesRelocation;
-use mavi_courses::CoursesService;
-pub use mavi_design::DesignRelocation;
-use mavi_design::DesignService;
-use mavi_flows::FlowService;
-pub use mavi_flows::FlowsRelocation;
-use mavi_forms::FormService;
-pub use mavi_forms::FormsRelocation;
-pub use mavi_jobs::JobsRelocation;
-use mavi_jobs::JobsService;
-pub use mavi_mail::MailRelocation;
-use mavi_mail::MailService;
-pub use mavi_media::MediaRelocation;
-use mavi_media::MediaService;
-pub use mavi_shop::ShopRelocation;
-use mavi_shop::ShopService;
+use mavi_core::{Action, Capability, ErrorCode, MaviError, Result, SiteContext, SiteId};
 use mavi_storage::SiteTx;
-pub use mavi_trash::TrashRelocation;
-use mavi_trash::TrashService;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
@@ -50,10 +25,6 @@ pub const VERSION: u16 = 2;
 pub const MAX_RECORDS_PER_SECTION: usize = 10_000;
 pub const MAX_TOTAL_RECORDS: usize = 20_000;
 pub const MAX_BUNDLE_BYTES: usize = 16 * 1024 * 1024;
-/// Internal shard relocation bundles carry identity credential hashes and
-/// verified live media bytes in a separately authenticated envelope. They
-/// never appear in the public portable export/import DTO.
-pub const MAX_RELOCATION_BUNDLE_BYTES: usize = 256 * 1024 * 1024;
 pub const MAX_FIELDS_BYTES: usize = 64 * 1024;
 
 const SCHEMA_DESCRIPTOR: &str = concat!(
@@ -187,186 +158,6 @@ pub struct PortableAssignment {
     pub assigned_at: DateTime<Utc>,
 }
 
-/// Identity metadata used only by the internal shard relocation port.
-///
-/// Public portable bundles intentionally do not contain people, roles or
-/// credential material. The relocation envelope keeps this separate so a
-/// user-facing export can never accidentally disclose password hashes.
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct PortableIdentity {
-    pub people: Vec<PortablePerson>,
-    pub roles: Vec<PortableRole>,
-    pub role_grants: Vec<PortableRoleGrant>,
-    pub person_roles: Vec<PortablePersonRole>,
-}
-
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct PortablePerson {
-    pub id: Uuid,
-    pub email: String,
-    pub name: String,
-    pub status: String,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-}
-
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct PortableRole {
-    pub id: Uuid,
-    pub name: String,
-    pub created_at: DateTime<Utc>,
-    /// System roles (currently the protected `owner` role) cannot have their
-    /// grants deleted during a reverse relocation. Older envelopes omitted
-    /// this field, so defaulting to `false` keeps them readable.
-    ///
-    /// Keep the false value omitted on serialization as well. Evidence hashes
-    /// are computed from the canonical JSON envelope, and adding a defaulted
-    /// field must not invalidate backups created by the previous release.
-    #[serde(default, skip_serializing_if = "is_false")]
-    pub system_role: bool,
-}
-
-// Serde's skip_serializing_if callback receives a reference by contract.
-#[allow(clippy::trivially_copy_pass_by_ref)]
-fn is_false(value: &bool) -> bool {
-    !*value
-}
-
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct PortableRoleGrant {
-    pub role_id: Uuid,
-    pub capability: String,
-    pub action: String,
-}
-
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct PortablePersonRole {
-    pub person_id: Uuid,
-    pub role_id: Uuid,
-}
-
-/// Password hashes are included only for authenticated shard relocation.
-/// Sessions and API keys are deliberately not represented: they are revoked
-/// at the target before the identity snapshot is applied.
-#[derive(Clone, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct PortablePersonCredential {
-    pub person_id: Uuid,
-    pub password_hash: String,
-}
-
-#[derive(Clone, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct PortableRelocationBundle {
-    pub bundle: PortableBundle,
-    pub identity: PortableIdentity,
-    pub credentials: Vec<PortablePersonCredential>,
-    #[serde(default)]
-    pub media: MediaRelocation,
-    #[serde(default)]
-    pub design: DesignRelocation,
-    pub audit: AuditRelocation,
-    pub trash: TrashRelocation,
-    pub forms: FormsRelocation,
-    pub mail: MailRelocation,
-    pub shop: ShopRelocation,
-    pub courses: CoursesRelocation,
-    pub jobs: JobsRelocation,
-    pub flows: FlowsRelocation,
-    pub boards: BoardsRelocation,
-    pub analytics: AnalyticsRelocation,
-}
-
-#[derive(Clone, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct PortableRelocationRequest {
-    pub bundle: PortableRelocationBundle,
-    pub strategy: ImportStrategy,
-}
-
-impl fmt::Debug for PortablePersonCredential {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter
-            .debug_struct("PortablePersonCredential")
-            .field("person_id", &self.person_id)
-            .field("password_hash", &"<redacted>")
-            .finish()
-    }
-}
-
-impl fmt::Debug for PortableRelocationBundle {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter
-            .debug_struct("PortableRelocationBundle")
-            .field("bundle", &self.bundle)
-            .field("identity", &self.identity)
-            .field(
-                "credentials",
-                &format_args!("<{} redacted>", self.credentials.len()),
-            )
-            .field("media_files", &self.media.files.len())
-            .field("design_changes", &self.design.changes.len())
-            .field("audit_events", &self.audit.events.len())
-            .field(
-                "forms_records",
-                &self.forms.record_count().unwrap_or_default(),
-            )
-            .field(
-                "mail_records",
-                &self.mail.record_count().unwrap_or_default(),
-            )
-            .field(
-                "shop_records",
-                &self.shop.record_count().unwrap_or_default(),
-            )
-            .field(
-                "courses_records",
-                &self.courses.record_count().unwrap_or_default(),
-            )
-            .field(
-                "jobs_records",
-                &self.jobs.record_count().unwrap_or_default(),
-            )
-            .field(
-                "flows_records",
-                &self.flows.record_count().unwrap_or_default(),
-            )
-            .field(
-                "boards_records",
-                &self.boards.record_count().unwrap_or_default(),
-            )
-            .field(
-                "analytics_records",
-                &self.analytics.record_count().unwrap_or_default(),
-            )
-            .field(
-                "trash_records",
-                &(self.trash.content.len()
-                    + self.trash.revisions.len()
-                    + self.trash.slug_history.len()
-                    + self.trash.assignments.len()
-                    + self.trash.terms.len()
-                    + self.trash.files.len()),
-            )
-            .finish()
-    }
-}
-
-impl fmt::Debug for PortableRelocationRequest {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter
-            .debug_struct("PortableRelocationRequest")
-            .field("bundle", &self.bundle)
-            .field("strategy", &self.strategy)
-            .finish()
-    }
-}
-
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ImportStrategy {
@@ -410,14 +201,8 @@ pub struct PortableService;
 #[must_use]
 #[allow(clippy::too_many_lines)]
 pub fn api() -> mavi_contract::Api {
-    let view = Permission {
-        capability: Capability::Portable,
-        action: Action::View,
-    };
-    let write = Permission {
-        capability: Capability::Portable,
-        action: Action::Write,
-    };
+    let view = Permission::from_legacy(Capability::Portable, Action::View);
+    let write = Permission::from_legacy(Capability::Portable, Action::Write);
     mavi_contract::Api::new([
         Endpoint::new(
             Method::Get,
@@ -426,7 +211,7 @@ pub fn api() -> mavi_contract::Api {
             "Export an explicit versioned site bundle",
         )
         .account_or_assistant()
-        .requires(view)
+        .requires(view.clone())
         .returns(200, "PortableBundle")
         .refuses([
             ErrorCode::Forbidden,
@@ -441,7 +226,7 @@ pub fn api() -> mavi_contract::Api {
             "Validate or atomically import a versioned site bundle",
         )
         .account_or_assistant()
-        .requires(write)
+        .requires(write.clone())
         .takes("PortableImportRequest")
         .returns(200, "ImportReceipt")
         .changes(false)
@@ -533,24 +318,6 @@ pub fn shapes() -> Vec<Shape> {
 
 impl PortableBundle {
     pub fn validate_for_site(&self, target_site: SiteId) -> Result<()> {
-        self.validate_for_target(target_site, false)
-    }
-
-    /// Validate a bundle for an internal shard relocation.
-    ///
-    /// A relocation keeps the logical `SiteId` stable, so it is intentionally
-    /// different from a user-requested import. The caller must still provide
-    /// the same source and target site, and the service only exposes this
-    /// path as an internal application port; there is no public HTTP endpoint
-    /// for it.
-    pub fn validate_for_relocation(&self, target_site: SiteId) -> Result<()> {
-        if self.manifest.source_site_id != target_site {
-            return Err(MaviError::conflict("portable_relocation_site_mismatch"));
-        }
-        self.validate_for_target(target_site, true)
-    }
-
-    fn validate_for_target(&self, target_site: SiteId, allow_same_site: bool) -> Result<()> {
         if self.manifest.format != FORMAT {
             return Err(MaviError::validation("portable_format_invalid"));
         }
@@ -563,7 +330,7 @@ impl PortableBundle {
         if self.manifest.source_site_id.into_uuid().is_nil() {
             return Err(MaviError::validation("portable_source_site_invalid"));
         }
-        if self.manifest.source_site_id == target_site && !allow_same_site {
+        if self.manifest.source_site_id == target_site {
             return Err(MaviError::conflict("portable_self_import_forbidden"));
         }
 
@@ -601,85 +368,6 @@ impl PortableBundle {
         validate_slug_history(&self.content, &self.slug_history)?;
         validate_assignments(&self.content, &self.terms, &self.assignments)?;
         Ok(())
-    }
-}
-
-impl PortableRelocationBundle {
-    pub fn validate_for_relocation(&self, target_site: SiteId) -> Result<()> {
-        self.bundle.validate_for_relocation(target_site)?;
-        validate_identity(&self.identity, &self.credentials)?;
-        self.media.validate()?;
-        self.design.validate()?;
-        self.audit.validate_for_relocation(target_site)?;
-        self.trash.validate_for_relocation(target_site)?;
-        self.forms.validate_for_relocation(target_site)?;
-        self.mail.validate_for_relocation(target_site)?;
-        self.shop.validate_for_relocation(target_site)?;
-        self.courses.validate_for_relocation(target_site)?;
-        self.jobs.validate_for_relocation(target_site)?;
-        self.flows.validate_for_relocation(target_site)?;
-        self.boards.validate_for_relocation(target_site)?;
-        self.analytics.validate_for_relocation(target_site)?;
-        let bytes = serde_json::to_vec(self).map_err(|_| MaviError::Internal)?;
-        if bytes.len() > MAX_RELOCATION_BUNDLE_BYTES {
-            return Err(MaviError::validation(
-                "portable_relocation_bundle_too_large",
-            ));
-        }
-        Ok(())
-    }
-
-    pub fn record_count(&self) -> Result<i64> {
-        let audit_count = usize::try_from(self.audit.record_count()?)
-            .map_err(|_| MaviError::validation("portable_record_count_overflow"))?;
-        let trash_count = usize::try_from(self.trash.record_count()?)
-            .map_err(|_| MaviError::validation("portable_record_count_overflow"))?;
-        let forms_count = usize::try_from(self.forms.record_count()?)
-            .map_err(|_| MaviError::validation("portable_record_count_overflow"))?;
-        let mail_count = usize::try_from(self.mail.record_count()?)
-            .map_err(|_| MaviError::validation("portable_record_count_overflow"))?;
-        let shop_count = usize::try_from(self.shop.record_count()?)
-            .map_err(|_| MaviError::validation("portable_record_count_overflow"))?;
-        let courses_count = usize::try_from(self.courses.record_count()?)
-            .map_err(|_| MaviError::validation("portable_record_count_overflow"))?;
-        let jobs_count = usize::try_from(self.jobs.record_count()?)
-            .map_err(|_| MaviError::validation("portable_record_count_overflow"))?;
-        let flows_count = usize::try_from(self.flows.record_count()?)
-            .map_err(|_| MaviError::validation("portable_record_count_overflow"))?;
-        let boards_count = usize::try_from(self.boards.record_count()?)
-            .map_err(|_| MaviError::validation("portable_record_count_overflow"))?;
-        let analytics_count = usize::try_from(self.analytics.record_count()?)
-            .map_err(|_| MaviError::validation("portable_record_count_overflow"))?;
-        let count = self
-            .bundle
-            .manifest
-            .counts
-            .languages
-            .checked_add(self.bundle.manifest.counts.content_types)
-            .and_then(|value| value.checked_add(self.bundle.manifest.counts.terms))
-            .and_then(|value| value.checked_add(self.bundle.manifest.counts.content))
-            .and_then(|value| value.checked_add(self.bundle.manifest.counts.revisions))
-            .and_then(|value| value.checked_add(self.bundle.manifest.counts.slug_history))
-            .and_then(|value| value.checked_add(self.bundle.manifest.counts.assignments))
-            .and_then(|value| value.checked_add(self.identity.people.len()))
-            .and_then(|value| value.checked_add(self.identity.roles.len()))
-            .and_then(|value| value.checked_add(self.identity.role_grants.len()))
-            .and_then(|value| value.checked_add(self.identity.person_roles.len()))
-            .and_then(|value| value.checked_add(self.credentials.len()))
-            .and_then(|value| value.checked_add(self.media.files.len()))
-            .and_then(|value| value.checked_add(self.design.record_count()))
-            .and_then(|value| value.checked_add(audit_count))
-            .and_then(|value| value.checked_add(trash_count))
-            .and_then(|value| value.checked_add(forms_count))
-            .and_then(|value| value.checked_add(mail_count))
-            .and_then(|value| value.checked_add(shop_count))
-            .and_then(|value| value.checked_add(courses_count))
-            .and_then(|value| value.checked_add(jobs_count))
-            .and_then(|value| value.checked_add(flows_count))
-            .and_then(|value| value.checked_add(boards_count))
-            .and_then(|value| value.checked_add(analytics_count))
-            .ok_or(MaviError::validation("portable_record_count_overflow"))?;
-        i64::try_from(count).map_err(|_| MaviError::validation("portable_record_count_overflow"))
     }
 }
 
@@ -883,62 +571,6 @@ impl PortableService {
         Ok(bundle)
     }
 
-    /// Exports the public site snapshot together with identity metadata and
-    /// password hashes for the authenticated shard-to-shard relocation port.
-    ///
-    /// The public `export` method remains credential-free. This method is only
-    /// called by the operator's private transfer endpoint and its result must
-    /// never be exposed through the public HTTP API.
-    pub async fn export_for_relocation(
-        &self,
-        tx: &mut SiteTx,
-        context: &SiteContext,
-        store: &dyn FileStore,
-    ) -> Result<PortableRelocationBundle> {
-        let bundle = self.export(tx, context).await?;
-        let identity = export_identity(tx, context).await?;
-        let credentials = export_credentials(tx, context).await?;
-        let media = MediaService
-            .export_for_relocation(tx, context, store)
-            .await?;
-        let design = DesignService
-            .export_for_relocation(tx, context, store)
-            .await?;
-        let audit = AuditService.export_for_relocation(tx, context).await?;
-        let trash = TrashService
-            .export_for_relocation(tx, context, store)
-            .await?;
-        let forms = FormService.export_for_relocation(tx, context).await?;
-        let mail = MailService.export_for_relocation(tx, context).await?;
-        let shop = ShopService.export_for_relocation(tx, context).await?;
-        let courses = CoursesService.export_for_relocation(tx, context).await?;
-        let jobs = JobsService::new([])
-            .export_for_relocation(tx, context)
-            .await?;
-        let flows = FlowService.export_for_relocation(tx, context).await?;
-        let boards = BoardService.export_for_relocation(tx, context).await?;
-        let analytics = AnalyticsService.export_for_relocation(tx, context).await?;
-        let relocation = PortableRelocationBundle {
-            bundle,
-            identity,
-            credentials,
-            media,
-            design,
-            audit,
-            trash,
-            forms,
-            mail,
-            shop,
-            courses,
-            jobs,
-            flows,
-            boards,
-            analytics,
-        };
-        relocation.validate_for_relocation(context.site_id)?;
-        Ok(relocation)
-    }
-
     #[allow(clippy::too_many_lines)]
     pub async fn import(
         &self,
@@ -947,86 +579,8 @@ impl PortableService {
         request: &PortableImportRequest,
     ) -> Result<ImportReceipt> {
         request.bundle.validate_for_site(context.site_id)?;
-        self.import_validated(tx, context, request, "portable.bundle.imported", false)
+        self.import_validated(tx, context, request, "portable.bundle.imported")
             .await
-    }
-
-    /// Relocate a site bundle into its existing logical site on another shard.
-    ///
-    /// This is deliberately restricted to an upsert because relocation is a
-    /// retryable worker operation and must be safe after a partial network
-    /// failure. The caller owns the transaction and must commit it only after
-    /// this method succeeds.
-    pub async fn relocate(
-        &self,
-        tx: &mut SiteTx,
-        context: &SiteContext,
-        request: &PortableRelocationRequest,
-        store: &dyn FileStore,
-    ) -> Result<ImportReceipt> {
-        if request.strategy != ImportStrategy::Upsert {
-            return Err(MaviError::validation(
-                "portable_relocation_strategy_invalid",
-            ));
-        }
-        request.bundle.validate_for_relocation(context.site_id)?;
-        let base_request = PortableImportRequest {
-            bundle: request.bundle.bundle.clone(),
-            strategy: request.strategy,
-        };
-        let receipt = self
-            .import_validated(
-                tx,
-                context,
-                &base_request,
-                "portable.bundle.relocated",
-                true,
-            )
-            .await?;
-        import_identity(
-            tx,
-            context,
-            &request.bundle.identity,
-            &request.bundle.credentials,
-        )
-        .await?;
-        MediaService
-            .import_for_relocation(tx, context, store, &request.bundle.media)
-            .await?;
-        DesignService
-            .import_for_relocation(tx, context, store, &request.bundle.design)
-            .await?;
-        TrashService
-            .import_for_relocation(tx, context, store, &request.bundle.trash)
-            .await?;
-        FormService
-            .import_for_relocation(tx, context, &request.bundle.forms)
-            .await?;
-        MailService
-            .import_for_relocation(tx, context, &request.bundle.mail)
-            .await?;
-        ShopService
-            .import_for_relocation(tx, context, &request.bundle.shop)
-            .await?;
-        CoursesService
-            .import_for_relocation(tx, context, &request.bundle.courses)
-            .await?;
-        FlowService
-            .import_for_relocation(tx, context, &request.bundle.flows)
-            .await?;
-        BoardService
-            .import_for_relocation(tx, context, &request.bundle.boards)
-            .await?;
-        AnalyticsService
-            .import_for_relocation(tx, context, &request.bundle.analytics)
-            .await?;
-        JobsService::new([])
-            .import_for_relocation(tx, context, &request.bundle.jobs)
-            .await?;
-        AuditService
-            .import_for_relocation(tx, context, &request.bundle.audit)
-            .await?;
-        Ok(receipt)
     }
 
     #[allow(clippy::too_many_lines)]
@@ -1036,7 +590,6 @@ impl PortableService {
         context: &SiteContext,
         request: &PortableImportRequest,
         audit_action: &str,
-        initialize_site_settings: bool,
     ) -> Result<ImportReceipt> {
         let receipt = receipt_for(request.strategy, &request.bundle)?;
         if !request.strategy.writes() {
@@ -1048,21 +601,10 @@ impl PortableService {
             ensure_create_only(tx, &request.bundle).await?;
         }
 
-        let settings = if initialize_site_settings {
-            sqlx::query(
-                "insert into site_settings (site_id, name, timezone, canonical_url)
-                 values ($1, $2, $3, $4)
-                 on conflict (site_id) do update set
-                    name = excluded.name, timezone = excluded.timezone,
-                    canonical_url = excluded.canonical_url, updated_at = now()",
-            )
-        } else {
-            sqlx::query(
-                "update site_settings set name = $2, timezone = $3, canonical_url = $4, updated_at = now()
-                 where site_id = $1",
-            )
-        };
-        settings
+        sqlx::query(
+            "update site_settings set name = $2, timezone = $3, canonical_url = $4, updated_at = now()
+             where site_id = $1",
+        )
             .bind(context.site_id.into_uuid())
             .bind(&request.bundle.site.name)
             .bind(&request.bundle.site.timezone)
@@ -1325,386 +867,6 @@ impl PortableService {
             .await?;
         Ok(receipt)
     }
-}
-
-async fn export_identity(tx: &mut SiteTx, context: &SiteContext) -> Result<PortableIdentity> {
-    let people = sqlx::query(
-        "select id, email, name, status, created_at, updated_at
-           from people where site_id = $1 order by created_at asc, id asc",
-    )
-    .bind(context.site_id.into_uuid())
-    .fetch_all(tx.conn())
-    .await
-    .map_err(|_| MaviError::Internal)?
-    .iter()
-    .map(|row| {
-        Ok(PortablePerson {
-            id: row.try_get("id").map_err(|_| MaviError::Internal)?,
-            email: row.try_get("email").map_err(|_| MaviError::Internal)?,
-            name: row.try_get("name").map_err(|_| MaviError::Internal)?,
-            status: row.try_get("status").map_err(|_| MaviError::Internal)?,
-            created_at: row.try_get("created_at").map_err(|_| MaviError::Internal)?,
-            updated_at: row.try_get("updated_at").map_err(|_| MaviError::Internal)?,
-        })
-    })
-    .collect::<Result<Vec<_>>>()?;
-
-    let roles = sqlx::query(
-        "select id, name, created_at, system_role from roles
-         where site_id = $1 order by created_at asc, id asc",
-    )
-    .bind(context.site_id.into_uuid())
-    .fetch_all(tx.conn())
-    .await
-    .map_err(|_| MaviError::Internal)?
-    .iter()
-    .map(|row| {
-        Ok(PortableRole {
-            id: row.try_get("id").map_err(|_| MaviError::Internal)?,
-            name: row.try_get("name").map_err(|_| MaviError::Internal)?,
-            created_at: row.try_get("created_at").map_err(|_| MaviError::Internal)?,
-            system_role: row
-                .try_get("system_role")
-                .map_err(|_| MaviError::Internal)?,
-        })
-    })
-    .collect::<Result<Vec<_>>>()?;
-
-    let role_grants = sqlx::query(
-        "select role_id, capability, action from role_grants
-         where site_id = $1 order by role_id asc, capability asc, action asc",
-    )
-    .bind(context.site_id.into_uuid())
-    .fetch_all(tx.conn())
-    .await
-    .map_err(|_| MaviError::Internal)?
-    .iter()
-    .map(|row| {
-        Ok(PortableRoleGrant {
-            role_id: row.try_get("role_id").map_err(|_| MaviError::Internal)?,
-            capability: row.try_get("capability").map_err(|_| MaviError::Internal)?,
-            action: row.try_get("action").map_err(|_| MaviError::Internal)?,
-        })
-    })
-    .collect::<Result<Vec<_>>>()?;
-
-    let person_roles = sqlx::query(
-        "select person_id, role_id from person_roles
-         where site_id = $1 order by person_id asc, role_id asc",
-    )
-    .bind(context.site_id.into_uuid())
-    .fetch_all(tx.conn())
-    .await
-    .map_err(|_| MaviError::Internal)?
-    .iter()
-    .map(|row| {
-        Ok(PortablePersonRole {
-            person_id: row.try_get("person_id").map_err(|_| MaviError::Internal)?,
-            role_id: row.try_get("role_id").map_err(|_| MaviError::Internal)?,
-        })
-    })
-    .collect::<Result<Vec<_>>>()?;
-
-    Ok(PortableIdentity {
-        people,
-        roles,
-        role_grants,
-        person_roles,
-    })
-}
-
-async fn export_credentials(
-    tx: &mut SiteTx,
-    context: &SiteContext,
-) -> Result<Vec<PortablePersonCredential>> {
-    sqlx::query(
-        "select id, password_hash from people
-         where site_id = $1 order by id asc",
-    )
-    .bind(context.site_id.into_uuid())
-    .fetch_all(tx.conn())
-    .await
-    .map_err(|_| MaviError::Internal)?
-    .iter()
-    .map(|row| {
-        Ok(PortablePersonCredential {
-            person_id: row.try_get("id").map_err(|_| MaviError::Internal)?,
-            password_hash: row
-                .try_get("password_hash")
-                .map_err(|_| MaviError::Internal)?,
-        })
-    })
-    .collect()
-}
-
-fn validate_identity(
-    identity: &PortableIdentity,
-    credentials: &[PortablePersonCredential],
-) -> Result<()> {
-    let mut people = BTreeSet::new();
-    let mut emails = BTreeSet::new();
-    for person in &identity.people {
-        if person.id.is_nil()
-            || !people.insert(person.id)
-            || !valid_email(&person.email)
-            || !emails.insert(person.email.to_ascii_lowercase())
-            || person.name.trim().is_empty()
-            || person.name.chars().count() > 120
-            || !matches!(person.status.as_str(), "active" | "suspended" | "removed")
-        {
-            return Err(MaviError::validation("portable_identity_person_invalid"));
-        }
-    }
-
-    let mut roles = BTreeSet::new();
-    let mut role_names = BTreeSet::new();
-    for role in &identity.roles {
-        if role.id.is_nil()
-            || !roles.insert(role.id)
-            || !valid_role_name(&role.name)
-            || (role.system_role && role.name != "owner")
-            || !role_names.insert(role.name.clone())
-        {
-            return Err(MaviError::validation("portable_identity_role_invalid"));
-        }
-    }
-
-    let mut grants = BTreeSet::new();
-    for grant in &identity.role_grants {
-        if !roles.contains(&grant.role_id)
-            || !valid_capability(&grant.capability)
-            || !matches!(grant.action.as_str(), "view" | "write" | "delete")
-            || !grants.insert((
-                grant.role_id,
-                grant.capability.clone(),
-                grant.action.clone(),
-            ))
-        {
-            return Err(MaviError::validation("portable_identity_grant_invalid"));
-        }
-    }
-
-    let mut assignments = BTreeSet::new();
-    for assignment in &identity.person_roles {
-        if !people.contains(&assignment.person_id)
-            || !roles.contains(&assignment.role_id)
-            || !assignments.insert((assignment.person_id, assignment.role_id))
-        {
-            return Err(MaviError::validation(
-                "portable_identity_assignment_invalid",
-            ));
-        }
-    }
-
-    let mut credential_people = BTreeSet::new();
-    for credential in credentials {
-        if !people.contains(&credential.person_id)
-            || credential.password_hash.trim().is_empty()
-            || credential.password_hash.len() > 1024
-            || !credential_people.insert(credential.person_id)
-        {
-            return Err(MaviError::validation(
-                "portable_identity_credential_invalid",
-            ));
-        }
-    }
-    if credential_people != people {
-        return Err(MaviError::validation(
-            "portable_identity_credentials_incomplete",
-        ));
-    }
-    Ok(())
-}
-
-fn role_is_protected(role: &PortableRole) -> bool {
-    role.system_role || role.name == "owner"
-}
-
-#[allow(clippy::too_many_lines)]
-async fn import_identity(
-    tx: &mut SiteTx,
-    context: &SiteContext,
-    identity: &PortableIdentity,
-    credentials: &[PortablePersonCredential],
-) -> Result<()> {
-    validate_identity(identity, credentials)?;
-
-    // Sessions and API keys are transient credentials. They are intentionally
-    // not copied across a shard boundary and any target-side remnants from a
-    // retry are revoked before the durable people snapshot is applied.
-    sqlx::query("delete from api_key_grants where site_id = $1")
-        .bind(context.site_id.into_uuid())
-        .execute(tx.conn())
-        .await
-        .map_err(map_import_write_error)?;
-    sqlx::query("delete from api_keys where site_id = $1")
-        .bind(context.site_id.into_uuid())
-        .execute(tx.conn())
-        .await
-        .map_err(map_import_write_error)?;
-    sqlx::query("delete from sessions where site_id = $1")
-        .bind(context.site_id.into_uuid())
-        .execute(tx.conn())
-        .await
-        .map_err(map_import_write_error)?;
-    sqlx::query("delete from person_roles where site_id = $1")
-        .bind(context.site_id.into_uuid())
-        .execute(tx.conn())
-        .await
-        .map_err(map_import_write_error)?;
-    // The owner role is database-protected. Remove stale grants only for
-    // mutable roles, then make the snapshot idempotent for protected grants.
-    sqlx::query(
-        "delete from role_grants grant_row
-          where grant_row.site_id = $1
-            and not exists (
-                select 1 from roles role_row
-                 where role_row.site_id = grant_row.site_id
-                   and role_row.id = grant_row.role_id
-                   and role_row.system_role
-            )",
-    )
-    .bind(context.site_id.into_uuid())
-    .execute(tx.conn())
-    .await
-    .map_err(map_import_write_error)?;
-
-    let credentials = credentials
-        .iter()
-        .map(|credential| (credential.person_id, credential.password_hash.as_str()))
-        .collect::<std::collections::HashMap<_, _>>();
-    for person in &identity.people {
-        let password_hash = credentials.get(&person.id).ok_or(MaviError::validation(
-            "portable_identity_credentials_incomplete",
-        ))?;
-        sqlx::query(
-            "insert into people
-                (site_id, id, email, name, password_hash, status, created_at, updated_at)
-             values ($1, $2, $3, $4, $5, $6, $7, $8)
-             on conflict (site_id, id) do update set
-                email = excluded.email, name = excluded.name,
-                password_hash = excluded.password_hash, status = excluded.status,
-                created_at = excluded.created_at, updated_at = excluded.updated_at",
-        )
-        .bind(context.site_id.into_uuid())
-        .bind(person.id)
-        .bind(&person.email)
-        .bind(&person.name)
-        .bind(password_hash)
-        .bind(&person.status)
-        .bind(person.created_at)
-        .bind(person.updated_at)
-        .execute(tx.conn())
-        .await
-        .map_err(map_import_write_error)?;
-    }
-
-    for role in &identity.roles {
-        // The owner role was already protected by name before `system_role`
-        // was added to the relocation envelope. Treat that legacy shape as
-        // protected during import so an older snapshot cannot downgrade the
-        // target's owner boundary.
-        let system_role = role_is_protected(role);
-        sqlx::query(
-            "insert into roles (site_id, id, name, created_at, system_role)
-             values ($1, $2, $3, $4, $5)
-             on conflict (site_id, id) do update set
-                name = excluded.name, created_at = excluded.created_at,
-                system_role = roles.system_role or excluded.system_role",
-        )
-        .bind(context.site_id.into_uuid())
-        .bind(role.id)
-        .bind(&role.name)
-        .bind(role.created_at)
-        .bind(system_role)
-        .execute(tx.conn())
-        .await
-        .map_err(map_import_write_error)?;
-    }
-
-    for grant in &identity.role_grants {
-        sqlx::query(
-            "insert into role_grants (site_id, role_id, capability, action)
-             values ($1, $2, $3, $4)
-             on conflict (site_id, role_id, capability, action) do nothing",
-        )
-        .bind(context.site_id.into_uuid())
-        .bind(grant.role_id)
-        .bind(&grant.capability)
-        .bind(&grant.action)
-        .execute(tx.conn())
-        .await
-        .map_err(map_import_write_error)?;
-    }
-
-    for assignment in &identity.person_roles {
-        sqlx::query(
-            "insert into person_roles (site_id, person_id, role_id)
-             values ($1, $2, $3)",
-        )
-        .bind(context.site_id.into_uuid())
-        .bind(assignment.person_id)
-        .bind(assignment.role_id)
-        .execute(tx.conn())
-        .await
-        .map_err(map_import_write_error)?;
-    }
-
-    AuditService
-        .record(
-            tx,
-            context,
-            &AuditEntry {
-                action: "portable.identity.relocated".to_owned(),
-                resource_type: "IdentitySnapshot".to_owned(),
-                resource_id: None,
-                payload: json!({
-                    "people": identity.people.len(),
-                    "roles": identity.roles.len(),
-                    "role_grants": identity.role_grants.len(),
-                    "person_roles": identity.person_roles.len(),
-                    "sessions": 0,
-                    "api_keys": 0,
-                }),
-            },
-        )
-        .await
-}
-
-fn valid_email(value: &str) -> bool {
-    let value = value.trim();
-    let mut parts = value.split('@');
-    let Some(local) = parts.next() else {
-        return false;
-    };
-    let Some(domain) = parts.next() else {
-        return false;
-    };
-    parts.next().is_none()
-        && !local.is_empty()
-        && local.len() <= 64
-        && !domain.is_empty()
-        && domain.contains('.')
-        && value.len() <= 254
-        && !value.chars().any(char::is_whitespace)
-}
-
-fn valid_role_name(value: &str) -> bool {
-    !value.is_empty()
-        && value.len() <= 64
-        && value.starts_with(|character: char| character.is_ascii_lowercase())
-        && value.chars().all(|character| {
-            character.is_ascii_lowercase()
-                || character.is_ascii_digit()
-                || character == '_'
-                || character == '-'
-        })
-}
-
-fn valid_capability(value: &str) -> bool {
-    Capability::ALL
-        .into_iter()
-        .any(|capability| capability.as_str() == value)
 }
 
 fn schema_hash() -> String {
@@ -2296,12 +1458,6 @@ mod tests {
                 .validate_for_site(bundle.manifest.source_site_id)
                 .is_err()
         );
-        assert!(
-            bundle
-                .validate_for_relocation(bundle.manifest.source_site_id)
-                .is_ok()
-        );
-        assert!(bundle.validate_for_relocation(SiteId::new()).is_err());
         assert!(bundle.validate_for_site(SiteId::new()).is_ok());
         bundle.manifest.schema_hash = "bad".to_owned();
         assert!(bundle.validate_for_site(SiteId::new()).is_err());
@@ -2369,106 +1525,5 @@ mod tests {
                 .all(|shape| !shape.schema.to_string().contains("offset"))
         );
         api.validate().expect("portable API");
-    }
-
-    #[test]
-    fn legacy_roles_keep_evidence_json_stable_when_system_role_is_absent() {
-        let legacy = json!({
-            "id": "01933b5e-6d8d-7e8f-9a0b-1c2d3e4f5061",
-            "name": "editor",
-            "created_at": "2026-01-01T00:00:00Z"
-        });
-        let role: PortableRole = serde_json::from_value(legacy.clone()).expect("legacy role");
-        assert_eq!(
-            serde_json::to_value(&role).expect("legacy role JSON"),
-            legacy
-        );
-
-        let mut owner = role;
-        owner.name = "owner".to_owned();
-        owner.system_role = true;
-        assert_eq!(
-            serde_json::to_value(owner).expect("system role JSON")["system_role"],
-            json!(true)
-        );
-    }
-
-    #[test]
-    fn legacy_owner_role_remains_protected_during_import() {
-        let role = PortableRole {
-            id: Uuid::now_v7(),
-            name: "owner".to_owned(),
-            created_at: Utc::now(),
-            system_role: false,
-        };
-        assert!(role_is_protected(&role));
-
-        let mut editor = role;
-        editor.name = "editor".to_owned();
-        assert!(!role_is_protected(&editor));
-    }
-
-    #[test]
-    fn relocation_capability_validation_uses_the_core_registry() {
-        for capability in Capability::ALL {
-            assert!(valid_capability(capability.as_str()));
-        }
-        assert!(!valid_capability("unknown"));
-    }
-
-    #[test]
-    fn relocation_credentials_are_internal_and_debug_redacted() {
-        let person_id = Uuid::now_v7();
-        let role_id = Uuid::now_v7();
-        let now = Utc::now();
-        let bundle = bundle();
-        let source_site = bundle.manifest.source_site_id;
-        let envelope = PortableRelocationBundle {
-            bundle,
-            identity: PortableIdentity {
-                people: vec![PortablePerson {
-                    id: person_id,
-                    email: "owner@example.com".to_owned(),
-                    name: "Owner".to_owned(),
-                    status: "active".to_owned(),
-                    created_at: now,
-                    updated_at: now,
-                }],
-                roles: vec![PortableRole {
-                    id: role_id,
-                    name: "owner".to_owned(),
-                    created_at: now,
-                    system_role: true,
-                }],
-                role_grants: vec![PortableRoleGrant {
-                    role_id,
-                    capability: "people".to_owned(),
-                    action: "view".to_owned(),
-                }],
-                person_roles: vec![PortablePersonRole { person_id, role_id }],
-            },
-            credentials: vec![PortablePersonCredential {
-                person_id,
-                password_hash: "$argon2id$v=19$internal-secret-hash".to_owned(),
-            }],
-            media: MediaRelocation::default(),
-            design: DesignRelocation::default(),
-            audit: AuditRelocation::empty(source_site),
-            trash: TrashRelocation::empty(source_site),
-            forms: FormsRelocation::empty(source_site),
-            mail: MailRelocation::empty(source_site),
-            shop: ShopRelocation::empty(source_site),
-            courses: CoursesRelocation::empty(source_site),
-            jobs: JobsRelocation::empty(source_site),
-            flows: FlowsRelocation::empty(source_site),
-            boards: BoardsRelocation::empty(source_site),
-            analytics: AnalyticsRelocation::empty(source_site),
-        };
-        envelope
-            .validate_for_relocation(envelope.bundle.manifest.source_site_id)
-            .expect("identity relocation envelope");
-        let debug = format!("{envelope:?}");
-        assert!(!debug.contains("internal-secret-hash"));
-        assert!(debug.contains("redacted"));
     }
 }

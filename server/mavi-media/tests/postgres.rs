@@ -14,9 +14,12 @@ async fn media_metadata_and_audit_are_site_scoped_and_binary_cleanup_is_retryabl
     database.migrate().await.expect("migrations");
     let first_site = SiteId::new();
     let second_site = SiteId::new();
-    database.ensure_site(first_site).await.expect("first site");
     database
-        .ensure_site(second_site)
+        .ensure_site_for_tests(first_site)
+        .await
+        .expect("first site");
+    database
+        .ensure_site_for_tests(second_site)
         .await
         .expect("second site");
 

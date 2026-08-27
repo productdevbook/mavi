@@ -2,7 +2,8 @@ use std::env;
 
 use chrono::Utc;
 use mavi_core::{
-    Action, Caller, Capability, Grant, Grants, MaviError, RequestId, SiteContext, SiteId,
+    Action, Caller, Capability, Grant, Grants, MaviError, Permission, PluginId, RequestId,
+    SiteContext, SiteId,
 };
 use mavi_identity::{
     ApiKeyListFilter, CreateApiKey, CreatePerson, CreateRole, EmailVerificationRedeemInput,
@@ -31,7 +32,7 @@ async fn identity_people_and_roles_are_site_scoped_and_audited() {
     database.migrate().await.expect("migrations");
 
     let site_id = SiteId::new();
-    database.ensure_site(site_id).await.expect("site");
+    database.ensure_site_for_tests(site_id).await.expect("site");
     let public_context = SiteContext::public(site_id);
     let service = IdentityService;
 
@@ -83,6 +84,10 @@ async fn identity_people_and_roles_are_site_scoped_and_audited() {
                 grants: vec![
                     Grant::new(Capability::Content, Action::View),
                     Grant::new(Capability::Content, Action::Write),
+                ],
+                permissions: vec![
+                    Permission::new(PluginId::Writing, "content.entry.list"),
+                    Permission::new(PluginId::Writing, "content.entry.update"),
                 ],
             },
         )
@@ -155,6 +160,7 @@ async fn identity_people_and_roles_are_site_scoped_and_audited() {
             &CreateRole {
                 name: "reviewer".to_owned(),
                 grants: vec![Grant::new(Capability::Content, Action::View)],
+                permissions: Vec::new(),
             },
         )
         .await
@@ -209,7 +215,10 @@ async fn identity_people_and_roles_are_site_scoped_and_audited() {
             &mut tx,
             &owner_context,
             owner_role.id,
-            &ReplaceRoleGrants { grants: Vec::new() },
+            &ReplaceRoleGrants {
+                grants: Vec::new(),
+                permissions: Vec::new(),
+            },
         )
         .await
         .expect_err("the owner grants cannot be replaced");
@@ -225,6 +234,7 @@ async fn identity_people_and_roles_are_site_scoped_and_audited() {
             &CreateRole {
                 name: "unused".to_owned(),
                 grants: vec![Grant::new(Capability::Content, Action::View)],
+                permissions: Vec::new(),
             },
         )
         .await
@@ -241,6 +251,7 @@ async fn identity_people_and_roles_are_site_scoped_and_audited() {
             role.id,
             &ReplaceRoleGrants {
                 grants: vec![Grant::new(Capability::Content, Action::View)],
+                permissions: Vec::new(),
             },
         )
         .await
@@ -254,6 +265,7 @@ async fn identity_people_and_roles_are_site_scoped_and_audited() {
             &CreateApiKey {
                 name: "automation".to_owned(),
                 grants: vec![Grant::new(Capability::People, Action::Delete)],
+                permissions: Vec::new(),
                 expires_at: None,
             },
             Utc::now(),
@@ -272,6 +284,7 @@ async fn identity_people_and_roles_are_site_scoped_and_audited() {
             &CreateApiKey {
                 name: "secondary".to_owned(),
                 grants: vec![Grant::new(Capability::Content, Action::View)],
+                permissions: Vec::new(),
                 expires_at: None,
             },
             Utc::now(),
@@ -369,7 +382,7 @@ async fn password_reset_is_generic_one_time_and_revokes_sessions() {
     database.migrate().await.expect("migrations");
 
     let site_id = SiteId::new();
-    database.ensure_site(site_id).await.expect("site");
+    database.ensure_site_for_tests(site_id).await.expect("site");
     let public_context = SiteContext::public(site_id);
     let service = IdentityService;
 
@@ -486,7 +499,7 @@ async fn email_verification_is_one_time_scoped_and_throttled() {
     database.migrate().await.expect("migrations");
 
     let site_id = SiteId::new();
-    database.ensure_site(site_id).await.expect("site");
+    database.ensure_site_for_tests(site_id).await.expect("site");
     let public_context = SiteContext::public(site_id);
     let service = IdentityService;
 

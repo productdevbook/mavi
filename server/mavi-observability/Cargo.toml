@@ -6,5 +6,8 @@ license.workspace = true
 publish = false
 description = "Process-local metrics primitives and Prometheus exposition for Mavi runtimes."
 
+[dependencies]
+mavi-core = { path = "../mavi-core" }
+
 [lints]
 workspace = true

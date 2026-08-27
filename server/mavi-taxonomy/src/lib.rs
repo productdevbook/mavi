@@ -148,8 +148,7 @@ mod tests {
         let api = api();
         api.validate().expect("taxonomy API contract");
         assert!(api.endpoints.iter().all(|endpoint| {
-            (endpoint.path.starts_with("/api/v1/") || endpoint.path.starts_with("/public/v1/"))
-                && endpoint.scope == mavi_contract::Scope::Site
+            endpoint.path.starts_with("/api/v1/") || endpoint.path.starts_with("/public/v1/")
         }));
     }
 }

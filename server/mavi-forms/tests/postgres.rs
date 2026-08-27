@@ -1,12 +1,12 @@
 use std::env;
 
 use chrono::{Duration, Utc};
+use mavi_application::JobsService;
 use mavi_core::{FormSubmissionId, MaviError, PageRequest, SiteContext, SiteId};
 use mavi_forms::{
     CreateForm, FORM_RETENTION_JOB, FormField, FormFieldKind, FormListFilter, FormService,
     SubmissionExportFilter, SubmissionListFilter, SubmitForm,
 };
-use mavi_jobs::JobsService;
 use mavi_storage::Database;
 use serde_json::{Map, Value, json};
 
@@ -20,9 +20,12 @@ async fn forms_declarations_submissions_and_rls_are_site_scoped() {
 
     let first_site = SiteId::new();
     let second_site = SiteId::new();
-    database.ensure_site(first_site).await.expect("first site");
     database
-        .ensure_site(second_site)
+        .ensure_site_for_tests(first_site)
+        .await
+        .expect("first site");
+    database
+        .ensure_site_for_tests(second_site)
         .await
         .expect("second site");
 
@@ -270,9 +273,12 @@ async fn retention_is_idempotent_site_scoped_and_audited() {
 
     let first_site = SiteId::new();
     let second_site = SiteId::new();
-    database.ensure_site(first_site).await.expect("first site");
     database
-        .ensure_site(second_site)
+        .ensure_site_for_tests(first_site)
+        .await
+        .expect("first site");
+    database
+        .ensure_site_for_tests(second_site)
         .await
         .expect("second site");
     let first_context = SiteContext::public(first_site);

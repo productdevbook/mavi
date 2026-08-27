@@ -145,6 +145,6 @@ async fn automation_http_contract_and_authorization_are_explicit() {
         catalog
             .endpoints
             .iter()
-            .any(|endpoint| endpoint.operation_id == "jobs.retry")
+            .any(|endpoint| endpoint.operation_id == "workflows.runs.replay")
     );
 }

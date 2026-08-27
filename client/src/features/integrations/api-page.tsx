@@ -5,7 +5,7 @@ import { toast } from "sonner"
 
 import { api, every } from "@/lib/api"
 import { apiMessage } from "@/lib/auth"
-import type { ApiKeyRecord, Grant } from "@api"
+import type { ApiKeyRecord, Grant, Permission } from "@api"
 import { AssistantClients } from "@/components/assistant-clients"
 import { McpConnection } from "@/components/mcp-connection"
 import {
@@ -59,6 +59,7 @@ export function ApiPage() {
   const [issued, setIssued] = React.useState<string | null>(null)
   const [revoking, setRevoking] = React.useState<string | null>(null)
   const [grants, setGrants] = React.useState<Grant[]>([])
+  const [permissions, setPermissions] = React.useState<Permission[]>([])
 
   const origin = window.location.origin
 
@@ -77,7 +78,10 @@ export function ApiPage() {
 
   React.useEffect(() => {
     api("auth.session.current")
-      .then((session) => setGrants(session.grants))
+      .then((session) => {
+        setGrants(session.grants)
+        setPermissions(session.permissions)
+      })
       .catch((why: unknown) => toast.error(apiMessage(why)))
   }, [])
 
@@ -87,7 +91,7 @@ export function ApiPage() {
 
     try {
       const made = await api("auth.api_key.create", {
-        body: { name: name.trim(), grants },
+        body: { name: name.trim(), grants, permissions },
       })
       setIssued(made.token)
       setName("")

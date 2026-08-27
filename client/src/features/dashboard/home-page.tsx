@@ -12,7 +12,8 @@ import {
   Workflow,
 } from "lucide-react"
 
-import { every } from "@/lib/api"
+import { api, every } from "@/lib/api"
+import { type PluginId, usePlugins } from "@/lib/plugins"
 import { Figure } from "@/components/charts"
 import { inBytes } from "@/lib/bytes"
 import { AddressHealth } from "@/components/dashboard/address-health"
@@ -27,22 +28,37 @@ import {
  */
 export function HomePage() {
   const { t } = useLingui()
+  const { activePlugins, ready: pluginsReady } = usePlugins()
   const [stats, setStats] = React.useState<Stats | "failed" | null>(null)
 
   React.useEffect(() => {
+    if (!pluginsReady) return undefined
     let current = true
+    // Keep the request lazy. Passing a Promise here would already start the
+    // fetch before the plugin check runs, which makes an inactive plugin
+    // visible to the backend even though its card is rendered as empty.
+    const page = <T,>(
+      plugin: PluginId,
+      request: () => Promise<T>,
+      empty: T,
+    ): Promise<T> =>
+      activePlugins.has(plugin) ? request() : Promise.resolve(empty)
     Promise.all([
-      every("content.list", { query: {} }),
-      every("forms.list", { query: {} }),
-      every("mail.lists.list", { query: {} }),
-      every("media.files.list", { query: {} }),
-      every("courses.students.list", { query: {} }),
-      every("shop.orders.list", { query: {} }),
-      every("automation.flows.list", { query: {} }),
-      every("jobs.list", { query: {} }),
+      page("writing", () => every("content.list", { query: {} }), []),
+      page("forms", () => every("forms.list", { query: {} }), []),
+      page("messaging", () => every("mail.lists.list", { query: {} }), []),
+      page("writing", () => every("media.files.list", { query: {} }), []),
+      page("learning", () => every("courses.students.list", { query: {} }), []),
+      page("commerce", () => every("shop.orders.list", { query: {} }), []),
+      page("automation", () => every("automation.flows.list", { query: {} }), []),
+      page(
+        "automation",
+        () => api("workflows.runs.list"),
+        { items: [], next_cursor: null },
+      ),
     ])
       .then(
-        ([content, forms, lists, files, students, orders, flows, jobs]) =>
+        ([content, forms, lists, files, students, orders, flows, runs]) =>
           current &&
           setStats({
             writings: content.length,
@@ -57,7 +73,7 @@ export function HomePage() {
             students: students.length,
             orders: orders.length,
             flows_on: flows.filter((one) => one.enabled).length,
-            work_given_up_on: jobs.filter((one) => one.state === "dead").length,
+            work_given_up_on: runs.items.filter((run) => run.status === "failed").length,
           })
       )
       .catch(() => {
@@ -68,7 +84,7 @@ export function HomePage() {
     return () => {
       current = false
     }
-  }, [])
+  }, [activePlugins, pluginsReady])
 
   if (stats === "failed") {
     return (

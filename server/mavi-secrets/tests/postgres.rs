@@ -17,14 +17,17 @@ async fn credentials_are_sealed_site_scoped_optimistic_and_audited() {
 
     let first = SiteId::new();
     let second = SiteId::new();
-    database.ensure_site(first).await.expect("first site");
-    database.ensure_site(second).await.expect("second site");
+    database
+        .ensure_site_for_tests(first)
+        .await
+        .expect("first site");
+    database
+        .ensure_site_for_tests(second)
+        .await
+        .expect("second site");
     let first_context = account_context(first);
     let second_context = account_context(second);
     let sealer = KeyringSealer::from_key([11; 32]);
-    let transfer_sealer = KeyringSealer::from_key([12; 32]);
-    let target_sealer = KeyringSealer::from_key([13; 32]);
-    let wrong_transfer_sealer = KeyringSealer::from_key([14; 32]);
     let service = CredentialService;
 
     let mut values = BTreeMap::new();
@@ -101,34 +104,6 @@ async fn credentials_are_sealed_site_scoped_optimistic_and_audited() {
     assert!(matches!(conflict, mavi_core::MaviError::Conflict { .. }));
     drop(tx);
 
-    let mut tx = database.begin(&first_context).await.expect("scope");
-    let relocation = service
-        .export_for_relocation(&mut tx, &first_context, &sealer, &transfer_sealer)
-        .await
-        .expect("export provider credentials");
-    assert_eq!(relocation.record_count(), 1);
-    assert!(!format!("{relocation:?}").contains("rotated-value"));
-    tx.commit().await.expect("relocation export commit");
-
-    let mut tx = database.begin(&first_context).await.expect("scope");
-    let repeated = service
-        .export_for_relocation(&mut tx, &first_context, &sealer, &transfer_sealer)
-        .await
-        .expect("repeated export provider credentials");
-    assert_eq!(repeated.record_count(), relocation.record_count());
-    let relocation_audits: i64 = sqlx::query_scalar(
-        "select count(*) from audit_events
-          where site_id = $1 and action = 'credentials.relocation.exported'",
-    )
-    .bind(first.into_uuid())
-    .fetch_one(tx.conn())
-    .await
-    .expect("relocation audit count");
-    assert_eq!(relocation_audits, 0);
-    tx.commit()
-        .await
-        .expect("repeated relocation export commit");
-
     let mut tx = database.begin(&second_context).await.expect("scope");
     let second_list = service
         .list(&mut tx, &second_context, &CredentialListFilter::default())
@@ -136,48 +111,6 @@ async fn credentials_are_sealed_site_scoped_optimistic_and_audited() {
         .expect("second list");
     assert!(second_list.items.is_empty());
     tx.commit().await.expect("second commit");
-
-    let mut tx = database.begin(&first_context).await.expect("scope");
-    let mismatch = service
-        .import_for_relocation(
-            &mut tx,
-            &first_context,
-            &target_sealer,
-            &wrong_transfer_sealer,
-            &relocation,
-        )
-        .await
-        .expect_err("wrong transfer key");
-    assert!(matches!(
-        mismatch,
-        mavi_core::MaviError::Conflict { ref code }
-            if code == "credential_relocation_key_mismatch"
-    ));
-    drop(tx);
-
-    let mut tx = database.begin(&first_context).await.expect("scope");
-    assert_eq!(
-        service
-            .import_for_relocation(
-                &mut tx,
-                &first_context,
-                &target_sealer,
-                &transfer_sealer,
-                &relocation,
-            )
-            .await
-            .expect("import provider credentials"),
-        1
-    );
-    let target_material = service
-        .unseal(&mut tx, &first_context, &target_sealer, created.id)
-        .await
-        .expect("target unseal");
-    assert_eq!(
-        target_material.values().get("api_key"),
-        Some(&"rotated-value".to_owned())
-    );
-    tx.commit().await.expect("relocation import commit");
 
     let mut tx = database.begin(&first_context).await.expect("scope");
     service
@@ -202,7 +135,10 @@ async fn credentials_are_sealed_site_scoped_optimistic_and_audited() {
     .fetch_one(tx.conn())
     .await
     .expect("audit count");
-    assert_eq!(audit_count, 5);
+    // Four credential operations remain after the cross-instance relocation
+    // path moved to the external tenant repository: create, unseal, rotate
+    // and revoke.
+    assert_eq!(audit_count, 4);
     tx.commit().await.expect("audit commit");
 }
 

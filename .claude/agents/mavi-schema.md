@@ -30,10 +30,11 @@ one site's letter in front of another. `mavi-storage` asserts this and a table
 without it fails the build. Do not reach green by relaxing the assertion or
 adding an exemption — the policy goes in.
 
-Two tables are deliberately outside it: `site_catalog`, which is the register
-of sites rather than a thing a site owns, and `site_write_fences`, which sits
-above admission. Adding a third is a decision to stop and argue for, not a
-convenience.
+One table is deliberately outside it: `site_catalog`, which is the register
+of sites rather than a thing a site owns. Adding a second is a decision to
+stop and argue for, not a convenience. Workflow outbox and execution rows
+remain site-scoped; Hatchet is the delivery authority and Mavi does not add a
+second lease table.
 
 The scope is set inside the transaction — `set_config('app.site_id', $1, true)`
 — never on the pooled connection, because a connection outlives the request
@@ -43,7 +44,7 @@ that borrowed it.
 
 A foreign key with nothing to read it by. A table holding somebody's own data
 that says nothing about how long it keeps it. A retention policy naming a sweep
-that is not a job. A table that soft-deletes and is in no trash registry. Each
+that is not a workflow. A table that soft-deletes and is in no trash registry. Each
 is a question the schema answers or fails.
 
 A column holding somebody's personal data brings a retention policy with it.
@@ -55,7 +56,7 @@ Before every commit, in `server/`:
     cargo nextest run --workspace
 
 The migration tests are `#[ignore]`d and read `TEST_DATABASE_URL`; CI runs them
-against a real PostgreSQL, sharded. A migration that is slow is slow for every
+against a real PostgreSQL, in isolated acceptance databases. A migration that is slow is slow for every
 test in the suite.
 
 This repository is public. Nothing out of anybody's database goes into a

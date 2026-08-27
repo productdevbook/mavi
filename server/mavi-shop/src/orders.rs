@@ -147,14 +147,8 @@ pub fn api() -> mavi_contract::Api {
 }
 
 fn endpoints() -> Vec<Endpoint> {
-    let view = Permission {
-        capability: Capability::Shop,
-        action: Action::View,
-    };
-    let write = Permission {
-        capability: Capability::Shop,
-        action: Action::Write,
-    };
+    let view = Permission::from_legacy(Capability::Shop, Action::View);
+    let write = Permission::from_legacy(Capability::Shop, Action::Write);
     vec![
         Endpoint::new(
             Method::Get,
@@ -163,7 +157,7 @@ fn endpoints() -> Vec<Endpoint> {
             "List site orders with an opaque cursor",
         )
         .account_or_assistant()
-        .requires(view)
+        .requires(view.clone())
         .takes_query("OrderListFilter")
         .returns(200, "OrderSummaryPage")
         .refuses([
@@ -178,7 +172,7 @@ fn endpoints() -> Vec<Endpoint> {
             "Read one order with immutable line snapshots",
         )
         .account_or_assistant()
-        .requires(view)
+        .requires(view.clone())
         .returns(200, "Order")
         .refuses([
             ErrorCode::Forbidden,
@@ -192,7 +186,7 @@ fn endpoints() -> Vec<Endpoint> {
             "Move an order through its explicit state machine",
         )
         .account_or_assistant()
-        .requires(write)
+        .requires(write.clone())
         .takes("OrderTransition")
         .returns(200, "Order")
         .changes(false)

@@ -7,35 +7,22 @@ preserve an old boundary.
 ## Runtime boundary
 
 Mavi owns one site's content, users, settings, media, commerce, courses,
-automation and publishing. Mavi Operator owns organizations, accounts,
-placements, billing, metering and cloud lifecycle. Operator may provision a
-site, but site data is accessed through Mavi's site-scoped API and never by
-reaching into Mavi's tables.
+automation and publishing. A tenant/control-plane repository owns
+organizations, billing, placement, backups and lifecycle, and talks to Mavi
+only through its container and versioned HTTP/OpenAPI boundary.
 
-The same Mavi application runs in both modes:
+The executable requires one `MAVI_SITE_ID`, one PostgreSQL database and one
+file namespace. Host-to-site routing, shard runtime, relocation and
+control-plane lifecycle code are not part of this process. Every application
+transaction still receives a `SiteContext`; `site_id`, PostgreSQL RLS,
+composite foreign keys and site-bound encryption remain the data-isolation
+boundary.
 
-- self-host uses a `FixedSiteResolver` and one configured site;
-- cloud uses a request resolver and a shared shard pool;
-- every application transaction receives a `SiteContext`;
-- site-owned tables use `site_id` and scoped transactions;
-- control-plane endpoints are explicit in the API contract.
-
-The executable selects the runtime at startup. Self-host keeps the default
-`MAVI_RUNTIME_MODE=fixed_site` and requires `MAVI_SITE_ID`. A cloud shard uses
-one process, one router and one PostgreSQL pool for an allowlisted host
-directory:
-
-```text
-MAVI_RUNTIME_MODE=shard
-MAVI_SITE_HOSTS=www.example.com=<site-uuid>,store.example.com=<site-uuid>
-```
-
-`MAVI_SITE_HOSTS` is a validated startup snapshot: hosts are normalized,
-duplicate claims are rejected and every mapped site is reconciled into the
-shard catalog as active. The request `Host` is resolved into a `SiteContext`
-before authentication and every domain transaction remains site-scoped. A
-control-plane refresh must replace this snapshot through the deployment
-boundary; the process never accepts a site ID supplied by a request.
+Startup is ordered as migrations, single-site preflight, configured-site
+ensure, compiled plugin registry/Cedar validation, Hatchet bridge validation,
+then listener bind. `MAVI_PROCESS_ROLE=all` runs HTTP, the Rust executor and
+the workflow outbox relay; `api` serves HTTP only, while `worker` exposes only
+the private Rust executor and outbox relay on `MAVI_EXECUTOR_LISTEN`.
 
 Authentication endpoints and public form submissions apply bounded site+action
 edge windows keyed by the direct peer IP and a privacy-preserving User-Agent
@@ -74,7 +61,8 @@ the listener from opening.
 
 Operational probes are global and do not require a site `Host`: `/healthz`
 reports process liveness, `/readyz` checks the shared database, and `/metrics`
-exposes process-local HTTP and worker counters in Prometheus text format.
+exposes process-local HTTP, worker and low-cardinality Cedar authorization
+counters in Prometheus text format.
 
 ## Workspace crates
 
@@ -83,24 +71,26 @@ exposes process-local HTTP and worker counters in Prometheus text format.
 | `mavi-core` | typed IDs, caller/site context, errors, grants, values and ports |
 | `mavi-storage` | PostgreSQL pool, migrations and scoped transactions |
 | `mavi-contract` | canonical endpoint declarations and contract validation |
-| `mavi-runtime` | self-host/cloud runtime composition and site resolution |
-| `mavi-http` | request admission, trusted edge signals, throttling and canonical HTTP composition |
+| `mavi-runtime` | fixed single-site runtime composition |
+| `mavi-application` | use-case orchestration, plugin lifecycle, Cedar entry point, workflow outbox and cross-domain trash policy |
+| `mavi-http` | request admission, plugin gates, trusted edge signals, throttling and HTTP transport |
 | `mavi-identity` | setup, people, roles and password identity primitives |
 | `mavi-content` | content entries, publication state and site-declared content types |
 | `mavi-settings` | site settings, timezone and site language configuration |
 | `mavi-authz` | embedded Cedar policy evaluation with site-scope enforcement |
 | `mavi-files` | atomic local and in-memory site-scoped binary storage adapters |
 | `mavi-media` | file metadata, byte detection, upload/trash orchestration and media API |
-| `mavi-observability` | process-local HTTP/worker counters and Prometheus exposition primitives |
+| `mavi-observability` | process-local HTTP/worker/Cedar decision counters and Prometheus exposition primitives |
 | `mavi-audit` | immutable site-scoped mutation receipts and cursor-filtered audit reads |
-| `mavi-trash` | shared trash listing, restore, permanent deletion and media cleanup policy |
+| `mavi-trash` | compatibility re-export for the application-owned trash policy |
 | `mavi-design` | site-owned source files, immutable preview builds, publish/rollback and public asset metadata |
 | `mavi-forms` | validated site form declarations, public submissions, cursor-based inbox management and versioned bounded export |
 | `mavi-feedback` | bounded site-scoped panel reports with cursor reads and transactional audit receipts |
 | `mavi-mail` | strict templates, subscriber lists, unsubscribe tokens and a provider-neutral outbox with sealed security messages |
 | `mavi-shop` | site-scoped products, money, stock holds, coupons, checkout and order state transitions |
 | `mavi-courses` | course authoring, ordered modules/lessons, isolated student sessions, enrollment, progress and protected lesson media |
-| `mavi-jobs` | site-scoped durable queue leases, idempotency keys, retry backoff and dead-letter state |
+| `mavi-worker` | workflow outbox relay and private Rust executor behind the Hatchet bridge |
+| `integrations/hatchet-worker` | official Hatchet Go SDK adapter; no business logic |
 | `mavi-flows` | validated trigger/step definitions, event fan-out, run snapshots and step history |
 | `mavi-boards` | ordered site-scoped boards, lists, cards, assignments, comments and immutable activity |
 | `mavi-analytics` | bounded privacy-preserving events, daily rollups, cursor export and retention |
@@ -130,8 +120,8 @@ cargo run -p mavi-http --bin generate_contract -- fingerprint
 
 After provisioning, an operator or panel checks `/api/v1/runtime/manifest`.
 The response is the compatibility boundary for a running site: it identifies
-the Mavi release, canonical API fingerprint, storage schema version, fixed-site
-or shard mode, and pagination policy. The pagination policy is deliberately
+the Mavi release, canonical API fingerprint, storage schema version, active
+compiled plugins and pagination policy. The pagination policy is deliberately
 cursor-only (`after`, bounded `limit`, opaque `next_cursor`); page numbers and
 offsets are not accepted or advertised.
 
@@ -185,22 +175,18 @@ and attached media for their own enrollment while the course is open. Course,
 student, enrollment and progress lists use the same opaque keyset cursor rule;
 offset/page-number pagination is not supported.
 
-Automation keeps panel definitions separate from worker execution. Flow events
-enqueue registered site jobs in the producer transaction; workers claim a
-short lease, execute outside the database transaction, and finish or fail only
-while that lease is still theirs. Repeated source events use an idempotency key,
-run definitions are snapshotted, and exhausted attempts remain visible as dead
-letters. The canonical automation and job management APIs expose only opaque
-keyset cursors. The runtime starts the site-scoped content worker for
-`content.publish_scheduled`; it re-checks the current schedule while holding
-the content row lock, records system audit receipts, and safely no-ops stale
-jobs. Worker identity and polling are configurable with `MAVI_WORKER_ID`,
-`MAVI_WORKER_LEASE_SECONDS` and `MAVI_WORKER_POLL_MILLIS`. The worker also
-drains mail when `MAVI_MAIL_WEBHOOK_URL` points at a trusted HTTPS mail
-gateway. `MAVI_MAIL_WEBHOOK_TOKEN` is optional and becomes a bearer credential
-for that gateway. The webhook receives delivery/attempt/idempotency metadata
-plus campaign unsubscribe headers and must return `{"reference":"..."}`;
-provider credentials never enter site rows.
+Automation keeps panel definitions separate from worker execution. New domain
+mutations write a small workflow intent atomically with their database change;
+the outbox relay publishes it to Hatchet, which owns retries, timeouts,
+concurrency, rate limits, priority and run control. Hatchet calls the private
+Rust executor with IDs and idempotency keys only. The small compatibility
+projection used by existing domain ports lives inside `mavi-application` and
+writes only the canonical workflow tables; there is no separate jobs crate or
+second queue. The historical `jobs` table is decommissioned by a forward
+migration and is not used at runtime.
+The canonical automation and workflow APIs
+expose only opaque keyset cursors. Mail still uses the injected `Mailer` port
+when configured, and provider credentials never enter site rows.
 
 Outbound sender identity is deployment policy, not an arbitrary request field.
 `MAVI_MAIL_FROM` is required when the gateway is enabled,
@@ -243,14 +229,12 @@ contains source-site provenance, record counts and a schema hash. Import first
 validates references and conflicts, then applies in one site-scoped transaction
 using `validate_only`, `create_only` or `upsert` semantics.
 
-The private operator relocation envelope extends that snapshot with identity
-credential hashes, live media metadata/bytes and design/build state. Credentials
-are redacted from debug output; sessions and API keys are revoked at the target
-rather than copied. Media and design artifact bytes stay behind the site-scoped
-`FileStore` and are verified by size and SHA-256 before import; publish pointers
-are restored only after their referenced builds exist. Image variants are derived
-data rather than relocation payload: the shared worker regenerates deterministic
-thumbnail, medium and large JPEGs after import or for legacy uploads.
+Site movement, backup orchestration and reprovisioning belong to the external
+tenant repository. Mavi's portable bundle is a content/settings snapshot only;
+it is not a relocation envelope and never copies sessions, API keys or provider
+secret values. Media and design artifact bytes stay behind the site-scoped
+`FileStore` and are handled by the instance's normal export/import workflow.
+Image variants remain derived data and are regenerated by the workflow worker.
 
 Self-host stores binary objects outside PostgreSQL. Set `MAVI_FILES_DIR` to a
 persistent directory (default: `./mavi-files`); object keys are generated from
@@ -272,8 +256,35 @@ advertises its supported protocol through `server/discover`, every request is
 self-contained, and no session or `initialize` handshake is part of the new
 runtime contract. `tools/list` uses MCP's opaque cursor, while `tools/call`
 routes back through the canonical HTTP handlers. Tool descriptors remain
-generated from the same API catalog and execution is subject to the endpoint's
-Cedar grant.
+generated from the same active API catalog and execution is subject to the
+endpoint's Cedar grant.
+
+## Plugins and durable workflows
+
+`mavi-application` owns the compiled `PluginRegistry`. The database stores only
+`site_plugins` activation/configuration rows; it never loads native code.
+Fresh setup enables `core` and `writing`. Plugin activation is owner-only,
+dependency-checked, audited and broadcast with PostgreSQL `NOTIFY`. Disabled
+plugins return HTTP 404 and disappear from runtime OpenAPI, MCP and panel
+navigation without deleting their data.
+
+Domain mutations write a small `WorkflowIntent` to `workflow_outbox` in the
+same `SiteTx` as the mutation. `mavi-worker` claims and retries the outbox,
+then the private `integrations/hatchet-worker` process publishes a Hatchet
+workflow. Hatchet owns retry, timeout, schedule, concurrency, rate-limit,
+priority, cancellation and run history; Rust remains the business-logic
+executor and uses idempotency keys for at-least-once delivery.
+
+Future-dated intents use Hatchet's schedule API and the bridge provisions a
+site-scoped maintenance cron (`MAVI_HATCHET_MAINTENANCE_CRON`) for retention
+and discovery work. Scheduled resources are stored in the same local run ID
+column with a `schedule:` prefix so cancellation and replay use the matching
+Hatchet control API.
+
+The bundled Hatchet compose server exposes plaintext gRPC inside the compose
+network, so the bridge defaults `MAVI_HATCHET_TLS_STRATEGY` to `none`. A bridge
+pointing at secured external Hatchet must set `tls` or `mtls` and provide the
+official SDK's corresponding certificate environment settings.
 
 ## Dependency policy
 

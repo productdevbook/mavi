@@ -2,6 +2,8 @@ use std::{env, sync::Arc};
 
 use chrono::{Duration, Utc};
 use mavi_analytics::ANALYTICS_RETENTION_JOB;
+use mavi_application::JobsService;
+use mavi_application::{MAX_TRASH_RETENTION_BATCH, TRASH_RETENTION_JOB, TrashKind, TrashService};
 use mavi_content::{
     ContentService, CreateContent, Publication, PublicationInput, SCHEDULED_PUBLISH_JOB,
     ScheduledPublishJob,
@@ -9,13 +11,11 @@ use mavi_content::{
 use mavi_core::{AnalyticsEventId, FormSubmissionId, SiteContext, SiteId, ports::FileStore};
 use mavi_files::InMemoryFileStore;
 use mavi_forms::{CreateForm, FORM_RETENTION_JOB, FormService};
-use mavi_jobs::JobsService;
 use mavi_media::{
     FileVariantListFilter, FileVisibility, MEDIA_CLEANUP_JOB, MEDIA_ORPHAN_CLEANUP_JOB,
     MEDIA_VARIANT_JOB, MediaService, VariantPreset,
 };
 use mavi_storage::Database;
-use mavi_trash::{MAX_TRASH_RETENTION_BATCH, TRASH_RETENTION_JOB, TrashKind, TrashService};
 use mavi_worker::{WorkerConfig, WorkerSupervisor};
 use serde_json::to_value;
 use uuid::Uuid;
@@ -30,7 +30,7 @@ async fn scheduled_worker_publishes_skips_stale_and_defers_early_jobs() {
         .expect("database connection");
     database.migrate().await.expect("migrations");
     let site_id = SiteId::new();
-    database.ensure_site(site_id).await.expect("site");
+    database.ensure_site_for_tests(site_id).await.expect("site");
 
     let content = ContentService;
     let jobs = JobsService::new([SCHEDULED_PUBLISH_JOB]);
@@ -257,7 +257,7 @@ async fn scheduled_worker_publishes_skips_stale_and_defers_early_jobs() {
     let early_page = jobs
         .list(
             &mut transaction,
-            &mavi_jobs::JobListFilter {
+            &mavi_application::JobListFilter {
                 kind: Some(SCHEDULED_PUBLISH_JOB.name.to_owned()),
                 ..Default::default()
             },
@@ -286,7 +286,7 @@ async fn form_retention_worker_prunes_expired_submissions_and_records_system_aud
         .expect("database connection");
     database.migrate().await.expect("migrations");
     let site_id = SiteId::new();
-    database.ensure_site(site_id).await.expect("site");
+    database.ensure_site_for_tests(site_id).await.expect("site");
 
     let context = SiteContext::public(site_id);
     let forms = FormService;
@@ -352,7 +352,7 @@ async fn form_retention_worker_prunes_expired_submissions_and_records_system_aud
     let retention_jobs = jobs
         .list(
             &mut transaction,
-            &mavi_jobs::JobListFilter {
+            &mavi_application::JobListFilter {
                 kind: Some(FORM_RETENTION_JOB.name.to_owned()),
                 ..Default::default()
             },
@@ -477,9 +477,19 @@ async fn run_until_job_done(
         supervisor.run_once(site_id).await.expect("retention run");
         let mut check = database.begin(context).await.expect("check scope");
         let state: Option<String> = sqlx::query_scalar(
-            "select state from jobs
-               where site_id = $1 and kind = $2
-               order by created_at desc limit 1",
+            "select case r.status
+                         when 'pending' then 'ready'
+                         when 'running' then 'running'
+                         when 'completed' then 'done'
+                         when 'failed' then 'dead'
+                         when 'paused' then 'ready'
+                         when 'cancelled' then 'done'
+                    end
+               from workflow_outbox o
+               join workflow_runs r on r.site_id = o.site_id
+                                    and r.idempotency_key = o.idempotency_key
+              where o.site_id = $1 and o.workflow = $2
+              order by o.created_at desc limit 1",
         )
         .bind(context.site_id.into_uuid())
         .bind(kind)
@@ -504,7 +514,7 @@ async fn trash_retention_worker_removes_expired_content_and_audits_system_work()
         .expect("database connection");
     database.migrate().await.expect("migrations");
     let site_id = SiteId::new();
-    database.ensure_site(site_id).await.expect("site");
+    database.ensure_site_for_tests(site_id).await.expect("site");
 
     let context = SiteContext::public(site_id);
     let content_id = seed_expired_trash_content(&database, site_id).await;
@@ -567,7 +577,7 @@ async fn trash_retention_worker_removes_expired_forms_and_cascades_submissions()
         .expect("database connection");
     database.migrate().await.expect("migrations");
     let site_id = SiteId::new();
-    database.ensure_site(site_id).await.expect("site");
+    database.ensure_site_for_tests(site_id).await.expect("site");
 
     let context = SiteContext::public(site_id);
     let form_service = FormService;
@@ -687,7 +697,7 @@ async fn trash_retention_worker_removes_expired_shop_catalog_items() {
         .expect("database connection");
     database.migrate().await.expect("migrations");
     let site_id = SiteId::new();
-    database.ensure_site(site_id).await.expect("site");
+    database.ensure_site_for_tests(site_id).await.expect("site");
 
     let context = SiteContext::public(site_id);
     let (product_id, coupon_id) = {
@@ -798,7 +808,7 @@ async fn trash_retention_worker_removes_expired_course_roots_and_cascades_learni
         .expect("database connection");
     database.migrate().await.expect("migrations");
     let site_id = SiteId::new();
-    database.ensure_site(site_id).await.expect("site");
+    database.ensure_site_for_tests(site_id).await.expect("site");
 
     let context = SiteContext::public(site_id);
     let (course_id, module_id, lesson_id, student_id, enrollment_id, session_id) = {
@@ -991,7 +1001,7 @@ async fn trash_retention_worker_removes_expired_boards_and_flows_safely() {
         .expect("database connection");
     database.migrate().await.expect("migrations");
     let site_id = SiteId::new();
-    database.ensure_site(site_id).await.expect("site");
+    database.ensure_site_for_tests(site_id).await.expect("site");
     let context = SiteContext::public(site_id);
     let deleted_at = Utc::now() - Duration::days(2);
     let (
@@ -1136,18 +1146,38 @@ async fn trash_retention_worker_removes_expired_boards_and_flows_safely() {
         .execute(transaction.conn())
         .await
         .expect("flow run step");
+        let workflow_job_id = Uuid::now_v7();
+        let workflow_key = format!("trash-flow-start:{flow_id}");
         sqlx::query(
-                "insert into jobs
-                    (site_id, id, kind, payload, state, run_at, finished_at)
-                 values ($1, $2, 'automation.flow.start', jsonb_build_object('flow_id', $3::text), 'done', $4, $4)",
-            )
-            .bind(site_id.into_uuid())
-            .bind(Uuid::now_v7())
-            .bind(flow_id)
-            .bind(deleted_at)
-            .execute(transaction.conn())
-            .await
-            .expect("flow job");
+            "insert into workflow_outbox
+                (id, idempotency_key, site_id, plugin_id, workflow, payload,
+                 status, available_at, published_at)
+             values ($1, $2, $3, 'automation', 'automation.flow.start',
+                     jsonb_build_object(
+                         'job_id', $1::text,
+                         'job_payload', jsonb_build_object('flow_id', $4::text),
+                         'run_at', $5::text
+                     ), 'published', $5, $5)",
+        )
+        .bind(workflow_job_id)
+        .bind(&workflow_key)
+        .bind(site_id.into_uuid())
+        .bind(flow_id)
+        .bind(deleted_at)
+        .execute(transaction.conn())
+        .await
+        .expect("flow workflow outbox");
+        sqlx::query(
+            "insert into workflow_runs
+                (site_id, idempotency_key, plugin_id, workflow, status, updated_at)
+             values ($1, $2, 'automation', 'automation.flow.start', 'completed', $3)",
+        )
+        .bind(site_id.into_uuid())
+        .bind(&workflow_key)
+        .bind(deleted_at)
+        .execute(transaction.conn())
+        .await
+        .expect("flow workflow run");
         transaction.commit().await.expect("seed commit");
         (
             board_id,
@@ -1234,7 +1264,7 @@ async fn trash_retention_worker_continues_after_a_full_batch() {
         .expect("database connection");
     database.migrate().await.expect("migrations");
     let site_id = SiteId::new();
-    database.ensure_site(site_id).await.expect("site");
+    database.ensure_site_for_tests(site_id).await.expect("site");
     let seeded = seed_expired_trash_content_batch(
         &database,
         site_id,
@@ -1275,13 +1305,14 @@ async fn trash_retention_worker_continues_after_a_full_batch() {
     .await
     .expect("remaining trash");
     assert_eq!(remaining, 0);
-    let retention_jobs: i64 =
-        sqlx::query_scalar("select count(*) from jobs where site_id = $1 and kind = $2")
-            .bind(site_id.into_uuid())
-            .bind(TRASH_RETENTION_JOB.name)
-            .fetch_one(transaction.conn())
-            .await
-            .expect("retention jobs");
+    let retention_jobs: i64 = sqlx::query_scalar(
+        "select count(*) from workflow_outbox where site_id = $1 and workflow = $2",
+    )
+    .bind(site_id.into_uuid())
+    .bind(TRASH_RETENTION_JOB.name)
+    .fetch_one(transaction.conn())
+    .await
+    .expect("retention jobs");
     assert_eq!(retention_jobs, 2);
     let deletion_audits: i64 = sqlx::query_scalar(
         "select count(*) from audit_events
@@ -1305,7 +1336,7 @@ async fn analytics_retention_worker_uses_site_policy_and_records_system_audit() 
         .expect("database connection");
     database.migrate().await.expect("migrations");
     let site_id = SiteId::new();
-    database.ensure_site(site_id).await.expect("site");
+    database.ensure_site_for_tests(site_id).await.expect("site");
 
     let context = SiteContext::public(site_id);
     let old_event_id = AnalyticsEventId::new();
@@ -1371,9 +1402,19 @@ async fn analytics_retention_worker_uses_site_policy_and_records_system_audit() 
             .await
             .expect("retention check scope");
         let state: Option<String> = sqlx::query_scalar(
-            "select state from jobs
-               where site_id = $1 and kind = $2
-               order by created_at desc limit 1",
+            "select case r.status
+                         when 'pending' then 'ready'
+                         when 'running' then 'running'
+                         when 'completed' then 'done'
+                         when 'failed' then 'dead'
+                         when 'paused' then 'ready'
+                         when 'cancelled' then 'done'
+                    end
+               from workflow_outbox o
+               join workflow_runs r on r.site_id = o.site_id
+                                    and r.idempotency_key = o.idempotency_key
+              where o.site_id = $1 and o.workflow = $2
+              order by o.created_at desc limit 1",
         )
         .bind(site_id.into_uuid())
         .bind(ANALYTICS_RETENTION_JOB.name)
@@ -1416,7 +1457,7 @@ async fn analytics_retention_worker_uses_site_policy_and_records_system_audit() 
     let retention_jobs = jobs
         .list(
             &mut transaction,
-            &mavi_jobs::JobListFilter {
+            &mavi_application::JobListFilter {
                 kind: Some(ANALYTICS_RETENTION_JOB.name.to_owned()),
                 ..Default::default()
             },
@@ -1448,7 +1489,7 @@ async fn media_cleanup_worker_removes_bytes_and_completes_the_receipt() {
         .expect("database connection");
     database.migrate().await.expect("migrations");
     let site_id = SiteId::new();
-    database.ensure_site(site_id).await.expect("site");
+    database.ensure_site_for_tests(site_id).await.expect("site");
 
     let context = SiteContext::public(site_id);
     let store = Arc::new(InMemoryFileStore::default());
@@ -1539,7 +1580,7 @@ async fn media_orphan_worker_removes_only_unknown_generated_media_keys() {
         .expect("database connection");
     database.migrate().await.expect("migrations");
     let site_id = SiteId::new();
-    database.ensure_site(site_id).await.expect("site");
+    database.ensure_site_for_tests(site_id).await.expect("site");
 
     let context = SiteContext::public(site_id);
     let store = Arc::new(InMemoryFileStore::default());
@@ -1607,7 +1648,7 @@ async fn media_orphan_worker_removes_only_unknown_generated_media_keys() {
     let orphan_jobs = jobs
         .list(
             &mut transaction,
-            &mavi_jobs::JobListFilter {
+            &mavi_application::JobListFilter {
                 kind: Some(MEDIA_ORPHAN_CLEANUP_JOB.name.to_owned()),
                 ..Default::default()
             },
@@ -1636,7 +1677,7 @@ async fn media_variant_worker_generates_all_presets_and_serves_public_bytes() {
         .expect("database connection");
     database.migrate().await.expect("migrations");
     let site_id = SiteId::new();
-    database.ensure_site(site_id).await.expect("site");
+    database.ensure_site_for_tests(site_id).await.expect("site");
 
     let context = SiteContext::public(site_id);
     let store = Arc::new(InMemoryFileStore::default());
@@ -1706,7 +1747,11 @@ async fn media_variant_worker_generates_all_presets_and_serves_public_bytes() {
         .expect("public variant");
     assert!(bytes.starts_with(&[0xff, 0xd8, 0xff]));
     let variant_jobs: i64 = sqlx::query_scalar(
-        "select count(*) from jobs where site_id = $1 and kind = $2 and state = 'done'",
+        "select count(*)
+           from workflow_outbox o
+           join workflow_runs r on r.site_id = o.site_id
+                                and r.idempotency_key = o.idempotency_key
+          where o.site_id = $1 and o.workflow = $2 and r.status = 'completed'",
     )
     .bind(site_id.into_uuid())
     .bind(MEDIA_VARIANT_JOB.name)

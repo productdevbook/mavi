@@ -11,14 +11,18 @@
 import {
   MaviApiError,
   MaviClient,
+  setActivePluginSnapshot,
 } from "@api"
 import type {
   OperationArguments,
   OperationName,
   OperationResponses,
+  RuntimeManifest,
 } from "@api"
 
 const SESSION_KEY = "mavi:session"
+
+let pluginSnapshotBootstrap: Promise<RuntimeManifest> | null = null
 
 export class ApiRefused extends Error {
   readonly status: number
@@ -56,6 +60,34 @@ export function rememberApiSession(token: string): void {
 /** Revoke locally after sign-out or after the server rejects the token. */
 export function forgetApiSession(): void {
   window.sessionStorage.removeItem(SESSION_KEY)
+}
+
+/**
+ * Prime the generated client gate for entrypoints that do not mount the
+ * authenticated dashboard provider (the public shop and student app).
+ *
+ * The manifest is public and core-owned, so this request is allowed before a
+ * plugin snapshot exists. A failed bootstrap leaves the generated client
+ * fail-closed; the server remains the final authority for every request.
+ */
+export function bootstrapActivePlugins(): Promise<RuntimeManifest> {
+  if (pluginSnapshotBootstrap) return pluginSnapshotBootstrap
+
+  pluginSnapshotBootstrap = new MaviClient({
+    baseUrl: window.location.origin,
+  })
+    .call("runtime.manifest.read", {})
+    .then((manifest) => {
+      setActivePluginSnapshot(new Set(manifest.active_plugins))
+      return manifest
+    })
+    .catch((error) => {
+      setActivePluginSnapshot(new Set())
+      pluginSnapshotBootstrap = null
+      throw error
+    })
+
+  return pluginSnapshotBootstrap
 }
 
 type Asking<Name extends OperationName> = OperationArguments[Name]

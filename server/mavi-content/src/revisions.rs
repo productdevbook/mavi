@@ -29,10 +29,7 @@ pub fn endpoints() -> Vec<Endpoint> {
             "List content revisions",
         )
         .account_or_assistant()
-        .requires(Permission {
-            capability: Capability::Content,
-            action: Action::View,
-        })
+        .requires(Permission::from_legacy(Capability::Content, Action::View))
         .takes_query("ContentRevisionListFilter")
         .returns(200, "ContentRevisionPage")
         .refuses([
@@ -48,10 +45,7 @@ pub fn endpoints() -> Vec<Endpoint> {
             "Read one content revision",
         )
         .account_or_assistant()
-        .requires(Permission {
-            capability: Capability::Content,
-            action: Action::View,
-        })
+        .requires(Permission::from_legacy(Capability::Content, Action::View))
         .returns(200, "ContentRevision")
         .refuses([
             ErrorCode::Forbidden,
@@ -66,10 +60,7 @@ pub fn endpoints() -> Vec<Endpoint> {
             "Restore a content revision as a new draft",
         )
         .account_or_assistant()
-        .requires(Permission {
-            capability: Capability::Content,
-            action: Action::Write,
-        })
+        .requires(Permission::from_legacy(Capability::Content, Action::Write))
         .returns(200, "Content")
         .changes(true)
         .refuses([

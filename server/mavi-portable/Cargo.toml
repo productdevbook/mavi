@@ -9,21 +9,10 @@ description = "Versioned, validated site export/import bundles."
 [dependencies]
 chrono.workspace = true
 mavi-audit = { path = "../mavi-audit" }
-mavi-analytics = { path = "../mavi-analytics" }
-mavi-boards = { path = "../mavi-boards" }
 mavi-contract = { path = "../mavi-contract" }
-mavi-courses = { path = "../mavi-courses" }
 mavi-core = { path = "../mavi-core" }
-mavi-design = { path = "../mavi-design" }
-mavi-forms = { path = "../mavi-forms" }
-mavi-flows = { path = "../mavi-flows" }
-mavi-jobs = { path = "../mavi-jobs" }
-mavi-media = { path = "../mavi-media" }
-mavi-mail = { path = "../mavi-mail" }
-mavi-shop = { path = "../mavi-shop" }
 mavi-settings = { path = "../mavi-settings" }
 mavi-storage = { path = "../mavi-storage" }
-mavi-trash = { path = "../mavi-trash" }
 serde.workspace = true
 serde_json.workspace = true
 sha2.workspace = true
@@ -34,6 +23,8 @@ uuid.workspace = true
 workspace = true
 
 [dev-dependencies]
+mavi-design = { path = "../mavi-design" }
 mavi-identity = { path = "../mavi-identity" }
 mavi-files = { path = "../mavi-files" }
+mavi-media = { path = "../mavi-media" }
 tokio.workspace = true

@@ -1,8 +1,8 @@
 use std::env;
 
 use chrono::{Duration, Utc};
+use mavi_application::{JobKind, JobState, JobsService, LeaseOutcome};
 use mavi_core::{MaviError, PageRequest, SiteContext, SiteId};
-use mavi_jobs::{JobKind, JobState, JobsService, LeaseOutcome};
 use mavi_storage::Database;
 use serde_json::json;
 
@@ -19,9 +19,12 @@ async fn jobs_are_scoped_idempotent_leased_and_dead_lettered() {
     database.migrate().await.expect("migrations");
     let first_site = SiteId::new();
     let second_site = SiteId::new();
-    database.ensure_site(first_site).await.expect("first site");
     database
-        .ensure_site(second_site)
+        .ensure_site_for_tests(first_site)
+        .await
+        .expect("first site");
+    database
+        .ensure_site_for_tests(second_site)
         .await
         .expect("second site");
 
@@ -100,7 +103,7 @@ async fn jobs_are_scoped_idempotent_leased_and_dead_lettered() {
         let page = jobs
             .list(
                 &mut tx,
-                &mavi_jobs::JobListFilter {
+                &mavi_application::JobListFilter {
                     page: PageRequest {
                         after: None,
                         limit: Some(1),
@@ -160,14 +163,34 @@ async fn jobs_are_scoped_idempotent_leased_and_dead_lettered() {
         {
             let mut tx = database.begin(&first_context).await.expect("expire scope");
             sqlx::query(
-                "update jobs
-                    set claimed_until = now() - interval '1 second'
-                  where id = $1",
+                "update workflow_runs
+                    set claim_until = now() - interval '1 second'
+                  where site_id = $1
+                    and idempotency_key = (
+                        select o.idempotency_key
+                          from workflow_outbox o
+                         where o.site_id = $1
+                           and (o.id = $2 or o.payload->>'job_id' = $3)
+                    )",
             )
+            .bind(first_site.into_uuid())
             .bind(replacement_id.into_uuid())
+            .bind(replacement_id.to_string())
             .execute(tx.conn())
             .await
             .expect("expire old claim");
+            sqlx::query(
+                "update workflow_outbox
+                    set available_at = now() - interval '1 second'
+                  where site_id = $1
+                    and (id = $2 or payload->>'job_id' = $3)",
+            )
+            .bind(first_site.into_uuid())
+            .bind(replacement_id.into_uuid())
+            .bind(replacement_id.to_string())
+            .execute(tx.conn())
+            .await
+            .expect("make replacement available");
             tx.commit().await.expect("expire commit");
         }
 
@@ -228,7 +251,7 @@ async fn jobs_are_scoped_idempotent_leased_and_dead_lettered() {
         .await
         .expect("isolation scope");
     assert!(
-        jobs.list(&mut tx, &mavi_jobs::JobListFilter::default())
+        jobs.list(&mut tx, &mavi_application::JobListFilter::default())
             .await
             .expect("second list")
             .items

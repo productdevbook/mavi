@@ -11,13 +11,13 @@ use std::fmt;
 
 use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
 use chrono::{DateTime, Utc};
+use mavi_application::{JobKind, WorkflowScheduler};
 use mavi_audit::{AuditEntry, AuditService};
 use mavi_contract::{Api, Endpoint, Method, Permission, Shape};
 use mavi_core::{
-    Action, Capability, ContentId, Cursor, MaviError, Page, PageRequest, Result, SiteContext,
-    SiteId, TermId,
+    Action, Capability, ContentId, Cursor, MaviError, Page, PageRequest, PluginId, Result,
+    SiteContext, SiteId, TermId,
 };
-use mavi_jobs::{JobKind, JobsService};
 use mavi_storage::SiteTx;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -62,10 +62,7 @@ pub fn api() -> Api {
             "List site content",
         )
         .account_or_assistant()
-        .requires(Permission {
-            capability: Capability::Content,
-            action: Action::View,
-        })
+        .requires(Permission::from_legacy(Capability::Content, Action::View))
         .takes_query("ContentListFilter")
         .returns(200, "ContentPage"),
         Endpoint::new(
@@ -75,10 +72,7 @@ pub fn api() -> Api {
             "Read site content",
         )
         .account_or_assistant()
-        .requires(Permission {
-            capability: Capability::Content,
-            action: Action::View,
-        })
+        .requires(Permission::from_legacy(Capability::Content, Action::View))
         .returns(200, "Content"),
         Endpoint::new(
             Method::Post,
@@ -87,10 +81,7 @@ pub fn api() -> Api {
             "Create site content",
         )
         .account_or_assistant()
-        .requires(Permission {
-            capability: Capability::Content,
-            action: Action::Write,
-        })
+        .requires(Permission::from_legacy(Capability::Content, Action::Write))
         .takes("CreateContent")
         .returns(201, "Content")
         .changes(false),
@@ -101,10 +92,7 @@ pub fn api() -> Api {
             "Update site content",
         )
         .account_or_assistant()
-        .requires(Permission {
-            capability: Capability::Content,
-            action: Action::Write,
-        })
+        .requires(Permission::from_legacy(Capability::Content, Action::Write))
         .takes("UpdateContent")
         .returns(200, "Content")
         .changes(true),
@@ -115,10 +103,7 @@ pub fn api() -> Api {
             "Publish site content",
         )
         .account_or_assistant()
-        .requires(Permission {
-            capability: Capability::Publish,
-            action: Action::Write,
-        })
+        .requires(Permission::from_legacy(Capability::Publish, Action::Write))
         .returns(200, "Content")
         .changes(false),
         Endpoint::new(
@@ -128,10 +113,7 @@ pub fn api() -> Api {
             "Schedule site content",
         )
         .account_or_assistant()
-        .requires(Permission {
-            capability: Capability::Publish,
-            action: Action::Write,
-        })
+        .requires(Permission::from_legacy(Capability::Publish, Action::Write))
         .takes("ScheduleContent")
         .returns(200, "Content")
         .changes(false),
@@ -142,10 +124,7 @@ pub fn api() -> Api {
             "Archive site content",
         )
         .account_or_assistant()
-        .requires(Permission {
-            capability: Capability::Publish,
-            action: Action::Write,
-        })
+        .requires(Permission::from_legacy(Capability::Publish, Action::Write))
         .returns(200, "Content")
         .changes(false),
         Endpoint::new(
@@ -155,10 +134,8 @@ pub fn api() -> Api {
             "Move site content to trash",
         )
         .account_or_assistant()
-        .requires(Permission {
-            capability: Capability::Trash,
-            action: Action::Delete,
-        })
+        .requires(Permission::from_legacy(Capability::Trash, Action::Delete))
+        .for_plugin(PluginId::Governance)
         .returns(204, "Empty")
         .changes(false),
         Endpoint::new(
@@ -168,10 +145,8 @@ pub fn api() -> Api {
             "Restore site content from trash",
         )
         .account_or_assistant()
-        .requires(Permission {
-            capability: Capability::Trash,
-            action: Action::Write,
-        })
+        .requires(Permission::from_legacy(Capability::Trash, Action::Write))
+        .for_plugin(PluginId::Governance)
         .returns(200, "Content")
         .changes(false),
         Endpoint::new(
@@ -754,7 +729,7 @@ impl ContentService {
         &self,
         tx: &mut SiteTx,
         context: &SiteContext,
-        jobs: &JobsService,
+        jobs: &WorkflowScheduler,
         entry: &Content,
     ) -> Result<()> {
         let Some(job) = ScheduledPublishJob::from_content(entry) else {

@@ -3,9 +3,10 @@ import { useLingui } from "@lingui/react/macro"
 import { Clock, HardDrive, ListOrdered, Mail } from "lucide-react"
 import { toast } from "sonner"
 
-import { every } from "@/lib/api"
+import { api, every } from "@/lib/api"
 import { apiMessage } from "@/lib/auth"
 import { formatBytes } from "@/lib/editor-utils"
+import { usePlugins } from "@/lib/plugins"
 import { Figure } from "@/components/charts"
 import {
   DashboardError,
@@ -18,18 +19,26 @@ import {
  */
 export function UsagePage() {
   const { t } = useLingui()
+  const { activePlugins, ready: pluginsReady } = usePlugins()
   const [answer, setAnswer] = React.useState<Usage | "failed" | null>(null)
 
   React.useEffect(() => {
+    if (!pluginsReady) return undefined
     let current = true
+    const lists = activePlugins.has("messaging")
+      ? every("mail.lists.list", { query: {} })
+      : Promise.resolve([])
+    const workflowRuns = activePlugins.has("automation")
+      ? api("workflows.runs.list")
+      : Promise.resolve({ items: [], next_cursor: null })
 
     Promise.all([
       every("media.files.list", { query: {} }),
       every("content.list", { query: {} }),
-      every("mail.lists.list", { query: {} }),
-      every("jobs.list", { query: {} }),
+      lists,
+      workflowRuns,
     ])
-      .then(([files, content, lists, jobs]) =>
+      .then(([files, content, lists, runs]) =>
         current &&
         setAnswer({
           bytes: files.reduce((sum, file) => sum + file.bytes, 0),
@@ -39,7 +48,7 @@ export function UsagePage() {
             JSON.stringify(one.publication).includes("published")
           ).length,
           readers: lists.reduce((sum, list) => sum + list.subscriber_count, 0),
-          work_given_up_on: jobs.filter((job) => job.state === "dead").length,
+          work_given_up_on: runs.items.filter((run) => run.status === "failed").length,
         })
       )
       .catch((why: unknown) => {
@@ -51,7 +60,7 @@ export function UsagePage() {
     return () => {
       current = false
     }
-  }, [])
+  }, [activePlugins, pluginsReady])
 
   if (answer === "failed") {
     return (

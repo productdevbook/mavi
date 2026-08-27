@@ -54,6 +54,18 @@ jobs:
             arch: arm64
             platform: linux/arm64
             runner: ubuntu-24.04-arm
+          - name: mavi-hatchet-worker
+            context: integrations/hatchet-worker
+            file: integrations/hatchet-worker/Dockerfile
+            arch: amd64
+            platform: linux/amd64
+            runner: ubuntu-24.04
+          - name: mavi-hatchet-worker
+            context: integrations/hatchet-worker
+            file: integrations/hatchet-worker/Dockerfile
+            arch: arm64
+            platform: linux/arm64
+            runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
     steps:
       # What is asked for by hand is checked before it is used as a ref or
@@ -138,7 +150,7 @@ jobs:
           TAG: ${{ steps.version.outputs.tag }}
         run: |
           set -eu
-          for image in mavi mavi-panel; do
+          for image in mavi mavi-panel mavi-hatchet-worker; do
             source="ghcr.io/${OWNER}/${image}"
             docker buildx imagetools create \
               --tag "${source}:${TAG}" \
@@ -190,11 +202,18 @@ jobs:
             echo "POSTGRES_PASSWORD=$(openssl rand -hex 32)"
             echo "MAVI_KEYS=1:$(openssl rand -base64 32 | tr -d '\n')"
             echo "MAVI_SITE_ID=$(cat /proc/sys/kernel/random/uuid)"
+            # Compose validates the complete topology even when the smoke run
+            # starts only the API path. Keep these bridge values synthetic and
+            # never start the bridge without a real Hatchet token.
+            echo "HATCHET_POSTGRES_PASSWORD=$(openssl rand -hex 32)"
+            echo "MAVI_HATCHET_BRIDGE_SECRET=$(openssl rand -hex 32)"
+            echo "MAVI_HATCHET_TOKEN=release-smoke-token"
+            echo "MAVI_PROCESS_ROLE=api"
             echo "MAVI_DOMAIN=http://localhost"
             echo "MAVI_VERSION=${{ steps.version.outputs.tag }}"
           } > .env
           docker compose pull
-          docker compose up -d
+          docker compose up -d postgres api panel caddy
 
       - name: Run release smoke checks
         run: |

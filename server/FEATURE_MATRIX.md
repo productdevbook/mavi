@@ -7,6 +7,27 @@ reference material, not a design constraint.
 
 Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
 
+Rows explicitly marked legacy/compatibility or external are retained migration
+and integration boundaries; they are not active tenant routing or the durable
+workflow authority of this runtime.
+
+## Combined architecture slice
+
+- [x] This repository runs one immutable `SiteRuntime` with one
+  `MAVI_SITE_ID`; tenant routing, placement, billing and lifecycle stay behind
+  the external control-plane HTTP boundary.
+- [x] `mavi-application` owns cross-domain use cases, plugin lifecycle,
+  centralized Cedar calls and the transactional workflow outbox.
+- [x] Compiled plugins default to `core` + `writing`; runtime activation gates
+  HTTP, OpenAPI, MCP, sidebar navigation and workflow triggers without data
+  deletion or restart.
+- [x] Cedar validates the embedded base policy plus every compiled plugin
+  policy fragment at startup and in application tests, with default deny and
+  site/resource checks.
+- [x] Hatchet is the durable workflow authority through the official Go SDK
+  bridge; Rust outbox intents carry idempotency keys and the bridge contains no
+  business logic.
+
 ## Foundation
 
 - [x] Typed IDs, `SiteId`, `SiteContext`, caller types and error codes.
@@ -19,10 +40,14 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
 - [x] OpenAPI 3.1 document generation from canonical endpoint declarations.
 - [x] Fixed-site runtime composition for self-host.
 - [x] Request admission middleware creates and validates `SiteContext`.
-- [x] Site-scoped, token-owned write fences protect HTTP and MCP mutations during controlled relocation.
-- [x] Cloud shard runtime resolves a site without a per-site router/process.
+- [x] Forward-only single-site cleanup removes relocation write fences and the
+  catalog lifecycle state machine; `site_catalog.site_id` remains solely as
+  the RLS/foreign-key identity boundary.
+- [x] The executable is fixed-site; host routing and cloud shard resolution
+  belong to the external tenant repository.
 - [x] Versioned runtime manifest exposes release/API fingerprint, storage schema,
-  runtime mode and cursor-only pagination policy to operator and panel clients.
+  active compiled plugins and cursor-only pagination policy to operator and
+  panel clients.
 - [x] OpenAPI, TypeScript/Rust client and MCP tool generation from the same contract.
   - [x] HTTP composition root combines domain endpoint declarations into one validated catalog.
   - [x] OpenAPI snapshot, typed TypeScript/Rust client artifacts and MCP tool generation.
@@ -34,7 +59,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Mail templates, lists, readers, deliveries and delivery attempts enforce RLS, composite foreign keys and site-aware keys.
   - [x] Shop products, coupons, order counters, orders, lines, holds and coupon uses enforce RLS, composite foreign keys and site-aware keys.
   - [x] Courses, modules, lessons, students, sessions, enrollments and progress enforce RLS, composite foreign keys and site-aware keys.
-  - [x] Jobs, automation flows and run history enforce RLS, composite foreign keys and site-aware idempotency/order keys.
+  - [x] Workflow outbox, Hatchet run projections, automation flows and run history enforce RLS, composite foreign keys and site-aware idempotency/order keys.
   - [x] Boards, lists, cards, comments, immutable activity and analytics tables enforce RLS and site-scoped keys.
   - [x] Portable imports write through the target site scope and preserve composite foreign-key boundaries.
   - [ ] Remaining domain tables and a single reusable DB guard for every repository.
@@ -84,9 +109,9 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
 - [-] Posts/pages, drafts, revisions, slugs, scheduling and public reads.
   - [x] Content create/update/public lifecycle and immutable revision history API.
   - [x] Slug history preserves old published public paths after a slug change.
-  - [-] Scheduled publishing worker/queue and rollback/restore UX.
-    - [x] Scheduling atomically enqueues a site-scoped, idempotent `content.publish_scheduled` job.
-    - [x] Site-scoped content worker claims leases, publishes due content, defers early jobs and treats stale schedules as safe no-ops.
+- [-] Scheduled publishing workflow and rollback/restore UX.
+  - [x] Scheduling atomically enqueues a site-scoped, idempotent `content.publish_scheduled` job.
+    - [x] The Hatchet bridge uses its native Schedule API for future-dated runs; Rust claims the legacy row only when Hatchet delivers the due intent and treats stale schedules as safe no-ops.
     - [x] Revision restore creates a new audited draft revision; publishing the restored snapshot remains an explicit permissioned action.
 - [-] Taxonomy terms, trees, assignment and filtered listing.
   - [x] Site-scoped category/tag terms with language-aware slugs and opaque cursor listing.
@@ -98,7 +123,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Raw binary upload contract, local atomic file adapter and in-memory test adapter.
   - [x] Explicit private/public visibility, authenticated downloads and public downloads with integrity verification.
   - [x] RLS/composite keys, Cedar media grants, upload/trash audit receipts and durable cleanup tasks.
-  - [x] Private shard relocation exports live metadata plus verified bytes and retries through the site-scoped `FileStore`.
+  - [x] The external tenant repository may relocate live metadata plus verified bytes through the site-scoped `FileStore` contract.
 - [x] Image variants and orphan cleanup worker.
   - [x] Permanent media deletion creates an idempotent site-scoped cleanup job; the shared worker removes bytes through `FileStore`, records an immutable completion audit and reopens dead jobs for later retry.
   - [x] Shared worker enumerates one site namespace, preserves live and pending-cleanup keys, removes only generated media keys and records the removed count.
@@ -128,14 +153,14 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Static self-host builds publish only `public/` files and require `public/index.html`; `src/` is never served.
   - [x] Ready builds are immutable; publish and rollback atomically switch the live build pointer and write audit receipts.
   - [x] Preview/live serving is routed through site-scoped `FileStore` metadata and Cedar protects management APIs.
-  - [x] Private shard relocation exports design history, source files, build metadata and verified artifact bytes; publish pointers are restored last.
+  - [x] The external tenant repository may relocate design history, source files, build metadata and verified artifact bytes; publish pointers are restored last.
   - [ ] Sandboxed cloud compiler adapter, panel design screens and asynchronous build worker.
 - [-] Forms, submissions, exports, spam controls and retention policy.
   - [x] Form declarations validate bounded fields, types, choices and site-local active slugs.
   - [x] Public submissions validate required/typed/known answers and return a receipt without exposing management metadata.
   - [x] Submission inbox uses `after`/`limit` cursors, unread filtering, mark-read and audited deletion.
   - [x] Forms/submissions use composite keys, RLS, Cedar grants and mutation audit receipts.
-  - [x] Per-form `kept_days` is enforced by an idempotent site-scoped `forms.retention` job; expired answers are redacted behind a tombstone and the system audit receipt commits atomically, with worker and cross-site tests.
+  - [x] Per-form `kept_days` is enforced by an idempotent site-scoped `forms.retention` job; expired answers are redacted behind a tombstone and the system audit receipt commits atomically, with worker and site-isolation tests.
   - [x] Versioned `mavi.forms.submissions` JSON export returns only active rows through a bounded opaque cursor, includes the form declaration, and records an audit receipt in the same transaction.
   - [x] Public submissions enter a site+action edge window keyed by privacy-preserving peer/device signals; limit responses expose `Retry-After` and write one site-scoped `forms.security.edge_rate_limited` audit receipt per source window.
 - [-] Mail templates, delivery queue, retries and provider adapters.
@@ -143,7 +168,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Mailing lists/readers use normalized addresses, hashed unsubscribe tokens and explicit standing states.
   - [x] Transactional and campaign requests enqueue provider-neutral outbox rows; public/API requests never call a provider.
   - [x] Workers claim leases, record attempts, mark sent/retry/dead and support idempotency keys.
-  - [x] Security-sensitive transactional bodies are sealed at rest, fail closed without a sealer, and relocate as cancelled redacted records without ciphertext.
+  - [x] Security-sensitive transactional bodies are sealed at rest, fail closed without a sealer, and cross-instance transfer remains an external tenant-repository concern.
   - [x] Domain code uses the shared `Mailer` port and returns provider receipts without coupling to SMTP/cloud SDKs.
   - [x] The worker receives a host-owned `Mailer`, claims one delivery before the provider call, passes the durable delivery/attempt/idempotency contract, and records success or retry in a separate site-scoped transaction; mail and maintenance jobs are scheduled fairly so either queue cannot starve.
   - [x] Campaigns require a site canonical URL, inject a reserved `unsubscribe_url`
@@ -192,11 +217,11 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Event fan-out is transactional, source-key idempotent and connected to registered durable jobs.
   - [x] Runs snapshot their definition, record every step attempt and expose simulation/run history APIs.
   - [ ] Concrete mail, webhook and list-mutating executors plus event emission from every producer domain.
-- [-] Jobs, site-scoped queue leases and worker execution.
-  - [x] Registered job kinds, site-scoped queue rows, composite idempotency and cursor-only admin lists.
-  - [x] `FOR UPDATE SKIP LOCKED` claims, per-claim fencing tokens, lease heartbeat, stale-worker protection, bounded backoff and dead-letter retry.
-  - [x] Shared worker supervisor owns one replaceable site snapshot and exports process-local metrics for polls, claims, outcomes, lease loss and errors.
-  - [x] Concrete cloud adapter wiring in the private operator release — vucodcom/mavi-operator#246 (`1fa6600`); shared supervisor, active-site snapshot reconciliation and process metrics are wired against public Mavi `0dfac94c`.
+- [-] Workflow compatibility projection and Rust execution.
+  - [x] Registered workflow kinds, site-scoped outbox/run rows, composite idempotency and cursor-only admin lists.
+  - [x] Hatchet owns delivery leases, retries, timeouts and concurrency; Rust execution uses database fencing and idempotent mutations.
+  - [x] The compatibility-shaped `JobsService` lives inside `mavi-application` and writes only canonical workflow tables; there is no second queue crate or legacy `jobs` table.
+  - [x] Hatchet outbox relay, fixed-site Rust executor and process metrics are wired in the public Mavi runtime; multi-site placement and reconciliation remain the external tenant repository’s responsibility.
 - [-] Boards, lists, cards, assignments, comments and activity history.
   - [x] Board/list/card APIs use integer positions, transactional reorder/move operations and opaque keyset cursors.
   - [x] Card assignees are checked against active site people; comments support author-only editing and soft deletion.
@@ -213,7 +238,7 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Explicit `mavi.portable` v2 bundles carry source-site provenance, canonical site URL, counts and a schema hash.
   - [x] Settings/languages, content types, taxonomy, content/revisions, slug history and assignments export/import with typed records.
   - [x] Import validates references before writes, supports validate-only/create-only/upsert strategies and applies atomically.
-  - [x] Private shard relocation adds identity credentials, live media and design/build data without exposing credentials or binary data through public portable export.
+  - [x] The external tenant repository can add identity credentials, live media and design/build data without exposing credentials or binary data through public portable export.
   - [ ] Public media/design bytes, shop/courses/forms/boards/automation provider state and encrypted secret handling in later bundle versions.
 - [-] MCP resources/tools generated from the canonical API with grant checks.
   - [x] Deterministic tool descriptors preserve authentication, scope and Cedar permission metadata.
@@ -250,11 +275,12 @@ Status: `[ ]` planned, `[-]` in progress, `[x]` complete.
   - [x] Course/student trash restore, purge, retention cascade and site-isolation acceptance coverage.
   - [x] Student curriculum, completion/navigation fields and protected media contract coverage.
   - [x] Course instructor assignment PostgreSQL/RLS and Cedar resource-grant HTTP acceptance coverage.
-  - [x] Jobs lease/idempotency/dead-letter PostgreSQL isolation and automation flow snapshot/event/run HTTP coverage.
+  - [x] Hatchet-backed workflow outbox idempotency/fencing PostgreSQL isolation and automation flow snapshot/event/run HTTP coverage.
+  - [x] Hatchet workflow outbox, bridge authentication, retry metadata and run-control contract coverage.
   - [x] Boards PostgreSQL scope/order/activity tests and boards HTTP cursor/permission acceptance coverage.
-  - [x] Board/flow trash restore, purge, active-work protection, retention cascade and cross-site isolation coverage.
+  - [x] Board/flow trash restore, purge, active-work protection, retention cascade and site-isolation coverage.
   - [x] Analytics PostgreSQL aggregate/retention/isolation tests and analytics HTTP ingest/export coverage.
-  - [x] Portable cross-site PostgreSQL export/import/conflict tests, private identity/media/design relocation and HTTP contract acceptance coverage.
+  - [x] Portable content-bundle PostgreSQL export/import/conflict tests and HTTP contract acceptance coverage; site movement remains external.
   - [x] Identity HTTP integration covers setup, login, cursor, 401/403 and Cedar behavior.
   - [x] Identity edge throttling covers trusted-proxy behavior, 429/`Retry-After`, source redaction and one audit receipt per window.
   - [x] Generated OpenAPI/TypeScript/Rust/MCP artifacts have stale-contract tests.

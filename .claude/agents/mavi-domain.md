@@ -18,8 +18,9 @@ handed a `SiteContext` and works inside it. Nothing you write grows a
 
 That is not the same as ignoring the site. Every query runs inside the scoped
 transaction and every table a site owns carries `site_id` under forced
-row-level security — the belt to the runtime's braces, and what lets the same
-crates serve a shard where one process does hold many sites.
+row-level security. The runtime fixes one site per process; an external tenant
+repository may run several isolated Mavi instances without making a domain
+crate multi-site.
 
 Anything that only makes sense for somebody hosting other people's sites —
 metering, billing, a console over many of them, making and unmaking sites —
@@ -40,11 +41,12 @@ not the handler.
 
 Every endpoint carries its `Guard`, every write leaves an audit row before it
 answers, every list that can grow pages with a cursor, every refusal is a
-`Say`, and a job kind is declared where the queue can see it.
+`Say`, and every durable workflow kind is declared in the application plugin
+registry and dispatched through Hatchet.
 
 Some of what would be a review comment elsewhere is a failing test here — a
 list that does not page, a shape named twice, a foreign key with no index, a
-job kind nothing claims, a table that soft-deletes and is in no trash registry.
+workflow kind nothing registers, a table that soft-deletes and is in no trash registry.
 When one fails it has found something: read it before you change it. Adding an
 entry to a tolerated list to make it pass is concealment, not a fix.
 

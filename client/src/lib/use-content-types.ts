@@ -2,6 +2,7 @@ import * as React from "react"
 import { useLingui } from "@lingui/react/macro"
 
 import { every } from "@/lib/api"
+import { usePlugins } from "@/lib/plugins"
 import type { ContentType as ServerContentType } from "@api"
 
 export type ContentType = ServerContentType & { key: string; plural?: string }
@@ -36,6 +37,7 @@ function subscribe(tell: () => void) {
  */
 export function useContentTypes() {
   const { t } = useLingui()
+  const { activePlugins, ready: pluginsReady } = usePlugins()
   const [loaded, setLoaded] = React.useState<ServerContentType[]>([])
   const [loading, setLoading] = React.useState(true)
 
@@ -48,6 +50,12 @@ export function useContentTypes() {
   )
 
   React.useEffect(() => {
+    if (!pluginsReady || !activePlugins.has("writing")) {
+      setLoaded([])
+      setLoading(false)
+      return undefined
+    }
+
     let cancelled = false
 
     every("content_types.list", { query: {} })
@@ -64,7 +72,7 @@ export function useContentTypes() {
     return () => {
       cancelled = true
     }
-  }, [asOf])
+  }, [activePlugins, asOf, pluginsReady])
 
   const types: ContentType[] = React.useMemo(() => {
     const ours: Record<string, { was: string; name: string; plural: string }> =

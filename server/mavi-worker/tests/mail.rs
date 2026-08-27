@@ -88,7 +88,7 @@ async fn mail_worker_passes_stable_delivery_metadata_and_marks_sent() {
     let database = Database::connect(&database_url, 2).await.expect("database");
     database.migrate().await.expect("migrations");
     let site_id = SiteId::new();
-    database.ensure_site(site_id).await.expect("site");
+    database.ensure_site_for_tests(site_id).await.expect("site");
     let delivery_id = enqueue_message(&database, site_id, "mail-worker-success-1").await;
 
     let calls = Arc::new(Mutex::new(Vec::new()));
@@ -145,7 +145,7 @@ async fn mail_worker_records_provider_failures_as_retryable_without_leaking_cont
     let database = Database::connect(&database_url, 2).await.expect("database");
     database.migrate().await.expect("migrations");
     let site_id = SiteId::new();
-    database.ensure_site(site_id).await.expect("site");
+    database.ensure_site_for_tests(site_id).await.expect("site");
     let delivery_id = enqueue_message(&database, site_id, "mail-worker-failure-1").await;
 
     let calls = Arc::new(Mutex::new(Vec::new()));

@@ -5,6 +5,23 @@ use serde::{Deserialize, Serialize};
 
 pub type BoxFuture<'a, T> = Pin<Box<dyn Future<Output = T> + Send + 'a>>;
 
+/// Low-cardinality outcome of one Cedar authorization evaluation.
+///
+/// The observer intentionally receives no principal, resource or action
+/// values. Authorization telemetry must help operators spot policy failures
+/// without becoming a second audit log or leaking sensitive request details.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum AuthorizationOutcome {
+    Allowed,
+    Denied,
+    EvaluationError,
+}
+
+/// Process-local sink for authorization decision metrics.
+pub trait AuthorizationObserver: Debug + Send + Sync {
+    fn record_authorization(&self, outcome: AuthorizationOutcome);
+}
+
 pub trait Clock: Debug + Send + Sync {
     fn now(&self) -> chrono::DateTime<chrono::Utc>;
 }

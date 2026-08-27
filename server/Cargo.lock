@@ -1688,6 +1688,8 @@ name = "mavi"
 version = "0.1.10"
 dependencies = [
  "axum",
+ "mavi-application",
+ "mavi-authz",
  "mavi-core",
  "mavi-design",
  "mavi-files",
@@ -1710,13 +1712,34 @@ version = "0.1.10"
 dependencies = [
  "base64 0.23.1",
  "chrono",
+ "mavi-application",
  "mavi-audit",
  "mavi-contract",
  "mavi-core",
- "mavi-jobs",
  "mavi-storage",
  "serde",
  "serde_json",
+ "sqlx",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
+name = "mavi-application"
+version = "0.1.10"
+dependencies = [
+ "base64 0.23.1",
+ "chrono",
+ "mavi-audit",
+ "mavi-authz",
+ "mavi-contract",
+ "mavi-core",
+ "mavi-portable",
+ "mavi-storage",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "sha2 0.11.0",
  "sqlx",
  "tokio",
  "uuid",
@@ -1771,10 +1794,10 @@ version = "0.1.10"
 dependencies = [
  "base64 0.23.1",
  "chrono",
+ "mavi-application",
  "mavi-audit",
  "mavi-contract",
  "mavi-core",
- "mavi-jobs",
  "mavi-storage",
  "serde",
  "serde_json",
@@ -1875,10 +1898,10 @@ version = "0.1.10"
 dependencies = [
  "base64 0.23.1",
  "chrono",
+ "mavi-application",
  "mavi-audit",
  "mavi-contract",
  "mavi-core",
- "mavi-jobs",
  "mavi-storage",
  "serde",
  "serde_json",
@@ -1893,10 +1916,10 @@ version = "0.1.10"
 dependencies = [
  "base64 0.23.1",
  "chrono",
+ "mavi-application",
  "mavi-audit",
  "mavi-contract",
  "mavi-core",
- "mavi-jobs",
  "mavi-storage",
  "serde",
  "serde_json",
@@ -1914,6 +1937,7 @@ dependencies = [
  "chrono",
  "form_urlencoded",
  "mavi-analytics",
+ "mavi-application",
  "mavi-audit",
  "mavi-authz",
  "mavi-boards",
@@ -1927,7 +1951,6 @@ dependencies = [
  "mavi-flows",
  "mavi-forms",
  "mavi-identity",
- "mavi-jobs",
  "mavi-mail",
  "mavi-media",
  "mavi-observability",
@@ -1939,7 +1962,7 @@ dependencies = [
  "mavi-shop",
  "mavi-storage",
  "mavi-taxonomy",
- "mavi-trash",
+ "mavi-worker",
  "serde",
  "serde_ignored",
  "serde_json",
@@ -1973,28 +1996,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "mavi-jobs"
-version = "0.1.10"
-dependencies = [
- "base64 0.23.1",
- "chrono",
- "mavi-audit",
- "mavi-contract",
- "mavi-core",
- "mavi-storage",
- "serde",
- "serde_json",
- "sqlx",
- "tokio",
- "uuid",
-]
-
-[[package]]
 name = "mavi-mail"
 version = "0.1.10"
 dependencies = [
  "base64 0.23.1",
  "chrono",
+ "mavi-application",
  "mavi-audit",
  "mavi-contract",
  "mavi-core",
@@ -2016,11 +2023,11 @@ dependencies = [
  "base64 0.23.1",
  "chrono",
  "image",
+ "mavi-application",
  "mavi-audit",
  "mavi-contract",
  "mavi-core",
  "mavi-files",
- "mavi-jobs",
  "mavi-storage",
  "serde",
  "serde_json",
@@ -2033,30 +2040,24 @@ dependencies = [
 [[package]]
 name = "mavi-observability"
 version = "0.1.10"
+dependencies = [
+ "mavi-core",
+]
 
 [[package]]
 name = "mavi-portable"
 version = "0.1.10"
 dependencies = [
  "chrono",
- "mavi-analytics",
  "mavi-audit",
- "mavi-boards",
  "mavi-contract",
  "mavi-core",
- "mavi-courses",
  "mavi-design",
  "mavi-files",
- "mavi-flows",
- "mavi-forms",
  "mavi-identity",
- "mavi-jobs",
- "mavi-mail",
  "mavi-media",
  "mavi-settings",
- "mavi-shop",
  "mavi-storage",
- "mavi-trash",
  "serde",
  "serde_json",
  "sha2 0.11.0",
@@ -2069,11 +2070,9 @@ dependencies = [
 name = "mavi-runtime"
 version = "0.1.10"
 dependencies = [
- "axum",
  "mavi-core",
  "mavi-storage",
  "serde",
- "tokio",
  "uuid",
 ]
 
@@ -2172,25 +2171,20 @@ dependencies = [
 name = "mavi-trash"
 version = "0.1.10"
 dependencies = [
- "base64 0.23.1",
  "chrono",
- "mavi-audit",
+ "mavi-application",
  "mavi-boards",
  "mavi-content",
- "mavi-contract",
  "mavi-core",
  "mavi-courses",
  "mavi-files",
  "mavi-flows",
  "mavi-forms",
- "mavi-jobs",
  "mavi-media",
  "mavi-shop",
  "mavi-storage",
  "mavi-taxonomy",
- "serde",
  "serde_json",
- "sha2 0.11.0",
  "sqlx",
  "tokio",
  "uuid",
@@ -2202,19 +2196,21 @@ version = "0.1.10"
 dependencies = [
  "chrono",
  "mavi-analytics",
+ "mavi-application",
  "mavi-audit",
  "mavi-content",
  "mavi-core",
+ "mavi-design",
  "mavi-files",
+ "mavi-flows",
  "mavi-forms",
- "mavi-jobs",
  "mavi-mail",
  "mavi-media",
  "mavi-observability",
  "mavi-sealing",
  "mavi-settings",
  "mavi-storage",
- "mavi-trash",
+ "reqwest",
  "serde_json",
  "sqlx",
  "tokio",

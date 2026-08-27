@@ -2,6 +2,7 @@
 resolver = "3"
 members = [
   "mavi-core",
+  "mavi-application",
   "mavi-storage",
   "mavi-contract",
   "mavi-runtime",
@@ -24,7 +25,6 @@ members = [
   "mavi-mail",
   "mavi-shop",
   "mavi-courses",
-  "mavi-jobs",
   "mavi-worker",
   "mavi-flows",
   "mavi-boards",

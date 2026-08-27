@@ -15,7 +15,14 @@ A port is a decision, not a convenience. `server/mavi-core/src/ports.rs` says
 so at the top: adding one is work for everybody embedding this, and one nobody
 implements differently is a parameter wearing a costume.
 
-## Why there is no plugins table
+## Why integrations are ports, not database plugins
+
+Mavi has product plugins, but they are compiled feature packages rather than
+native code loaded from a database. site_plugins stores only the activation
+and configuration decision for the descriptors already present in the binary;
+it gates routes, navigation, MCP and workflows without becoming a code-loading
+boundary. External integrations such as mail and build providers remain ports,
+because their credentials, SDKs and deployment policy belong to the host.
 
 The software this replaces had one: 524 lines where a site chose its own mail
 server, its own payment provider, and where those settings were kept in rows,
